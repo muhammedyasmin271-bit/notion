@@ -83,4 +83,29 @@ router.get('/:id', auth, async (req, res) => {
   }
 });
 
+// PUT /api/projects/:id - Update project (auth required)
+router.put('/:id', auth, async (req, res) => {
+  try {
+    const { name, notes, status, priority, forPerson, startDate, endDate } = req.body || {};
+
+    const p = await Project.findById(req.params.id);
+    if (!p) return res.status(404).json({ message: 'Project not found' });
+
+    if (name !== undefined) p.title = name;
+    if (notes !== undefined) p.description = notes;
+    if (status !== undefined) p.status = status;
+    if (priority !== undefined) p.priority = priority;
+    if (forPerson !== undefined) p.tags = forPerson ? [String(forPerson)] : [];
+    if (startDate !== undefined) p.startDate = startDate ? new Date(startDate) : undefined;
+    if (endDate !== undefined) p.dueDate = endDate ? new Date(endDate) : undefined;
+
+    await p.save();
+    await p.populate('owner', 'name email');
+    res.json(mapProject(p));
+  } catch (e) {
+    console.error('Failed to update project:', e.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 module.exports = router;
