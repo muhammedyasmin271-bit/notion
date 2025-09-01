@@ -119,7 +119,7 @@ const ProjectsPage = () => {
     }
   };
 
-  const handleUpdateField = (projectId, field, value) => {
+  const handleUpdateField = async (projectId, field, value) => {
     // Regular users can only update status
     if (user?.role !== 'manager' && field !== 'status') return;
     
@@ -166,12 +166,26 @@ const ProjectsPage = () => {
         );
       }
     }
-    
-    setProjects(projects.map(p => 
-      p.id === projectId 
-        ? { ...p, [field]: value, updatedAt: new Date().toISOString() } 
-        : p
-    ));
+    // Persist to backend
+    try {
+      const response = await fetch(`http://localhost:5000/api/projects/${projectId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': localStorage.getItem('token')
+        },
+        body: JSON.stringify({ [field]: value })
+      });
+
+      if (response.ok) {
+        const updated = await response.json();
+        setProjects(projects.map(p => (p.id === projectId ? updated : p)));
+      } else {
+        console.error('Failed to update project');
+      }
+    } catch (err) {
+      console.error('Error updating project:', err);
+    }
   };
 
   const handleDeleteProject = (projectId) => {

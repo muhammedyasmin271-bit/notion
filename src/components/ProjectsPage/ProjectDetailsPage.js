@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Calendar, User, Flag, Clock, CheckCircle, AlertCircle, Edit3, X, Trash2, Users, Target, BarChart3,
@@ -25,6 +25,8 @@ const ProjectDetailsPage = () => {
   const [showAddTask, setShowAddTask] = useState(false);
   const [showFormatMenu, setShowFormatMenu] = useState(false);
   const [textareaRef, setTextareaRef] = useState(null);
+  const saveTimer = useRef(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     fetchProject();
@@ -43,6 +45,19 @@ const ProjectDetailsPage = () => {
     } catch (error) {
       console.error('Error fetching project:', error);
     }
+  };
+
+  // Debounced autosave for notes
+  const debouncedSaveNotes = (html) => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    setIsSaving(true);
+    saveTimer.current = setTimeout(async () => {
+      try {
+        await updateProject('notes', html);
+      } finally {
+        setIsSaving(false);
+      }
+    }, 600);
   };
 
   const fetchProjectData = async () => {
@@ -551,6 +566,7 @@ const ProjectDetailsPage = () => {
                         <div
                           ref={setTextareaRef}
                           contentEditable
+                          onInput={(e) => debouncedSaveNotes(e.currentTarget.innerHTML)}
                           onKeyDown={(e) => {
                             if (e.ctrlKey && e.key === 's') {
                               e.preventDefault();
@@ -565,8 +581,9 @@ const ProjectDetailsPage = () => {
                           }}
                           data-placeholder="Add project description..."
                         />
-                        <div className="mt-2 text-xs text-gray-500">
-                          Press Ctrl+S to save
+                        <div className="mt-2 text-xs text-gray-500 flex items-center gap-2">
+                          <span>Press Ctrl+S to save</span>
+                          {isSaving && <span className="opacity-80">• Saving…</span>}
                         </div>
                       </div>
                     </div>
