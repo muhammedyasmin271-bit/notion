@@ -1,0 +1,81 @@
+@tailwind base;
+/* Login page subtle animations */
+@keyframes slideDownFade {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-down {
+  animation: slideDownFade 0.3s ease-out;
+}
+
+@keyframes gentleShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-3px); }
+  40% { transform: translateX(3px); }
+  60% { transform: translateX(-2px); }
+  80% { transform: translateX(2px); }
+}
+
+.animate-shake {
+  animation: gentleShake 0.4s ease-in-out;
+}
+@tailwind components;
+@tailwind utilities;
+
+/* Remove forced global colors so pages can control light/dark styling */
+/* Theme variables for light and dark modes */
+:root {
+  --accent-primary: #6366f1; /* indigo-500 */
+  --accent-secondary: #8b5cf6; /* violet-500 */
+  --shadow-lg: 0 10px 40px rgba(0,0,0,0.15);
+  --shadow-xl: 0 20px 60px rgba(0,0,0,0.2);
+}
+
+body.light-theme {
+  --bg-primary: #f8fafc; /* slate-50 */
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f3f4f6; /* gray-100 */
+  --bg-card: #ffffff;
+  --bg-hover: #eef2ff; /* indigo-50 */
+  --border-primary: #e5e7eb; /* gray-200 */
+  --text-primary: #111827; /* gray-900 */
+  --text-secondary: #6b7280; /* gray-500 */
+  --text-muted: #9ca3af; /* gray-400 */
+}
+
+body.dark-theme {
+  --bg-primary: #000000;
+  --bg-secondary: #0b0b0b;
+  --bg-tertiary: #111827; /* gray-900 */
+  --bg-card: rgba(17, 24, 39, 0.6);
+  --bg-hover: rgba(99, 102, 241, 0.15);
+  --border-primary: #374151; /* gray-700 */
+  --text-primary: #f9fafb; /* gray-50 */
+  --text-secondary: #d1d5db; /* gray-300 */
+  --text-muted: #9ca3af; /* gray-400 */
+}
+
+/* Global font stack */
+html, body, #root {
+  height: 100%;
+}
+body {
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+/* Layout: make page content react to sidebar width */
+.content {
+  margin-left: 0;
+  transition: margin-left 200ms ease-in-out;
+  /* Constrain width so pages are not full-window */
+  max-width: 1280px; /* ~max-w-7xl */
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 1024px) { /* lg breakpoint to match Tailwind 'lg' */
+  body.sidebar-expanded .content { margin-left: 16rem; } /* w-64 */
+  body.sidebar-collapsed .content { margin-left: 0; }      /* full width when closed */
+}

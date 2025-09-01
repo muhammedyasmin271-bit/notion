@@ -1,0 +1,77 @@
+.App {
+  background-color: #000000;
+  color: #ffffff;
+  min-height: 100vh;
+  transition: all 0.3s ease;
+}
+
+/* Offset main content from the fixed sidebar */
+body.sidebar-expanded .app-content {
+  margin-left: 16rem; /* matches NavBar w-64 */
+}
+
+body.sidebar-collapsed .app-content {
+  margin-left: 4rem; /* matches NavBar w-16 */
+}
+
+/* On mobile, sidebar overlays; content should not be offset */
+@media (max-width: 1024px) {
+  .app-content {
+    margin-left: 0 !important;
+  }
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+  filter: brightness(1.2);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background: linear-gradient(135deg, #000000 0%, #1f2937 100%);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.App-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.App-link {
+  color: #3b82f6;
+  transition: color 0.3s ease;
+}
+
+.App-link:hover {
+  color: #60a5fa;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
