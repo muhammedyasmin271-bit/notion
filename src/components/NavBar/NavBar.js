@@ -19,6 +19,7 @@ import {
   Bell,
   UsersIcon,
   User as ProfileIcon,
+  BarChart3 as ReportsIcon,
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { getUnreadCount, markAllNotificationsRead } from '../../utils/notifications';
@@ -70,6 +71,7 @@ const NavBar = () => {
     { name: 'Documents', icon: DocumentsIcon, page: 'documents', path: '/documents', description: 'Document hub' },
     { name: 'Notepad', icon: NotepadIcon, page: 'notepad', path: '/notepad', description: 'Personal notes & ideas' },
     { name: 'Meeting Notes', icon: MeetingNotesIcon, page: 'meetingNotes', path: '/meeting-notes', description: 'Meeting summaries' },
+    { name: 'Reports', icon: ReportsIcon, page: 'reports', path: '/reports', description: 'Analytics & insights' },
     { name: 'Trash', icon: TrashIcon, page: 'trash', path: '/trash', description: 'Deleted items' },
     { name: 'Profile', icon: ProfileIcon, page: 'profile', path: '/profile', description: 'User profile & settings' },
     { name: 'Users', icon: UsersIcon, page: 'users', path: '/users', description: 'User management' },

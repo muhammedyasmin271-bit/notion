@@ -83,9 +83,18 @@ const HomePage = () => {
   const regularUsers = users.filter(u => u.role === 'user');
 
   return (
-    <div className={`content p-6 lg:p-8 font-sans min-h-screen ${
-      isDarkMode ? 'bg-black text-white' : 'bg-white text-black'
-    }`}>
+    <div
+      className={`content p-6 lg:p-8 font-sans min-h-screen relative ${
+        isDarkMode ? 'bg-black/60 text-white backdrop-blur-sm' : 'bg-white/60 text-black backdrop-blur-sm'
+      }`}
+      style={{
+        backgroundImage: "url('/documents-bg.jpg')",
+        backgroundRepeat: 'no-repeat',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center center',
+        backgroundAttachment: 'fixed'
+      }}
+    >
       {/* Professional Header */}
       <div className="mb-12">
         <div className="flex items-center justify-between mb-10">
@@ -284,6 +293,15 @@ const HomePage = () => {
             >
               <Target className="w-4 h-4" />
               Add Goal
+            </button>
+            <button
+              onClick={() => handlePageNavigation('reports')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition-all duration-300 hover:scale-105 ${
+                isDarkMode ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <BarChart3 className="w-4 h-4" />
+              View Reports
             </button>
             <button
               onClick={() => handlePageNavigation('notepad')}

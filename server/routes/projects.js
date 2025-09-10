@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const Project = require('../models/Project');
+const { requireManager } = require('../middleware/roleAuth');
 
 // Map DB project to frontend expected shape
 function mapProject(p) {
@@ -42,18 +43,19 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// POST /api/projects - Create new project (auth required)
-router.post('/', auth, async (req, res) => {
+// POST /api/projects - Create new project (manager only)
+router.post('/', requireManager, async (req, res) => {
   try {
     const { name, status, priority, forPerson, notes, startDate, endDate } = req.body || {};
 
-    if (!name || String(name).trim().length === 0) {
-      return res.status(400).json({ message: 'Project name is required' });
-    }
+    const safeName = (name && String(name).trim().length > 0) ? String(name).trim() : 'Untitled Project';
+    const safeDescription = (typeof notes === 'string' && notes.trim().length > 0)
+      ? notes
+      : 'Project description will be added here.';
 
     const project = new Project({
-      title: name,
-      description: notes || '',
+      title: safeName,
+      description: safeDescription,
       status: status || 'Not started',
       priority: priority || 'Medium',
       owner: req.user.id,
@@ -83,8 +85,8 @@ router.get('/:id', auth, async (req, res) => {
   }
 });
 
-// PUT /api/projects/:id - Update project (auth required)
-router.put('/:id', auth, async (req, res) => {
+// PUT /api/projects/:id - Update project (manager only)
+router.put('/:id', requireManager, async (req, res) => {
   try {
     const { name, notes, status, priority, forPerson, startDate, endDate } = req.body || {};
 
@@ -104,6 +106,20 @@ router.put('/:id', auth, async (req, res) => {
     res.json(mapProject(p));
   } catch (e) {
     console.error('Failed to update project:', e.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// DELETE /api/projects/:id - Delete project (manager only)
+router.delete('/:id', requireManager, async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.id);
+    if (!project) return res.status(404).json({ message: 'Project not found' });
+    
+    await Project.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Project deleted successfully' });
+  } catch (e) {
+    console.error('Failed to delete project:', e.message);
     res.status(500).json({ message: 'Server error' });
   }
 });

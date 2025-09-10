@@ -5,7 +5,7 @@ const User = require('../models/User');
 const auth = require('../middleware/auth');
 const Notification = require('../models/Notification');
 
-// @route   GET /api/notes
+// @route   GET /api/notepad
 // @desc    Get all notes for authenticated user
 // @access  Private
 router.get('/', auth, async (req, res) => {
@@ -53,7 +53,7 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// @route   GET /api/notes/:id
+// @route   GET /api/notepad/:id
 // @desc    Get note by ID
 // @access  Private
 router.get('/:id', auth, async (req, res) => {
@@ -83,21 +83,27 @@ router.get('/:id', auth, async (req, res) => {
   }
 });
 
-// @route   POST /api/notes
+// @route   POST /api/notepad
 // @desc    Create a new note
 // @access  Private
 router.post('/', auth, async (req, res) => {
   try {
-    const { title, content, category, tags, isPublic } = req.body;
+    const { title, content, blocks, category, tags, isPublic } = req.body;
 
     // Validate required fields
-    if (!title || !content) {
-      return res.status(400).json({ message: 'Title and content are required' });
+    if (!title) {
+      return res.status(400).json({ message: 'Title is required' });
+    }
+
+    // Ensure either content or blocks is provided
+    if (!content && (!blocks || blocks.length === 0)) {
+      return res.status(400).json({ message: 'Either content or blocks must be provided' });
     }
 
     const newNote = new Note({
       title,
-      content,
+      content: content || '',
+      blocks: blocks || [],
       category: category || 'General',
       tags: tags || [],
       isPublic: isPublic || false,
@@ -117,12 +123,12 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
-// @route   PUT /api/notes/:id
+// @route   PUT /api/notepad/:id
 // @desc    Update a note
 // @access  Private
 router.put('/:id', auth, async (req, res) => {
   try {
-    const { title, content, category, tags, isPublic } = req.body;
+    const { title, content, blocks, category, tags, isPublic } = req.body;
 
     let note = await Note.findOne({ _id: req.params.id, deleted: false });
 
@@ -135,14 +141,16 @@ router.put('/:id', auth, async (req, res) => {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
-    // Create new version if content changed
-    if (content && content !== note.content) {
-      await note.createVersion(content, req.user.id);
+    // Create new version if content or blocks changed
+    if ((content && content !== note.content) || (blocks && JSON.stringify(blocks) !== JSON.stringify(note.blocks))) {
+      await note.createVersion(content, blocks, req.user.id);
     }
 
     // Update fields
     const updateFields = {};
     if (title !== undefined) updateFields.title = title;
+    if (content !== undefined) updateFields.content = content;
+    if (blocks !== undefined) updateFields.blocks = blocks;
     if (category !== undefined) updateFields.category = category;
     if (tags !== undefined) updateFields.tags = tags;
     if (isPublic !== undefined) updateFields.isPublic = isPublic;
@@ -166,7 +174,7 @@ router.put('/:id', auth, async (req, res) => {
   }
 });
 
-// @route   DELETE /api/notes/:id
+// @route   DELETE /api/notepad/:id
 // @desc    Soft delete a note (move to trash)
 // @access  Private
 router.delete('/:id', auth, async (req, res) => {
@@ -197,7 +205,7 @@ router.delete('/:id', auth, async (req, res) => {
   }
 });
 
-// @route   PATCH /api/notes/:id/restore
+// @route   PATCH /api/notepad/:id/restore
 // @desc    Restore a deleted note
 // @access  Private
 router.patch('/:id/restore', auth, async (req, res) => {
@@ -229,7 +237,7 @@ router.patch('/:id/restore', auth, async (req, res) => {
   }
 });
 
-// @route   PATCH /api/notes/:id/pin
+// @route   PATCH /api/notepad/:id/pin
 // @desc    Toggle pin status of a note
 // @access  Private
 router.patch('/:id/pin', auth, async (req, res) => {
@@ -258,7 +266,7 @@ router.patch('/:id/pin', auth, async (req, res) => {
   }
 });
 
-// @route   PATCH /api/notes/:id/archive
+// @route   PATCH /api/notepad/:id/archive
 // @desc    Toggle archive status of a note
 // @access  Private
 router.patch('/:id/archive', auth, async (req, res) => {
@@ -291,7 +299,7 @@ router.patch('/:id/archive', auth, async (req, res) => {
   }
 });
 
-// @route   POST /api/notes/:id/share
+// @route   POST /api/notepad/:id/share
 // @desc    Share note with specific user groups
 // @access  Private
 router.post('/:id/share', auth, async (req, res) => {
@@ -366,7 +374,7 @@ router.post('/:id/share', auth, async (req, res) => {
   }
 });
 
-// @route   GET /api/notes/trash/all
+// @route   GET /api/notepad/trash/all
 // @desc    Get all deleted notes for user
 // @access  Private
 router.get('/trash/all', auth, async (req, res) => {
@@ -383,7 +391,7 @@ router.get('/trash/all', auth, async (req, res) => {
   }
 });
 
-// @route   DELETE /api/notes/trash/:id
+// @route   DELETE /api/notepad/trash/:id
 // @desc    Permanently delete a note from trash
 // @access  Private
 router.delete('/trash/:id', auth, async (req, res) => {

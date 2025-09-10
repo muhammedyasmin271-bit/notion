@@ -10,7 +10,6 @@ import ProjectDetailsPage from './components/ProjectsPage/ProjectDetailsPage';
 import GoalsPage from './components/GoalsPage/GoalsPage';
 import DocumentsPage from './components/DocumentsPage/DocumentsPage';
 import NotepadPage from './components/NotepadPage/NotepadPage';
-import NotesPage from './components/NotesPage/NotesPage';
 import MeetingNotesPage from './components/MeetingNotesPage/MeetingNotesPage';
 import MeetingEditorPage from './components/MeetingEditorPage/MeetingEditorPage';
 import TrashPage from './components/TrashPage/TrashPage';
@@ -24,11 +23,8 @@ import UserProfilePage from './components/UserProfilePage/UserProfilePage';
 import WelcomePage from './components/WelcomePage/WelcomePage';
 import ManagerRoute from './components/ManagerRoute/ManagerRoute';
 import SavedNotesPage from './components/SavedNotesPage/SavedNotesPage';
+import ReportsPage from './components/ReportsPage/ReportsPage';
 import './App.css';
-
-
-
-
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -37,16 +33,15 @@ const ProtectedRoute = ({ children }) => {
 };
 
 // Layout Component for authenticated pages
-const Layout = ({ children }) => {
+const Layout = ({ children, hideNav = false }) => {
   const { isDarkMode } = useTheme();
-  
+
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${
-      isDarkMode 
-        ? 'bg-black text-white' 
-        : 'bg-gray-50 text-gray-900'
-    }`}>
-      <NavBar />
+    <div className={`min-h-screen transition-colors duration-300 ${isDarkMode
+      ? 'bg-black text-white'
+      : 'bg-gray-50 text-gray-900'
+      }`}>
+      {!hideNav && <NavBar />}
       <div className="app-content">
         {children}
       </div>
@@ -61,30 +56,30 @@ const AppContent = () => {
     <Router>
       <Routes>
         {/* Auth Routes */}
-        <Route 
-          path="/login" 
-          element={isAuthenticated ? <Navigate to="/home" replace /> : <LoginPage />} 
+        <Route
+          path="/login"
+          element={isAuthenticated ? <Navigate to="/home" replace /> : <LoginPage />}
         />
-        <Route 
-          path="/register" 
-          element={isAuthenticated ? <Navigate to="/home" replace /> : <RegisterPage />} 
+        <Route
+          path="/register"
+          element={isAuthenticated ? <Navigate to="/home" replace /> : <RegisterPage />}
         />
-        <Route 
-          path="/welcome" 
-          element={<WelcomePage />} 
+        <Route
+          path="/welcome"
+          element={<WelcomePage />}
         />
-        <Route 
-          path="/pending-approval" 
-          element={<PendingApprovalPage />} 
+        <Route
+          path="/pending-approval"
+          element={<PendingApprovalPage />}
         />
-        
+
         {/* Protected Routes */}
         <Route path="/" element={
           <ProtectedRoute>
             <Navigate to="/home" replace />
           </ProtectedRoute>
         } />
-        
+
         <Route path="/home" element={
           <ProtectedRoute>
             <Layout>
@@ -92,7 +87,7 @@ const AppContent = () => {
             </Layout>
           </ProtectedRoute>
         } />
-        
+
         <Route path="/notifications" element={
           <ProtectedRoute>
             <Layout>
@@ -100,7 +95,7 @@ const AppContent = () => {
             </Layout>
           </ProtectedRoute>
         } />
-        
+
         <Route path="/projects" element={
           <ProtectedRoute>
             <Layout>
@@ -108,15 +103,40 @@ const AppContent = () => {
             </Layout>
           </ProtectedRoute>
         } />
-        
+
+        <Route path="/projects/new" element={
+          <ProtectedRoute>
+            <Layout hideNav={true}>
+              <ProjectDetailsPage isNewProject={true} />
+            </Layout>
+          </ProtectedRoute>
+        } />
+
         <Route path="/projects/:projectId" element={
           <ProtectedRoute>
-            <Layout>
+            <Layout hideNav={true}>
               <ProjectDetailsPage />
             </Layout>
           </ProtectedRoute>
         } />
-        
+
+        <Route path="/projects/split/:projectId" element={
+          <ProtectedRoute>
+            <Layout>
+              <div className="w-full">
+                <div className="grid grid-cols-2 gap-0">
+                  <div className="border-r border-gray-200 dark:border-gray-800 min-h-screen overflow-auto">
+                    <ProjectsPage />
+                  </div>
+                  <div className="min-h-screen overflow-auto">
+                    <ProjectDetailsPage />
+                  </div>
+                </div>
+              </div>
+            </Layout>
+          </ProtectedRoute>
+        } />
+
         <Route path="/goals" element={
           <ProtectedRoute>
             <Layout>
@@ -124,7 +144,7 @@ const AppContent = () => {
             </Layout>
           </ProtectedRoute>
         } />
-        
+
         <Route path="/documents" element={
           <ProtectedRoute>
             <Layout>
@@ -138,7 +158,7 @@ const AppContent = () => {
             <Navigate to="/documents" replace />
           </ProtectedRoute>
         } />
-        
+
         <Route path="/notepad" element={
           <ProtectedRoute>
             <Layout>
@@ -146,11 +166,11 @@ const AppContent = () => {
             </Layout>
           </ProtectedRoute>
         } />
-        
+
         <Route path="/notes" element={
           <ProtectedRoute>
             <Layout>
-              <NotesPage />
+              <NotepadPage />
             </Layout>
           </ProtectedRoute>
         } />
@@ -162,7 +182,7 @@ const AppContent = () => {
             </Layout>
           </ProtectedRoute>
         } />
-        
+
         <Route path="/meeting-notes" element={
           <ProtectedRoute>
             <Layout>
@@ -170,7 +190,7 @@ const AppContent = () => {
             </Layout>
           </ProtectedRoute>
         } />
-        
+
         <Route path="/meeting-new" element={
           <ProtectedRoute>
             <Layout>
@@ -178,7 +198,7 @@ const AppContent = () => {
             </Layout>
           </ProtectedRoute>
         } />
-        
+
         <Route path="/trash" element={
           <ProtectedRoute>
             <Layout>
@@ -186,7 +206,7 @@ const AppContent = () => {
             </Layout>
           </ProtectedRoute>
         } />
-        
+
         <Route path="/settings" element={
           <ProtectedRoute>
             <Layout>
@@ -194,7 +214,7 @@ const AppContent = () => {
             </Layout>
           </ProtectedRoute>
         } />
-        
+
         <Route path="/invite" element={
           <ProtectedRoute>
             <Layout>
@@ -202,7 +222,7 @@ const AppContent = () => {
             </Layout>
           </ProtectedRoute>
         } />
-        
+
         <Route path="/users" element={
           <ManagerRoute>
             <Layout>
@@ -210,7 +230,7 @@ const AppContent = () => {
             </Layout>
           </ManagerRoute>
         } />
-        
+
         <Route path="/profile" element={
           <ProtectedRoute>
             <Layout>
@@ -218,7 +238,15 @@ const AppContent = () => {
             </Layout>
           </ProtectedRoute>
         } />
-        
+
+        <Route path="/reports" element={
+          <ProtectedRoute>
+            <Layout>
+              <ReportsPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+
         {/* Catch all route - redirect to home */}
         <Route path="*" element={
           <ProtectedRoute>

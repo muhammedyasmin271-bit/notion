@@ -295,9 +295,18 @@ const NotificationsPage = () => {
   };
 
   return (
-    <div className={`content p-4 lg:p-6 font-sans min-h-screen ${
-      isDarkMode ? 'bg-black text-white' : 'bg-white text-gray-900'
-    }`}>
+    <div
+      className={`content p-4 lg:p-6 font-sans min-h-screen relative ${
+        isDarkMode ? 'bg-black/60 text-white backdrop-blur-sm' : 'bg-white/60 text-gray-900 backdrop-blur-sm'
+      }`}
+      style={{
+        backgroundImage: "url('/documents-bg.jpg')",
+        backgroundRepeat: 'no-repeat',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center center',
+        backgroundAttachment: 'fixed'
+      }}
+    >
       {/* Professional Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-6">
