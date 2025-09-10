@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Users, Plus, Search, UserCheck, UserX, Trash2, 
-  Shield, Crown, User as UserIcon, Calendar, 
+import {
+  Users, Plus, Search, UserCheck, UserX, Trash2,
+  Shield, Crown, User as UserIcon, Calendar,
   Edit3, Mail, Phone, Building, Check, X, Clock
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useNavigate } from 'react-router-dom';
 
 const UserManagementPage = () => {
   const { user } = useAppContext();
   const { isDarkMode } = useTheme();
+  const navigate = useNavigate();
   const isManager = user?.role === 'manager';
   const [users, setUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -17,13 +19,40 @@ const UserManagementPage = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [isPickerMode, setIsPickerMode] = useState(false);
+  const [pickerData, setPickerData] = useState(null);
   const [showUserProfile, setShowUserProfile] = useState(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    setIsPickerMode(urlParams.get('picker') === '1');
+    const isPicker = urlParams.get('picker') === '1';
+    setIsPickerMode(isPicker);
+
+    if (isPicker) {
+      // Check for project or goal picker data
+      const projectData = sessionStorage.getItem('projectPickerReturn');
+      const goalData = sessionStorage.getItem('goalPickerReturn');
+
+      if (projectData) {
+        const data = JSON.parse(projectData);
+        setPickerData(data);
+        // Pre-select users based on current assignment - split with the new delimiter
+        if (data.currentAssignment) {
+          const currentNames = data.currentAssignment.split('; ').map(name => name.trim());
+          setSelectedUsers(currentNames);
+        }
+      } else if (goalData) {
+        const data = JSON.parse(goalData);
+        setPickerData(data);
+        // Pre-select users based on current assignment - split with the new delimiter
+        if (data.currentAssignment) {
+          const currentNames = data.currentAssignment.split('; ').map(name => name.trim());
+          setSelectedUsers(currentNames);
+        }
+      }
+    }
+
     loadUsers();
   }, []);
 
@@ -55,8 +84,8 @@ const UserManagementPage = () => {
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         user.department.toLowerCase().includes(searchQuery.toLowerCase());
+      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.department.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesRole = filterRole === 'all' || user.role === filterRole;
     // Hide declined users unless explicitly filtering for declined
     const declinedHidden = user.status === 'declined' && filterStatus !== 'declined';
@@ -78,19 +107,70 @@ const UserManagementPage = () => {
       phone: formData.get('phone'),
       location: formData.get('location')
     };
-    
+
     try {
       const apiService = (await import('../../services/api')).default;
       await apiService.createUser(memberData);
-      
+
       setShowCreateForm(false);
       await loadUsers();
-      
+
       alert(`Member created successfully!\\n\\nLogin Credentials:\\nUsername: ${memberData.username}\\nPassword: ${password}`);
-      
+
     } catch (error) {
       console.error('Error creating member:', error);
       alert(error.response?.data?.message || 'Failed to create member. Please try again.');
+    }
+  };
+
+  const handleUserSelection = (userName) => {
+    setSelectedUsers(prev => {
+      if (prev.includes(userName)) {
+        return prev.filter(name => name !== userName);
+      } else {
+        return [...prev, userName];
+      }
+    });
+  };
+
+  const handleConfirmSelection = () => {
+    if (!pickerData) return;
+
+    // Join user names with a more robust delimiter to handle names with commas
+    const selectedUserNames = selectedUsers.join('; ');
+    console.log('Storing selected users:', selectedUserNames);
+
+    if (pickerData.type === 'project') {
+      sessionStorage.setItem('selectedProjectUsers', selectedUserNames);
+      // Store the project data to return to the same project
+      sessionStorage.setItem('returnToProject', JSON.stringify(pickerData));
+      sessionStorage.removeItem('projectPickerReturn');
+      // Navigate back to projects page
+      navigate('/projects');
+    } else if (pickerData.type === 'goal') {
+      sessionStorage.setItem('selectedGoalUsers', selectedUserNames);
+      sessionStorage.removeItem('goalPickerReturn');
+      navigate('/goals');
+    }
+  };
+
+  const handleCancelSelection = () => {
+    const projectData = sessionStorage.getItem('projectPickerReturn');
+    const goalData = sessionStorage.getItem('goalPickerReturn');
+
+    if (projectData) {
+      const data = JSON.parse(projectData);
+      sessionStorage.removeItem('projectPickerReturn');
+      if (data.id && data.id !== 'new') {
+        navigate(`/projects/${data.id}`);
+      } else {
+        navigate('/projects');
+      }
+    } else if (goalData) {
+      sessionStorage.removeItem('goalPickerReturn');
+      navigate('/goals');
+    } else {
+      navigate(-1); // Go back to previous page
     }
   };
 
@@ -161,15 +241,15 @@ const UserManagementPage = () => {
       phone: formData.get('phone'),
       location: formData.get('location')
     };
-    
+
     try {
       const apiService = (await import('../../services/api')).default;
       await apiService.updateUser(editingUser.id, updatedData);
-      
+
       setShowCreateForm(false);
       setEditingUser(null);
       await loadUsers();
-      
+
       alert('Member updated successfully!');
     } catch (error) {
       console.error('Error updating member:', error);
@@ -178,44 +258,59 @@ const UserManagementPage = () => {
   };
 
   return (
-    <div className={`content p-6 lg:p-8 font-sans min-h-screen ${
-      isDarkMode ? 'bg-black text-white' : 'bg-white text-gray-900'
-    }`}>
+    <div className={`content p-6 lg:p-8 font-sans min-h-screen ${isDarkMode ? 'bg-black text-white' : 'bg-white text-gray-900'
+      }`}>
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center">
-            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mr-6 shadow-lg ${
-              isDarkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white border border-gray-200'
-            }`}>
+            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mr-6 shadow-lg ${isDarkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white border border-gray-200'
+              }`}>
               <Users className={`w-8 h-8 ${isDarkMode ? 'text-white' : 'text-black'}`} />
             </div>
             <div>
               <h1 className={`text-4xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                Team Members
+                {isPickerMode ? 'Select Team Members' : 'Team Members'}
               </h1>
               <p className={`text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Manage your team and user accounts
+                {isPickerMode ? `Select users to assign to ${pickerData?.type || 'item'}` : 'Manage your team and user accounts'}
               </p>
             </div>
           </div>
-          
-          {isManager && (
-            <button
-              onClick={() => setShowCreateForm(true)}
-              className="flex items-center px-6 py-3 text-sm font-semibold rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Member
-            </button>
+
+          {isPickerMode ? (
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleCancelSelection}
+                className="px-6 py-3 text-sm font-semibold rounded-xl bg-gray-500 hover:bg-gray-600 text-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmSelection}
+                className="flex items-center px-6 py-3 text-sm font-semibold rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+              >
+                <Check className="w-4 h-4 mr-2" />
+                Confirm Selection ({selectedUsers.length})
+              </button>
+            </div>
+          ) : (
+            isManager && (
+              <button
+                onClick={() => setShowCreateForm(true)}
+                className="flex items-center px-6 py-3 text-sm font-semibold rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Member
+              </button>
+            )
           )}
         </div>
 
         {/* Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className={`p-6 rounded-2xl shadow-lg border ${
-            isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
-          }`}>
+          <div className={`p-6 rounded-2xl shadow-lg border ${isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
+            }`}>
             <div className="flex items-center justify-between">
               <div>
                 <p className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>
@@ -230,10 +325,9 @@ const UserManagementPage = () => {
               </div>
             </div>
           </div>
-          
-          <div className={`p-6 rounded-2xl shadow-lg border ${
-            isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
-          }`}>
+
+          <div className={`p-6 rounded-2xl shadow-lg border ${isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
+            }`}>
             <div className="flex items-center justify-between">
               <div>
                 <p className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>
@@ -248,10 +342,9 @@ const UserManagementPage = () => {
               </div>
             </div>
           </div>
-          
-          <div className={`p-6 rounded-2xl shadow-lg border ${
-            isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
-          }`}>
+
+          <div className={`p-6 rounded-2xl shadow-lg border ${isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
+            }`}>
             <div className="flex items-center justify-between">
               <div>
                 <p className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>
@@ -266,10 +359,9 @@ const UserManagementPage = () => {
               </div>
             </div>
           </div>
-          
-          <div className={`p-6 rounded-2xl shadow-lg border ${
-            isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
-          }`}>
+
+          <div className={`p-6 rounded-2xl shadow-lg border ${isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
+            }`}>
             <div className="flex items-center justify-between">
               <div>
                 <p className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>
@@ -289,26 +381,23 @@ const UserManagementPage = () => {
         {/* Search */}
         <div className="flex items-center space-x-4 mb-6">
           <div className="relative">
-            <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 ${
-              isDarkMode ? 'text-gray-400' : 'text-gray-400'
-            }`} />
+            <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-400'
+              }`} />
             <input
               type="text"
               placeholder="Search users..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className={`pl-10 pr-4 py-3 rounded-lg w-80 text-sm border ${
-                isDarkMode ? 'bg-gray-900 border-gray-700 text-white' : 'bg-white border-gray-300 text-gray-900'
-              }`}
+              className={`pl-10 pr-4 py-3 rounded-lg w-80 text-sm border ${isDarkMode ? 'bg-gray-900 border-gray-700 text-white' : 'bg-white border-gray-300 text-gray-900'
+                }`}
             />
           </div>
-          
+
           <select
             value={filterRole}
             onChange={(e) => setFilterRole(e.target.value)}
-            className={`px-4 py-3 rounded-lg text-sm border ${
-              isDarkMode ? 'bg-gray-900 border-gray-700 text-white' : 'bg-white border-gray-300 text-gray-900'
-            }`}
+            className={`px-4 py-3 rounded-lg text-sm border ${isDarkMode ? 'bg-gray-900 border-gray-700 text-white' : 'bg-white border-gray-300 text-gray-900'
+              }`}
           >
             <option value="all">All Roles</option>
             <option value="manager">Managers</option>
@@ -318,9 +407,8 @@ const UserManagementPage = () => {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className={`px-4 py-3 rounded-lg text-sm border ${
-              isDarkMode ? 'bg-gray-900 border-gray-700 text-white' : 'bg-white border-gray-300 text-gray-900'
-            }`}
+            className={`px-4 py-3 rounded-lg text-sm border ${isDarkMode ? 'bg-gray-900 border-gray-700 text-white' : 'bg-white border-gray-300 text-gray-900'
+              }`}
           >
             <option value="all">All Statuses</option>
             <option value="pending">Pending</option>
@@ -335,19 +423,19 @@ const UserManagementPage = () => {
         {filteredUsers.map((userItem) => (
           <div
             key={userItem.id}
-            className={`rounded-2xl shadow-lg border overflow-hidden cursor-pointer hover:scale-105 transition-transform duration-200 ${
-              userItem.status === 'pending'
+            className={`rounded-2xl shadow-lg border overflow-hidden cursor-pointer hover:scale-105 transition-transform duration-200 ${isPickerMode && selectedUsers.includes(userItem.name)
+              ? (isDarkMode ? 'bg-blue-900/20 border-blue-600 ring-2 ring-blue-500/30' : 'bg-blue-50 border-blue-400 ring-2 ring-blue-400/30')
+              : userItem.status === 'pending'
                 ? (isDarkMode ? 'bg-yellow-900/10 border-yellow-700 ring-2 ring-yellow-600/20' : 'bg-yellow-50 border-yellow-300 ring-2 ring-yellow-400/20')
                 : (isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200')
-            }`}
-            onClick={() => setShowUserProfile(userItem)}
+              }`}
+            onClick={() => isPickerMode ? handleUserSelection(userItem.name) : setShowUserProfile(userItem)}
           >
             {/* User Header */}
             <div className={`p-6 border-b ${isDarkMode ? 'border-gray-800' : 'border-gray-100'}`}>
               <div className="flex items-center space-x-4 mb-4">
-                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold ${
-                  isDarkMode ? 'bg-white text-black' : 'bg-black text-white'
-                }`}>
+                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold ${isDarkMode ? 'bg-white text-black' : 'bg-black text-white'
+                  }`}>
                   {userItem.name.charAt(0).toUpperCase()}
                 </div>
                 <div>
@@ -359,31 +447,28 @@ const UserManagementPage = () => {
                   </p>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-3">
-                <span className={`px-3 py-1 rounded-full text-xs font-bold border-2 flex items-center gap-2 ${
-                  userItem.role === 'manager'
-                    ? (isDarkMode ? 'bg-yellow-900 text-yellow-300 border-yellow-700' : 'bg-yellow-100 text-yellow-800 border-yellow-300')
-                    : (isDarkMode ? 'bg-blue-900 text-blue-300 border-blue-700' : 'bg-blue-100 text-blue-800 border-blue-300')
-                }`}>
+                <span className={`px-3 py-1 rounded-full text-xs font-bold border-2 flex items-center gap-2 ${userItem.role === 'manager'
+                  ? (isDarkMode ? 'bg-yellow-900 text-yellow-300 border-yellow-700' : 'bg-yellow-100 text-yellow-800 border-yellow-300')
+                  : (isDarkMode ? 'bg-blue-900 text-blue-300 border-blue-700' : 'bg-blue-100 text-blue-800 border-blue-300')
+                  }`}>
                   {userItem.role === 'manager' ? <Crown className="w-3 h-3" /> : <UserIcon className="w-3 h-3" />}
                   {userItem.role === 'manager' ? 'Manager' : 'Team Member'}
                 </span>
-                <span className={`px-3 py-1 rounded-full text-xs font-bold border-2 flex items-center gap-1 ${
-                  userItem.status === 'approved'
-                    ? (isDarkMode ? 'bg-green-900 text-green-300 border-green-700' : 'bg-green-100 text-green-800 border-green-300')
-                    : userItem.status === 'declined'
+                <span className={`px-3 py-1 rounded-full text-xs font-bold border-2 flex items-center gap-1 ${userItem.status === 'approved'
+                  ? (isDarkMode ? 'bg-green-900 text-green-300 border-green-700' : 'bg-green-100 text-green-800 border-green-300')
+                  : userItem.status === 'declined'
                     ? (isDarkMode ? 'bg-red-900 text-red-300 border-red-700' : 'bg-red-100 text-red-800 border-red-300')
                     : (isDarkMode ? 'bg-yellow-900 text-yellow-300 border-yellow-700' : 'bg-yellow-100 text-yellow-700 border-yellow-300')
-                }`}>
+                  }`}>
                   {userItem.status === 'pending' && <Clock className="w-3 h-3" />}
                   {userItem.status === 'approved' && <Check className="w-3 h-3" />}
                   {userItem.status === 'declined' && <X className="w-3 h-3" />}
                   {userItem.status.charAt(0).toUpperCase() + userItem.status.slice(1)}
                 </span>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                  isDarkMode ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-700'
-                }`}>
+                <span className={`px-3 py-1 rounded-full text-xs font-medium ${isDarkMode ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-700'
+                  }`}>
                   {userItem.department}
                 </span>
               </div>
@@ -398,21 +483,21 @@ const UserManagementPage = () => {
                     {userItem.email}
                   </span>
                 </div>
-                
+
                 <div className="flex items-center gap-3 text-sm">
                   <Phone className="w-4 h-4 opacity-50" />
                   <span className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
                     {userItem.phone}
                   </span>
                 </div>
-                
+
                 <div className="flex items-center gap-3 text-sm">
                   <Building className="w-4 h-4 opacity-50" />
                   <span className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
                     {userItem.location}
                   </span>
                 </div>
-                
+
                 <div className="flex items-center gap-3 text-sm">
                   <Calendar className="w-4 h-4 opacity-50" />
                   <span className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
@@ -428,14 +513,28 @@ const UserManagementPage = () => {
                 </div>
               </div>
 
-              {isManager && (
+              {isPickerMode && (
+                <div className="mt-4">
+                  <div className={`flex items-center justify-center p-3 rounded-lg ${selectedUsers.includes(userItem.name)
+                    ? 'bg-blue-600 text-white'
+                    : isDarkMode ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-700'
+                    }`}>
+                    {selectedUsers.includes(userItem.name) ? (
+                      <><Check className="w-4 h-4 mr-2" /> Selected</>
+                    ) : (
+                      'Click to Select'
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {!isPickerMode && isManager && (
                 <div className="flex items-center space-x-2 mt-4">
                   {userItem.status === 'pending' ? (
                     <>
                       <button
-                        className={`flex-1 px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 ${
-                          isDarkMode ? 'bg-green-900 text-green-300 hover:bg-green-800' : 'bg-green-100 text-green-700 hover:bg-green-200'
-                        }`}
+                        className={`flex-1 px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 ${isDarkMode ? 'bg-green-900 text-green-300 hover:bg-green-800' : 'bg-green-100 text-green-700 hover:bg-green-200'
+                          }`}
                         onClick={(e) => { e.stopPropagation(); handleApprove(userItem.id); }}
                         title="Approve User"
                       >
@@ -443,9 +542,8 @@ const UserManagementPage = () => {
                         Approve
                       </button>
                       <button
-                        className={`flex-1 px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 ${
-                          isDarkMode ? 'bg-red-900 text-red-300 hover:bg-red-800' : 'bg-red-100 text-red-700 hover:bg-red-200'
-                        }`}
+                        className={`flex-1 px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 ${isDarkMode ? 'bg-red-900 text-red-300 hover:bg-red-800' : 'bg-red-100 text-red-700 hover:bg-red-200'
+                          }`}
                         onClick={(e) => { e.stopPropagation(); handleDecline(userItem.id); }}
                         title="Decline User"
                       >
@@ -455,10 +553,9 @@ const UserManagementPage = () => {
                     </>
                   ) : (
                     <>
-                      <button 
-                        className={`flex-1 p-2 rounded-lg ${
-                          isDarkMode ? 'bg-green-900 text-green-300 hover:bg-green-800' : 'bg-green-100 text-green-700 hover:bg-green-200'
-                        }`}
+                      <button
+                        className={`flex-1 p-2 rounded-lg ${isDarkMode ? 'bg-green-900 text-green-300 hover:bg-green-800' : 'bg-green-100 text-green-700 hover:bg-green-200'
+                          }`}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleEditUser(userItem);
@@ -467,12 +564,11 @@ const UserManagementPage = () => {
                       >
                         <Edit3 className="w-4 h-4 mx-auto" />
                       </button>
-                      <button 
-                        className={`flex-1 p-2 rounded-lg ${
-                          userItem.isActive
-                            ? (isDarkMode ? 'bg-orange-900 text-orange-300 hover:bg-orange-800' : 'bg-orange-100 text-orange-700 hover:bg-orange-200')
-                            : (isDarkMode ? 'bg-green-900 text-green-300 hover:bg-green-800' : 'bg-green-100 text-green-700 hover:bg-green-200')
-                        }`}
+                      <button
+                        className={`flex-1 p-2 rounded-lg ${userItem.isActive
+                          ? (isDarkMode ? 'bg-orange-900 text-orange-300 hover:bg-orange-800' : 'bg-orange-100 text-orange-700 hover:bg-orange-200')
+                          : (isDarkMode ? 'bg-green-900 text-green-300 hover:bg-green-800' : 'bg-green-100 text-green-700 hover:bg-green-200')
+                          }`}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleToggleStatus(userItem.id);
@@ -481,10 +577,9 @@ const UserManagementPage = () => {
                       >
                         {userItem.isActive ? <UserX className="w-4 h-4 mx-auto" /> : <UserCheck className="w-4 h-4 mx-auto" />}
                       </button>
-                      <button 
-                        className={`flex-1 p-2 rounded-lg ${
-                          isDarkMode ? 'bg-red-900 text-red-300 hover:bg-red-800' : 'bg-red-100 text-red-700 hover:bg-red-200'
-                        }`}
+                      <button
+                        className={`flex-1 p-2 rounded-lg ${isDarkMode ? 'bg-red-900 text-red-300 hover:bg-red-800' : 'bg-red-100 text-red-700 hover:bg-red-200'
+                          }`}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteUser(userItem.id);
@@ -517,17 +612,14 @@ const UserManagementPage = () => {
       {/* User Profile Modal */}
       {showUserProfile && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-          <div className={`rounded-3xl w-full max-w-2xl max-h-[95vh] overflow-y-auto shadow-2xl border ${
-            isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'
-          }`}>
-            <div className={`px-8 py-6 border-b ${
-              isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
+          <div className={`rounded-3xl w-full max-w-2xl max-h-[95vh] overflow-y-auto shadow-2xl border ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'
             }`}>
+            <div className={`px-8 py-6 border-b ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
+              }`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-6">
-                  <div className={`w-20 h-20 rounded-2xl flex items-center justify-center shadow-lg ${
-                    isDarkMode ? 'bg-white' : 'bg-black'
-                  }`}>
+                  <div className={`w-20 h-20 rounded-2xl flex items-center justify-center shadow-lg ${isDarkMode ? 'bg-white' : 'bg-black'
+                    }`}>
                     <UserIcon className={`w-10 h-10 ${isDarkMode ? 'text-black' : 'text-white'}`} />
                   </div>
                   <div>
@@ -541,9 +633,8 @@ const UserManagementPage = () => {
                 </div>
                 <button
                   onClick={() => setShowUserProfile(null)}
-                  className={`p-4 rounded-2xl ${
-                    isDarkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-                  }`}
+                  className={`p-4 rounded-2xl ${isDarkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                    }`}
                 >
                   <X className="w-6 h-6" />
                 </button>
@@ -606,13 +697,11 @@ const UserManagementPage = () => {
                 {showUserProfile.files && showUserProfile.files.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {showUserProfile.files.map((file, index) => (
-                      <div key={index} className={`p-4 rounded-lg border ${
-                        isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
-                      }`}>
+                      <div key={index} className={`p-4 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
+                        }`}>
                         <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                            isDarkMode ? 'bg-blue-900 text-blue-300' : 'bg-blue-100 text-blue-600'
-                          }`}>
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isDarkMode ? 'bg-blue-900 text-blue-300' : 'bg-blue-100 text-blue-600'
+                            }`}>
                             📄
                           </div>
                           <div className="flex-1 min-w-0">
@@ -636,14 +725,12 @@ const UserManagementPage = () => {
               </div>
             </div>
 
-            <div className={`px-8 py-6 border-t ${
-              isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
-            }`}>
+            <div className={`px-8 py-6 border-t ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
+              }`}>
               <button
                 onClick={() => setShowUserProfile(null)}
-                className={`px-6 py-3 text-sm font-semibold rounded-xl ${
-                  isDarkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
+                className={`px-6 py-3 text-sm font-semibold rounded-xl ${isDarkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
               >
                 Close
               </button>
@@ -655,17 +742,14 @@ const UserManagementPage = () => {
       {/* Create Member Modal */}
       {showCreateForm && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-          <div className={`rounded-3xl w-full max-w-2xl max-h-[95vh] overflow-y-auto shadow-2xl border ${
-            isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'
-          }`}>
-            <div className={`px-8 py-6 border-b ${
-              isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
+          <div className={`rounded-3xl w-full max-w-2xl max-h-[95vh] overflow-y-auto shadow-2xl border ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'
             }`}>
+            <div className={`px-8 py-6 border-b ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
+              }`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                  <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg ${
-                    isDarkMode ? 'bg-white' : 'bg-black'
-                  }`}>
+                  <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg ${isDarkMode ? 'bg-white' : 'bg-black'
+                    }`}>
                     <Plus className={`w-8 h-8 ${isDarkMode ? 'text-black' : 'text-white'}`} />
                   </div>
                   <div>
@@ -679,9 +763,8 @@ const UserManagementPage = () => {
                 </div>
                 <button
                   onClick={() => setShowCreateForm(false)}
-                  className={`p-4 rounded-2xl ${
-                    isDarkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-                  }`}
+                  className={`p-4 rounded-2xl ${isDarkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                    }`}
                 >
                   <X className="w-6 h-6" />
                 </button>
@@ -698,14 +781,13 @@ const UserManagementPage = () => {
                     type="text"
                     name="name"
                     required
-                    className={`w-full px-4 py-3 border-2 rounded-xl ${
-                      isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
-                    }`}
+                    className={`w-full px-4 py-3 border-2 rounded-xl ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                      }`}
                     placeholder="John Doe"
                     defaultValue={editingUser?.name || ''}
                   />
                 </div>
-                
+
                 <div>
                   <label className={`block text-sm font-semibold mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                     Username *
@@ -714,15 +796,14 @@ const UserManagementPage = () => {
                     type="text"
                     name="username"
                     required
-                    className={`w-full px-4 py-3 border-2 rounded-xl ${
-                      isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
-                    }`}
+                    className={`w-full px-4 py-3 border-2 rounded-xl ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                      }`}
                     placeholder="john.doe"
                     defaultValue={editingUser?.username || ''}
                     disabled={editingUser}
                   />
                 </div>
-                
+
                 <div>
                   <label className={`block text-sm font-semibold mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                     Email *
@@ -731,14 +812,13 @@ const UserManagementPage = () => {
                     type="email"
                     name="email"
                     required
-                    className={`w-full px-4 py-3 border-2 rounded-xl ${
-                      isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
-                    }`}
+                    className={`w-full px-4 py-3 border-2 rounded-xl ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                      }`}
                     placeholder="john@company.com"
                     defaultValue={editingUser?.email || ''}
                   />
                 </div>
-                
+
                 {!editingUser && (
                   <div>
                     <label className={`block text-sm font-semibold mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
@@ -749,14 +829,13 @@ const UserManagementPage = () => {
                       name="password"
                       required
                       minLength="6"
-                      className={`w-full px-4 py-3 border-2 rounded-xl ${
-                        isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
-                      }`}
+                      className={`w-full px-4 py-3 border-2 rounded-xl ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                        }`}
                       placeholder="Minimum 6 characters"
                     />
                   </div>
                 )}
-                
+
                 <div>
                   <label className={`block text-sm font-semibold mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                     Role *
@@ -764,16 +843,15 @@ const UserManagementPage = () => {
                   <select
                     name="role"
                     required
-                    className={`w-full px-4 py-3 border-2 rounded-xl ${
-                      isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
-                    }`}
+                    className={`w-full px-4 py-3 border-2 rounded-xl ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                      }`}
                     defaultValue={editingUser?.role || 'user'}
                   >
                     <option value="user">👤 Team Member</option>
                     <option value="manager">👑 Manager</option>
                   </select>
                 </div>
-                
+
                 <div>
                   <label className={`block text-sm font-semibold mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                     Department
@@ -781,14 +859,13 @@ const UserManagementPage = () => {
                   <input
                     type="text"
                     name="department"
-                    className={`w-full px-4 py-3 border-2 rounded-xl ${
-                      isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
-                    }`}
+                    className={`w-full px-4 py-3 border-2 rounded-xl ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                      }`}
                     placeholder="Engineering"
                     defaultValue={editingUser?.department || ''}
                   />
                 </div>
-                
+
                 <div>
                   <label className={`block text-sm font-semibold mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                     Phone
@@ -796,14 +873,13 @@ const UserManagementPage = () => {
                   <input
                     type="tel"
                     name="phone"
-                    className={`w-full px-4 py-3 border-2 rounded-xl ${
-                      isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
-                    }`}
+                    className={`w-full px-4 py-3 border-2 rounded-xl ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                      }`}
                     placeholder="+1 (555) 123-4567"
                     defaultValue={editingUser?.phone || ''}
                   />
                 </div>
-                
+
                 <div>
                   <label className={`block text-sm font-semibold mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                     Location
@@ -811,18 +887,16 @@ const UserManagementPage = () => {
                   <input
                     type="text"
                     name="location"
-                    className={`w-full px-4 py-3 border-2 rounded-xl ${
-                      isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
-                    }`}
+                    className={`w-full px-4 py-3 border-2 rounded-xl ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                      }`}
                     placeholder="New York, NY"
                     defaultValue={editingUser?.location || ''}
                   />
                 </div>
               </div>
-              
-              <div className={`flex items-center justify-between mt-10 pt-6 border-t-2 ${
-                isDarkMode ? 'border-gray-700' : 'border-gray-200'
-              }`}>
+
+              <div className={`flex items-center justify-between mt-10 pt-6 border-t-2 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'
+                }`}>
                 <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                   {editingUser ? '✏️ Update member information' : '👤 Member will receive login credentials to join the team'}
                 </div>
@@ -833,9 +907,8 @@ const UserManagementPage = () => {
                       setShowCreateForm(false);
                       setEditingUser(null);
                     }}
-                    className={`px-8 py-3 text-base font-semibold rounded-2xl ${
-                      isDarkMode ? 'text-gray-300 bg-gray-800 hover:bg-gray-700' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
-                    }`}
+                    className={`px-8 py-3 text-base font-semibold rounded-2xl ${isDarkMode ? 'text-gray-300 bg-gray-800 hover:bg-gray-700' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
+                      }`}
                   >
                     Cancel
                   </button>

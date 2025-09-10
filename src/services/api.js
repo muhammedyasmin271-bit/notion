@@ -1,4 +1,8 @@
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL =
+    process.env.REACT_APP_API_URL ||
+    (typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+        ? '/api'
+        : 'http://localhost:5000/api');
 
 // API service class for handling HTTP requests
 class ApiService {
@@ -78,7 +82,7 @@ class ApiService {
             // Fallback to localStorage authentication for created users
             const loginUsers = JSON.parse(localStorage.getItem('loginUsers') || '[]');
             const user = loginUsers.find(u => u.username === username && u.password === password);
-            
+
             if (user) {
                 // Create a mock token for localStorage users
                 const mockToken = btoa(JSON.stringify({
@@ -86,9 +90,9 @@ class ApiService {
                     username: user.username,
                     exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
                 }));
-                
+
                 this.setAuthToken(mockToken);
-                
+
                 return {
                     token: mockToken,
                     user: {
@@ -100,7 +104,7 @@ class ApiService {
                     }
                 };
             }
-            
+
             // If no user found in localStorage either, throw the original error
             throw error;
         }
@@ -108,7 +112,7 @@ class ApiService {
 
     async register(userData) {
         let response;
-        
+
         if (userData instanceof FormData) {
             // Handle file upload registration
             response = await this.upload('/auth/register', userData);
@@ -151,7 +155,7 @@ class ApiService {
                     const payload = JSON.parse(atob(token));
                     const loginUsers = JSON.parse(localStorage.getItem('loginUsers') || '[]');
                     const user = loginUsers.find(u => u.username === payload.username);
-                    
+
                     if (user) {
                         return {
                             id: user.id,
@@ -207,7 +211,7 @@ class ApiService {
         } catch (error) {
             // Fallback: save to localStorage if server is not available
             console.warn('Server not available, saving to localStorage:', error);
-            
+
             const users = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
             const newUser = {
                 id: Date.now(),
@@ -215,10 +219,10 @@ class ApiService {
                 createdAt: new Date().toISOString(),
                 isActive: true
             };
-            
+
             users.push(newUser);
             localStorage.setItem('registeredUsers', JSON.stringify(users));
-            
+
             // Also add to loginUsers for authentication
             const loginUsers = JSON.parse(localStorage.getItem('loginUsers') || '[]');
             loginUsers.push({
@@ -230,7 +234,7 @@ class ApiService {
                 role: userData.role
             });
             localStorage.setItem('loginUsers', JSON.stringify(loginUsers));
-            
+
             return { user: newUser, message: 'User registered successfully (offline mode)' };
         }
     }
@@ -303,7 +307,171 @@ class ApiService {
         return response;
     }
 
-    // Check if user is authenticated
+    // Notepad/Notes API methods
+    async getNotes(filters = {}) {
+        try {
+            const queryParams = new URLSearchParams();
+            Object.keys(filters).forEach(key => {
+                if (filters[key] !== undefined && filters[key] !== '') {
+                    queryParams.append(key, filters[key]);
+                }
+            });
+
+            const url = `/notepad${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+            const response = await this.request(url);
+            return response;
+        } catch (error) {
+            console.error('Error fetching notes:', error);
+            // Fallback to localStorage for offline mode
+            const savedNotes = JSON.parse(localStorage.getItem('savedNotes') || '[]');
+            const sharedNotes = JSON.parse(localStorage.getItem('sharedNotes') || '[]');
+            const receivedNotes = JSON.parse(localStorage.getItem('receivedNotes') || '[]');
+            return [...savedNotes, ...sharedNotes, ...receivedNotes];
+        }
+    }
+
+    async createNote(noteData) {
+        try {
+            const response = await this.request('/notepad', {
+                method: 'POST',
+                body: JSON.stringify(noteData),
+            });
+            return response;
+        } catch (error) {
+            console.error('Error creating note:', error);
+            // Fallback to localStorage
+            const newNote = {
+                id: Date.now(),
+                _id: Date.now(),
+                ...noteData,
+                author: { name: 'You' },
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+
+            const savedNotes = JSON.parse(localStorage.getItem('savedNotes') || '[]');
+            savedNotes.push(newNote);
+            localStorage.setItem('savedNotes', JSON.stringify(savedNotes));
+
+            return newNote;
+        }
+    }
+
+    async updateNote(noteId, noteData) {
+        try {
+            const response = await this.request(`/notepad/${noteId}`, {
+                method: 'PUT',
+                body: JSON.stringify(noteData),
+            });
+            return response;
+        } catch (error) {
+            console.error('Error updating note:', error);
+            // Fallback to localStorage
+            const savedNotes = JSON.parse(localStorage.getItem('savedNotes') || '[]');
+            const noteIndex = savedNotes.findIndex(note => note._id === noteId || note.id === noteId);
+            if (noteIndex !== -1) {
+                savedNotes[noteIndex] = { ...savedNotes[noteIndex], ...noteData, updatedAt: new Date().toISOString() };
+                localStorage.setItem('savedNotes', JSON.stringify(savedNotes));
+                return savedNotes[noteIndex];
+            }
+            throw error;
+        }
+    }
+
+    async getNoteById(noteId) {
+        try {
+            const response = await this.request(`/notepad/${noteId}`);
+            return response;
+        } catch (error) {
+            console.error('Error fetching note:', error);
+            // Fallback to localStorage
+            const savedNotes = JSON.parse(localStorage.getItem('savedNotes') || '[]');
+            const sharedNotes = JSON.parse(localStorage.getItem('sharedNotes') || '[]');
+            const receivedNotes = JSON.parse(localStorage.getItem('receivedNotes') || '[]');
+            const allNotes = [...savedNotes, ...sharedNotes, ...receivedNotes];
+
+            const note = allNotes.find(n => n._id === noteId || n.id === noteId);
+            if (!note) throw new Error('Note not found');
+            return note;
+        }
+    }
+
+    async deleteNote(noteId) {
+        try {
+            const response = await this.request(`/notepad/${noteId}`, {
+                method: 'DELETE',
+            });
+            return response;
+        } catch (error) {
+            console.error('Error deleting note:', error);
+            // Fallback to localStorage - move to trash
+            const savedNotes = JSON.parse(localStorage.getItem('savedNotes') || '[]');
+            const noteIndex = savedNotes.findIndex(note => note._id === noteId || note.id === noteId);
+            if (noteIndex !== -1) {
+                const deletedNote = { ...savedNotes[noteIndex], deleted: true, deletedAt: new Date().toISOString() };
+                savedNotes.splice(noteIndex, 1);
+                localStorage.setItem('savedNotes', JSON.stringify(savedNotes));
+
+                // Add to trash
+                const trashedNotes = JSON.parse(localStorage.getItem('trashedNotes') || '[]');
+                trashedNotes.push(deletedNote);
+                localStorage.setItem('trashedNotes', JSON.stringify(trashedNotes));
+
+                return { message: 'Note moved to trash' };
+            }
+            throw error;
+        }
+    }
+
+    async shareNote(noteId, shareType) {
+        try {
+            const response = await this.request(`/notepad/${noteId}/share`, {
+                method: 'POST',
+                body: JSON.stringify({ shareType }),
+            });
+            return response;
+        } catch (error) {
+            console.error('Error sharing note:', error);
+            // Fallback - just mark as shared locally
+            return { message: `Note shared with ${shareType} (offline mode)` };
+        }
+    }
+
+    async toggleNotePin(noteId) {
+        try {
+            const response = await this.request(`/notepad/${noteId}/pin`, {
+                method: 'PATCH',
+            });
+            return response;
+        } catch (error) {
+            console.error('Error toggling pin:', error);
+            throw error;
+        }
+    }
+
+    async toggleNoteArchive(noteId) {
+        try {
+            const response = await this.request(`/notepad/${noteId}/archive`, {
+                method: 'PATCH',
+            });
+            return response;
+        } catch (error) {
+            console.error('Error toggling archive:', error);
+            throw error;
+        }
+    }
+
+    async restoreNote(noteId) {
+        try {
+            const response = await this.request(`/notepad/${noteId}/restore`, {
+                method: 'PATCH',
+            });
+            return response;
+        } catch (error) {
+            console.error('Error restoring note:', error);
+            throw error;
+        }
+    }
     isAuthenticated() {
         const token = this.getAuthToken();
         if (!token) return false;
@@ -346,7 +514,7 @@ class ApiService {
     // File upload using FormData (no JSON headers)
     async upload(endpoint, formData) {
         const url = `${this.baseURL}${endpoint}`;
-        
+
         // Build headers without Content-Type so browser sets multipart boundary
         const headers = {};
         const token = this.getAuthToken();
@@ -358,7 +526,7 @@ class ApiService {
                 body: formData,
                 headers,
             });
-            
+
             const data = await response.json();
 
             if (!response.ok) {
@@ -399,3 +567,14 @@ export const toggleUserStatus = (userId) => apiService.toggleUserStatus(userId);
 export const deleteUser = (userId) => apiService.deleteUser(userId);
 export const approveUser = (userId) => apiService.approveUser(userId);
 export const declineUser = (userId) => apiService.declineUser(userId);
+
+// Notepad exports
+export const getNotes = (filters) => apiService.getNotes(filters);
+export const createNote = (noteData) => apiService.createNote(noteData);
+export const updateNote = (noteId, noteData) => apiService.updateNote(noteId, noteData);
+export const getNoteById = (noteId) => apiService.getNoteById(noteId);
+export const deleteNote = (noteId) => apiService.deleteNote(noteId);
+export const shareNote = (noteId, shareType) => apiService.shareNote(noteId, shareType);
+export const toggleNotePin = (noteId) => apiService.toggleNotePin(noteId);
+export const toggleNoteArchive = (noteId) => apiService.toggleNoteArchive(noteId);
+export const restoreNote = (noteId) => apiService.restoreNote(noteId);
