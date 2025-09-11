@@ -48,39 +48,63 @@ const ProjectsPage = () => {
 
   // Check if returning from user selection
   useEffect(() => {
-    const returnData = sessionStorage.getItem('returnToProject');
+    const returnData = sessionStorage.getItem('projectPickerReturn');
     const selectedUsers = sessionStorage.getItem('selectedProjectUsers');
 
-    if (returnData) {
-      const projectData = JSON.parse(returnData);
-      sessionStorage.removeItem('returnToProject');
+    if (returnData && selectedUsers) {
+      try {
+        const pickerData = JSON.parse(returnData);
+        console.log('ProjectsPage: Found return data and selected users', pickerData, selectedUsers);
 
-      // If it's a new project, restore it with selected users
-      if (projectData.id === 'new') {
-        const updatedProject = {
-          ...projectData,
-          forPerson: selectedUsers || projectData.forPerson || ''
-        };
-        setViewProject(updatedProject);
-        if (selectedUsers) {
-          sessionStorage.removeItem('selectedProjectUsers');
-        }
-      } else {
-        // Find the existing project and open it
-        const existingProject = projects.find(p => p.id === projectData.id);
-        if (existingProject) {
-          const updatedProject = {
-            ...existingProject,
-            forPerson: selectedUsers || existingProject.forPerson || ''
+        // If there's a saved project state, restore it
+        if (pickerData.projectState) {
+          const restoredProject = {
+            ...pickerData.projectState,
+            forPerson: selectedUsers
           };
-          setViewProject(updatedProject);
-          if (selectedUsers) {
-            sessionStorage.removeItem('selectedProjectUsers');
+          console.log('ProjectsPage: Restoring project with state', restoredProject);
+          setViewProject(restoredProject);
+        } else {
+          // Fallback to old behavior
+          if (pickerData.id === 'new') {
+            const updatedProject = {
+              id: 'new',
+              name: '',
+              status: 'Not started',
+              priority: 'Medium',
+              isFavorite: false,
+              forPerson: selectedUsers,
+              notes: '',
+              startDate: new Date().toISOString().split('T')[0],
+              endDate: new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString().split('T')[0],
+              ownerName: user?.name,
+              createdAt: new Date().toISOString()
+            };
+            setViewProject(updatedProject);
+          } else {
+            // Find the existing project and open it
+            const existingProject = projects.find(p => p.id === pickerData.id);
+            if (existingProject) {
+              const updatedProject = {
+                ...existingProject,
+                forPerson: selectedUsers
+              };
+              setViewProject(updatedProject);
+            }
           }
         }
+        
+        // Clean up session storage
+        sessionStorage.removeItem('selectedProjectUsers');
+        sessionStorage.removeItem('projectPickerReturn');
+      } catch (error) {
+        console.error('Error parsing return data:', error);
+        // Clean up on error
+        sessionStorage.removeItem('selectedProjectUsers');
+        sessionStorage.removeItem('projectPickerReturn');
       }
     }
-  }, [projects]);
+  }, [projects, user]);
 
   const fetchProjects = async () => {
     try {
@@ -125,11 +149,31 @@ const ProjectsPage = () => {
   };
 
   const handleUpdateField = async (projectId, field, value) => {
-    // Only managers can update any field on projects
-    if (user?.role !== 'manager') return;
+    console.log('handleUpdateField called:', { projectId, field, value, userRole: user?.role });
+    
+    // Only managers can update any field except status - all users can update status
+    if (user?.role !== 'manager' && field !== 'status') {
+      console.log('Access denied: user is not manager and field is not status');
+      return;
+    }
 
     const project = projects.find(p => p.id === projectId);
-    if (!project) return;
+    if (!project) {
+      console.log('Project not found:', projectId);
+      return;
+    }
+
+    // Optimistic UI update - immediately update the local state
+    const updatedProjects = projects.map(p => 
+      p.id === projectId ? { 
+        ...p, 
+        [field]: value, 
+        updatedAt: new Date().toISOString(),
+        // Increment change count for user actions (not manager actions)
+        changeCount: user?.role !== 'manager' ? (p.changeCount || 0) + 1 : p.changeCount || 0
+      } : p
+    );
+    setProjects(updatedProjects);
 
     // Check if assigning to a user (forPerson field)
     if (field === 'forPerson' && value && value !== project.forPerson) {
@@ -152,28 +196,37 @@ const ProjectsPage = () => {
     }
 
     // Check if updating project status
-    if (field === 'status' && value !== project.status && project.forPerson) {
-      // Find the assigned user
-      const assignedUser = users.find(u =>
-        u.name.toLowerCase().includes(project.forPerson.toLowerCase()) ||
-        u.email?.toLowerCase().includes(project.forPerson.toLowerCase())
-      );
-
-      if (assignedUser && user) {
-        // Send notification about status update
-        notifyProjectUpdate(
-          assignedUser.id,
-          assignedUser.name,
-          project.name,
-          `updated to ${value}`,
-          user.id,
-          user.name
+    if (field === 'status' && value !== project.status) {
+      // Find the assigned user if exists
+      if (project.forPerson) {
+        const assignedUser = users.find(u =>
+          u.name.toLowerCase().includes(project.forPerson.toLowerCase()) ||
+          u.email?.toLowerCase().includes(project.forPerson.toLowerCase())
         );
+
+        if (assignedUser && user) {
+          // Send notification about status update
+          notifyProjectUpdate(
+            assignedUser.id,
+            assignedUser.name,
+            project.name,
+            `updated to ${value}`,
+            user.id,
+            user.name
+          );
+        }
       }
     }
+    
     // Persist to backend
     try {
-      const response = await fetch(`http://localhost:5000/api/projects/${projectId}`, {
+      const endpoint = field === 'status' 
+        ? `http://localhost:5000/api/projects/${projectId}/status`
+        : `http://localhost:5000/api/projects/${projectId}`;
+      
+      console.log('Making API call to:', endpoint, 'with data:', { [field]: value });
+      
+      const response = await fetch(endpoint, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -182,14 +235,27 @@ const ProjectsPage = () => {
         body: JSON.stringify({ [field]: value })
       });
 
-      if (response.ok) {
-        const updated = await response.json();
-        setProjects(projects.map(p => (p.id === projectId ? updated : p)));
+      console.log('API response status:', response.status);
+      
+      if (!response.ok) {
+        // Revert optimistic update if API call fails
+        const errorText = await response.text();
+        console.error('Failed to update project:', response.status, errorText);
+        setProjects(projects); // Revert to previous state
+        
+        // Show error to user
+        alert(`Failed to update project: ${errorText}`);
       } else {
-        console.error('Failed to update project');
+        const updated = await response.json();
+        console.log('Project updated successfully:', updated);
+        // Ensure we have the latest data from server
+        setProjects(prev => prev.map(p => p.id === projectId ? { ...p, ...updated } : p));
       }
     } catch (err) {
       console.error('Error updating project:', err);
+      // Revert optimistic update on error
+      setProjects(projects);
+      alert('Failed to update project. Please try again.');
     }
   };
 
@@ -361,8 +427,17 @@ const ProjectsPage = () => {
     const matchesOwner = filterOwner === 'all' || project.ownerUid === filterOwner;
     const forValue = (project.forPerson || project.category || '').toLowerCase();
     const matchesFor = !filterFor || forValue.includes(filterFor.toLowerCase());
+    
+    // Access control logic
+    const isAssignedToUser = project.forPerson && project.forPerson.toLowerCase().includes(user?.name?.toLowerCase() || '');
+    const isOwner = project.ownerUid === user?.id || project.ownerName === user?.name;
+    const isAssigned = project.forPerson && project.forPerson.trim() !== '';
+    
+    const hasAccess = isAssigned ? 
+      (user?.role === 'manager' || isAssignedToUser) : 
+      isOwner;
 
-    return matchesSearch && matchesPriority && matchesOwner && matchesFor;
+    return matchesSearch && matchesPriority && matchesOwner && matchesFor && hasAccess;
   });
 
   const getProjectStats = () => {
@@ -642,13 +717,23 @@ const ProjectsPage = () => {
                         </button>
                       )}
 
-                      {/* Update indicator */}
-                      <div className="flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-r from-orange-400 to-red-500 text-white text-xs font-bold shadow-lg transform transition-all duration-300 hover:scale-110" title={`${project.updateCount || 3} recent updates`}>
-                        <div className="relative">
-                          <span className="block">{project.updateCount || 3}</span>
-                          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-orange-400 to-red-500 animate-ping opacity-75"></div>
+                      {/* Change indicator - only for managers when there are changes */}
+                      {user?.role === 'manager' && project.changeCount > 0 && (
+                        <div 
+                          className="flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-r from-orange-400 to-red-500 text-white text-xs font-bold shadow-lg transform transition-all duration-300 hover:scale-110 cursor-pointer" 
+                          title={`${project.changeCount} recent changes`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // Reset change count when manager clicks
+                            handleUpdateField(project.id, 'changeCount', 0);
+                          }}
+                        >
+                          <div className="relative">
+                            <span className="block">{project.changeCount}</span>
+                            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-orange-400 to-red-500 animate-ping opacity-75"></div>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
 
                     {/* Enhanced floating overlay */}
@@ -739,22 +824,7 @@ const ProjectsPage = () => {
                         </div>
                       </div>
 
-                      {/* Enhanced notes preview with gradient border */}
-                      {project.notes && (
-                        <div className={`relative p-4 rounded-2xl border transition-all duration-300 hover:scale-[1.01] ${isDarkMode ? 'bg-gray-700/30 border-gray-600/30' : 'bg-gray-50/80 border-gray-200/50'}`}>
-                          <div className={`absolute inset-0 rounded-2xl bg-gradient-to-r opacity-0 group-hover:opacity-10 transition-opacity duration-300 ${project.status === 'Not started' ? 'from-gray-500 to-slate-600' :
-                            project.status === 'In progress' ? 'from-blue-500 to-purple-600' : 'from-green-500 to-emerald-600'
-                            }`}></div>
-                          <div className="flex items-start gap-3 relative z-10">
-                            <div className="p-1.5 rounded-lg bg-gradient-to-br from-gray-500 to-gray-600 shadow-md flex-shrink-0">
-                              <FileText size={12} className="text-white" />
-                            </div>
-                            <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} line-clamp-3 leading-relaxed`}>
-                              {project.notes.length > 120 ? project.notes.substring(0, 120) + '...' : project.notes}
-                            </p>
-                          </div>
-                        </div>
-                      )}
+
 
                       {/* Project Owner section at bottom */}
                       <div className={`flex items-center gap-3 p-3 rounded-2xl border transition-all duration-300 hover:scale-[1.02] ${isDarkMode ? 'bg-purple-500/10 border-purple-500/20' : 'bg-purple-50/80 border-purple-200/50'}`}>
@@ -814,7 +884,6 @@ const ProjectsPage = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Priority</th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Favorite</th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">For (person)</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Notes</th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
@@ -838,36 +907,30 @@ const ProjectsPage = () => {
                       {project.ownerName}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {user?.role === 'manager' ? (
-                        <EditableField
-                          value={project.status}
-                          onSave={(value) => {
-                            handleUpdateField(project.id, 'status', value);
-                            // Force immediate re-render to update the column placement
-                            const updatedProjects = projects.map(p =>
-                              p.id === project.id
-                                ? { ...p, status: value, updatedAt: new Date().toISOString() }
-                                : p
-                            );
-                            setProjects(updatedProjects);
-                          }}
-                          type="select"
-                          options={[
-                            { value: 'Not started', label: 'Not started' },
-                            { value: 'In progress', label: 'In progress' },
-                            { value: 'Done', label: 'Done' }
-                          ]}
-                          saveOnEnter={false}
-                        >
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusClass(project.status)}`}>
-                            {project.status}
-                          </span>
-                        </EditableField>
-                      ) : (
+                      <EditableField
+                        value={project.status}
+                        onSave={(value) => {
+                          handleUpdateField(project.id, 'status', value);
+                          // Force immediate re-render to update the column placement
+                          const updatedProjects = projects.map(p =>
+                            p.id === project.id
+                              ? { ...p, status: value, updatedAt: new Date().toISOString() }
+                              : p
+                          );
+                          setProjects(updatedProjects);
+                        }}
+                        type="select"
+                        options={[
+                          { value: 'Not started', label: 'Not started' },
+                          { value: 'In progress', label: 'In progress' },
+                          { value: 'Done', label: 'Done' }
+                        ]}
+                        saveOnEnter={false}
+                      >
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusClass(project.status)}`}>
                           {project.status}
                         </span>
-                      )}
+                      </EditableField>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {user?.role === 'manager' ? (
@@ -912,20 +975,6 @@ const ProjectsPage = () => {
                         />
                       ) : (
                         <span>{project.forPerson || '—'}</span>
-                      )}
-                    </td>
-                    <td className={`px-6 py-4 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
-                      {user?.role === 'manager' ? (
-                        <EditableField
-                          value={project.notes}
-                          onSave={(value) => handleUpdateField(project.id, 'notes', value)}
-                          type="textarea"
-                          rows={2}
-                          placeholder="Add notes..."
-                          saveOnEnter={false}
-                        />
-                      ) : (
-                        <span className={`inline-block max-w-xs truncate ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>{project.notes || '—'}</span>
                       )}
                     </td>
                     <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>

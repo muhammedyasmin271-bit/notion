@@ -1279,13 +1279,23 @@ function Block({
 				) : block.type === 'image' ? (
 					block.imageUrl ? (
 						<div>
-					<img src={block.imageUrl} alt={block.text || 'Uploaded image'} style={{ width: block.imageSize || '100%', height: 'auto', borderRadius: '8px', display: 'block' }} />
-					<div style={{ display: 'flex', gap: '8px', marginTop: '8px', fontSize: '12px' }}>
-						<button onClick={() => onChange(index, { imageSize: '25%' })} style={{ padding: '4px 8px', border: '1px solid #ddd', borderRadius: '4px', background: block.imageSize === '25%' ? '#667eea' : '#fff', color: block.imageSize === '25%' ? '#fff' : '#333' }}>25%</button>
-						<button onClick={() => onChange(index, { imageSize: '50%' })} style={{ padding: '4px 8px', border: '1px solid #ddd', borderRadius: '4px', background: block.imageSize === '50%' ? '#667eea' : '#fff', color: block.imageSize === '50%' ? '#fff' : '#333' }}>50%</button>
-						<button onClick={() => onChange(index, { imageSize: '100%' })} style={{ padding: '4px 8px', border: '1px solid #ddd', borderRadius: '4px', background: block.imageSize === '100%' || !block.imageSize ? '#667eea' : '#fff', color: block.imageSize === '100%' || !block.imageSize ? '#fff' : '#333' }}>100%</button>
-					</div>
-				</div>
+							<img 
+								src={block.imageUrl} 
+								alt={block.text || 'Uploaded image'} 
+								style={{ 
+									width: block.imageSize || '100%', 
+									height: 'auto', 
+									borderRadius: '8px', 
+									display: 'block',
+									maxWidth: '100%'
+								}} 
+							/>
+							<div style={{ display: 'flex', gap: '8px', marginTop: '8px', fontSize: '12px' }}>
+								<button onClick={() => onChange(index, { imageSize: '25%' })} style={{ padding: '4px 8px', border: '1px solid #ddd', borderRadius: '4px', background: block.imageSize === '25%' ? '#667eea' : '#fff', color: block.imageSize === '25%' ? '#fff' : '#333', cursor: 'pointer' }}>25%</button>
+								<button onClick={() => onChange(index, { imageSize: '50%' })} style={{ padding: '4px 8px', border: '1px solid #ddd', borderRadius: '4px', background: block.imageSize === '50%' ? '#667eea' : '#fff', color: block.imageSize === '50%' ? '#fff' : '#333', cursor: 'pointer' }}>50%</button>
+								<button onClick={() => onChange(index, { imageSize: '100%' })} style={{ padding: '4px 8px', border: '1px solid #ddd', borderRadius: '4px', background: block.imageSize === '100%' || !block.imageSize ? '#667eea' : '#fff', color: block.imageSize === '100%' || !block.imageSize ? '#fff' : '#333', cursor: 'pointer' }}>100%</button>
+							</div>
+						</div>
 					) : (
 						<div 
 							style={{ padding: '20px', textAlign: 'center', background: '#f8f9fa', borderRadius: '8px', border: '2px dashed #dee2e6', cursor: 'pointer' }}
@@ -1563,6 +1573,7 @@ export default function NotionLikeProPage() {
 	const [darkMode, setDarkMode] = useState(false);
 	const [autoSave, setAutoSave] = useState(true);
 	const [lastSaved, setLastSaved] = useState(null);
+	const [showSaved, setShowSaved] = useState(false);
 
 	// Slash menu
 	const [menu, setMenu] = useState({ open: false, at: { x: 0, y: 0 }, forIndex: -1 });
@@ -1749,7 +1760,8 @@ export default function NotionLikeProPage() {
 		savedNotes.push(documentData);
 		localStorage.setItem('savedNotes', JSON.stringify(savedNotes));
 		setLastSaved(new Date());
-		alert(`Document "${documentData.title}" saved successfully!`);
+		setShowSaved(true);
+		setTimeout(() => setShowSaved(false), 2000);
 	};
 
 	const handleShare = () => {
@@ -2075,6 +2087,9 @@ export default function NotionLikeProPage() {
 								{autoSave && lastSaved && (
 									<span>🟢 Auto-saved at {lastSaved.toLocaleTimeString()}</span>
 								)}
+								{showSaved && (
+									<span style={{ color: '#38a169', fontWeight: 600 }}>✅ Saved!</span>
+								)}
 							</div>
 						</div>
 
@@ -2252,9 +2267,24 @@ export default function NotionLikeProPage() {
 							autoSave={autoSave}
 							setAutoSave={setAutoSave}
 						/>
-						<DocumentTemplates onApplyTemplate={(blocks) => {
-							setBlocks(blocks.map(b => ({ ...b, id: uid(), focus: false })));
-							setTitle('');
+						<DocumentTemplates onApplyTemplate={(templateBlocks) => {
+							// Find the current focused block or use the last block
+							const focusedIndex = blocks.findIndex(b => b.focus);
+							const insertIndex = focusedIndex >= 0 ? focusedIndex : blocks.length - 1;
+							
+							// Insert template blocks at the cursor position
+							const newBlocks = [...blocks];
+							const templatesWithIds = templateBlocks.map(b => ({ ...b, id: uid(), focus: false }));
+							
+							// Insert after the current block
+							newBlocks.splice(insertIndex + 1, 0, ...templatesWithIds);
+							
+							// Focus the first template block
+							if (templatesWithIds.length > 0) {
+								newBlocks[insertIndex + 1].focus = true;
+							}
+							
+							setBlocks(newBlocks);
 						}} />
 						<CollaborationPanel />
 					</div>

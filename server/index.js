@@ -114,6 +114,7 @@ const meetingRoutes = require('./routes/meetings');
 const notepadRoutes = require('./routes/notepad');
 const chatRoutes = require('./routes/chat');
 const notificationRoutes = require('./routes/notifications');
+const uploadRoutes = require('./routes/upload');
 
 // Use routes
 app.use('/api/auth', authRoutes);
@@ -125,6 +126,7 @@ app.use('/api/meetings', meetingRoutes);
 app.use('/api/notepad', notepadRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

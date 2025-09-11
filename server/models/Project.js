@@ -11,7 +11,7 @@ const projectSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Project description is required'],
     trim: true,
-    maxlength: [1000, 'Description cannot exceed 1000 characters']
+    maxlength: [10000, 'Description cannot exceed 10000 characters']
   },
   status: {
     type: String,
@@ -92,7 +92,30 @@ const projectSchema = new mongoose.Schema({
   archived: {
     type: Boolean,
     default: false
-  }
+  },
+  tasks: [{
+    id: Number,
+    text: String,
+    priority: String,
+    dueDate: String,
+    completed: Boolean,
+    createdBy: String,
+    createdAt: String
+  }],
+  comments: [{
+    id: Number,
+    text: String,
+    user: String,
+    timestamp: String,
+    reactions: [String]
+  }],
+  activities: [{
+    id: Number,
+    user: String,
+    action: String,
+    timestamp: String,
+    type: String
+  }]
 }, {
   timestamps: true
 });
