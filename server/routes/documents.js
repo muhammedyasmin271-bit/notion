@@ -110,6 +110,32 @@ router.get('/trash/all', auth, async (req, res) => {
   }
 });
 
+// @route   POST /api/documents/upload
+// @desc    Upload a file (for general use)
+// @access  Private
+router.post('/upload', auth, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+    
+    res.status(201).json({
+      message: 'File uploaded successfully',
+      filename: req.file.filename,
+      originalName: req.file.originalname,
+      mimeType: req.file.mimetype,
+      size: req.file.size,
+      url: fileUrl,
+      path: `/uploads/${req.file.filename}`
+    });
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // @route   POST /api/documents/:id/attachments
 // @desc    Upload an attachment for a document
 // @access  Private

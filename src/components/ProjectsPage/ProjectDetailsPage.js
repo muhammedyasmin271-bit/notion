@@ -25,9 +25,7 @@ const BLOCK_TYPES = [
   { type: "table", label: "Table", hint: "Create a table", icon: "▦" },
   { type: "quote", label: "Quote", hint: "Call out a quote", icon: "💬" },
   { type: "divider", label: "Divider", hint: "Horizontal rule", icon: "➖" },
-  { type: "callout", label: "Callout", hint: "Highlighted text box", icon: "💡" },
-  { type: "image", label: "Image", hint: "Upload an image", icon: "🖼️" },
-  { type: "video", label: "Video", hint: "Upload a video", icon: "🎥" }
+  { type: "callout", label: "Callout", hint: "Highlighted text box", icon: "💡" }
 ];
 
 // ——— Icons ———
@@ -100,6 +98,7 @@ function SlashMenu({ open, at, onClose, onPick, isDarkMode }) {
   if (!open) return null;
   return (
     <div
+      className="slash-menu"
       style={{
         position: 'fixed',
         zIndex: 1000,
@@ -112,8 +111,8 @@ function SlashMenu({ open, at, onClose, onPick, isDarkMode }) {
         overflowY: 'auto',
         padding: 12,
         backdropFilter: 'blur(20px)',
-        left: at.x,
-        top: at.y
+        left: Math.min(at.x, window.innerWidth - 320),
+        top: Math.min(at.y, window.innerHeight - 440)
       }}
     >
       {BLOCK_TYPES.map((opt, idx) => (
@@ -457,8 +456,9 @@ function DescriptionBlock({
           style={{ ...blockStyles.iconBtn, ...(iconHover.plus ? blockStyles.iconBtnHover : {}) }}
           onMouseEnter={() => setIconHover((s) => ({ ...s, plus: true }))}
           onMouseLeave={() => setIconHover((s) => ({ ...s, plus: false }))}
-          onMouseDown={(e) => {
+          onClick={(e) => {
             e.preventDefault();
+            e.stopPropagation();
             const rect = e.currentTarget.getBoundingClientRect();
             onSlashOpen(index, { x: rect.left, y: rect.bottom + 4 });
           }}
@@ -572,18 +572,39 @@ function DescriptionBlock({
                 const input = document.createElement('input');
                 input.type = 'file';
                 input.accept = 'image/*';
-                input.onchange = (e) => {
+                input.onchange = async (e) => {
                   const file = e.target.files[0];
                   if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                      onChange(index, { imageUrl: e.target.result, text: file.name });
-                      // Automatically add a new line after image upload
-                      setTimeout(() => {
-                        onEnter(index, 'text', 0);
-                      }, 100);
-                    };
-                    reader.readAsDataURL(file);
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('uploadedBy', 'Project Description');
+                    
+                    try {
+                      const response = await fetch('http://localhost:5000/api/upload', {
+                        method: 'POST',
+                        headers: {
+                          'x-auth-token': localStorage.getItem('token')
+                        },
+                        body: formData
+                      });
+                      
+                      if (response.ok) {
+                        const uploadedFile = await response.json();
+                        console.log('Upload response:', uploadedFile);
+                        const imageUrl = uploadedFile.url || uploadedFile.path || `http://localhost:5000/uploads/${uploadedFile.filename}`;
+                        onChange(index, { imageUrl: imageUrl, text: file.name });
+                        setTimeout(() => {
+                          onEnter(index, 'text', 0);
+                        }, 100);
+                      } else {
+                        const errorText = await response.text();
+                        console.error('File upload failed:', errorText);
+                        alert('Failed to upload image: ' + errorText);
+                      }
+                    } catch (error) {
+                      console.error('Upload error:', error);
+                      alert('Error uploading image');
+                    }
                   }
                 };
                 input.click();
@@ -613,7 +634,11 @@ function DescriptionBlock({
                           padding: '8px 12px',
                           textAlign: 'left',
                           color: isDarkMode ? '#f3f4f6' : '#1f2937',
-                          minWidth: '100px'
+                          width: '150px',
+                          maxWidth: '150px',
+                          wordWrap: 'break-word',
+                          whiteSpace: 'pre-wrap',
+                          verticalAlign: 'top'
                         }}
                         contentEditable
                         suppressContentEditableWarning
@@ -689,7 +714,21 @@ function DescriptionBlock({
   );
 }
 
-const ProjectDetailsPage = ({ project, onClose, onUpdate, isManager, isNewProject = false }) => {
+// Helper function to get default project data
+const getDefaultProject = () => ({
+  title: 'New Project',
+  description: '',
+  status: 'Not Started',
+  priority: 'Medium',
+  startDate: new Date(),
+  endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+  progress: 0,
+  team: []
+});
+
+const ProjectDetailsPage = ({ project: propProject, onClose, onUpdate, isManager, isNewProject = false }) => {
+  // Initialize with default project data if prop is not provided
+  const project = propProject || getDefaultProject();
   const { isDarkMode } = useTheme();
   const { user } = useAppContext();
   const [activeTab, setActiveTab] = useState('overview');
@@ -699,22 +738,26 @@ const ProjectDetailsPage = ({ project, onClose, onUpdate, isManager, isNewProjec
   const autoSaveTimeoutRef = useRef({});
   const [showTemplateDropdown, setShowTemplateDropdown] = useState(false);
   // Enhanced project data
-  const [projectData, setProjectData] = useState({
-    ...project,
-    progress: 0,
-    updateCount: project.updateCount || 0,
-    isFavorite: project.isFavorite || false,
-    metrics: {
-      timeSpent: '24h 30m',
-      completionRate: getProgressPercentage(project.status),
-      daysRemaining: getDaysRemaining(project.startDate, project.endDate),
-      priority: project.priority || 'Medium'
-    },
-    team: [
-      { id: 1, name: 'John Doe', role: 'Lead', avatar: 'JD', status: 'active' },
-      { id: 2, name: 'Jane Smith', role: 'Developer', avatar: 'JS', status: 'active' },
-      { id: 3, name: 'Mike Johnson', role: 'Designer', avatar: 'MJ', status: 'away' }
-    ]
+  const [projectData, setProjectData] = useState(() => {
+    const defaultProject = {
+      ...project,
+      progress: project?.progress || 0,
+      updateCount: project?.updateCount || 0,
+      isFavorite: project?.isFavorite || false,
+      metrics: {
+        timeSpent: '24h 30m',
+        completionRate: getProgressPercentage(project?.status || 'Not Started'),
+        daysRemaining: project?.startDate && project?.endDate ? 
+          getDaysRemaining(project.startDate, project.endDate) : 7,
+        priority: project?.priority || 'Medium'
+      },
+      team: [
+        { id: 1, name: 'John Doe', role: 'Lead', avatar: 'JD', status: 'active' },
+        { id: 2, name: 'Jane Smith', role: 'Developer', avatar: 'JS', status: 'active' },
+        { id: 3, name: 'Mike Johnson', role: 'Designer', avatar: 'MJ', status: 'away' }
+      ]
+    };
+    return defaultProject;
   });
 
 
@@ -808,26 +851,29 @@ const ProjectDetailsPage = ({ project, onClose, onUpdate, isManager, isNewProjec
     }
   ];
 
-  const [tasks, setTasks] = useState([
-    { id: 1, text: 'Define project requirements', completed: true, assignee: 'John Doe', priority: 'High', dueDate: '2024-01-20' },
-    { id: 2, text: 'Create project plan', completed: false, assignee: 'Jane Smith', priority: 'Medium', dueDate: '2024-01-25' },
-    { id: 3, text: 'Set up development environment', completed: false, assignee: 'Mike Johnson', priority: 'Low', dueDate: '2024-01-30' }
-  ]);
+  const [tasks, setTasks] = useState([]);
 
-  const [comments, setComments] = useState([
-    { id: 1, text: 'This project aligns perfectly with our Q1 objectives. Great work on the planning phase!', user: 'Manager', timestamp: new Date().toISOString(), reactions: ['👍', '🎯'] },
-    { id: 2, text: 'I suggest we add more specific metrics to track our progress better.', user: 'John Doe', timestamp: new Date().toISOString(), reactions: ['💡'] }
-  ]);
+  const [comments, setComments] = useState([]);
 
-  const [activities, setActivities] = useState([
-    { id: 1, user: 'John Doe', action: 'completed milestone "Initial Planning"', timestamp: new Date().toISOString(), type: 'milestone' },
-    { id: 2, user: 'Jane Smith', action: 'added 3 new tasks', timestamp: new Date().toISOString(), type: 'task' },
-    { id: 3, user: 'Manager', action: 'updated priority to High', timestamp: new Date().toISOString(), type: 'update' }
-  ]);
+  const [activities, setActivities] = useState([]);
 
   const [newComment, setNewComment] = useState('');
-  const [newTask, setNewTask] = useState({ text: '', assignee: '', priority: 'Medium', dueDate: '' });
+  const [newTask, setNewTask] = useState({ text: '', priority: 'Medium', dueDate: '' });
   const [showAddTask, setShowAddTask] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
+  const [editingComment, setEditingComment] = useState(null);
+  const [files, setFiles] = useState([]);
+
+  const addActivity = (action, type = 'update') => {
+    const activity = {
+      id: Date.now(),
+      user: user?.name || 'Unknown',
+      action: action,
+      timestamp: new Date().toISOString(),
+      type: type
+    };
+    setActivities(prev => [activity, ...prev]);
+  };
 
   // Block-based description editor state
   const [descriptionBlocks, setDescriptionBlocks] = useState([
@@ -980,16 +1026,84 @@ const ProjectDetailsPage = ({ project, onClose, onUpdate, isManager, isNewProjec
     dragIndexRef.current = null;
   };
 
+  // Calculate progress whenever tasks change
+  useEffect(() => {
+    const completedTasks = tasks.filter(task => task.completed).length;
+    const totalTasks = tasks.length;
+    const newProgress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    
+    if (newProgress !== projectData.progress) {
+      setProjectData(prev => ({ ...prev, progress: newProgress }));
+    }
+  }, [tasks]);
+
+  // Load tasks and comments from database
+  useEffect(() => {
+    if (projectData.id && projectData.id !== 'new') {
+      loadProjectData();
+    }
+  }, [projectData.id]);
+
+  // Also load when component mounts
+  useEffect(() => {
+    if (projectData.id && projectData.id !== 'new') {
+      loadProjectData();
+    }
+  }, []);
+
+  const loadProjectData = async () => {
+    try {
+      console.log('Loading project data for ID:', projectData.id);
+      const response = await fetch(`http://localhost:5000/api/projects/${projectData.id}/data`, {
+        headers: { 'x-auth-token': localStorage.getItem('token') }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Loaded project data:', data);
+        if (data.tasks && Array.isArray(data.tasks)) {
+          console.log('Setting tasks:', data.tasks);
+          setTasks(data.tasks);
+        }
+        if (data.comments && Array.isArray(data.comments)) {
+          setComments(data.comments);
+        }
+        if (data.activities && Array.isArray(data.activities)) {
+          setActivities(data.activities);
+        }
+      } else {
+        console.error('Failed to load project data:', response.status);
+      }
+    } catch (error) {
+      console.error('Error loading project data:', error);
+    }
+  };
+
   // Initialize blocks from existing description
   useEffect(() => {
-    if (projectData.description && descriptionBlocks.length === 1 && !descriptionBlocks[0].text) {
-      const lines = projectData.description.split('\n');
+    // Try to load from descriptionBlocks first, then fall back to description parsing
+    if (projectData.descriptionBlocks && descriptionBlocks.length === 1 && !descriptionBlocks[0].text) {
+      try {
+        const savedBlocks = JSON.parse(projectData.descriptionBlocks);
+        if (Array.isArray(savedBlocks) && savedBlocks.length > 0) {
+          setDescriptionBlocks(savedBlocks.map(block => ({ ...block, id: uid(), focus: false })));
+          return;
+        }
+      } catch (error) {
+        console.error('Error parsing saved blocks:', error);
+      }
+    }
+
+    // Use notes field if description is not available (for backward compatibility)
+    const existingDescription = projectData.description || projectData.notes;
+    if (existingDescription && descriptionBlocks.length === 1 && !descriptionBlocks[0].text) {
+      const lines = existingDescription.split('\n');
       const blocks = lines.map((line, i) => {
         const trimmed = line.trimStart();
         let type = "text";
         let text = line;
         let checked = false;
         let indent = 0;
+        let rows = null;
 
         // Calculate indent level
         const leadingSpaces = line.length - line.trimStart().length;
@@ -1021,9 +1135,18 @@ const ProjectDetailsPage = ({ project, onClose, onUpdate, isManager, isNewProjec
         } else if (/^>\s/.test(trimmed)) {
           type = "quote";
           text = trimmed.slice(2);
+        } else if (trimmed.startsWith("TABLE:")) {
+          type = "table";
+          text = "";
+          try {
+            rows = JSON.parse(trimmed.slice(6));
+          } catch (e) {
+            rows = [["", "", ""]];
+          }
         } else if (trimmed.startsWith("| ")) {
           type = "table";
           text = trimmed.slice(2);
+          rows = [["", "", ""]];
         }
 
         return {
@@ -1033,7 +1156,7 @@ const ProjectDetailsPage = ({ project, onClose, onUpdate, isManager, isNewProjec
           checked,
           indent,
           focus: false,
-          ...(type === 'table' && { rows: [["", "", ""]] })
+          ...(type === 'table' && { rows: rows || [["", "", ""]] })
         };
       });
 
@@ -1041,9 +1164,9 @@ const ProjectDetailsPage = ({ project, onClose, onUpdate, isManager, isNewProjec
         setDescriptionBlocks(blocks);
       }
     }
-  }, [projectData.description]);
+  }, [projectData.description, projectData.notes, projectData.descriptionBlocks]);
 
-  // Update project description when blocks change - only local state
+  // Update project description when blocks change - save to database
   useEffect(() => {
     const description = descriptionBlocks.map(block => {
       const indentStr = '  '.repeat(block.indent || 0);
@@ -1055,28 +1178,56 @@ const ProjectDetailsPage = ({ project, onClose, onUpdate, isManager, isNewProjec
       if (block.type === 'bulleted') return indentStr + `- ${block.text || ''}`;
       if (block.type === 'numbered') return indentStr + `1. ${block.text || ''}`;
       if (block.type === 'todo') return indentStr + `- [${block.checked ? 'x' : ' '}] ${block.text || ''}`;
-      if (block.type === 'table') return indentStr + `| ${block.text || ''}`;
+      if (block.type === 'table') return indentStr + `TABLE:${JSON.stringify(block.rows || [["", "", ""]])}`;
+      if (block.type === 'image') return indentStr + `![${block.text || ''}](${block.imageUrl || ''})`;
       return indentStr + (block.text || '');
     }).join('\n');
 
     if (description !== projectData.description) {
-      const updatedProject = { ...projectData, description };
+      const updatedProject = { ...projectData, description, descriptionBlocks: JSON.stringify(descriptionBlocks) };
       setProjectData(updatedProject);
-      // Don't auto-update - only update local state
+      
+      // Auto-save description to database if project exists
+      if (projectData.id && projectData.id !== 'new') {
+        // Clear existing timeout
+        if (autoSaveTimeoutRef.current.description) {
+          clearTimeout(autoSaveTimeoutRef.current.description);
+        }
+        
+        // Set new timeout for auto-save
+        autoSaveTimeoutRef.current.description = setTimeout(async () => {
+          try {
+            await apiService.put(`/projects/${projectData.id}`, { 
+              description: description,
+              descriptionBlocks: JSON.stringify(descriptionBlocks)
+            });
+            console.log('Description auto-saved successfully');
+          } catch (error) {
+            console.error('Failed to auto-save description:', error);
+          }
+        }, 2000); // Save after 2 seconds of no changes
+      }
     }
-  }, [descriptionBlocks]);
+  }, [descriptionBlocks, projectData.id]);
 
   // Close slash menu on outside click
   useEffect(() => {
-    const onDocClick = (e) => {
-      if (e.target.closest('.slash-menu') || e.target.closest('[title="Add block"]')) {
-        return;
-      }
-      closeSlashMenu();
-    };
-    document.addEventListener("click", onDocClick);
-    return () => document.removeEventListener("click", onDocClick);
-  }, []);
+    if (!menu.open) return;
+    
+    const timer = setTimeout(() => {
+      const onDocClick = (e) => {
+        if (e.target.closest('.slash-menu') || e.target.closest('[title="Add block"]')) {
+          return;
+        }
+        closeSlashMenu();
+      };
+      document.addEventListener("click", onDocClick);
+      
+      return () => document.removeEventListener("click", onDocClick);
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [menu.open]);
 
   // Close template dropdown on outside click
   useEffect(() => {
@@ -1097,24 +1248,72 @@ const ProjectDetailsPage = ({ project, onClose, onUpdate, isManager, isNewProjec
     };
   }, [showTemplateDropdown]);
 
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      // Clear all auto-save timeouts when component unmounts
+      Object.values(autoSaveTimeoutRef.current).forEach(timeout => {
+        if (timeout) clearTimeout(timeout);
+      });
+    };
+  }, []);
+
   // Listen for selected users from user management page
   useEffect(() => {
     console.log('Checking for selected users in session storage...');
     const selectedUsers = sessionStorage.getItem('selectedProjectUsers');
+    const returnData = sessionStorage.getItem('projectPickerReturn');
     console.log('Session storage selectedProjectUsers:', selectedUsers);
+    console.log('Session storage projectPickerReturn:', returnData);
 
-    if (selectedUsers) {
-      console.log('Found selected users, updating project:', selectedUsers);
-      const updatedProject = { ...projectData, forPerson: selectedUsers };
-      console.log('Updated project data:', updatedProject);
-      setProjectData(updatedProject);
-      sessionStorage.removeItem('selectedProjectUsers');
-      // Force re-render by calling onUpdate
-      setTimeout(() => {
-        onUpdate && onUpdate(updatedProject);
-      }, 100);
+    if (selectedUsers && returnData) {
+      try {
+        const pickerData = JSON.parse(returnData);
+        console.log('Found selected users and return data:', selectedUsers, pickerData);
+        
+        // Restore the complete project state
+        if (pickerData.projectState) {
+          const restoredProject = {
+            ...pickerData.projectState,
+            forPerson: selectedUsers
+          };
+          console.log('Restoring project state:', restoredProject);
+          setProjectData(restoredProject);
+          
+          // Restore description blocks if available
+          if (pickerData.descriptionBlocks && Array.isArray(pickerData.descriptionBlocks)) {
+            console.log('Restoring description blocks:', pickerData.descriptionBlocks);
+            setDescriptionBlocks(pickerData.descriptionBlocks);
+          }
+          
+          // Clean up session storage
+          sessionStorage.removeItem('selectedProjectUsers');
+          sessionStorage.removeItem('projectPickerReturn');
+          
+          // Force re-render by calling onUpdate
+          setTimeout(() => {
+            onUpdate && onUpdate(restoredProject);
+          }, 100);
+        } else {
+          // Fallback to old behavior
+          const updatedProject = { ...projectData, forPerson: selectedUsers };
+          console.log('Updated project data (fallback):', updatedProject);
+          setProjectData(updatedProject);
+          sessionStorage.removeItem('selectedProjectUsers');
+          setTimeout(() => {
+            onUpdate && onUpdate(updatedProject);
+          }, 100);
+        }
+      } catch (error) {
+        console.error('Error parsing return data:', error);
+        // Fallback to old behavior
+        const updatedProject = { ...projectData, forPerson: selectedUsers };
+        setProjectData(updatedProject);
+        sessionStorage.removeItem('selectedProjectUsers');
+        if (returnData) sessionStorage.removeItem('projectPickerReturn');
+      }
     } else {
-      console.log('No selected users found in session storage');
+      console.log('No selected users or return data found in session storage');
     }
   }, []);
 
@@ -1161,34 +1360,36 @@ const ProjectDetailsPage = ({ project, onClose, onUpdate, isManager, isNewProjec
   }
 
   function getDaysRemaining(startDate, endDate) {
-    if (!endDate) return null;
+    if (!startDate || !endDate) return null;
 
-    const today = new Date();
-    const start = startDate ? new Date(startDate) : null;
+    const start = new Date(startDate);
     const end = new Date(endDate);
+    const today = new Date();
 
-    // If project hasn't started yet, calculate days until start
-    if (start && today < start) {
+    // Calculate total project duration
+    const totalDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+
+    // If project hasn't started yet
+    if (today < start) {
       const daysUntilStart = Math.ceil((start - today) / (1000 * 60 * 60 * 24));
-      return `${daysUntilStart} until start`;
+      return `${daysUntilStart} days until start (${totalDays} days total)`;
     }
 
     // If project has ended
     if (today > end) {
       const daysOverdue = Math.ceil((today - end) / (1000 * 60 * 60 * 24));
-      return `${daysOverdue} days overdue`;
+      return `${daysOverdue} days overdue (${totalDays} days total)`;
     }
 
     // Calculate remaining days
-    const diffTime = end - today;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const daysLeft = Math.ceil((end - today) / (1000 * 60 * 60 * 24));
 
-    if (diffDays === 0) {
-      return 'Due today';
-    } else if (diffDays === 1) {
-      return '1 day left';
+    if (daysLeft === 0) {
+      return `Due today (${totalDays} days total)`;
+    } else if (daysLeft === 1) {
+      return `1 day left (${totalDays} days total)`;
     } else {
-      return `${diffDays} days left`;
+      return `${daysLeft} days left (${totalDays} days total)`;
     }
   }
 
@@ -1216,8 +1417,30 @@ const ProjectDetailsPage = ({ project, onClose, onUpdate, isManager, isNewProjec
     setSaveStatus(prev => ({ ...prev, project: 'saving' }));
 
     try {
+      // Convert description blocks to text
+      const description = descriptionBlocks.map(block => {
+        const indentStr = '  '.repeat(block.indent || 0);
+        if (block.type === 'divider') return indentStr + '---';
+        if (block.type === 'h1') return indentStr + `# ${block.text || ''}`;
+        if (block.type === 'h2') return indentStr + `## ${block.text || ''}`;
+        if (block.type === 'h3') return indentStr + `### ${block.text || ''}`;
+        if (block.type === 'quote') return indentStr + `> ${block.text || ''}`;
+        if (block.type === 'bulleted') return indentStr + `- ${block.text || ''}`;
+        if (block.type === 'numbered') return indentStr + `1. ${block.text || ''}`;
+        if (block.type === 'todo') return indentStr + `- [${block.checked ? 'x' : ' '}] ${block.text || ''}`;
+        if (block.type === 'table') return indentStr + `TABLE:${JSON.stringify(block.rows || [["", "", ""]])}`;
+        if (block.type === 'image') return indentStr + `![${block.text || ''}](${block.imageUrl || ''})`;
+        return indentStr + (block.text || '');
+      }).join('\n');
+
       const updatedProject = {
         ...projectData,
+        description: description,
+        descriptionBlocks: JSON.stringify(descriptionBlocks),
+        tasks: tasks,
+        comments: comments,
+        activities: activities,
+        files: files,
         updateCount: (projectData.updateCount || 0) + 1
       };
 
@@ -1355,7 +1578,7 @@ const ProjectDetailsPage = ({ project, onClose, onUpdate, isManager, isNewProjec
     }
   };
 
-  const addComment = () => {
+  const addComment = async () => {
     if (!newComment.trim()) return;
     const comment = {
       id: Date.now(),
@@ -1364,57 +1587,96 @@ const ProjectDetailsPage = ({ project, onClose, onUpdate, isManager, isNewProjec
       timestamp: new Date().toISOString(),
       reactions: []
     };
-    setComments(prev => [...prev, comment]);
-    setNewComment('');
+    
+    try {
+      // Save to database
+      if (projectData.id && projectData.id !== 'new') {
+        await fetch(`http://localhost:5000/api/projects/${projectData.id}/comments`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-token': localStorage.getItem('token')
+          },
+          body: JSON.stringify(comment)
+        });
+      }
+      
+      setComments(prev => [...prev, comment]);
+      addActivity('added a comment', 'comment');
+      setNewComment('');
+    } catch (error) {
+      console.error('Error adding comment:', error);
+    }
   };
 
-  const addTask = () => {
+  const addTask = async () => {
     if (!newTask.text.trim()) return;
     const task = {
       id: Date.now(),
       ...newTask,
-      completed: false
+      completed: false,
+      createdBy: user?.name || 'Unknown',
+      createdAt: new Date().toISOString()
     };
-    setTasks(prev => {
-      const updatedTasks = [...prev, task];
-
-      // Recalculate progress
-      const completedTasks = updatedTasks.filter(task => task.completed).length;
-      const totalTasks = updatedTasks.length;
-      const newProgress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-
-      setProjectData(prevData => ({
-        ...prevData,
-        progress: newProgress,
-        updateCount: (prevData.updateCount || 0) + 1
-      }));
-
-      return updatedTasks;
-    });
-    setNewTask({ text: '', assignee: '', priority: 'Medium', dueDate: '' });
-    setShowAddTask(false);
+    
+    try {
+      // Save to database
+      if (projectData.id && projectData.id !== 'new') {
+        console.log('Saving task to database:', task);
+        const response = await fetch(`http://localhost:5000/api/projects/${projectData.id}/tasks`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-token': localStorage.getItem('token')
+          },
+          body: JSON.stringify(task)
+        });
+        console.log('Task save response:', response.status);
+        if (!response.ok) {
+          console.error('Failed to save task:', await response.text());
+        }
+      }
+      
+      setTasks(prev => {
+        const updatedTasks = [...prev, task];
+        setProjectData(prevData => ({ ...prevData, updateCount: (prevData.updateCount || 0) + 1 }));
+        return updatedTasks;
+      });
+      
+      addActivity(`added task "${newTask.text}"`, 'task');
+      setNewTask({ text: '', priority: 'Medium', dueDate: '' });
+      setShowAddTask(false);
+    } catch (error) {
+      console.error('Error adding task:', error);
+    }
   };
 
-  const toggleTask = (taskId) => {
-    setTasks(prev => {
-      const updatedTasks = prev.map(task =>
-        task.id === taskId ? { ...task, completed: !task.completed } : task
-      );
-
-      // Calculate progress based on completed tasks
-      const completedTasks = updatedTasks.filter(task => task.completed).length;
-      const totalTasks = updatedTasks.length;
-      const newProgress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-
-      // Update project progress and increment update counter
-      setProjectData(prev => ({
-        ...prev,
-        progress: newProgress,
-        updateCount: (prev.updateCount || 0) + 1
-      }));
-
-      return updatedTasks;
-    });
+  const toggleTask = async (taskId) => {
+    try {
+      const task = tasks.find(t => t.id === taskId);
+      const updatedTask = { ...task, completed: !task.completed };
+      
+      if (projectData.id && projectData.id !== 'new') {
+        await fetch(`http://localhost:5000/api/projects/${projectData.id}/tasks/${taskId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-token': localStorage.getItem('token')
+          },
+          body: JSON.stringify({ completed: updatedTask.completed })
+        });
+      }
+      
+      setTasks(prev => {
+        const updatedTasks = prev.map(task =>
+          task.id === taskId ? updatedTask : task
+        );
+        setProjectData(prev => ({ ...prev, updateCount: (prev.updateCount || 0) + 1 }));
+        return updatedTasks;
+      });
+    } catch (error) {
+      console.error('Error toggling task:', error);
+    }
   };
 
   const getPriorityColor = (priority) => {
@@ -1423,6 +1685,100 @@ const ProjectDetailsPage = ({ project, onClose, onUpdate, isManager, isNewProjec
       case 'Medium': return 'text-yellow-600 bg-yellow-100';
       case 'Low': return 'text-green-600 bg-green-100';
       default: return 'text-gray-600 bg-gray-100';
+    }
+  };
+
+  const deleteTask = async (taskId) => {
+    try {
+      if (projectData.id && projectData.id !== 'new') {
+        await fetch(`http://localhost:5000/api/projects/${projectData.id}/tasks/${taskId}`, {
+          method: 'DELETE',
+          headers: { 'x-auth-token': localStorage.getItem('token') }
+        });
+      }
+      setTasks(prev => {
+        const updatedTasks = prev.filter(task => task.id !== taskId);
+        return updatedTasks;
+      });
+    } catch (error) {
+      console.error('Error deleting task:', error);
+    }
+  };
+
+  const editTask = (task) => {
+    setEditingTask(task);
+    setNewTask({ text: task.text, priority: task.priority, dueDate: task.dueDate });
+    setShowAddTask(true);
+  };
+
+  const updateTask = async () => {
+    try {
+      if (projectData.id && projectData.id !== 'new') {
+        await fetch(`http://localhost:5000/api/projects/${projectData.id}/tasks/${editingTask.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-token': localStorage.getItem('token')
+          },
+          body: JSON.stringify(newTask)
+        });
+      }
+      
+      setTasks(prev => prev.map(task => 
+        task.id === editingTask.id ? { ...task, ...newTask } : task
+      ));
+      setEditingTask(null);
+      setNewTask({ text: '', priority: 'Medium', dueDate: '' });
+      setShowAddTask(false);
+    } catch (error) {
+      console.error('Error updating task:', error);
+    }
+  };
+
+  const editComment = (comment) => {
+    setEditingComment(comment.id);
+    setNewComment(comment.text);
+  };
+
+  const updateComment = async (commentId) => {
+    if (!newComment.trim()) return;
+    
+    try {
+      if (projectData.id && projectData.id !== 'new') {
+        await fetch(`http://localhost:5000/api/projects/${projectData.id}/comments/${commentId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-token': localStorage.getItem('token')
+          },
+          body: JSON.stringify({ text: newComment })
+        });
+      }
+      
+      setComments(prev => prev.map(comment => 
+        comment.id === commentId ? { ...comment, text: newComment } : comment
+      ));
+      setEditingComment(null);
+      setNewComment('');
+    } catch (error) {
+      console.error('Error updating comment:', error);
+    }
+  };
+
+  const deleteComment = async (commentId) => {
+    if (!window.confirm('Are you sure you want to delete this comment?')) return;
+    
+    try {
+      if (projectData.id && projectData.id !== 'new') {
+        await fetch(`http://localhost:5000/api/projects/${projectData.id}/comments/${commentId}`, {
+          method: 'DELETE',
+          headers: { 'x-auth-token': localStorage.getItem('token') }
+        });
+      }
+      
+      setComments(prev => prev.filter(comment => comment.id !== commentId));
+    } catch (error) {
+      console.error('Error deleting comment:', error);
     }
   };
 
@@ -1562,15 +1918,6 @@ const ProjectDetailsPage = ({ project, onClose, onUpdate, isManager, isNewProjec
             </div>
 
             <div className="flex items-center gap-4">
-              {/* Update Indicator */}
-              {!isNewProject && projectData.updateCount > 0 && (
-                <div className="relative">
-                  <div className="w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center text-sm font-bold animate-pulse">
-                    {projectData.updateCount > 99 ? '99+' : projectData.updateCount}
-                  </div>
-                </div>
-              )}
-
               {isNewProject ? (
                 <button
                   onClick={() => {
@@ -1642,9 +1989,7 @@ const ProjectDetailsPage = ({ project, onClose, onUpdate, isManager, isNewProjec
             {[
               { id: 'overview', label: 'Overview', icon: BarChart3 },
               { id: 'tasks', label: 'Tasks', icon: CheckCircle, count: tasks.length },
-              { id: 'comments', label: 'Comments', icon: MessageSquare, count: comments.length },
-              { id: 'files', label: 'Files', icon: Paperclip },
-              { id: 'activity', label: 'Activity', icon: Activity }
+              { id: 'comments', label: 'Comments', icon: MessageSquare, count: comments.length }
             ].map((tab) => {
               const Icon = tab.icon;
               return (
@@ -1720,13 +2065,14 @@ const ProjectDetailsPage = ({ project, onClose, onUpdate, isManager, isNewProjec
                       <FileText className="w-6 h-6 text-blue-500" />
                       Description
                     </h3>
-                    <div className="relative template-dropdown">
-                      <button
-                        className={`px-3 py-1 rounded-lg text-sm font-medium ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`}
-                        onClick={() => setShowTemplateDropdown(!showTemplateDropdown)}
-                      >
-                        Temp
-                      </button>
+                    {isManager && (
+                      <div className="relative template-dropdown">
+                        <button
+                          className={`px-3 py-1 rounded-lg text-sm font-medium ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`}
+                          onClick={() => setShowTemplateDropdown(!showTemplateDropdown)}
+                        >
+                          Temp
+                        </button>
 
                       {/* Template Dropdown */}
                       {showTemplateDropdown && (
@@ -2015,16 +2361,26 @@ const ProjectDetailsPage = ({ project, onClose, onUpdate, isManager, isNewProjec
                                       ];
                                   }
 
+                                  // Find current cursor position or use end of blocks
+                                  const focusedIndex = descriptionBlocks.findIndex(b => b.focus);
+                                  const insertIndex = focusedIndex >= 0 ? focusedIndex : descriptionBlocks.length - 1;
+                                  
                                   const newBlocks = templateBlocks.map(block => ({
                                     id: uid(),
                                     ...block,
                                     focus: false
                                   }));
 
-                                  // Add a new empty line at the end for continued typing
-                                  newBlocks.push({ id: uid(), type: "text", text: "", focus: true });
+                                  // Insert template blocks at cursor position
+                                  const updatedBlocks = [...descriptionBlocks];
+                                  updatedBlocks.splice(insertIndex + 1, 0, ...newBlocks);
+                                  
+                                  // Focus the first template block
+                                  if (newBlocks.length > 0) {
+                                    updatedBlocks[insertIndex + 1].focus = true;
+                                  }
 
-                                  setDescriptionBlocks(newBlocks);
+                                  setDescriptionBlocks(updatedBlocks);
                                   setShowTemplateDropdown(false);
                                 }}
                               >
@@ -2040,7 +2396,8 @@ const ProjectDetailsPage = ({ project, onClose, onUpdate, isManager, isNewProjec
                           </div>
                         </div>
                       )}
-                    </div>
+                      </div>
+                    )}
                   </div>
                   <div className={`flex flex-col gap-4 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                     {isManager ? (
@@ -2067,7 +2424,7 @@ const ProjectDetailsPage = ({ project, onClose, onUpdate, isManager, isNewProjec
                         ))}
                       </div>
                     ) : (
-                      <div className={`p-8 rounded-2xl border-2 min-h-[600px] ${isDarkMode ? 'bg-gray-700/50 border-gray-600' : 'bg-gray-50/50 border-gray-200'}`}>
+                      <div className={`p-8 min-h-[600px] ${isDarkMode ? 'bg-transparent' : 'bg-transparent'}`}>
                         {projectData.description ? (
                           <div className="space-y-0">
                             {descriptionBlocks.map((block, index) => {
@@ -2124,6 +2481,27 @@ const ProjectDetailsPage = ({ project, onClose, onUpdate, isManager, isNewProjec
                                   </div>
                                 );
                               }
+                              if (block.type === 'image') {
+                                return block.imageUrl ? (
+                                  <div key={index} style={{ paddingLeft: `${(block.indent || 0) * 16}px`, marginBottom: '16px' }}>
+                                    <img
+                                      src={block.imageUrl}
+                                      alt={block.text || 'Uploaded image'}
+                                      style={{
+                                        width: block.imageSize || '100%',
+                                        height: 'auto',
+                                        borderRadius: '8px',
+                                        display: 'block',
+                                        maxWidth: '100%'
+                                      }}
+                                    />
+                                  </div>
+                                ) : (
+                                  <p key={index} className={`text-xl leading-snug py-0.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`} style={{ fontFamily: 'Inter, system-ui, sans-serif', paddingLeft: `${(block.indent || 0) * 16}px` }}>
+                                    {block.text || '\u00A0'}
+                                  </p>
+                                );
+                              }
                               if (block.type === 'table') {
                                 return (
                                   <div key={index} className="overflow-x-auto my-2">
@@ -2135,6 +2513,13 @@ const ProjectDetailsPage = ({ project, onClose, onUpdate, isManager, isNewProjec
                                               <td
                                                 key={cellIndex}
                                                 className={`border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} p-2 text-sm`}
+                                                style={{
+                                                  width: '150px',
+                                                  maxWidth: '150px',
+                                                  wordWrap: 'break-word',
+                                                  whiteSpace: 'pre-wrap',
+                                                  verticalAlign: 'top'
+                                                }}
                                               >
                                                 {cell}
                                               </td>
@@ -2231,22 +2616,58 @@ const ProjectDetailsPage = ({ project, onClose, onUpdate, isManager, isNewProjec
                       <label className="text-sm font-medium text-gray-500">Status</label>
                       <select
                         value={projectData.status || 'Not started'}
-                        onChange={(e) => handleFieldChange('status', e.target.value)}
+                        onChange={(e) => {
+                          const newStatus = e.target.value;
+                          setProjectData(prev => ({ ...prev, status: newStatus }));
+                        }}
                         className={`w-full mt-1 px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
                       >
                         <option value="Not started">⏸️ Not Started</option>
                         <option value="In progress">▶️ In Progress</option>
                         <option value="Done">✅ Completed</option>
                       </select>
-                      <SaveStatusIndicator field="status" />
+                      {!isManager && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              if (projectData.id && projectData.id !== 'new') {
+                                // Save status directly to database using status-specific endpoint
+                                const response = await fetch(`http://localhost:5000/api/projects/${projectData.id}/status`, {
+                                  method: 'PUT',
+                                  headers: {
+                                    'Content-Type': 'application/json',
+                                    'x-auth-token': localStorage.getItem('token')
+                                  },
+                                  body: JSON.stringify({ status: projectData.status })
+                                });
+                                
+                                if (response.ok) {
+                                  // Force update to parent to move card
+                                  onUpdate && onUpdate(projectData);
+                                } else {
+                                  console.error('Failed to save status');
+                                }
+                              }
+                            } catch (error) {
+                              console.error('Save failed:', error);
+                            }
+                          }}
+                          className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                        >
+                          <Save className="w-4 h-4" />
+                          Save
+                        </button>
+                      )}
                     </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Created</label>
-                      <p className="font-medium mt-1">{new Date(projectData.createdAt || Date.now()).toLocaleDateString()}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Assigned To</label>
-                      {isManager ? (
+                    {isManager && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Created</label>
+                        <p className="font-medium mt-1">{new Date(projectData.createdAt || Date.now()).toLocaleDateString()}</p>
+                      </div>
+                    )}
+                    {isManager && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Assigned To</label>
                         <div className="flex gap-2 mt-1">
                           <input
                             type="text"
@@ -2257,10 +2678,31 @@ const ProjectDetailsPage = ({ project, onClose, onUpdate, isManager, isNewProjec
                           />
                           <button
                             onClick={() => {
+                              // Save current project state before navigating
+                              const currentProjectState = {
+                                ...projectData,
+                                description: descriptionBlocks.map(block => {
+                                  const indentStr = '  '.repeat(block.indent || 0);
+                                  if (block.type === 'divider') return indentStr + '---';
+                                  if (block.type === 'h1') return indentStr + `# ${block.text || ''}`;
+                                  if (block.type === 'h2') return indentStr + `## ${block.text || ''}`;
+                                  if (block.type === 'h3') return indentStr + `### ${block.text || ''}`;
+                                  if (block.type === 'quote') return indentStr + `> ${block.text || ''}`;
+                                  if (block.type === 'bulleted') return indentStr + `- ${block.text || ''}`;
+                                  if (block.type === 'numbered') return indentStr + `1. ${block.text || ''}`;
+                                  if (block.type === 'todo') return indentStr + `- [${block.checked ? 'x' : ' '}] ${block.text || ''}`;
+                                  if (block.type === 'table') return indentStr + `TABLE:${JSON.stringify(block.rows || [["", "", ""]])}`;
+                                  return indentStr + (block.text || '');
+                                }).join('\n'),
+                                descriptionBlocks: JSON.stringify(descriptionBlocks)
+                              };
+                              
                               sessionStorage.setItem('projectPickerReturn', JSON.stringify({
                                 type: 'project',
                                 id: projectData.id,
-                                currentAssignment: projectData.forPerson || ''
+                                currentAssignment: projectData.forPerson || '',
+                                projectState: currentProjectState,
+                                descriptionBlocks: descriptionBlocks
                               }));
                               navigate('/users?picker=1');
                             }}
@@ -2269,20 +2711,12 @@ const ProjectDetailsPage = ({ project, onClose, onUpdate, isManager, isNewProjec
                             Pick
                           </button>
                         </div>
-                      ) : (
-                        <>
-                          <p className="font-medium mt-1">{projectData.forPerson || 'Not assigned'}</p>
-                          <p className="text-xs text-blue-600 mt-1">Debug: forPerson = "{projectData.forPerson}"</p>
-                          {projectData.forPerson && (
-                            <p className="text-xs text-green-600 mt-1">✓ Users assigned: {projectData.forPerson}</p>
-                          )}
-                        </>
-                      )}
-                      <SaveStatusIndicator field="forPerson" />
-                    </div>
+                        <SaveStatusIndicator field="forPerson" />
+                      </div>
+                    )}
 
                     {/* Update Project Button */}
-                    {!isNewProject && (
+                    {!isNewProject && isManager && (
                       <div className="mt-6">
                         <button
                           onClick={handleUpdateProject}
@@ -2335,17 +2769,7 @@ const ProjectDetailsPage = ({ project, onClose, onUpdate, isManager, isNewProjec
                         }}
                       />
                     </div>
-                    <div className="grid grid-cols-3 gap-4">
-                      <select
-                        value={newTask.assignee}
-                        onChange={(e) => setNewTask({ ...newTask, assignee: e.target.value })}
-                        className={`p-3 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-300'}`}
-                      >
-                        <option value="">Select assignee</option>
-                        {projectData.team.map(member => (
-                          <option key={member.id} value={member.name}>{member.name}</option>
-                        ))}
-                      </select>
+                    <div className="grid grid-cols-2 gap-4">
                       <select
                         value={newTask.priority}
                         onChange={(e) => setNewTask({ ...newTask, priority: e.target.value })}
@@ -2364,13 +2788,17 @@ const ProjectDetailsPage = ({ project, onClose, onUpdate, isManager, isNewProjec
                     </div>
                     <div className="flex gap-3">
                       <button
-                        onClick={addTask}
+                        onClick={editingTask ? updateTask : addTask}
                         className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                       >
-                        Add Task
+                        {editingTask ? 'Update Task' : 'Add Task'}
                       </button>
                       <button
-                        onClick={() => setShowAddTask(false)}
+                        onClick={() => {
+                          setShowAddTask(false);
+                          setEditingTask(null);
+                          setNewTask({ text: '', priority: 'Medium', dueDate: '' });
+                        }}
                         className={`px-4 py-2 rounded-lg ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`}
                       >
                         Cancel
@@ -2402,6 +2830,22 @@ const ProjectDetailsPage = ({ project, onClose, onUpdate, isManager, isNewProjec
                           </span>
                           {task.dueDate && <span>Due: {new Date(task.dueDate).toLocaleDateString()}</span>}
                         </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => editTask(task)}
+                          className="p-2 text-blue-600 hover:bg-blue-100 rounded transition-colors"
+                          title="Edit task"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => deleteTask(task.id)}
+                          className="p-2 text-red-600 hover:bg-red-100 rounded transition-colors"
+                          title="Delete task"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -2472,14 +2916,62 @@ const ProjectDetailsPage = ({ project, onClose, onUpdate, isManager, isNewProjec
                             {new Date(comment.timestamp).toLocaleString()}
                           </span>
                         </div>
-                        <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{comment.text}</p>
-                        {comment.reactions && comment.reactions.length > 0 && (
-                          <div className="flex gap-1 mt-3">
-                            {comment.reactions.map((reaction, index) => (
-                              <span key={index} className="text-lg">{reaction}</span>
-                            ))}
+                        {editingComment === comment.id ? (
+                          <div className="space-y-2">
+                            <textarea
+                              value={newComment}
+                              onChange={(e) => setNewComment(e.target.value)}
+                              className={`w-full p-3 rounded-lg border resize-none ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                              rows={3}
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => updateComment(comment.id)}
+                                className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                              >
+                                Save
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setEditingComment(null);
+                                  setNewComment('');
+                                }}
+                                className="px-3 py-1 bg-gray-500 text-white rounded text-sm hover:bg-gray-600"
+                              >
+                                Cancel
+                              </button>
+                            </div>
                           </div>
+                        ) : (
+                          <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{comment.text}</p>
                         )}
+                        <div className="flex items-center justify-between mt-3">
+                          {comment.reactions && comment.reactions.length > 0 && (
+                            <div className="flex gap-1">
+                              {comment.reactions.map((reaction, index) => (
+                                <span key={index} className="text-lg">{reaction}</span>
+                              ))}
+                            </div>
+                          )}
+                          {comment.user === (user?.name || 'You') && (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => editComment(comment)}
+                                className="p-1 text-blue-600 hover:bg-blue-100 rounded transition-colors"
+                                title="Edit comment"
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => deleteComment(comment.id)}
+                                className="p-1 text-red-600 hover:bg-red-100 rounded transition-colors"
+                                title="Delete comment"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -2488,57 +2980,9 @@ const ProjectDetailsPage = ({ project, onClose, onUpdate, isManager, isNewProjec
             </div>
           )}
 
-          {activeTab === 'files' && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold">Files & Attachments</h2>
-                <label className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer">
-                  <Paperclip className="w-4 h-4" />
-                  Upload File
-                  <input type="file" className="hidden" />
-                </label>
-              </div>
 
-              <div className="text-center py-12">
-                <Paperclip className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No files uploaded yet</h3>
-                <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  Upload documents, images, or other files related to this project
-                </p>
-              </div>
-            </div>
-          )}
 
-          {activeTab === 'activity' && (
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold">Activity Timeline</h2>
 
-              <div className="space-y-4">
-                {activities.map((activity) => (
-                  <div key={activity.id} className={`p-6 rounded-2xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-                    <div className="flex gap-4">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${activity.type === 'milestone' ? 'bg-green-100 text-green-600' :
-                        activity.type === 'task' ? 'bg-blue-100 text-blue-600' :
-                          'bg-purple-100 text-purple-600'
-                        }`}>
-                        {activity.type === 'milestone' ? <CheckCircle className="w-5 h-5" /> :
-                          activity.type === 'task' ? <CheckCircle className="w-5 h-5" /> :
-                            <Zap className="w-5 h-5" />}
-                      </div>
-                      <div className="flex-1">
-                        <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                          <span className="font-semibold">{activity.user}</span> {activity.action}
-                        </p>
-                        <p className={`text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                          {new Date(activity.timestamp).toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 

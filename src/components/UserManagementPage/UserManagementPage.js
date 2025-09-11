@@ -142,10 +142,9 @@ const UserManagementPage = () => {
 
     if (pickerData.type === 'project') {
       sessionStorage.setItem('selectedProjectUsers', selectedUserNames);
-      // Store the project data to return to the same project
-      sessionStorage.setItem('returnToProject', JSON.stringify(pickerData));
-      sessionStorage.removeItem('projectPickerReturn');
-      // Navigate back to projects page
+      // Keep the project picker return data for state restoration
+      // Don't remove it here - let the ProjectDetailsPage handle it
+      console.log('Navigating back to projects with picker data preserved');
       navigate('/projects');
     } else if (pickerData.type === 'goal') {
       sessionStorage.setItem('selectedGoalUsers', selectedUserNames);

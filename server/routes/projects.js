@@ -19,6 +19,7 @@ function mapProject(p) {
     priority: p.priority,
     forPerson: forPerson || '',
     notes: p.description,
+    description: p.description, // Add description field for frontend compatibility
     status: p.status,
     ownerUid: ownerId,
     ownerName: ownerName,
@@ -85,16 +86,37 @@ router.get('/:id', auth, async (req, res) => {
   }
 });
 
+// PUT /api/projects/:id/status - Update project status (all users)
+router.put('/:id/status', auth, async (req, res) => {
+  try {
+    const { status } = req.body || {};
+
+    const p = await Project.findById(req.params.id);
+    if (!p) return res.status(404).json({ message: 'Project not found' });
+
+    if (status !== undefined) p.status = status;
+
+    await p.save();
+    await p.populate('owner', 'name email');
+    res.json(mapProject(p));
+  } catch (e) {
+    console.error('Failed to update project status:', e.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // PUT /api/projects/:id - Update project (manager only)
 router.put('/:id', requireManager, async (req, res) => {
   try {
-    const { name, notes, status, priority, forPerson, startDate, endDate } = req.body || {};
+    const { name, notes, description, status, priority, forPerson, startDate, endDate } = req.body || {};
 
     const p = await Project.findById(req.params.id);
     if (!p) return res.status(404).json({ message: 'Project not found' });
 
     if (name !== undefined) p.title = name;
+    // Handle both notes and description fields for compatibility
     if (notes !== undefined) p.description = notes;
+    if (description !== undefined) p.description = description;
     if (status !== undefined) p.status = status;
     if (priority !== undefined) p.priority = priority;
     if (forPerson !== undefined) p.tags = forPerson ? [String(forPerson)] : [];
@@ -120,6 +142,100 @@ router.delete('/:id', requireManager, async (req, res) => {
     res.json({ message: 'Project deleted successfully' });
   } catch (e) {
     console.error('Failed to delete project:', e.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// GET /api/projects/:id/data - Get project tasks, comments, activities
+router.get('/:id/data', auth, async (req, res) => {
+  try {
+    console.log('Loading project data for ID:', req.params.id);
+    const project = await Project.findById(req.params.id);
+    if (!project) {
+      console.log('Project not found:', req.params.id);
+      return res.status(404).json({ message: 'Project not found' });
+    }
+    
+    const data = {
+      tasks: project.tasks || [],
+      comments: project.comments || [],
+      activities: project.activities || []
+    };
+    console.log('Returning project data:', data);
+    res.json(data);
+  } catch (e) {
+    console.error('Error loading project data:', e);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// POST /api/projects/:id/tasks - Add task
+router.post('/:id/tasks', auth, async (req, res) => {
+  try {
+    console.log('Adding task to project:', req.params.id, req.body);
+    const project = await Project.findById(req.params.id);
+    if (!project) {
+      console.log('Project not found for task add:', req.params.id);
+      return res.status(404).json({ message: 'Project not found' });
+    }
+    
+    if (!project.tasks) project.tasks = [];
+    project.tasks.push(req.body);
+    await project.save();
+    console.log('Task added successfully, total tasks:', project.tasks.length);
+    
+    res.json(req.body);
+  } catch (e) {
+    console.error('Error adding task:', e);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// PUT /api/projects/:id/tasks/:taskId - Update task
+router.put('/:id/tasks/:taskId', auth, async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.id);
+    if (!project) return res.status(404).json({ message: 'Project not found' });
+    
+    const taskIndex = project.tasks.findIndex(t => t.id == req.params.taskId);
+    if (taskIndex === -1) return res.status(404).json({ message: 'Task not found' });
+    
+    Object.assign(project.tasks[taskIndex], req.body);
+    await project.save();
+    
+    res.json(project.tasks[taskIndex]);
+  } catch (e) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// DELETE /api/projects/:id/tasks/:taskId - Delete task
+router.delete('/:id/tasks/:taskId', auth, async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.id);
+    if (!project) return res.status(404).json({ message: 'Project not found' });
+    
+    project.tasks = project.tasks.filter(t => t.id != req.params.taskId);
+    await project.save();
+    
+    res.json({ message: 'Task deleted' });
+  } catch (e) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// POST /api/projects/:id/comments - Add comment
+router.post('/:id/comments', auth, async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.id);
+    if (!project) return res.status(404).json({ message: 'Project not found' });
+    
+    if (!project.comments) project.comments = [];
+    project.comments.push(req.body);
+    await project.save();
+    
+    res.json(req.body);
+  } catch (e) {
     res.status(500).json({ message: 'Server error' });
   }
 });
