@@ -259,21 +259,27 @@ const ProjectsPage = () => {
     }
   };
 
-  const handleDeleteProject = (projectId) => {
+  const handleDeleteProject = async (projectId) => {
     if (user?.role !== 'manager') return;
 
-    const projectToDelete = projects.find(p => p.id === projectId);
-    if (projectToDelete) {
-      // Move to trash instead of permanent deletion
-      const deletedProjects = JSON.parse(localStorage.getItem('deletedProjects') || '[]');
-      const projectWithDeleteInfo = {
-        ...projectToDelete,
-        deletedAt: new Date().toISOString()
-      };
-      localStorage.setItem('deletedProjects', JSON.stringify([...deletedProjects, projectWithDeleteInfo]));
-    }
+    try {
+      const response = await fetch(`http://localhost:5000/api/projects/${projectId}`, {
+        method: 'DELETE',
+        headers: {
+          'x-auth-token': localStorage.getItem('token')
+        }
+      });
 
-    setProjects(projects.filter(p => p.id !== projectId));
+      if (response.ok) {
+        setProjects(projects.filter(p => p.id !== projectId));
+      } else {
+        console.error('Failed to delete project');
+        alert('Failed to delete project. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      alert('Failed to delete project. Please try again.');
+    }
   };
 
   const handleToggleFavorite = async (projectId) => {
@@ -966,15 +972,32 @@ const ProjectsPage = () => {
                         </button>
                       )}
                     </td>
-                    <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
+                    <td className={`px-6 py-4 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
                       {user?.role === 'manager' ? (
                         <EditableField
                           value={project.forPerson || ''}
                           onSave={(value) => handleUpdateField(project.id, 'forPerson', value)}
                           saveOnEnter={false}
+                          type="textarea"
+                          rows={2}
                         />
                       ) : (
-                        <span>{project.forPerson || '—'}</span>
+                        <div className="max-w-xs">
+                          {project.forPerson ? (
+                            <div className="space-y-1">
+                              {project.forPerson.split(',').map((name, index) => (
+                                <div key={index} className="flex items-center gap-2">
+                                  <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold">
+                                    {name.trim().charAt(0).toUpperCase()}
+                                  </div>
+                                  <span className="text-xs">{name.trim()}</span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <span>—</span>
+                          )}
+                        </div>
                       )}
                     </td>
                     <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>

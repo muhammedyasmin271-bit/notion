@@ -51,7 +51,7 @@ router.get('/', auth, async (req, res) => {
       { author: userId, deleted: false },
       { isPublic: true, deleted: false },
       { 'collaborators.user': userId, deleted: false },
-      { sharedWith: userId, deleted: false },
+      { 'sharedWith.user': userId, deleted: false },
     ];
 
     const andFilters = [{ $or: visibilityOr }];
@@ -84,6 +84,7 @@ router.get('/', auth, async (req, res) => {
       .sort(sort)
       .populate('author', 'name email')
       .populate('collaborators.user', 'name email')
+      .populate('sharedWith.user', 'name email')  // Add populate for sharedWith
       .lean();
 
     res.json(documents);
@@ -98,11 +99,11 @@ router.get('/', auth, async (req, res) => {
 // @access  Private
 router.get('/trash/all', auth, async (req, res) => {
   try {
-    const deletedDocuments = await Document.find({ 
-      author: req.user.id, 
-      deleted: true 
+    const deletedDocuments = await Document.find({
+      author: req.user.id,
+      deleted: true
     }).sort({ deletedAt: -1 });
-    
+
     res.json(deletedDocuments);
   } catch (error) {
     console.error('Error fetching deleted documents:', error);
@@ -120,7 +121,7 @@ router.post('/upload', auth, upload.single('file'), async (req, res) => {
     }
 
     const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
-    
+
     res.status(201).json({
       message: 'File uploaded successfully',
       filename: req.file.filename,
@@ -191,19 +192,23 @@ router.get('/:id', auth, async (req, res) => {
     const document = await Document.findOne({ _id: req.params.id, deleted: false })
       .populate('author', 'name email')
       .populate('collaborators.user', 'name email')
-      .populate('reviewHistory.reviewer', 'name email');
-    
+      .populate('reviewHistory.reviewer', 'name email')
+      .populate('sharedWith.user', 'name email');  // Add populate for sharedWith
+
     if (!document) {
       return res.status(404).json({ message: 'Document not found' });
     }
-    
+
     // Check if user owns the document or has access
-    if (document.author.toString() !== req.user.id && 
-        !document.isPublic && 
-        !document.collaborators.some(collab => collab.user.toString() === req.user.id)) {
+    const isOwner = document.author.toString() === req.user.id;
+    const isPublic = document.isPublic;
+    const isCollaborator = document.collaborators.some(collab => collab.user.toString() === req.user.id);
+    const isSharedWithUser = document.sharedWith.some(shared => shared.user.toString() === req.user.id);
+
+    if (!isOwner && !isPublic && !isCollaborator && !isSharedWithUser) {
       return res.status(403).json({ message: 'Not authorized' });
     }
-    
+
     res.json(document);
   } catch (error) {
     console.error('Error fetching document:', error);
@@ -220,12 +225,12 @@ router.get('/:id', auth, async (req, res) => {
 router.post('/', auth, async (req, res) => {
   try {
     const { title, content, type, category, tags, isPublic, isTemplate } = req.body;
-    
+
     // Validate required fields
     if (!title || !content) {
       return res.status(400).json({ message: 'Title and content are required' });
     }
-    
+
     const newDocument = new Document({
       title,
       content,
@@ -236,10 +241,10 @@ router.post('/', auth, async (req, res) => {
       isTemplate: isTemplate || false,
       author: req.user.id
     });
-    
+
     const document = await newDocument.save();
     await document.populate('author', 'name email');
-    
+
     res.status(201).json(document);
   } catch (error) {
     console.error('Error creating document:', error);
@@ -256,23 +261,23 @@ router.post('/', auth, async (req, res) => {
 router.put('/:id', auth, async (req, res) => {
   try {
     const { title, content, type, category, tags, isPublic, isTemplate, status } = req.body;
-    
+
     let document = await Document.findOne({ _id: req.params.id, deleted: false });
-    
+
     if (!document) {
       return res.status(404).json({ message: 'Document not found' });
     }
-    
+
     // Allow owner or manager/admin to update
     if (!isOwnerOrManager(req, document)) {
       return res.status(403).json({ message: 'Not authorized' });
     }
-    
+
     // Create new version if content changed
     if (content && content !== document.content) {
       await document.createVersion(content, req.user.id);
     }
-    
+
     // Update fields
     const updateFields = {};
     if (title !== undefined) updateFields.title = title;
@@ -282,13 +287,13 @@ router.put('/:id', auth, async (req, res) => {
     if (isPublic !== undefined) updateFields.isPublic = isPublic;
     if (isTemplate !== undefined) updateFields.isTemplate = isTemplate;
     if (status !== undefined) updateFields.status = status;
-    
+
     document = await Document.findByIdAndUpdate(
       req.params.id,
       { $set: updateFields },
       { new: true, runValidators: true }
     ).populate('author', 'name email');
-    
+
     res.json(document);
   } catch (error) {
     console.error('Error updating document:', error);
@@ -308,21 +313,21 @@ router.put('/:id', auth, async (req, res) => {
 router.delete('/:id', auth, async (req, res) => {
   try {
     const document = await Document.findOne({ _id: req.params.id, deleted: false });
-    
+
     if (!document) {
       return res.status(404).json({ message: 'Document not found' });
     }
-    
+
     // Allow owner or manager/admin to delete (soft delete)
     if (!isOwnerOrManager(req, document)) {
       return res.status(403).json({ message: 'Not authorized' });
     }
-    
+
     // Soft delete
     document.deleted = true;
     document.deletedAt = new Date();
     await document.save();
-    
+
     res.json({ message: 'Document moved to trash' });
   } catch (error) {
     console.error('Error deleting document:', error);
@@ -339,21 +344,21 @@ router.delete('/:id', auth, async (req, res) => {
 router.patch('/:id/restore', auth, async (req, res) => {
   try {
     const document = await Document.findOne({ _id: req.params.id, deleted: true });
-    
+
     if (!document) {
       return res.status(404).json({ message: 'Deleted document not found' });
     }
-    
+
     // Allow owner or manager/admin to restore
     if (!isOwnerOrManager(req, document)) {
       return res.status(403).json({ message: 'Not authorized' });
     }
-    
+
     // Restore
     document.deleted = false;
     document.deletedAt = undefined;
     await document.save();
-    
+
     await document.populate('author', 'name email');
     res.json(document);
   } catch (error) {
@@ -371,22 +376,22 @@ router.patch('/:id/restore', auth, async (req, res) => {
 router.patch('/:id/archive', auth, async (req, res) => {
   try {
     const document = await Document.findOne({ _id: req.params.id, deleted: false });
-    
+
     if (!document) {
       return res.status(404).json({ message: 'Document not found' });
     }
-    
+
     // Allow owner or manager/admin to toggle archive
     if (!isOwnerOrManager(req, document)) {
       return res.status(403).json({ message: 'Not authorized' });
     }
-    
+
     if (document.isArchived) {
       await document.unarchive();
     } else {
       await document.archive();
     }
-    
+
     await document.populate('author', 'name email');
     res.json(document);
   } catch (error) {
@@ -404,26 +409,26 @@ router.patch('/:id/archive', auth, async (req, res) => {
 router.post('/:id/collaborators', auth, async (req, res) => {
   try {
     const { userId, role = 'Viewer' } = req.body;
-    
+
     if (!userId) {
       return res.status(400).json({ message: 'User ID is required' });
     }
-    
+
     const document = await Document.findOne({ _id: req.params.id, deleted: false });
-    
+
     if (!document) {
       return res.status(404).json({ message: 'Document not found' });
     }
-    
+
     // Allow owner or manager/admin to manage collaborators
     if (!isOwnerOrManager(req, document)) {
       return res.status(403).json({ message: 'Not authorized' });
     }
-    
+
     await document.addCollaborator(userId, role);
     await document.populate('author', 'name email');
     await document.populate('collaborators.user', 'name email');
-    
+
     res.json(document);
   } catch (error) {
     console.error('Error adding collaborator:', error);
@@ -440,20 +445,20 @@ router.post('/:id/collaborators', auth, async (req, res) => {
 router.delete('/:id/collaborators/:collaboratorId', auth, async (req, res) => {
   try {
     const document = await Document.findOne({ _id: req.params.id, deleted: false });
-    
+
     if (!document) {
       return res.status(404).json({ message: 'Document not found' });
     }
-    
+
     // Allow owner or manager/admin to remove collaborators
     if (!isOwnerOrManager(req, document)) {
       return res.status(403).json({ message: 'Not authorized' });
     }
-    
+
     await document.removeCollaborator(req.params.collaboratorId);
     await document.populate('author', 'name email');
     await document.populate('collaborators.user', 'name email');
-    
+
     res.json(document);
   } catch (error) {
     console.error('Error removing collaborator:', error);
@@ -470,34 +475,34 @@ router.delete('/:id/collaborators/:collaboratorId', auth, async (req, res) => {
 router.post('/:id/review', auth, async (req, res) => {
   try {
     const { status, comments } = req.body;
-    
+
     if (!status) {
       return res.status(400).json({ message: 'Review status is required' });
     }
-    
+
     const document = await Document.findOne({ _id: req.params.id, deleted: false });
-    
+
     if (!document) {
       return res.status(404).json({ message: 'Document not found' });
     }
-    
+
     // Check if user owns the document or is a collaborator
-    if (document.author.toString() !== req.user.id && 
-        !document.collaborators.some(collab => collab.user.toString() === req.user.id)) {
+    if (document.author.toString() !== req.user.id &&
+      !document.collaborators.some(collab => collab.user.toString() === req.user.id)) {
       return res.status(403).json({ message: 'Not authorized' });
     }
-    
+
     document.reviewHistory.push({
       reviewer: req.user.id,
       status,
       comments: comments || '',
       reviewedAt: new Date()
     });
-    
+
     await document.save();
     await document.populate('author', 'name email');
     await document.populate('reviewHistory.reviewer', 'name email');
-    
+
     res.json(document);
   } catch (error) {
     console.error('Error adding review:', error);
@@ -508,7 +513,7 @@ router.post('/:id/review', auth, async (req, res) => {
   }
 });
 
- 
+
 
 // @route   POST /api/documents/:id/share
 // @desc    Share document with specific user groups
@@ -516,24 +521,24 @@ router.post('/:id/review', auth, async (req, res) => {
 router.post('/:id/share', auth, async (req, res) => {
   try {
     const { shareType } = req.body; // 'all-managers', 'all-users', 'all'
-    
+
     if (!shareType || !['all-managers', 'all-users', 'all'].includes(shareType)) {
       return res.status(400).json({ message: 'Valid share type is required' });
     }
-    
+
     const document = await Document.findOne({ _id: req.params.id, deleted: false });
-    
+
     if (!document) {
       return res.status(404).json({ message: 'Document not found' });
     }
-    
+
     // Check if user owns the document
     if (document.author.toString() !== req.user.id) {
       return res.status(403).json({ message: 'Not authorized' });
     }
-    
+
     let usersToShareWith = [];
-    
+
     if (shareType === 'all-managers') {
       usersToShareWith = await User.find({ role: 'manager', isActive: true });
     } else if (shareType === 'all-users') {
@@ -541,11 +546,25 @@ router.post('/:id/share', auth, async (req, res) => {
     } else if (shareType === 'all') {
       usersToShareWith = await User.find({ isActive: true });
     }
-    
+
     // Add all users to sharedWith array
     const userIds = usersToShareWith.map(user => user._id);
-    document.sharedWith = [...new Set([...document.sharedWith, ...userIds])];
-    
+    // Fix the sharedWith structure to match the schema
+    userIds.forEach(userId => {
+      // Check if user is already in sharedWith
+      const alreadyShared = document.sharedWith.some(shared =>
+        shared.user && (shared.user.toString() === userId.toString())
+      );
+
+      if (!alreadyShared) {
+        document.sharedWith.push({
+          user: userId,
+          permission: 'read',
+          sharedAt: new Date()
+        });
+      }
+    });
+
     // Add all users as collaborators with 'Viewer' role
     userIds.forEach(userId => {
       if (!document.collaborators.some(collab => collab.user.toString() === userId.toString())) {
@@ -556,14 +575,14 @@ router.post('/:id/share', auth, async (req, res) => {
         });
       }
     });
-    
+
     await document.save();
-    
+
     const populatedDocument = await Document.findById(document._id)
       .populate('author', 'name email')
-      .populate('sharedWith', 'name email role')
+      .populate('sharedWith.user', 'name email role')  // Fix populate path
       .populate('collaborators.user', 'name email role');
-    
+
     // Create notifications for recipients
     try {
       const notifications = userIds
@@ -603,16 +622,16 @@ router.post('/:id/share', auth, async (req, res) => {
 router.delete('/trash/:id', auth, async (req, res) => {
   try {
     const document = await Document.findOne({ _id: req.params.id, deleted: true });
-    
+
     if (!document) {
       return res.status(404).json({ message: 'Deleted document not found' });
     }
-    
+
     // Allow owner or manager/admin to permanently delete
     if (!isOwnerOrManager(req, document)) {
       return res.status(403).json({ message: 'Not authorized' });
     }
-    
+
     // Remove attachment files from disk
     try {
       if (Array.isArray(document.attachments)) {
@@ -631,7 +650,7 @@ router.delete('/trash/:id', auth, async (req, res) => {
 
     // Permanent delete
     await Document.findByIdAndDelete(req.params.id);
-    
+
     res.json({ message: 'Document permanently deleted' });
   } catch (error) {
     console.error('Error permanently deleting document:', error);
