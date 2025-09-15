@@ -145,6 +145,14 @@ const AppContent = () => {
           </ProtectedRoute>
         } />
 
+        <Route path="/goals/:goalId" element={
+          <ProtectedRoute>
+            <Layout hideNav={true}>
+              <GoalsPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+
         <Route path="/documents" element={
           <ProtectedRoute>
             <Layout>

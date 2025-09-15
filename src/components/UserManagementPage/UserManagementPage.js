@@ -26,7 +26,7 @@ const UserManagementPage = () => {
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const isPicker = urlParams.get('picker') === '1';
+    const isPicker = urlParams.get('picker') === 'true' || urlParams.get('picker') === '1';
     setIsPickerMode(isPicker);
 
     if (isPicker) {
@@ -37,17 +37,17 @@ const UserManagementPage = () => {
       if (projectData) {
         const data = JSON.parse(projectData);
         setPickerData(data);
-        // Pre-select users based on current assignment - split with the new delimiter
+        // Pre-select users based on current assignment
         if (data.currentAssignment) {
-          const currentNames = data.currentAssignment.split('; ').map(name => name.trim());
+          const currentNames = data.currentAssignment.split(',').map(name => name.trim()).filter(name => name);
           setSelectedUsers(currentNames);
         }
       } else if (goalData) {
         const data = JSON.parse(goalData);
         setPickerData(data);
-        // Pre-select users based on current assignment - split with the new delimiter
+        // Pre-select users based on current assignment
         if (data.currentAssignment) {
-          const currentNames = data.currentAssignment.split('; ').map(name => name.trim());
+          const currentNames = data.currentAssignment.split(',').map(name => name.trim()).filter(name => name);
           setSelectedUsers(currentNames);
         }
       }
@@ -136,19 +136,27 @@ const UserManagementPage = () => {
   const handleConfirmSelection = () => {
     if (!pickerData) return;
 
-    // Join user names with a more robust delimiter to handle names with commas
-    const selectedUserNames = selectedUsers.join('; ');
+    // Join user names with comma delimiter for consistency
+    const selectedUserNames = selectedUsers.join(',');
     console.log('Storing selected users:', selectedUserNames);
+
+    // Create or update the picker return data
+    const returnData = {
+      type: pickerData.type,
+      timestamp: new Date().toISOString(),
+      goalState: pickerData.goalState || null,
+      descriptionBlocks: pickerData.descriptionBlocks || null
+    };
 
     if (pickerData.type === 'project') {
       sessionStorage.setItem('selectedProjectUsers', selectedUserNames);
-      // Keep the project picker return data for state restoration
-      // Don't remove it here - let the ProjectDetailsPage handle it
+      sessionStorage.setItem('projectPickerReturn', JSON.stringify(returnData));
       console.log('Navigating back to projects with picker data preserved');
       navigate('/projects');
     } else if (pickerData.type === 'goal') {
       sessionStorage.setItem('selectedGoalUsers', selectedUserNames);
-      sessionStorage.removeItem('goalPickerReturn');
+      sessionStorage.setItem('goalPickerReturn', JSON.stringify(returnData));
+      console.log('Navigating back to goals with picker data preserved');
       navigate('/goals');
     }
   };
@@ -166,8 +174,13 @@ const UserManagementPage = () => {
         navigate('/projects');
       }
     } else if (goalData) {
+      const data = JSON.parse(goalData);
       sessionStorage.removeItem('goalPickerReturn');
-      navigate('/goals');
+      if (data.id && data.id !== 'new') {
+        navigate(`/goals/${data.id}`);
+      } else {
+        navigate('/goals');
+      }
     } else {
       navigate(-1); // Go back to previous page
     }

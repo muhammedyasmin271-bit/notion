@@ -4,7 +4,7 @@ import {
   BarChart3, MessageSquare, Paperclip, Activity, Send, Plus,
   TrendingUp, Award, FileText, Edit3, Save, ArrowLeft,
   Star, Zap, Timer, Eye, Heart, Share2, MoreHorizontal, GripVertical,
-  Trash2, Circle, Tag
+  Trash2, Circle, Tag, Lock
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAppContext } from '../../context/AppContext';
@@ -701,7 +701,7 @@ function DescriptionBlock({
             suppressContentEditableWarning
             data-placeholder={placeholder}
             style={getBlockStyle()}
-            onInput={handleInput}
+            // onInpsut={handleInput}
             onKeyDown={handleKeyDown}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
@@ -759,8 +759,6 @@ const ProjectDetailsPage = ({ project: propProject, onClose, onUpdate, isManager
     };
     return defaultProject;
   });
-
-
 
   // Add state for timeline and tags editing
   const [editingTimeline, setEditingTimeline] = useState(false);
@@ -881,7 +879,62 @@ const ProjectDetailsPage = ({ project: propProject, onClose, onUpdate, isManager
   ]);
   const [menu, setMenu] = useState({ open: false, at: { x: 0, y: 0 }, forIndex: -1 });
 
+  // Goals editor state (for managers)
+  const [goalsBlocks, setGoalsBlocks] = useState([
+    { id: uid(), type: "text", text: "", focus: true, indent: 0 },
+  ]);
+  const [goalsMenu, setGoalsMenu] = useState({ open: false, at: { x: 0, y: 0 }, forIndex: -1 });
+
+  // Reports editor state (for workers)
+  const [reportsBlocks, setReportsBlocks] = useState([
+    { id: uid(), type: "text", text: "", focus: true, indent: 0 },
+  ]);
+  const [reportsMenu, setReportsMenu] = useState({ open: false, at: { x: 0, y: 0 }, forIndex: -1 });
+  
+  // Report questionnaire state
+  const [reportAnswers, setReportAnswers] = useState({
+    functionality: 0, // 0-100 percentage
+    quality: '', // Excellent, Good, Fair, Poor
+    timeline: '', // On Time, Slightly Delayed, Significantly Delayed
+    challenges: '', // None, Minor, Major, Critical
+    satisfaction: 0 // 1-5 rating
+  });
+
   const navigate = useNavigate();
+
+  // Check if current user has access to this project
+  const hasProjectAccess = () => {
+    if (!user || !projectData) return false;
+    
+    // Project creator always has access
+    if (projectData.createdBy === user.id || projectData.ownerName === user.name) {
+      return true;
+    }
+    
+    // Check if user is assigned to the project
+    if (projectData.forPerson) {
+      const assignedPeople = projectData.forPerson.split(',').map(name => name.trim().toLowerCase());
+      if (assignedPeople.includes(user.name.toLowerCase())) {
+        return true;
+      }
+    }
+    
+    // Check if user is in viewers list
+    if (projectData.viewers) {
+      const viewers = projectData.viewers.split(',').map(name => name.trim().toLowerCase());
+      if (viewers.includes(user.name.toLowerCase())) {
+        return true;
+      }
+    }
+    
+    return false;
+  };
+
+  // Check if current user is the project creator/owner
+  const isProjectOwner = () => {
+    if (!user || !projectData) return false;
+    return projectData.createdBy === user.id || projectData.ownerName === user.name;
+  };
 
   // Delete project function
   const handleDeleteProject = async () => {
@@ -930,7 +983,29 @@ const ProjectDetailsPage = ({ project: propProject, onClose, onUpdate, isManager
   };
 
   const addBlock = (index, type = "text", indent = 0) => {
-    const newBlock = { id: uid(), type, text: "", focus: true, indent };
+    let blockType = type;
+    let blockIndent = indent;
+    let checked = false;
+    
+    if (type === "text" && descriptionBlocks[index]) {
+      const currentBlock = descriptionBlocks[index];
+      if (currentBlock.type === "bulleted" || currentBlock.type === "numbered" || currentBlock.type === "todo") {
+        blockType = currentBlock.type;
+        blockIndent = currentBlock.indent || 0;
+        if (currentBlock.type === "todo") {
+          checked = false;
+        }
+      }
+    }
+    
+    const newBlock = { 
+      id: uid(), 
+      type: blockType, 
+      text: "", 
+      focus: true, 
+      indent: blockIndent,
+      ...(blockType === "todo" && { checked })
+    };
     setDescriptionBlocks((prev) => {
       const copy = [...prev];
       copy.splice(index + 1, 0, newBlock);
@@ -959,6 +1034,68 @@ const ProjectDetailsPage = ({ project: propProject, onClose, onUpdate, isManager
 
   const openSlashMenu = (index, at) => setMenu({ open: true, at, forIndex: index });
   const closeSlashMenu = () => setMenu((m) => ({ ...m, open: false }));
+
+  // Goals editor functions
+  const updateGoalsBlock = (index, patch) => {
+    setGoalsBlocks((prev) =>
+      prev.map((b, i) => (i === index ? { ...b, ...patch, focus: patch.focus ?? b.focus } : b))
+    );
+  };
+
+  const addGoalsBlock = (index, type = "text", indent = 0) => {
+    const newBlock = { id: uid(), type, text: "", focus: true, indent };
+    setGoalsBlocks((prev) => {
+      const copy = [...prev];
+      copy.splice(index + 1, 0, newBlock);
+      return copy;
+    });
+  };
+
+  const removeGoalsBlock = (index) => {
+    if (goalsBlocks.length === 1) return;
+    setGoalsBlocks((list) => list.filter((_, i) => i !== index));
+  };
+
+  const openGoalsSlashMenu = (index, at) => setGoalsMenu({ open: true, at, forIndex: index });
+  const closeGoalsSlashMenu = () => setGoalsMenu((m) => ({ ...m, open: false }));
+
+  const applyGoalsTypeFromMenu = (type) => {
+    const i = goalsMenu.forIndex;
+    if (i < 0) return;
+    updateGoalsBlock(i, { type });
+    closeGoalsSlashMenu();
+  };
+
+  // Reports editor functions
+  const updateReportsBlock = (index, patch) => {
+    setReportsBlocks((prev) =>
+      prev.map((b, i) => (i === index ? { ...b, ...patch, focus: patch.focus ?? b.focus } : b))
+    );
+  };
+
+  const addReportsBlock = (index, type = "text", indent = 0) => {
+    const newBlock = { id: uid(), type, text: "", focus: true, indent };
+    setReportsBlocks((prev) => {
+      const copy = [...prev];
+      copy.splice(index + 1, 0, newBlock);
+      return copy;
+    });
+  };
+
+  const removeReportsBlock = (index) => {
+    if (reportsBlocks.length === 1) return;
+    setReportsBlocks((list) => list.filter((_, i) => i !== index));
+  };
+
+  const openReportsSlashMenu = (index, at) => setReportsMenu({ open: true, at, forIndex: index });
+  const closeReportsSlashMenu = () => setReportsMenu((m) => ({ ...m, open: false }));
+
+  const applyReportsTypeFromMenu = (type) => {
+    const i = reportsMenu.forIndex;
+    if (i < 0) return;
+    updateReportsBlock(i, { type });
+    closeReportsSlashMenu();
+  };
 
   const applyTypeFromMenu = (type) => {
     const i = menu.forIndex;
@@ -1273,17 +1410,34 @@ const ProjectDetailsPage = ({ project: propProject, onClose, onUpdate, isManager
         
         // Restore the complete project state
         if (pickerData.projectState) {
+          const fieldToUpdate = pickerData.type === 'viewers' ? 'viewers' : 'forPerson';
           const restoredProject = {
             ...pickerData.projectState,
-            forPerson: selectedUsers
+            [fieldToUpdate]: selectedUsers
           };
-          console.log('Restoring project state:', restoredProject);
+          console.log('Restoring project state with field:', fieldToUpdate, selectedUsers);
           setProjectData(restoredProject);
           
           // Restore description blocks if available
           if (pickerData.descriptionBlocks && Array.isArray(pickerData.descriptionBlocks)) {
             console.log('Restoring description blocks:', pickerData.descriptionBlocks);
             setDescriptionBlocks(pickerData.descriptionBlocks);
+          }
+          
+          // Save to backend if it's an existing project
+          if (restoredProject.id && restoredProject.id !== 'new') {
+            const updateData = { [fieldToUpdate]: selectedUsers };
+            console.log('Saving to backend:', updateData);
+            apiService.put(`/projects/${restoredProject.id}`, updateData)
+              .then(() => {
+                console.log('Viewers/Assignment updated in backend successfully');
+                // Force component re-render
+                setProjectData(prev => ({ ...prev, [fieldToUpdate]: selectedUsers }));
+              })
+              .catch(err => console.error('Failed to update backend:', err));
+          } else {
+            // For new projects, just update local state
+            setProjectData(prev => ({ ...prev, [fieldToUpdate]: selectedUsers }));
           }
           
           // Clean up session storage
@@ -1798,6 +1952,29 @@ const ProjectDetailsPage = ({ project: propProject, onClose, onUpdate, isManager
     }
   };
 
+  // If user doesn't have access to this project, show access denied
+  if (!hasProjectAccess() && !isNewProject) {
+    return (
+      <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+        <div className={`p-8 rounded-2xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+          <div className="text-center">
+            <Lock className="w-16 h-16 mx-auto mb-4 text-red-500" />
+            <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
+            <p className={`mb-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+              You don't have permission to view this project.
+            </p>
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Go Back
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`fixed inset-0 z-50 flex flex-col ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
       {/* Block editor styles */}
@@ -1989,7 +2166,9 @@ const ProjectDetailsPage = ({ project: propProject, onClose, onUpdate, isManager
             {[
               { id: 'overview', label: 'Overview', icon: BarChart3 },
               { id: 'tasks', label: 'Tasks', icon: CheckCircle, count: tasks.length },
-              { id: 'comments', label: 'Comments', icon: MessageSquare, count: comments.length }
+              { id: 'comments', label: 'Comments', icon: MessageSquare, count: comments.length },
+              { id: 'goals', label: 'Goals', icon: Flag },
+              { id: 'reports', label: 'Reports', icon: BarChart3 }
             ].map((tab) => {
               const Icon = tab.icon;
               return (
@@ -2665,20 +2844,19 @@ const ProjectDetailsPage = ({ project: propProject, onClose, onUpdate, isManager
                         <p className="font-medium mt-1">{new Date(projectData.createdAt || Date.now()).toLocaleDateString()}</p>
                       </div>
                     )}
-                    {isManager && (
-                      <div>
-                        <label className="text-sm font-medium text-gray-500">Assigned To</label>
-                        <div className="flex gap-2 mt-1">
-                          <input
-                            type="text"
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Assigned To</label>
+                      {isManager ? (
+                        <div className="mt-1">
+                          <textarea
                             value={projectData.forPerson || ''}
                             onChange={(e) => handleFieldChange('forPerson', e.target.value)}
-                            placeholder="Team or person"
-                            className={`flex-1 px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 placeholder-gray-500'}`}
+                            placeholder="Enter names separated by commas"
+                            rows={3}
+                            className={`w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 placeholder-gray-500'}`}
                           />
                           <button
                             onClick={() => {
-                              // Save current project state before navigating
                               const currentProjectState = {
                                 ...projectData,
                                 description: descriptionBlocks.map(block => {
@@ -2706,14 +2884,99 @@ const ProjectDetailsPage = ({ project: propProject, onClose, onUpdate, isManager
                               }));
                               navigate('/users?picker=1');
                             }}
-                            className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                            className="mt-2 w-full px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                           >
-                            Pick
+                            Pick Users
                           </button>
+                          <SaveStatusIndicator field="forPerson" />
                         </div>
-                        <SaveStatusIndicator field="forPerson" />
-                      </div>
-                    )}
+                      ) : (
+                        <div className={`mt-1 p-2 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                          {projectData.forPerson ? (
+                            <div className="space-y-1">
+                              {projectData.forPerson.split(',').map((name, index) => (
+                                <div key={index} className="flex items-center gap-2">
+                                  <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold">
+                                    {name.trim().charAt(0).toUpperCase()}
+                                  </div>
+                                  <span className="text-sm font-medium">{name.trim()}</span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-sm text-gray-500">Not assigned</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Viewers (View Only)</label>
+                      {isProjectOwner() ? (
+                        <div className="mt-1">
+                          <textarea
+                            value={projectData.viewers || ''}
+                            onChange={(e) => handleFieldChange('viewers', e.target.value)}
+                            placeholder="Enter names separated by commas for view-only access"
+                            rows={2}
+                            className={`w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 placeholder-gray-500'}`}
+                          />
+                          <button
+                            onClick={() => {
+                              const currentProjectState = {
+                                ...projectData,
+                                description: descriptionBlocks.map(block => {
+                                  const indentStr = '  '.repeat(block.indent || 0);
+                                  if (block.type === 'divider') return indentStr + '---';
+                                  if (block.type === 'h1') return indentStr + `# ${block.text || ''}`;
+                                  if (block.type === 'h2') return indentStr + `## ${block.text || ''}`;
+                                  if (block.type === 'h3') return indentStr + `### ${block.text || ''}`;
+                                  if (block.type === 'quote') return indentStr + `> ${block.text || ''}`;
+                                  if (block.type === 'bulleted') return indentStr + `- ${block.text || ''}`;
+                                  if (block.type === 'numbered') return indentStr + `1. ${block.text || ''}`;
+                                  if (block.type === 'todo') return indentStr + `- [${block.checked ? 'x' : ' '}] ${block.text || ''}`;
+                                  if (block.type === 'table') return indentStr + `TABLE:${JSON.stringify(block.rows || [["", "", ""]])}`;
+                                  return indentStr + (block.text || '');
+                                }).join('\n'),
+                                descriptionBlocks: JSON.stringify(descriptionBlocks)
+                              };
+                              
+                              sessionStorage.setItem('projectPickerReturn', JSON.stringify({
+                                type: 'viewers',
+                                id: projectData.id,
+                                currentViewers: projectData.viewers || '',
+                                projectState: currentProjectState,
+                                descriptionBlocks: descriptionBlocks
+                              }));
+                              navigate('/users?picker=1');
+                            }}
+                            className="mt-2 w-full px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                          >
+                            Pick Viewers
+                          </button>
+                          <SaveStatusIndicator field="viewers" />
+                        </div>
+                      ) : (
+                        <div className={`mt-1 p-2 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                          {console.log('Current viewers value:', projectData.viewers)}
+                          {projectData.viewers ? (
+                            <div className="space-y-1">
+                              {projectData.viewers.split(',').map((name, index) => (
+                                <div key={index} className="flex items-center gap-2">
+                                  <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-white text-xs font-bold">
+                                    {name.trim().charAt(0).toUpperCase()}
+                                  </div>
+                                  <span className="text-sm font-medium">{name.trim()}</span>
+                                  <Eye className="w-3 h-3 text-gray-400" title="View only" />
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-sm text-gray-500">No viewers assigned</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
 
                     {/* Update Project Button */}
                     {!isNewProject && isManager && (
@@ -2980,8 +3243,237 @@ const ProjectDetailsPage = ({ project: propProject, onClose, onUpdate, isManager
             </div>
           )}
 
+          {activeTab === 'goals' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold flex items-center gap-3">
+                  <Flag className="w-6 h-6 text-blue-500" />
+                  Project Goals
+                </h2>
+                {isProjectOwner() && (
+                  <div className="text-sm text-gray-500">
+                    Owner View - Define project objectives
+                  </div>
+                )}
+              </div>
+              
+              <div className={`p-12 rounded-3xl border-2 min-h-[600px] ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                {isProjectOwner() ? (
+                  <div className="space-y-0 min-h-[500px]">
+                    {goalsBlocks.map((block, index) => (
+                      <DescriptionBlock
+                        key={block.id}
+                        block={block}
+                        index={index}
+                        numberedIndex={null}
+                        onChange={updateGoalsBlock}
+                        onEnter={addGoalsBlock}
+                        onBackspace={removeGoalsBlock}
+                        onSlashOpen={openGoalsSlashMenu}
+                        onToggleTodo={(index, checked) => updateGoalsBlock(index, { checked })}
+                        moveFocus={() => {}}
+                        onIndent={() => {}}
+                        onOutdent={() => {}}
+                        onDragStart={() => {}}
+                        onDragOver={() => {}}
+                        onDrop={() => {}}
+                        isDarkMode={isDarkMode}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className={`p-8 min-h-[500px] ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                    <div className="text-center py-12">
+                      <Flag className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                      <p className="text-xl mb-2">Project Goals</p>
+                      <p>Goals will be defined by the project manager.</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
+          {activeTab === 'reports' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold flex items-center gap-3">
+                  <BarChart3 className="w-6 h-6 text-green-500" />
+                  Project Reports
+                </h2>
+                {hasProjectAccess() && !isProjectOwner() && (
+                  <div className="text-sm text-gray-500">
+                    Assigned User - Report project progress
+                  </div>
+                )}
+              </div>
+              
+              {hasProjectAccess() && !isProjectOwner() ? (
+                <div className="space-y-6">
+                  {/* Report Writing Section */}
+                  <div className={`p-12 rounded-3xl border-2 min-h-[400px] ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <FileText className="w-5 h-5" />
+                      Write Your Report
+                    </h3>
+                    <div className="space-y-0 min-h-[300px]">
+                      {reportsBlocks.map((block, index) => (
+                        <DescriptionBlock
+                          key={block.id}
+                          block={block}
+                          index={index}
+                          numberedIndex={null}
+                          onChange={updateReportsBlock}
+                          onEnter={addReportsBlock}
+                          onBackspace={removeReportsBlock}
+                          onSlashOpen={openReportsSlashMenu}
+                          onToggleTodo={(index, checked) => updateReportsBlock(index, { checked })}
+                          moveFocus={() => {}}
+                          onIndent={() => {}}
+                          onOutdent={() => {}}
+                          onDragStart={() => {}}
+                          onDragOver={() => {}}
+                          onDrop={() => {}}
+                          isDarkMode={isDarkMode}
+                        />
+                      ))}
+                    </div>
+                  </div>
 
+                  {/* Evaluation Questionnaire */}
+                  <div className={`p-8 rounded-3xl border-2 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                    <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5 text-blue-500" />
+                      Project Evaluation
+                    </h3>
+                    
+                    <div className="space-y-6">
+                      {/* Question 1: Functionality Percentage */}
+                      <div>
+                        <label className="block text-sm font-medium mb-3">1. What percentage of project functionality have you completed?</label>
+                        <div className="space-y-2">
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={reportAnswers.functionality}
+                            onChange={(e) => setReportAnswers(prev => ({ ...prev, functionality: parseInt(e.target.value) }))}
+                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                          />
+                          <div className="flex justify-between text-sm text-gray-500">
+                            <span>0%</span>
+                            <span className="font-semibold text-blue-600">{reportAnswers.functionality}%</span>
+                            <span>100%</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Question 2: Quality Assessment */}
+                      <div>
+                        <label className="block text-sm font-medium mb-3">2. How would you rate the quality of your work?</label>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          {['Excellent', 'Good', 'Fair', 'Poor'].map((option) => (
+                            <button
+                              key={option}
+                              onClick={() => setReportAnswers(prev => ({ ...prev, quality: option }))}
+                              className={`p-3 rounded-lg border-2 transition-all ${
+                                reportAnswers.quality === option
+                                  ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                  : isDarkMode ? 'border-gray-600 hover:border-gray-500' : 'border-gray-300 hover:border-gray-400'
+                              }`}
+                            >
+                              {option}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Question 3: Timeline Status */}
+                      <div>
+                        <label className="block text-sm font-medium mb-3">3. How is your progress relative to the timeline?</label>
+                        <div className="space-y-2">
+                          {['On Time', 'Slightly Delayed', 'Significantly Delayed'].map((option) => (
+                            <label key={option} className="flex items-center">
+                              <input
+                                type="radio"
+                                name="timeline"
+                                value={option}
+                                checked={reportAnswers.timeline === option}
+                                onChange={(e) => setReportAnswers(prev => ({ ...prev, timeline: e.target.value }))}
+                                className="mr-3"
+                              />
+                              <span>{option}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Question 4: Challenges Level */}
+                      <div>
+                        <label className="block text-sm font-medium mb-3">4. What level of challenges are you facing?</label>
+                        <select
+                          value={reportAnswers.challenges}
+                          onChange={(e) => setReportAnswers(prev => ({ ...prev, challenges: e.target.value }))}
+                          className={`w-full p-3 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                        >
+                          <option value="">Select challenge level</option>
+                          <option value="None">None - Everything is going smoothly</option>
+                          <option value="Minor">Minor - Small issues that can be resolved</option>
+                          <option value="Major">Major - Significant obstacles affecting progress</option>
+                          <option value="Critical">Critical - Severe issues requiring immediate attention</option>
+                        </select>
+                      </div>
+
+                      {/* Question 5: Satisfaction Rating */}
+                      <div>
+                        <label className="block text-sm font-medium mb-3">5. How satisfied are you with your progress on this project?</label>
+                        <div className="flex items-center space-x-2">
+                          {[1, 2, 3, 4, 5].map((rating) => (
+                            <button
+                              key={rating}
+                              onClick={() => setReportAnswers(prev => ({ ...prev, satisfaction: rating }))}
+                              className={`w-10 h-10 rounded-full border-2 transition-all ${
+                                reportAnswers.satisfaction >= rating
+                                  ? 'bg-yellow-400 border-yellow-500 text-white'
+                                  : isDarkMode ? 'border-gray-600 hover:border-yellow-400' : 'border-gray-300 hover:border-yellow-400'
+                              }`}
+                            >
+                              ⭐
+                            </button>
+                          ))}
+                          <span className="ml-3 text-sm text-gray-500">
+                            {reportAnswers.satisfaction > 0 ? `${reportAnswers.satisfaction}/5` : 'Not rated'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Submit Button */}
+                      <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <button
+                          onClick={() => {
+                            // Save report and answers
+                            console.log('Report submitted:', { reportsBlocks, reportAnswers });
+                            alert('Report submitted successfully!');
+                          }}
+                          className="w-full py-3 px-6 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
+                        >
+                          Submit Report & Evaluation
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className={`p-8 min-h-[500px] ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-3xl border-2`}>
+                  <div className="text-center py-12">
+                    <BarChart3 className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                    <p className="text-xl mb-2">Project Reports</p>
+                    <p>Reports will be submitted by project workers.</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
         </div>
       </div>
@@ -2992,6 +3484,24 @@ const ProjectDetailsPage = ({ project: propProject, onClose, onUpdate, isManager
         at={menu.at}
         onClose={closeSlashMenu}
         onPick={applyTypeFromMenu}
+        isDarkMode={isDarkMode}
+      />
+
+      {/* Goals Slash Menu */}
+      <SlashMenu
+        open={goalsMenu.open}
+        at={goalsMenu.at}
+        onClose={closeGoalsSlashMenu}
+        onPick={applyGoalsTypeFromMenu}
+        isDarkMode={isDarkMode}
+      />
+
+      {/* Reports Slash Menu */}
+      <SlashMenu
+        open={reportsMenu.open}
+        at={reportsMenu.at}
+        onClose={closeReportsSlashMenu}
+        onPick={applyReportsTypeFromMenu}
         isDarkMode={isDarkMode}
       />
 
