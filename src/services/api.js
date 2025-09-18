@@ -539,6 +539,11 @@ class ApiService {
             throw error;
         }
     }
+
+    // AI assistant helper
+    async aiAssist(prompt, mode = 'summarize') {
+        return await this.post('/ai/assist', { prompt, mode });
+    }
 }
 
 // Create and export a singleton instance
@@ -559,6 +564,7 @@ export const post = (endpoint, data) => apiService.post(endpoint, data);
 export const put = (endpoint, data) => apiService.put(endpoint, data);
 export const deleteRequest = (endpoint) => apiService.delete(endpoint);
 export const upload = (endpoint, formData) => apiService.upload(endpoint, formData);
+export const aiAssist = (prompt, mode) => apiService.aiAssist(prompt, mode);
 export const createUser = (userData) => apiService.createUser(userData);
 export const updateUser = (userId, userData) => apiService.updateUser(userId, userData);
 export const getUserById = (userId) => apiService.getUserById(userId);

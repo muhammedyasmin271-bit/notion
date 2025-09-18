@@ -438,19 +438,35 @@ const ProjectsPage = () => {
     }
   };
 
-  // Modern Enhanced Theme
-  const pageBg = 'text-black bg-gradient-to-br from-slate-50 via-gray-50 to-blue-50/30';
-  const cardBg = 'bg-white/80 backdrop-blur-sm border-gray-200/60 shadow-lg shadow-gray-200/50';
-  const subtleBg = 'bg-gradient-to-r from-gray-50 to-slate-50';
-  const subtleContainer = 'bg-gradient-to-r from-gray-100 to-slate-100 shadow-inner';
-  const hoverSubtle = 'hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50/50';
-  const divideColor = 'divide-gray-200/70';
-  const inputClass = 'bg-white/90 backdrop-blur-sm border-gray-300/60 text-black placeholder-gray-500 shadow-sm';
-  const selectedToggle = 'bg-gradient-to-r from-black to-gray-800 text-white shadow-lg';
-  const unselectedToggle = 'text-gray-600 hover:text-black hover:bg-gradient-to-r hover:from-gray-100 hover:to-slate-100';
+  // Theme-aware classes
+  const pageBg = isDarkMode
+    ? 'text-gray-100 bg-gradient-to-br from-slate-900 via-gray-900 to-black'
+    : 'text-black bg-gradient-to-br from-slate-50 via-gray-50 to-blue-50/30';
+  const cardBg = isDarkMode
+    ? 'bg-gray-900/70 backdrop-blur-sm border-gray-800 shadow-lg shadow-black/30'
+    : 'bg-white/80 backdrop-blur-sm border-gray-200/60 shadow-lg shadow-gray-200/50';
+  const subtleBg = isDarkMode
+    ? 'bg-gradient-to-r from-gray-900 to-slate-900'
+    : 'bg-gradient-to-r from-gray-50 to-slate-50';
+  const subtleContainer = isDarkMode
+    ? 'bg-gradient-to-r from-gray-800 to-slate-800 shadow-inner'
+    : 'bg-gradient-to-r from-gray-100 to-slate-100 shadow-inner';
+  const hoverSubtle = isDarkMode
+    ? 'hover:bg-gradient-to-r hover:from-gray-800 hover:to-slate-800'
+    : 'hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50/50';
+  const divideColor = isDarkMode ? 'divide-gray-800' : 'divide-gray-200/70';
+  const inputClass = isDarkMode
+    ? 'bg-gray-900/80 border-gray-700 text-gray-100 placeholder-gray-400 shadow-sm'
+    : 'bg-white/90 backdrop-blur-sm border-gray-300/60 text-black placeholder-gray-500 shadow-sm';
+  const selectedToggle = isDarkMode
+    ? 'bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg'
+    : 'bg-gradient-to-r from-black to-gray-800 text-white shadow-lg';
+  const unselectedToggle = isDarkMode
+    ? 'text-gray-300 hover:text-white hover:bg-gradient-to-r hover:from-gray-800 hover:to-slate-800'
+    : 'text-gray-600 hover:text-black hover:bg-gradient-to-r hover:from-gray-100 hover:to-slate-100';
 
   return (
-    <div className={`content p-4 lg:p-8 font-sans min-h-screen ${pageBg}`}>
+    <div className={`content p-3 sm:p-4 lg:p-8 font-sans min-h-screen ${pageBg}`}>
       <style jsx>{`
         select {
           padding-left: 2.5rem !important;
@@ -463,21 +479,21 @@ const ProjectsPage = () => {
       `}</style>
       {/* Enhanced Header */}
       <div className="mb-12">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
           <div className="flex items-center">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mr-6 bg-gradient-to-br from-black via-gray-800 to-slate-700 shadow-xl shadow-black/20">
-              <ProjectsIcon className="w-8 h-8 text-white" />
+            <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center mr-4 sm:mr-6 ${isDarkMode ? 'bg-gradient-to-br from-blue-700 via-indigo-700 to-purple-700 shadow-indigo-900/40' : 'bg-gradient-to-br from-black via-gray-800 to-slate-700 shadow-black/20'} shadow-xl`}>
+              <ProjectsIcon className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
             </div>
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-black via-gray-800 to-slate-600 bg-clip-text text-transparent mb-2">Projects</h1>
-              <p className="text-gray-600 text-lg font-medium">Manage and execute projects from start to finish</p>
+              <h1 className={`text-3xl sm:text-4xl font-bold ${isDarkMode ? 'bg-gradient-to-r from-white via-gray-200 to-blue-200' : 'bg-gradient-to-r from-black via-gray-800 to-slate-600'} bg-clip-text text-transparent mb-1 sm:mb-2`}>Projects</h1>
+              <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'} text-sm sm:text-lg font-medium`}>Manage and execute projects from start to finish</p>
             </div>
           </div>
           <div className="flex items-center space-x-4">
             {user?.role === 'manager' && (
               <button
                 onClick={() => addNewProject()}
-                className="flex items-center px-6 py-3 text-sm font-semibold rounded-xl bg-gradient-to-r from-black via-gray-800 to-slate-700 text-white hover:from-gray-800 hover:via-slate-700 hover:to-gray-600 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 transform"
+                className={`flex items-center px-4 sm:px-6 py-2.5 sm:py-3 text-sm font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 transform ${isDarkMode ? 'bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-700 hover:from-blue-600 hover:via-indigo-600 hover:to-purple-600' : 'bg-gradient-to-r from-black via-gray-800 to-slate-700 hover:from-gray-800 hover:via-slate-700 hover:to-gray-600'} text-white`}
               >
                 <Plus size={18} className="mr-2" />
                 New Project
@@ -488,7 +504,7 @@ const ProjectsPage = () => {
       </div>
 
       {/* Enhanced Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12">
         <div className={`p-6 rounded-2xl border ${cardBg} hover:shadow-xl hover:scale-105 transition-all duration-300 group`}>
           <div className="flex items-center justify-between">
             <div>
@@ -536,8 +552,8 @@ const ProjectsPage = () => {
       </div>
 
       {/* Enhanced Filters */}
-      <div className={`p-8 rounded-3xl shadow-2xl border mb-12 ${cardBg} backdrop-blur-lg hover:shadow-3xl transition-all duration-300`}>
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className={`p-6 sm:p-8 rounded-3xl shadow-2xl border mb-10 sm:mb-12 ${cardBg} backdrop-blur-lg hover:shadow-3xl transition-all duration-300`}>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 sm:gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">Search</label>
             <input
@@ -601,7 +617,7 @@ const ProjectsPage = () => {
       </div>
 
       {/* Enhanced View Toggle */}
-      <div className={`flex items-center space-x-4 p-3 rounded-3xl mb-12 max-w-lg ${subtleContainer} shadow-xl backdrop-blur-lg hover:shadow-2xl transition-all duration-300`}>
+      <div className={`flex items-center space-x-2 sm:space-x-4 p-2.5 sm:p-3 rounded-3xl mb-8 sm:mb-12 w-full sm:max-w-lg ${subtleContainer} shadow-xl backdrop-blur-lg hover:shadow-2xl transition-all duration-300`}>
         <button
           onClick={() => setView('By Status')}
           className={`flex items-center px-5 py-2.5 text-sm font-bold rounded-xl ${view === 'By Status' ? selectedToggle : unselectedToggle
@@ -626,7 +642,7 @@ const ProjectsPage = () => {
       </div>
 
       {view === 'By Status' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
           {statuses.map(status => (
             <div key={status} className={`p-6 rounded-3xl border min-h-[480px] ${cardBg} transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] backdrop-blur-lg`}>
               <div className="flex items-center justify-between mb-6 pb-3 border-b border-gray-200/50">
@@ -651,7 +667,7 @@ const ProjectsPage = () => {
                 {filteredProjects.filter(p => p.status === status).map(project => (
                   <div
                     key={project.id}
-                    className="group relative p-0 rounded-3xl border-2 cursor-pointer transition-all duration-500 hover:shadow-2xl hover:scale-[1.03] bg-white/90 hover:bg-gradient-to-br hover:from-white hover:to-blue-50/30 overflow-hidden shadow-xl border-gray-200/60 backdrop-blur-sm"
+                    className={`group relative p-0 rounded-3xl border-2 cursor-pointer transition-all duration-500 hover:shadow-2xl hover:scale-[1.03] overflow-hidden shadow-xl backdrop-blur-sm ${isDarkMode ? 'bg-gray-900/70 border-gray-800 hover:bg-gradient-to-br hover:from-gray-900/70 hover:to-blue-900/30' : 'bg-white/90 border-gray-200/60 hover:bg-gradient-to-br hover:from-white hover:to-blue-50/30'}`}
                     onClick={(e) => {
                       const el = e.target;
                       if (
@@ -717,7 +733,7 @@ const ProjectsPage = () => {
                       <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
                           <div className="relative">
-                            <h3 className="font-bold text-xl text-black truncate mb-3 leading-tight">
+                            <h3 className={`font-bold text-lg sm:text-xl ${isDarkMode ? 'text-gray-100' : 'text-black'} truncate mb-3 leading-tight`}>
                               {project.name}
                             </h3>
                             {/* Enhanced Floating priority indicator */}
@@ -769,15 +785,15 @@ const ProjectsPage = () => {
 
                       {/* Enhanced assignment with better visual hierarchy */}
                       {project.forPerson && (
-                        <div className="flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r from-gray-50 to-slate-50 border border-gray-200/60 shadow-md hover:shadow-lg transition-all duration-300">
-                          <div className="p-3 rounded-xl bg-gradient-to-br from-black to-gray-800 shadow-lg">
+                        <div className={`flex items-center gap-4 p-4 rounded-xl border shadow-md hover:shadow-lg transition-all duration-300 ${isDarkMode ? 'bg-gradient-to-r from-gray-800 to-slate-800 border-gray-700' : 'bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200/60'}`}>
+                          <div className={`p-3 rounded-xl shadow-lg ${isDarkMode ? 'bg-gradient-to-br from-blue-700 to-indigo-700' : 'bg-gradient-to-br from-black to-gray-800'}`}>
                             <Users size={16} className="text-white" />
                           </div>
                           <div>
-                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                            <span className={`text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
                               Assigned to
                             </span>
-                            <p className="text-sm font-bold text-black">
+                            <p className={`text-sm font-bold ${isDarkMode ? 'text-gray-100' : 'text-black'}`}>
                               {project.forPerson}
                             </p>
                           </div>
@@ -785,25 +801,25 @@ const ProjectsPage = () => {
                       )}
 
                       {/* Enhanced Modern date cards */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200/60 shadow-md hover:shadow-lg transition-all duration-300">
+                      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                        <div className={`flex items-center gap-3 p-4 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 ${isDarkMode ? 'bg-gradient-to-r from-emerald-900/30 to-emerald-800/30 border border-emerald-800' : 'bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200/60'}`}>
                           <div className="p-3 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg">
                             <Calendar size={16} className="text-white" />
                           </div>
                           <div>
-                            <p className="text-xs font-bold text-green-600 uppercase tracking-wider">Start</p>
-                            <p className="text-sm font-bold text-black">
+                            <p className={`text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-green-300' : 'text-green-600'}`}>Start</p>
+                            <p className={`text-sm font-bold ${isDarkMode ? 'text-gray-100' : 'text-black'}`}>
                               {project.startDate ? new Date(project.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-red-50 to-pink-50 border border-red-200/60 shadow-md hover:shadow-lg transition-all duration-300">
+                        <div className={`flex items-center gap-3 p-4 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 ${isDarkMode ? 'bg-gradient-to-r from-rose-900/30 to-pink-900/30 border border-rose-800' : 'bg-gradient-to-r from-red-50 to-pink-50 border border-red-200/60'}`}>
                           <div className="p-3 rounded-xl bg-gradient-to-br from-red-500 to-pink-600 shadow-lg">
                             <Calendar size={16} className="text-white" />
                           </div>
                           <div>
-                            <p className="text-xs font-bold text-red-600 uppercase tracking-wider">End</p>
-                            <p className="text-sm font-bold text-black">
+                            <p className={`text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-red-300' : 'text-red-600'}`}>End</p>
+                            <p className={`text-sm font-bold ${isDarkMode ? 'text-gray-100' : 'text-black'}`}>
                               {project.endDate ? new Date(project.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
                             </p>
                           </div>
@@ -813,15 +829,15 @@ const ProjectsPage = () => {
 
 
                       {/* Enhanced Project Owner section at bottom */}
-                      <div className="flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r from-gray-50 to-slate-50 border border-gray-200/60 shadow-md hover:shadow-lg transition-all duration-300">
-                        <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white text-sm font-bold bg-gradient-to-br from-black to-gray-800 shadow-lg">
+                      <div className={`flex items-center gap-4 p-4 rounded-xl border shadow-md hover:shadow-lg transition-all duration-300 ${isDarkMode ? 'bg-gradient-to-r from-gray-800 to-slate-800 border-gray-700' : 'bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200/60'}`}>
+                        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center text-white text-sm font-bold shadow-lg ${isDarkMode ? 'bg-gradient-to-br from-blue-700 to-indigo-700' : 'bg-gradient-to-br from-black to-gray-800'}`}>
                           {project.ownerName?.charAt(0) || 'U'}
                         </div>
                         <div>
-                          <span className="text-sm font-bold text-black">
+                          <span className={`text-sm font-bold ${isDarkMode ? 'text-gray-100' : 'text-black'}`}>
                             {project.ownerName}
                           </span>
-                          <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                          <div className={`text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                             Project Owner
                           </div>
                         </div>

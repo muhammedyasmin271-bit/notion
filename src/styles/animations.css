@@ -1,9 +1,12 @@
 /* Premium Animations for Goals Page */
 
 @keyframes gradient-x {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateX(0%);
   }
+
   50% {
     transform: translateX(100%);
   }
@@ -13,17 +16,33 @@
   0% {
     transform: translateX(-100%);
   }
+
   100% {
     transform: translateX(100%);
   }
 }
 
 @keyframes float {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0px);
   }
+
   50% {
     transform: translateY(-10px);
+  }
+}
+
+@keyframes slide-in-from-bottom {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -38,6 +57,15 @@
 
 .animate-float {
   animation: float 3s ease-in-out infinite;
+}
+
+.animate-in {
+  animation-duration: 150ms;
+  animation-fill-mode: both;
+}
+
+.slide-in-from-bottom-2 {
+  animation-name: slide-in-from-bottom;
 }
 
 /* Line clamp utilities */
