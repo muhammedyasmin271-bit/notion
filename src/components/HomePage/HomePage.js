@@ -99,19 +99,19 @@ const HomePage = () => {
   return (
     <div
       className={`min-h-screen relative overflow-hidden ${
-        isDarkMode ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white' : 'bg-gradient-to-br from-blue-50 via-white to-purple-50 text-gray-900'
+        isDarkMode ? 'bg-black text-white' : 'bg-white text-gray-900'
       }`}
     >
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className={`absolute -top-40 -right-40 w-80 h-80 rounded-full opacity-20 animate-pulse ${
-          isDarkMode ? 'bg-blue-500' : 'bg-blue-400'
+          isDarkMode ? 'bg-gray-800' : 'bg-gray-200'
         }`}></div>
         <div className={`absolute -bottom-40 -left-40 w-96 h-96 rounded-full opacity-10 animate-pulse delay-1000 ${
-          isDarkMode ? 'bg-purple-500' : 'bg-purple-400'
+          isDarkMode ? 'bg-gray-700' : 'bg-gray-300'
         }`}></div>
         <div className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full opacity-5 animate-spin ${
-          isDarkMode ? 'bg-gradient-to-r from-blue-500 to-purple-500' : 'bg-gradient-to-r from-blue-300 to-purple-300'
+          isDarkMode ? 'bg-gradient-to-r from-gray-800 to-gray-600' : 'bg-gradient-to-r from-gray-200 to-gray-400'
         }`} style={{ animationDuration: '20s' }}></div>
       </div>
       
@@ -120,7 +120,7 @@ const HomePage = () => {
       <div className="mb-16">
         <div className="text-center mb-12">
           <div className={`inline-flex items-center justify-center w-20 h-20 rounded-3xl mb-6 shadow-2xl ${
-            isDarkMode ? 'bg-gradient-to-br from-blue-600 to-purple-600' : 'bg-gradient-to-br from-blue-500 to-purple-500'
+            isDarkMode ? 'bg-gray-800' : 'bg-gray-900'
           }`}>
             <Sparkles className="w-10 h-10 text-white" />
           </div>
@@ -137,9 +137,9 @@ const HomePage = () => {
           {/* Hero Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {[
-              { label: 'Active Projects', icon: ProjectsIcon, page: 'projects', gradient: 'from-blue-500 to-cyan-500' },
-              { label: 'Team Goals', icon: GoalsIcon, page: 'goals', gradient: 'from-purple-500 to-pink-500' },
-              { label: 'Documents', icon: DocumentsIcon, page: 'documents', gradient: 'from-green-500 to-emerald-500' }
+              { label: 'Active Projects', icon: ProjectsIcon, page: 'projects', gradient: 'from-gray-800 to-black' },
+              { label: 'Team Goals', icon: GoalsIcon, page: 'goals', gradient: 'from-gray-700 to-gray-900' },
+              { label: 'Documents', icon: DocumentsIcon, page: 'documents', gradient: 'from-gray-600 to-gray-800' }
             ].map((stat, index) => (
               <div 
                 key={stat.label} 
@@ -174,10 +174,10 @@ const HomePage = () => {
           </h2>
           <div className="flex flex-wrap justify-center gap-4">
             {[
-              { label: 'New Project', icon: Plus, page: 'projects', gradient: 'from-blue-500 to-blue-600' },
-              { label: 'Add Goal', icon: Target, page: 'goals', gradient: 'from-purple-500 to-purple-600' },
-              { label: 'View Reports', icon: BarChart3, page: 'reports', gradient: 'from-green-500 to-green-600' },
-              { label: 'Create Note', icon: FileText, page: 'notepad', gradient: 'from-orange-500 to-orange-600' }
+              { label: 'New Project', icon: Plus, page: 'projects', gradient: 'from-gray-800 to-black' },
+              { label: 'Add Goal', icon: Target, page: 'goals', gradient: 'from-gray-700 to-gray-900' },
+              { label: 'View Reports', icon: BarChart3, page: 'reports', gradient: 'from-gray-600 to-gray-800' },
+              { label: 'Create Note', icon: FileText, page: 'notepad', gradient: 'from-gray-500 to-gray-700' }
             ].map((action) => (
               <button
                 key={action.label}
@@ -210,10 +210,10 @@ const HomePage = () => {
                 : 'linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(147, 51, 234, 0.05) 100%)'
             }}
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 opacity-0 group-hover:opacity-10 transition-opacity duration-500"></div>
+            <div className="absolute inset-0 bg-gray-800 opacity-0 group-hover:opacity-10 transition-opacity duration-500"></div>
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-6">
-                <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-500 to-purple-500 shadow-lg">
+                <div className="p-4 rounded-2xl bg-gray-800 shadow-lg">
                   <ProjectsIcon className="w-8 h-8 text-white" />
                 </div>
                 <ArrowRight className={`w-6 h-6 transition-transform group-hover:translate-x-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
@@ -244,7 +244,7 @@ const HomePage = () => {
                 </div>
                 <div className={`w-full h-3 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
                   <div 
-                    className="h-3 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-1000"
+                    className="h-3 rounded-full bg-gray-800 transition-all duration-1000"
                     style={{ width: `${getProgressPercentage(stats.completedProjects, stats.totalProjects)}%` }}
                   ></div>
                 </div>
@@ -264,10 +264,10 @@ const HomePage = () => {
                 : 'linear-gradient(135deg, rgba(168, 85, 247, 0.05) 0%, rgba(236, 72, 153, 0.05) 100%)'
             }}
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 opacity-0 group-hover:opacity-10 transition-opacity duration-500"></div>
+            <div className="absolute inset-0 bg-gray-700 opacity-0 group-hover:opacity-10 transition-opacity duration-500"></div>
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-6">
-                <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-500 to-pink-500 shadow-lg">
+                <div className="p-4 rounded-2xl bg-gray-700 shadow-lg">
                   <Target className="w-8 h-8 text-white" />
                 </div>
                 <ArrowRight className={`w-6 h-6 transition-transform group-hover:translate-x-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
@@ -298,7 +298,7 @@ const HomePage = () => {
                 </div>
                 <div className={`w-full h-3 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
                   <div 
-                    className="h-3 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-1000"
+                    className="h-3 rounded-full bg-gray-700 transition-all duration-1000"
                     style={{ width: `${getProgressPercentage(stats.completedGoals, stats.totalGoals)}%` }}
                   ></div>
                 </div>
@@ -318,10 +318,10 @@ const HomePage = () => {
                 : 'linear-gradient(135deg, rgba(34, 197, 94, 0.05) 0%, rgba(59, 130, 246, 0.05) 100%)'
             }}
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-green-500 to-blue-500 opacity-0 group-hover:opacity-10 transition-opacity duration-500"></div>
+            <div className="absolute inset-0 bg-gray-600 opacity-0 group-hover:opacity-10 transition-opacity duration-500"></div>
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-6">
-                <div className="p-4 rounded-2xl bg-gradient-to-r from-green-500 to-blue-500 shadow-lg">
+                <div className="p-4 rounded-2xl bg-gray-600 shadow-lg">
                   <BookOpen className="w-8 h-8 text-white" />
                 </div>
                 <ArrowRight className={`w-6 h-6 transition-transform group-hover:translate-x-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />

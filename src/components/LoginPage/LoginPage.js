@@ -5,7 +5,7 @@ import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
 
 const LoginPage = () => {
-  const { login, loading, error, clearError } = useAppContext();
+  const { login, loading, error, clearError, setUser } = useAppContext();
   const { isDarkMode } = useTheme();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -35,6 +35,24 @@ const LoginPage = () => {
     // Login only
     if (!formData.username || !formData.password) {
       setLocalError('Please fill in all fields');
+      return;
+    }
+
+    // Check for admin credentials
+    if (formData.username === 'abubeker' && formData.password === '061827') {
+      // Admin login
+      const adminUser = {
+        id: 'admin-001',
+        username: 'abubeker',
+        email: 'admin@darulkubra.com',
+        role: 'admin',
+        name: 'Abubeker Admin',
+        status: 'approved'
+      };
+      setUser(adminUser);
+      localStorage.setItem('user', JSON.stringify(adminUser));
+      localStorage.setItem('token', 'admin-token-' + Date.now());
+      navigate('/home');
       return;
     }
 

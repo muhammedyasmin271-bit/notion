@@ -25,7 +25,15 @@ export const AppProvider = ({ children }) => {
     const initializeAuth = async () => {
       setLoading(true);
       try {
-        if (apiService.isAuthenticated()) {
+        // Check for stored user (including admin)
+        const storedUser = localStorage.getItem('user');
+        const storedToken = localStorage.getItem('token');
+        
+        if (storedUser && storedToken) {
+          const userData = JSON.parse(storedUser);
+          setUser(userData);
+          setIsAuthenticated(true);
+        } else if (apiService.isAuthenticated()) {
           const userData = await apiService.getCurrentUser();
           setUser(userData);
           setIsAuthenticated(true);
@@ -37,6 +45,8 @@ export const AppProvider = ({ children }) => {
         setError('Failed to authenticate user');
         setIsAuthenticated(false);
         apiService.setAuthToken(null);
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
       } finally {
         setLoading(false);
       }
@@ -121,6 +131,8 @@ export const AppProvider = ({ children }) => {
       setError(null);
       // Clear any cached data
       localStorage.removeItem('recentUsers');
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
       console.log('Logout completed successfully');
     } catch (error) {
       console.error('Error during logout:', error);
@@ -128,6 +140,8 @@ export const AppProvider = ({ children }) => {
       setUser(null);
       setIsAuthenticated(false);
       apiService.setAuthToken(null);
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
     } finally {
       setLoading(false);
     }
@@ -162,6 +176,18 @@ export const AppProvider = ({ children }) => {
     setError(null);
   };
 
+  // Role-based permission functions
+  const isAdmin = () => user?.role === 'admin';
+  const isManager = () => user?.role === 'manager' || isAdmin();
+  const isUser = () => user?.role === 'user' || isManager();
+  
+  const canApproveManagers = () => isAdmin();
+  const canApproveUsers = () => isManager();
+  const canCreateProjects = () => isManager();
+  const canViewAllProjects = () => isAdmin();
+  const canCreateNotepad = () => isUser();
+  const canShareContent = () => isManager();
+
   const contextValue = {
     user,
     setUser,
@@ -177,6 +203,16 @@ export const AppProvider = ({ children }) => {
     changePassword,
     clearError,
     apiService, // Expose API service for other components
+    // Role-based permissions
+    isAdmin,
+    isManager,
+    isUser,
+    canApproveManagers,
+    canApproveUsers,
+    canCreateProjects,
+    canViewAllProjects,
+    canCreateNotepad,
+    canShareContent,
   };
 
   return (

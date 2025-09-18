@@ -6,7 +6,7 @@ import NavBar from './components/NavBar/NavBar';
 import HomePage from './components/HomePage/HomePage';
 import NotificationsPage from './components/NotificationsPage/NotificationsPage';
 import ProjectsPage from './components/ProjectsPage/ProjectsPage';
-import ProjectDetailsPage from './components/ProjectsPage/ProjectDetailsPage';
+import ProjectDetailsPage from './components/ProjectDetailPage/ProjectDetailPage';
 import GoalsPage from './components/GoalsPage/GoalsPage';
 import DocumentsPage from './components/DocumentsPage/DocumentsPage';
 import NotepadPage from './components/NotepadPage/NotepadPage';
@@ -22,6 +22,7 @@ import UserManagementPage from './components/UserManagementPage/UserManagementPa
 import UserProfilePage from './components/UserProfilePage/UserProfilePage';
 import WelcomePage from './components/WelcomePage/WelcomePage';
 import ManagerRoute from './components/ManagerRoute/ManagerRoute';
+import AdminRoute from './components/AdminRoute/AdminRoute';
 import SavedNotesPage from './components/SavedNotesPage/SavedNotesPage';
 import ReportsPage from './components/ReportsPage/ReportsPage';
 import './App.css';
@@ -106,7 +107,7 @@ const AppContent = () => {
 
         <Route path="/projects/new" element={
           <ProtectedRoute>
-            <Layout hideNav={true}>
+            <Layout>
               <ProjectDetailsPage isNewProject={true} />
             </Layout>
           </ProtectedRoute>
@@ -114,7 +115,7 @@ const AppContent = () => {
 
         <Route path="/projects/:projectId" element={
           <ProtectedRoute>
-            <Layout hideNav={true}>
+            <Layout>
               <ProjectDetailsPage />
             </Layout>
           </ProtectedRoute>
@@ -253,6 +254,49 @@ const AppContent = () => {
               <ReportsPage />
             </Layout>
           </ProtectedRoute>
+        } />
+
+        {/* Admin Routes */}
+        <Route path="/admin" element={
+          <AdminRoute>
+            <Layout>
+              <div className="p-6">
+                <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                    <h2 className="text-xl font-semibold mb-4">User Management</h2>
+                    <p className="mb-4">Manage all users, approve registrations, and assign roles.</p>
+                    <button
+                      onClick={() => window.location.href = '/users'}
+                      className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+                    >
+                      Manage Users
+                    </button>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                    <h2 className="text-xl font-semibold mb-4">System Reports</h2>
+                    <p className="mb-4">View system analytics and usage reports.</p>
+                    <button
+                      onClick={() => window.location.href = '/reports'}
+                      className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+                    >
+                      View Reports
+                    </button>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                    <h2 className="text-xl font-semibold mb-4">System Settings</h2>
+                    <p className="mb-4">Configure system-wide settings and preferences.</p>
+                    <button
+                      onClick={() => window.location.href = '/settings'}
+                      className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+                    >
+                      System Settings
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </Layout>
+          </AdminRoute>
         } />
 
         {/* Catch all route - redirect to home */}
