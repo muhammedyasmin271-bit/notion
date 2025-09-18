@@ -25,6 +25,7 @@ import ManagerRoute from './components/ManagerRoute/ManagerRoute';
 import AdminRoute from './components/AdminRoute/AdminRoute';
 import SavedNotesPage from './components/SavedNotesPage/SavedNotesPage';
 import ReportsPage from './components/ReportsPage/ReportsPage';
+import TasksPage from './components/TasksPage/TasksPage';
 import './App.css';
 
 // Protected Route Component
@@ -252,6 +253,14 @@ const AppContent = () => {
           <ProtectedRoute>
             <Layout>
               <ReportsPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/tasks" element={
+          <ProtectedRoute>
+            <Layout>
+              <TasksPage />
             </Layout>
           </ProtectedRoute>
         } />
