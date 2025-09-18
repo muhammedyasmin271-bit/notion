@@ -6,7 +6,7 @@ import webPushService from '../../utils/webPush';
 
 const SettingsPage = () => {
   const { user, setUser, setUsers } = useAppContext();
-  const { isDarkMode, toggleTheme } = useTheme();
+  const { isDarkMode, toggleTheme, navbarBgColor, updateNavbarBgColor } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -458,45 +458,96 @@ const SettingsPage = () => {
             </h2>
           </div>
           
-          <div className={`p-4 rounded-lg border ${
-            isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
-          }`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                {isDarkMode ? (
-                  <Moon className={`w-6 h-6 ${isDarkMode ? 'text-white' : 'text-black'}`} />
-                ) : (
-                  <Sun className={`w-6 h-6 ${isDarkMode ? 'text-white' : 'text-black'}`} />
-                )}
-                <div>
-                  <p className={`font-semibold ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                    Theme Mode
-                  </p>
-                  <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    {isDarkMode ? 'Dark mode is active' : 'Light mode is active'}
-                  </p>
+          <div className="space-y-4">
+            {/* Theme Mode */}
+            <div className={`p-4 rounded-lg border ${
+              isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
+            }`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  {isDarkMode ? (
+                    <Moon className={`w-6 h-6 ${isDarkMode ? 'text-white' : 'text-black'}`} />
+                  ) : (
+                    <Sun className={`w-6 h-6 ${isDarkMode ? 'text-white' : 'text-black'}`} />
+                  )}
+                  <div>
+                    <p className={`font-semibold ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                      Theme Mode
+                    </p>
+                    <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      {isDarkMode ? 'Dark mode is active' : 'Light mode is active'}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <button
-                onClick={handleDarkModeToggle}
-                className={`relative inline-flex h-8 w-16 items-center rounded-full transition-colors duration-300 focus:outline-none ${
-                  isDarkMode ? 'bg-white' : 'bg-black'
-                }`}
-              >
-                <span
-                  className={`inline-block h-6 w-6 transform rounded-full transition-transform duration-300 ${
-                    isDarkMode ? 'translate-x-9 bg-black' : 'translate-x-1 bg-white'
+                <button
+                  onClick={handleDarkModeToggle}
+                  className={`relative inline-flex h-8 w-16 items-center rounded-full transition-colors duration-300 focus:outline-none ${
+                    isDarkMode ? 'bg-white' : 'bg-black'
                   }`}
                 >
-                  <span className="flex h-full w-full items-center justify-center">
-                    {isDarkMode ? (
-                      <Moon className="h-3 w-3 text-white" />
-                    ) : (
-                      <Sun className="h-3 w-3 text-black" />
-                    )}
+                  <span
+                    className={`inline-block h-6 w-6 transform rounded-full transition-transform duration-300 ${
+                      isDarkMode ? 'translate-x-9 bg-black' : 'translate-x-1 bg-white'
+                    }`}
+                  >
+                    <span className="flex h-full w-full items-center justify-center">
+                      {isDarkMode ? (
+                        <Moon className="h-3 w-3 text-white" />
+                      ) : (
+                        <Sun className="h-3 w-3 text-black" />
+                      )}
+                    </span>
                   </span>
-                </span>
-              </button>
+                </button>
+              </div>
+            </div>
+
+            {/* Navbar Background Color */}
+            <div className={`p-4 rounded-lg border ${
+              isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
+            }`}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-4">
+                  <div className={`w-6 h-6 rounded ${navbarBgColor}`}></div>
+                  <div>
+                    <p className={`font-semibold ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                      Navbar Background
+                    </p>
+                    <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Customize your navigation bar color
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { name: 'Default Blue', class: 'bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900' },
+                  { name: 'Dark Gray', class: 'bg-gradient-to-br from-gray-800 via-gray-700 to-slate-800' },
+                  { name: 'Dark', class: 'bg-gradient-to-br from-gray-900 via-slate-800 to-black' }
+                ].map((color) => (
+                  <button
+                    key={color.name}
+                    onClick={() => {
+                      updateNavbarBgColor(color.class);
+                      setMessage({ type: 'success', text: `Navbar color changed to ${color.name}!` });
+                    }}
+                    className={`p-3 rounded-lg border-2 transition-all duration-200 hover:scale-105 ${
+                      navbarBgColor === color.class
+                        ? 'border-blue-500 ring-2 ring-blue-500/20'
+                        : (isDarkMode ? 'border-gray-600 hover:border-gray-500' : 'border-gray-300 hover:border-gray-400')
+                    }`}
+                    title={color.name}
+                  >
+                    <div className={`w-full h-8 rounded ${color.class}`}></div>
+                    <p className={`text-xs mt-2 font-medium ${
+                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
+                      {color.name}
+                    </p>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>

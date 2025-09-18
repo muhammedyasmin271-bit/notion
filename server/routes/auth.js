@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
-const { requireManager } = require('../middleware/roleAuth');
+const { requireManager, requireAdmin } = require('../middleware/roleAuth');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -43,8 +43,8 @@ router.post('/register', upload.array('files'), [
   body('name', 'Name is required').not().isEmpty().trim().escape(),
   body('username', 'Username is required').not().isEmpty().trim(),
   body('password', 'Please enter a password with 6 or more characters').isLength({ min: 6 }),
-  // App supports only user and manager roles; admin not used
-  body('role').optional().isIn(['user', 'manager'])
+  // App supports user, manager, and admin roles
+  body('role').optional().isIn(['user', 'manager', 'admin'])
 ], async (req, res) => {
   try {
     // Check for validation errors
@@ -66,8 +66,22 @@ router.post('/register', upload.array('files'), [
     let finalRole = 'user';
     let finalStatus = 'pending';
     let finalIsActive = false;
-    
-    if (role === 'manager') {
+
+    if (role === 'admin') {
+      // Special case for admin - check if admin already exists
+      const adminCount = await User.countDocuments({ role: 'admin' });
+      if (adminCount === 0) {
+        // First admin gets auto-approved
+        finalRole = 'admin';
+        finalStatus = 'approved';
+        finalIsActive = true;
+      } else {
+        // Additional admins need approval from existing admins
+        finalRole = 'admin';
+        finalStatus = 'pending';
+        finalIsActive = false;
+      }
+    } else if (role === 'manager') {
       const managersCount = await User.countDocuments({ role: 'manager', status: 'approved' });
       if (managersCount === 0) {
         // First manager gets auto-approved
@@ -189,11 +203,6 @@ router.post('/login', [
     // Check if user is active
     if (!user.isActive) {
       return res.status(400).json({ message: 'Account is deactivated' });
-    }
-
-    // Disallow admin logins
-    if (user.role === 'admin') {
-      return res.status(403).json({ message: 'Admin accounts are not allowed to log in.' });
     }
 
     // Check password
@@ -364,14 +373,14 @@ router.put('/change-password', auth, [
 });
 
 // @route   POST /api/auth/register-user
-// @desc    Register a new user (Manager only)
+// @desc    Register a new user (Manager/Admin only)
 // @access  Private (Manager/Admin)
 router.post('/register-user', requireManager, [
   body('name', 'Name is required').not().isEmpty().trim().escape(),
   body('username', 'Username is required').not().isEmpty().trim(),
   body('password', 'Please enter a password with 6 or more characters').isLength({ min: 6 }),
-  // Only 'user' and 'manager' roles are supported in this app
-  body('role', 'Role must be user or manager').isIn(['user', 'manager'])
+  // Support all roles in this app
+  body('role', 'Role must be user, manager, or admin').isIn(['user', 'manager', 'admin'])
 ], async (req, res) => {
   try {
     // Check for validation errors
@@ -426,8 +435,8 @@ router.post('/register-user', requireManager, [
 });
 
 // @route   GET /api/auth/users
-// @desc    Get all users (Manager only)
-// @access  Private (Manager)
+// @desc    Get all users (Manager/Admin only)
+// @access  Private (Manager/Admin)
 router.get('/users', requireManager, async (req, res) => {
   try {
     const { role, isActive, search } = req.query;
@@ -457,8 +466,8 @@ router.get('/users', requireManager, async (req, res) => {
 });
 
 // @route   PUT /api/auth/users/:id/status
-// @desc    Toggle user active status (Manager only)
-// @access  Private (Manager)
+// @desc    Toggle user active status (Manager/Admin only)
+// @access  Private (Manager/Admin)
 router.put('/users/:id/status', requireManager, async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
@@ -494,8 +503,8 @@ router.put('/users/:id/status', requireManager, async (req, res) => {
 });
 
 // @route   PUT /api/auth/users/:id/approve
-// @desc    Approve user registration (Manager only)
-// @access  Private (Manager)
+// @desc    Approve user registration (Manager/Admin only)
+// @access  Private (Manager/Admin)
 router.put('/users/:id/approve', requireManager, async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
@@ -529,8 +538,8 @@ router.put('/users/:id/approve', requireManager, async (req, res) => {
 });
 
 // @route   PUT /api/auth/users/:id/decline
-// @desc    Decline user registration (Manager only)
-// @access  Private (Manager)
+// @desc    Decline user registration (Manager/Admin only)
+// @access  Private (Manager/Admin)
 router.put('/users/:id/decline', requireManager, async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
@@ -554,8 +563,8 @@ router.put('/users/:id/decline', requireManager, async (req, res) => {
 });
 
 // @route   DELETE /api/auth/users/:id
-// @desc    Delete user (Manager only)
-// @access  Private (Manager)
+// @desc    Delete user (Manager/Admin only)
+// @access  Private (Manager/Admin)
 router.delete('/users/:id', [auth, auth.managerOnly], async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
@@ -574,6 +583,145 @@ router.delete('/users/:id', [auth, auth.managerOnly], async (req, res) => {
     await User.findByIdAndDelete(req.params.id);
 
     res.json({ message: 'User deleted successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   GET /api/auth/admin/users
+// @desc    Get all users for admin (Admin only)
+// @access  Private (Admin only)
+router.get('/admin/users', requireAdmin, async (req, res) => {
+  try {
+    const { role, isActive, search } = req.query;
+
+    let query = {};
+
+    // Apply filters
+    if (role && role !== 'all') query.role = role;
+    if (isActive !== undefined) query.isActive = isActive === 'true';
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const users = await User.find(query)
+      .select('-password')
+      .populate('createdBy', 'name email')
+      .sort({ createdAt: -1 });
+
+    res.json(users);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   PUT /api/auth/admin/users/:id/approve
+// @desc    Approve user registration (Admin only)
+// @access  Private (Admin only)
+router.put('/admin/users/:id/approve', requireAdmin, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.status === 'approved') {
+      return res.status(400).json({ message: 'User is already approved' });
+    }
+
+    user.status = 'approved';
+    user.isActive = true;
+    await user.save();
+
+    res.json({
+      message: 'User approved successfully',
+      user: {
+        id: user.id,
+        name: user.name,
+        username: user.username,
+        status: user.status,
+        isActive: user.isActive
+      }
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   PUT /api/auth/admin/users/:id/make-manager
+// @desc    Make user a manager (Admin only)
+// @access  Private (Admin only)
+router.put('/admin/users/:id/make-manager', requireAdmin, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.role === 'manager') {
+      return res.status(400).json({ message: 'User is already a manager' });
+    }
+
+    user.role = 'manager';
+    await user.save();
+
+    res.json({
+      message: 'User is now a manager',
+      user: {
+        id: user.id,
+        name: user.name,
+        username: user.username,
+        role: user.role
+      }
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   PUT /api/auth/admin/users/:id/make-user
+// @desc    Make manager a regular user (Admin only)
+// @access  Private (Admin only)
+router.put('/admin/users/:id/make-user', requireAdmin, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.role === 'user') {
+      return res.status(400).json({ message: 'User is already a regular user' });
+    }
+
+    // Prevent admin from demoting themselves
+    if (user._id.toString() === req.user.id) {
+      return res.status(400).json({
+        message: 'Cannot change your own role'
+      });
+    }
+
+    user.role = 'user';
+    await user.save();
+
+    res.json({
+      message: 'User is now a regular user',
+      user: {
+        id: user.id,
+        name: user.name,
+        username: user.username,
+        role: user.role
+      }
+    });
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Server error' });

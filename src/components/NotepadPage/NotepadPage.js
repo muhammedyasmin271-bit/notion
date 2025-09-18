@@ -65,9 +65,10 @@ import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
 import { get, post, put, deleteRequest } from '../../services/api';
 import { addNotification } from '../../utils/notifications';
+import RoleGuard from '../common/RoleGuard';
 
 const NotepadPage = () => {
-	const { user } = useAppContext();
+	const { user, canCreateNotepad, canShareContent } = useAppContext();
 	const { isDarkMode } = useTheme();
 	const [notes, setNotes] = useState([]);
 	const [currentNote, setCurrentNote] = useState(null);
@@ -1342,7 +1343,7 @@ const NotepadPage = () => {
 					{currentNote ? (
 						<>
 							{/* Toolbar */}
-							<div className={`border-b backdrop-blur-sm ${isDarkMode ? 'bg-gray-900/80 border-gray-700/50' : 'bg-white/80 border-gray-200/50'} p-6 shadow-lg`}>
+							<div className={`border-b ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-purple-500 border-purple-600'} p-3 shadow-lg`}>
 								<div className="flex items-center justify-between">
 									<div className="flex items-center space-x-2">
 										{isEditingTitle ? (
@@ -1356,50 +1357,52 @@ const NotepadPage = () => {
 													setIsEditingTitle(false);
 													saveNote();
 												}}
-												className={`text-2xl font-bold bg-transparent border-b-2 border-blue-500 outline-none ${isDarkMode ? 'text-white' : 'text-gray-900'
+												className={`text-lg font-bold bg-transparent border-b-2 border-white outline-none ${isDarkMode ? 'text-white' : 'text-white'
 													}`}
 											/>
 										) : (
 											<h1
 												onClick={() => setIsEditingTitle(true)}
-												className="text-2xl font-bold cursor-text hover:bg-gray-200 dark:hover:bg-gray-700 rounded px-2 py-1"
+												className="text-lg font-bold cursor-text hover:bg-blue-600 text-white rounded px-2 py-1"
 											>
 												{title}
 											</h1>
 										)}
 									</div>
 
-									<div className="flex items-center space-x-3">
+									<div className="flex items-center space-x-2">
 										<button
 											onClick={saveNote}
-											className="flex items-center px-4 py-3 rounded-2xl bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 transition-all duration-300 hover:scale-105 shadow-lg font-semibold"
+											className="flex items-center px-3 py-2 rounded-lg bg-white/20 text-white hover:bg-white/30 transition-all duration-300 text-sm font-medium"
 										>
-											<Save className="w-4 h-4 mr-2" />
+											<Save className="w-3 h-3 mr-1" />
 											Save
 										</button>
-										<button
-											onClick={() => setShowShareModal(true)}
-											className="flex items-center px-4 py-3 rounded-2xl bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 transition-all duration-300 hover:scale-105 shadow-lg font-semibold"
-										>
-											<Share2 className="w-4 h-4 mr-2" />
-											Share
-										</button>
-										<button className={`p-3 rounded-2xl transition-all duration-300 hover:scale-105 ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}>
-											<Download className="w-5 h-5" />
+										<RoleGuard requirePermission="shareContent">
+											<button
+												onClick={() => setShowShareModal(true)}
+												className="flex items-center px-3 py-2 rounded-lg bg-white/20 text-white hover:bg-white/30 transition-all duration-300 text-sm font-medium"
+											>
+												<Share2 className="w-3 h-3 mr-1" />
+												Share
+											</button>
+										</RoleGuard>
+										<button className={`p-2 rounded-lg transition-all duration-300 ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-white/20 text-white'}`}>
+											<Download className="w-4 h-4" />
 										</button>
 										<button
 											onClick={() => setShowTemplates(true)}
-											className="flex items-center px-4 py-3 rounded-2xl bg-gradient-to-r from-purple-500 to-purple-600 text-white hover:from-purple-600 hover:to-purple-700 transition-all duration-300 hover:scale-105 shadow-lg font-semibold"
+											className="flex items-center px-3 py-2 rounded-lg bg-white/20 text-white hover:bg-white/30 transition-all duration-300 text-sm font-medium"
 										>
-											<FileText className="w-4 h-4 mr-2" />
+											<FileText className="w-3 h-3 mr-1" />
 											Templates
 										</button>
 									</div>
 								</div>
 
 								{/* Tags for current note */}
-								<div className="flex items-center mt-3">
-									<Tag className="w-4 h-4 mr-2 text-gray-500" />
+								<div className="flex items-center mt-2">
+									<Tag className="w-3 h-3 mr-2 text-white/70" />
 									<div className="flex flex-wrap gap-1">
 										{currentNote.tags && currentNote.tags.map(tag => (
 											<span
@@ -1419,7 +1422,7 @@ const NotepadPage = () => {
 										))}
 										<button
 											onClick={() => setShowTagModal(true)}
-											className="px-2 py-1 text-xs rounded-full border border-dashed border-gray-400 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700"
+											className="px-2 py-1 text-xs rounded-full border border-dashed border-white/50 text-white/70 hover:bg-white/20"
 										>
 											+ Add tag
 										</button>

@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-module.exports = async function(req, res, next) {
+module.exports = async function (req, res, next) {
   // Get token from header
   const token = req.header('x-auth-token');
 
@@ -25,8 +25,6 @@ module.exports = async function(req, res, next) {
       return res.status(403).json({ message: 'Account is deactivated' });
     }
 
-    // Admin role is allowed; do not block here
-
     // Attach minimal user context
     req.user = { id: String(dbUser._id), role: dbUser.role };
     next();
@@ -36,14 +34,14 @@ module.exports = async function(req, res, next) {
 };
 
 // Optional auth middleware for routes that can work with or without authentication
-module.exports.optional = async function(req, res, next) {
+module.exports.optional = async function (req, res, next) {
   const token = req.header('x-auth-token');
 
   if (token) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
       const dbUser = await User.findById(decoded.user && decoded.user.id).select('role isActive');
-      if (dbUser && dbUser.isActive && dbUser.role !== 'admin') {
+      if (dbUser && dbUser.isActive) {
         req.user = { id: String(dbUser._id), role: dbUser.role };
       } else {
         req.user = null;
@@ -63,13 +61,13 @@ module.exports.authorize = (...roles) => {
     if (!req.user) {
       return res.status(401).json({ message: 'Access denied. No token provided.' });
     }
-    
+
     if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ 
-        message: 'Access denied. Insufficient permissions.' 
+      return res.status(403).json({
+        message: 'Access denied. Insufficient permissions.'
       });
     }
-    
+
     next();
   };
 };
@@ -79,19 +77,28 @@ module.exports.managerOnly = (req, res, next) => {
   if (!req.user) {
     return res.status(401).json({ message: 'Access denied. No token provided.' });
   }
-  
+
   // Allow both manager and admin roles
   if (!['manager', 'admin'].includes(req.user.role)) {
-    return res.status(403).json({ 
-      message: 'Access denied. Manager role required.' 
+    return res.status(403).json({
+      message: 'Access denied. Manager role required.'
     });
   }
-  
+
   next();
 };
 
 // Admin-only middleware
-// Deprecated: Admin role is not used in the app anymore
 module.exports.adminOnly = (req, res, next) => {
-  return res.status(403).json({ message: 'Access denied.' });
+  if (!req.user) {
+    return res.status(401).json({ message: 'Access denied. No token provided.' });
+  }
+
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({
+      message: 'Access denied. Admin role required.'
+    });
+  }
+
+  next();
 };

@@ -10,7 +10,7 @@ const createAdminUser = async () => {
     console.log('Connected to MongoDB');
 
     // Check if admin user already exists
-    const existingUser = await User.findOne({ username: 'aymen' });
+    const existingUser = await User.findOne({ username: 'abubeker' });
     if (existingUser) {
       console.log('Admin user already exists!');
       process.exit(0);
@@ -18,21 +18,26 @@ const createAdminUser = async () => {
 
     // Hash the password
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash('774977', salt);
+    const hashedPassword = await bcrypt.hash('061827', salt);
 
     // Create admin user
     const adminUser = new User({
-      name: 'Aymen Arega',
-      username: 'aymen',
+      name: 'Abubeker Admin',
+      username: 'abubeker',
+      email: 'admin@darulkubra.com',
       password: hashedPassword,
       role: 'admin',
-      isActive: true
+      isActive: true,
+      status: 'approved'
     });
+    
+    // Set custom ID after creation
+    adminUser._id = 'admin-001';
 
     await adminUser.save();
     console.log('✅ Admin user created successfully!');
-    console.log('Username: aymen');
-    console.log('Password: 774977');
+    console.log('Username: abubeker');
+    console.log('Password: 061827');
     console.log('Role: admin');
 
   } catch (error) {

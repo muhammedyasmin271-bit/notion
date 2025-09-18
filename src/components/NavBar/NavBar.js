@@ -20,12 +20,15 @@ import {
   UsersIcon,
   User as ProfileIcon,
   BarChart3 as ReportsIcon,
+  Shield,
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
+import { useTheme } from '../../context/ThemeContext';
 import { getUnreadCount, markAllNotificationsRead } from '../../utils/notifications';
 
 const NavBar = () => {
   const { user, logout } = useAppContext();
+  const { navbarBgColor, buttonColors } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -50,6 +53,7 @@ const NavBar = () => {
     const path = location.pathname;
     if (path === '/' || path === '/home') return 'home';
     if (path === '/meeting-notes') return 'meetingNotes';
+    if (path === '/admin') return 'admin';
     return path.substring(1); // Remove leading slash
   };
 
@@ -76,6 +80,7 @@ const NavBar = () => {
     { name: 'Profile', icon: ProfileIcon, page: 'profile', path: '/profile', description: 'User profile & settings' },
     { name: 'Users', icon: UsersIcon, page: 'users', path: '/users', description: 'User management' },
     { name: 'Settings', icon: SettingsIcon, page: 'settings', path: '/settings', description: 'App configuration' },
+    { name: 'Admin', icon: Shield, page: 'admin', path: '/admin', description: 'Admin dashboard' },
   ];
 
   const handleLogout = () => {
@@ -92,13 +97,19 @@ const NavBar = () => {
   const filteredNavItems = navItems.filter(item => {
     // Filter by search query
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         item.description.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    // Role-based filtering - Users page only visible to managers
+      item.description.toLowerCase().includes(searchQuery.toLowerCase());
+
+    // Role-based filtering
     if (item.page === 'users') {
-      return matchesSearch && user?.role === 'manager';
+      // Users page only visible to managers and admins
+      return matchesSearch && (user?.role === 'manager' || user?.role === 'admin');
     }
-    
+
+    if (item.page === 'admin') {
+      // Admin page only visible to admins
+      return matchesSearch && user?.role === 'admin';
+    }
+
     return matchesSearch;
   });
 
@@ -127,9 +138,9 @@ const NavBar = () => {
       )}
 
       {/* Sidebar Navigation */}
-      <nav className={`bg-gradient-to-b from-slate-900 via-indigo-900 to-purple-900 text-white transition-all duration-300 ease-in-out ${isCollapsed ? 'w-16' : 'w-64'
+      <nav className={`${navbarBgColor} text-white transition-all duration-300 ease-in-out shadow-2xl border-r border-blue-800/30 ${isCollapsed ? 'w-16' : 'w-64'
         } min-h-screen p-4 fixed z-50 lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        }`}>
+        } flex flex-col backdrop-blur-sm`}>
         <div className="flex items-center justify-between mb-6">
           {!isCollapsed && (
             <div className="flex items-center">
@@ -143,7 +154,7 @@ const NavBar = () => {
           )}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-2 hover:bg-white/10 rounded-md transition-colors duration-200"
+            className="p-2 hover:bg-white/20 rounded-lg transition-all duration-200 hover:scale-110 backdrop-blur-sm bg-white/10"
             title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             {isCollapsed ? <Menu size={20} /> : <X size={20} />}
@@ -152,7 +163,8 @@ const NavBar = () => {
 
 
 
-        <ul className="space-y-2 mb-17">
+        <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent">
+        <ul className="space-y-2 pb-20">
           {/* Notifications Bell */}
           <li>
             <Link
@@ -161,9 +173,9 @@ const NavBar = () => {
                 if (user?.id) markAllNotificationsRead(user.id);
                 setIsMobileMenuOpen(false);
               }}
-              className={`flex items-center w-full px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 group relative transform ${currentPage === 'notifications'
-                ? 'bg-indigo-600 text-white hover:bg-indigo-700 active:bg-indigo-800 shadow-lg shadow-indigo-500/50 border border-indigo-400 scale-105'
-                : 'hover:bg-white/10 active:bg-indigo-600 active:scale-95 active:shadow-lg active:shadow-indigo-500/50'
+              className={`flex items-center w-full px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 group relative transform ${currentPage === 'notifications'
+                ? `${buttonColors} text-white shadow-lg border scale-105`
+                : `hover:bg-white/20 active:${buttonColors.split(' ')[0]} active:scale-95 active:shadow-lg backdrop-blur-sm`
                 }`}
             >
               <Bell className={`${isCollapsed ? 'mx-auto' : 'mr-3'}`} size={20} />
@@ -177,9 +189,9 @@ const NavBar = () => {
             <li key={item.name}>
               <Link
                 to={item.path}
-                className={`flex items-center w-full px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 group transform ${currentPage === item.page
-                  ? 'bg-indigo-600 text-white hover:bg-indigo-700 active:bg-indigo-800 shadow-lg shadow-indigo-500/50 border border-indigo-400 scale-105'
-                  : 'hover:bg-white/10 active:bg-indigo-600 active:scale-95 active:shadow-lg active:shadow-indigo-500/50'
+                className={`flex items-center w-full px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 group transform ${currentPage === item.page
+                  ? `${buttonColors} text-white shadow-lg border scale-105`
+                  : `hover:bg-white/20 active:${buttonColors.split(' ')[0]} active:scale-95 active:shadow-lg backdrop-blur-sm`
                   }`}
                 title={isCollapsed ? item.name : undefined}
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -215,17 +227,18 @@ const NavBar = () => {
             </button>
           </li>
         </ul>
+        </div>
 
         {!isCollapsed && (
           <div className="absolute bottom-4 left-4 right-4">
-            <div className="bg-white/10 p-3 rounded-lg">
+            <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm border border-white/10 shadow-lg">
               <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center">
+                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center shadow-md">
                   <span className="text-sm font-bold">{user?.name?.charAt(0)}</span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-white truncate">{user?.name}</p>
-                  <p className="text-xs text-indigo-200 capitalize">{user?.role}</p>
+                  <p className="text-xs text-blue-200 capitalize">{user?.role}</p>
                 </div>
               </div>
             </div>

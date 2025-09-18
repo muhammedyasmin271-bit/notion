@@ -13,6 +13,8 @@ const UserManagementPage = () => {
   const { isDarkMode } = useTheme();
   const navigate = useNavigate();
   const isManager = user?.role === 'manager';
+  const isAdmin = user?.role === 'admin';
+  const canManageUsers = isManager || isAdmin;
   const [users, setUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRole, setFilterRole] = useState('all');
@@ -242,6 +244,44 @@ const UserManagementPage = () => {
     }
   };
 
+  const handleMakeManager = async (userId) => {
+    if (!window.confirm('Are you sure you want to make this user a manager?')) return;
+    try {
+      const apiService = (await import('../../services/api')).default;
+      // Use the admin endpoint if user is admin, otherwise use the manager endpoint
+      if (isAdmin) {
+        await apiService.put(`/auth/admin/users/${userId}/make-manager`, {});
+      } else {
+        // Fallback to manager endpoint
+        await apiService.put(`/auth/users/${userId}/make-manager`, {});
+      }
+      await loadUsers();
+      alert('User is now a manager.');
+    } catch (error) {
+      console.error('Error making user manager:', error);
+      alert(error.message || 'Failed to make user manager.');
+    }
+  };
+
+  const handleMakeUser = async (userId) => {
+    if (!window.confirm('Are you sure you want to make this manager a regular user?')) return;
+    try {
+      const apiService = (await import('../../services/api')).default;
+      // Use the admin endpoint if user is admin, otherwise use the manager endpoint
+      if (isAdmin) {
+        await apiService.put(`/auth/admin/users/${userId}/make-user`, {});
+      } else {
+        // Fallback to manager endpoint
+        await apiService.put(`/auth/users/${userId}/make-user`, {});
+      }
+      await loadUsers();
+      alert('Manager is now a regular user.');
+    } catch (error) {
+      console.error('Error making manager user:', error);
+      alert(error.message || 'Failed to make manager user.');
+    }
+  };
+
   const handleUpdateMember = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
@@ -307,7 +347,7 @@ const UserManagementPage = () => {
               </button>
             </div>
           ) : (
-            isManager && (
+            canManageUsers && (
               <button
                 onClick={() => setShowCreateForm(true)}
                 className="flex items-center px-6 py-3 text-sm font-semibold rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
@@ -412,6 +452,7 @@ const UserManagementPage = () => {
               }`}
           >
             <option value="all">All Roles</option>
+            <option value="admin">Admins</option>
             <option value="manager">Managers</option>
             <option value="user">Team Members</option>
           </select>
@@ -461,12 +502,14 @@ const UserManagementPage = () => {
               </div>
 
               <div className="flex items-center gap-3">
-                <span className={`px-3 py-1 rounded-full text-xs font-bold border-2 flex items-center gap-2 ${userItem.role === 'manager'
-                  ? (isDarkMode ? 'bg-yellow-900 text-yellow-300 border-yellow-700' : 'bg-yellow-100 text-yellow-800 border-yellow-300')
-                  : (isDarkMode ? 'bg-blue-900 text-blue-300 border-blue-700' : 'bg-blue-100 text-blue-800 border-blue-300')
+                <span className={`px-3 py-1 rounded-full text-xs font-bold border-2 flex items-center gap-2 ${userItem.role === 'admin'
+                  ? (isDarkMode ? 'bg-red-900 text-red-300 border-red-700' : 'bg-red-100 text-red-800 border-red-300')
+                  : userItem.role === 'manager'
+                    ? (isDarkMode ? 'bg-yellow-900 text-yellow-300 border-yellow-700' : 'bg-yellow-100 text-yellow-800 border-yellow-300')
+                    : (isDarkMode ? 'bg-blue-900 text-blue-300 border-blue-700' : 'bg-blue-100 text-blue-800 border-blue-300')
                   }`}>
-                  {userItem.role === 'manager' ? <Crown className="w-3 h-3" /> : <UserIcon className="w-3 h-3" />}
-                  {userItem.role === 'manager' ? 'Manager' : 'Team Member'}
+                  {userItem.role === 'admin' ? <Shield className="w-3 h-3" /> : userItem.role === 'manager' ? <Crown className="w-3 h-3" /> : <UserIcon className="w-3 h-3" />}
+                  {userItem.role === 'admin' ? 'Admin' : userItem.role === 'manager' ? 'Manager' : 'Team Member'}
                 </span>
                 <span className={`px-3 py-1 rounded-full text-xs font-bold border-2 flex items-center gap-1 ${userItem.status === 'approved'
                   ? (isDarkMode ? 'bg-green-900 text-green-300 border-green-700' : 'bg-green-100 text-green-800 border-green-300')
@@ -540,7 +583,7 @@ const UserManagementPage = () => {
                 </div>
               )}
 
-              {!isPickerMode && isManager && (
+              {!isPickerMode && canManageUsers && (
                 <div className="flex items-center space-x-2 mt-4">
                   {userItem.status === 'pending' ? (
                     <>
@@ -576,6 +619,32 @@ const UserManagementPage = () => {
                       >
                         <Edit3 className="w-4 h-4 mx-auto" />
                       </button>
+                      {isAdmin && userItem.role === 'user' && (
+                        <button
+                          className={`flex-1 p-2 rounded-lg ${isDarkMode ? 'bg-yellow-900 text-yellow-300 hover:bg-yellow-800' : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                            }`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMakeManager(userItem.id);
+                          }}
+                          title="Make Manager"
+                        >
+                          <Crown className="w-4 h-4 mx-auto" />
+                        </button>
+                      )}
+                      {isAdmin && userItem.role === 'manager' && (
+                        <button
+                          className={`flex-1 p-2 rounded-lg ${isDarkMode ? 'bg-blue-900 text-blue-300 hover:bg-blue-800' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                            }`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMakeUser(userItem.id);
+                          }}
+                          title="Make User"
+                        >
+                          <UserIcon className="w-4 h-4 mx-auto" />
+                        </button>
+                      )}
                       <button
                         className={`flex-1 p-2 rounded-lg ${userItem.isActive
                           ? (isDarkMode ? 'bg-orange-900 text-orange-300 hover:bg-orange-800' : 'bg-orange-100 text-orange-700 hover:bg-orange-200')
@@ -638,8 +707,13 @@ const UserManagementPage = () => {
                     <h2 className={`text-3xl font-black mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                       {showUserProfile.name}
                     </h2>
-                    <span className="px-4 py-2 rounded-xl text-sm font-bold border-2 bg-blue-100 text-blue-800 border-blue-300">
-                      {showUserProfile.role === 'manager' ? 'Manager' : 'Team Member'}
+                    <span className={`px-4 py-2 rounded-xl text-sm font-bold border-2 ${showUserProfile.role === 'admin'
+                        ? 'bg-red-100 text-red-800 border-red-300'
+                        : showUserProfile.role === 'manager'
+                          ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
+                          : 'bg-blue-100 text-blue-800 border-blue-300'
+                      }`}>
+                      {showUserProfile.role === 'admin' ? 'Admin' : showUserProfile.role === 'manager' ? 'Manager' : 'Team Member'}
                     </span>
                   </div>
                 </div>
@@ -861,6 +935,7 @@ const UserManagementPage = () => {
                   >
                     <option value="user">👤 Team Member</option>
                     <option value="manager">👑 Manager</option>
+                    {isAdmin && <option value="admin">🛡️ Admin</option>}
                   </select>
                 </div>
 
