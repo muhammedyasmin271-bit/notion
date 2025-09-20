@@ -3,7 +3,6 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Home as HomeIcon,
   LayoutGrid as ProjectsIcon,
-  Target as GoalsIcon,
   Folder as DocumentsIcon,
   Settings as SettingsIcon,
   Newspaper as MeetingNotesIcon,
@@ -71,7 +70,6 @@ const NavBar = () => {
   const navItems = [
     { name: 'Home', icon: HomeIcon, page: 'home', path: '/home', description: 'Dashboard overview' },
     { name: 'Projects', icon: ProjectsIcon, page: 'projects', path: '/projects', description: 'Project management' },
-    { name: 'Goals', icon: GoalsIcon, page: 'goals', path: '/goals', description: 'Goal tracking' },
     { name: 'Documents', icon: DocumentsIcon, page: 'documents', path: '/documents', description: 'Document hub' },
     { name: 'Notepad', icon: NotepadIcon, page: 'notepad', path: '/notepad', description: 'Personal notes & ideas' },
     { name: 'Meeting Notes', icon: MeetingNotesIcon, page: 'meetingNotes', path: '/meeting-notes', description: 'Meeting summaries' },

@@ -15,7 +15,7 @@ const projectSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Not started', 'In progress', 'Done', 'On hold', 'Cancelled'],
+    enum: ['Not started', 'In Progress', 'Done', 'On hold', 'Cancelled'],
     default: 'Not started'
   },
   priority: {
@@ -129,17 +129,17 @@ projectSchema.index({ tags: 1 });
 projectSchema.index({ archived: 1 });
 
 // Virtual for project duration
-projectSchema.virtual('duration').get(function() {
+projectSchema.virtual('duration').get(function () {
   if (!this.startDate) return 0;
   const endDate = this.completedDate || this.dueDate || new Date();
   return Math.ceil((endDate - this.startDate) / (1000 * 60 * 60 * 24));
 });
 
 // Virtual for project status color
-projectSchema.virtual('statusColor').get(function() {
+projectSchema.virtual('statusColor').get(function () {
   const colors = {
     'Not started': 'gray',
-    'In progress': 'blue',
+    'In Progress': 'blue',
     'Done': 'green',
     'On hold': 'yellow',
     'Cancelled': 'red'
@@ -148,22 +148,22 @@ projectSchema.virtual('statusColor').get(function() {
 });
 
 // Method to update progress
-projectSchema.methods.updateProgress = function() {
+projectSchema.methods.updateProgress = function () {
   if (this.milestones.length === 0) return;
-  
+
   const completedMilestones = this.milestones.filter(m => m.completed).length;
   this.progress = Math.round((completedMilestones / this.milestones.length) * 100);
-  
+
   if (this.progress === 100 && this.status !== 'Done') {
     this.status = 'Done';
     this.completedDate = new Date();
   }
-  
+
   return this.save();
 };
 
 // Method to add team member
-projectSchema.methods.addTeamMember = function(userId) {
+projectSchema.methods.addTeamMember = function (userId) {
   if (!this.team.includes(userId)) {
     this.team.push(userId);
     return this.save();
@@ -172,23 +172,23 @@ projectSchema.methods.addTeamMember = function(userId) {
 };
 
 // Method to remove team member
-projectSchema.methods.removeTeamMember = function(userId) {
+projectSchema.methods.removeTeamMember = function (userId) {
   this.team = this.team.filter(id => id.toString() !== userId.toString());
   return this.save();
 };
 
 // Static method to find projects by status
-projectSchema.statics.findByStatus = function(status) {
+projectSchema.statics.findByStatus = function (status) {
   return this.find({ status, archived: false }).populate('owner', 'name email');
 };
 
 // Static method to find projects by owner
-projectSchema.statics.findByOwner = function(ownerId) {
+projectSchema.statics.findByOwner = function (ownerId) {
   return this.find({ owner: ownerId, archived: false }).populate('team', 'name email');
 };
 
 // Pre-save middleware to update progress
-projectSchema.pre('save', function(next) {
+projectSchema.pre('save', function (next) {
   if (this.isModified('milestones')) {
     this.updateProgress();
   }

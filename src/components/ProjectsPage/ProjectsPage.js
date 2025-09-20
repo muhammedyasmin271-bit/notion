@@ -93,7 +93,7 @@ const ProjectsPage = () => {
             }
           }
         }
-        
+
         // Clean up session storage
         sessionStorage.removeItem('selectedProjectUsers');
         sessionStorage.removeItem('projectPickerReturn');
@@ -120,7 +120,7 @@ const ProjectsPage = () => {
     }
   };
 
-  const statuses = ['Not started', 'In progress', 'Done'];
+  const statuses = ['Not started', 'In Progress', 'Done'];
 
   const addNewProject = (status = 'Not started') => {
     if (!user) {
@@ -136,7 +136,7 @@ const ProjectsPage = () => {
 
   const handleUpdateField = async (projectId, field, value) => {
     console.log('handleUpdateField called:', { projectId, field, value, userRole: user?.role });
-    
+
     // Only managers can update any field except status - all users can update status
     if (user?.role !== 'manager' && field !== 'status') {
       console.log('Access denied: user is not manager and field is not status');
@@ -150,10 +150,10 @@ const ProjectsPage = () => {
     }
 
     // Optimistic UI update - immediately update the local state
-    const updatedProjects = projects.map(p => 
-      p.id === projectId ? { 
-        ...p, 
-        [field]: value, 
+    const updatedProjects = projects.map(p =>
+      p.id === projectId ? {
+        ...p,
+        [field]: value,
         updatedAt: new Date().toISOString(),
         // Increment change count for user actions (not manager actions)
         changeCount: user?.role !== 'manager' ? (p.changeCount || 0) + 1 : p.changeCount || 0
@@ -203,15 +203,15 @@ const ProjectsPage = () => {
         }
       }
     }
-    
+
     // Persist to backend
     try {
-      const endpoint = field === 'status' 
+      const endpoint = field === 'status'
         ? `http://localhost:5000/api/projects/${projectId}/status`
         : `http://localhost:5000/api/projects/${projectId}`;
-      
+
       console.log('Making API call to:', endpoint, 'with data:', { [field]: value });
-      
+
       const response = await fetch(endpoint, {
         method: 'PUT',
         headers: {
@@ -222,13 +222,13 @@ const ProjectsPage = () => {
       });
 
       console.log('API response status:', response.status);
-      
+
       if (!response.ok) {
         // Revert optimistic update if API call fails
         const errorText = await response.text();
         console.error('Failed to update project:', response.status, errorText);
         setProjects(projects); // Revert to previous state
-        
+
         // Show error to user
         alert(`Failed to update project: ${errorText}`);
       } else {
@@ -378,16 +378,17 @@ const ProjectsPage = () => {
 
   const getPriorityClass = (priority) => {
     switch (priority) {
-      case 'High': return 'bg-black text-white border border-gray-300';
-      case 'Medium': return 'bg-gray-600 text-white border border-gray-400';
-      case 'Low': return 'bg-gray-300 text-black border border-gray-400';
-      default: return 'bg-gray-400 text-white border border-gray-300';
+      case 'Critical': return 'bg-red-500 text-white border border-red-600';
+      case 'High': return 'bg-orange-500 text-white border border-orange-600';
+      case 'Medium': return 'bg-yellow-500 text-black border border-yellow-600';
+      case 'Low': return 'bg-green-500 text-white border border-green-600';
+      default: return 'bg-gray-400 text-white border border-gray-500';
     }
   };
 
   const getStatusClass = (status) => {
     switch (status) {
-      case 'In progress': return 'bg-gray-600 text-white border border-gray-400';
+      case 'In Progress': return 'bg-gray-600 text-white border border-gray-400';
       case 'Not started': return 'bg-gray-300 text-black border border-gray-400';
       case 'Done': return 'bg-black text-white border border-gray-300';
       default: return 'bg-gray-400 text-white border border-gray-300';
@@ -401,14 +402,14 @@ const ProjectsPage = () => {
     const matchesOwner = filterOwner === 'all' || project.ownerUid === filterOwner;
     const forValue = (project.forPerson || project.category || '').toLowerCase();
     const matchesFor = !filterFor || forValue.includes(filterFor.toLowerCase());
-    
+
     // Access control logic
     const isAssignedToUser = project.forPerson && project.forPerson.toLowerCase().includes(user?.name?.toLowerCase() || '');
     const isOwner = project.ownerUid === user?.id || project.ownerName === user?.name;
     const isAssigned = project.forPerson && project.forPerson.trim() !== '';
-    
-    const hasAccess = isAssigned ? 
-      (user?.role === 'manager' || isAssignedToUser) : 
+
+    const hasAccess = isAssigned ?
+      (user?.role === 'manager' || isAssignedToUser) :
       isOwner;
 
     return matchesSearch && matchesPriority && matchesOwner && matchesFor && hasAccess;
@@ -418,7 +419,7 @@ const ProjectsPage = () => {
     const projectList = projects || [];
     const total = projectList.length;
     const completed = projectList.filter(p => p.status === 'Done').length;
-    const inProgress = projectList.filter(p => p.status === 'In progress').length;
+    const inProgress = projectList.filter(p => p.status === 'In Progress').length;
     const notStarted = projectList.filter(p => p.status === 'Not started').length;
 
     return { total, completed, inProgress, notStarted };
@@ -430,7 +431,7 @@ const ProjectsPage = () => {
     switch (status) {
       case 'Done':
         return 100;
-      case 'In progress':
+      case 'In Progress':
         return 50;
       case 'Not started':
       default:
@@ -467,7 +468,7 @@ const ProjectsPage = () => {
 
   return (
     <div className={`content p-3 sm:p-4 lg:p-8 font-sans min-h-screen ${pageBg}`}>
-      <style jsx>{`
+      <style>{`
         select {
           padding-left: 2.5rem !important;
         }
@@ -572,6 +573,7 @@ const ProjectsPage = () => {
               className={`w-full px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 ${inputClass}`}
             >
               <option value="all">All Priorities</option>
+              <option value="Critical">Critical</option>
               <option value="High">High</option>
               <option value="Medium">Medium</option>
               <option value="Low">Low</option>
@@ -707,8 +709,8 @@ const ProjectsPage = () => {
 
                       {/* Change indicator - only for managers when there are changes */}
                       {user?.role === 'manager' && project.changeCount > 0 && (
-                        <div 
-                          className="flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-r from-orange-400 to-red-500 text-white text-xs font-bold shadow-lg transform transition-all duration-300 hover:scale-110 cursor-pointer" 
+                        <div
+                          className="flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-r from-orange-400 to-red-500 text-white text-xs font-bold shadow-lg transform transition-all duration-300 hover:scale-110 cursor-pointer"
                           title={`${project.changeCount} recent changes`}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -725,8 +727,8 @@ const ProjectsPage = () => {
                     </div>
 
                     {/* Enhanced floating overlay */}
-                    <div className={`absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-15 transition-all duration-700 ${project.status === 'Not started' ? 'from-gray-500/30 via-slate-500/30 to-gray-600/30' : 
-                        project.status === 'In progress' ? 'from-blue-500/30 via-purple-500/30 to-pink-500/30' : 'from-green-500/30 via-emerald-500/30 to-teal-500/30'}`}></div>
+                    <div className={`absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-15 transition-all duration-700 ${project.status === 'Not started' ? 'from-gray-500/30 via-slate-500/30 to-gray-600/30' :
+                      project.status === 'In progress' ? 'from-blue-500/30 via-purple-500/30 to-pink-500/30' : 'from-green-500/30 via-emerald-500/30 to-teal-500/30'}`}></div>
 
                     <div className="flex flex-col space-y-5 relative z-10 p-8">
                       {/* Enhanced header with floating elements */}
@@ -737,9 +739,10 @@ const ProjectsPage = () => {
                               {project.name}
                             </h3>
                             {/* Enhanced Floating priority indicator */}
-                            <div className={`absolute -top-2 -right-2 w-4 h-4 rounded-full shadow-xl ${project.priority === 'High' ? 'bg-gradient-to-br from-red-400 to-red-600' :
-                              project.priority === 'Medium' ? 'bg-gradient-to-br from-yellow-400 to-orange-500' :
-                                'bg-gradient-to-br from-green-400 to-green-600'
+                            <div className={`absolute -top-2 -right-2 w-4 h-4 rounded-full shadow-xl ${project.priority === 'Critical' ? 'bg-gradient-to-br from-red-500 to-red-700' :
+                              project.priority === 'High' ? 'bg-gradient-to-br from-orange-400 to-orange-600' :
+                                project.priority === 'Medium' ? 'bg-gradient-to-br from-yellow-400 to-orange-500' :
+                                  'bg-gradient-to-br from-green-400 to-green-600'
                               } opacity-0 group-hover:opacity-100 transition-all duration-500 animate-pulse ring-2 ring-white`}></div>
                           </div>
                         </div>
@@ -757,6 +760,7 @@ const ProjectsPage = () => {
                             className={`appearance-none cursor-pointer inline-flex items-center px-4 py-2 rounded-xl text-xs font-bold shadow-lg hover:shadow-xl transition-all duration-300 border-0 outline-none ${getPriorityClass(project.priority)}`}
                             onClick={(e) => e.stopPropagation()}
                           >
+                            <option value="Critical">Critical</option>
                             <option value="High">High</option>
                             <option value="Medium">Medium</option>
                             <option value="Low">Low</option>
@@ -774,7 +778,7 @@ const ProjectsPage = () => {
                             onClick={(e) => e.stopPropagation()}
                           >
                             <option value="Not started">Not started</option>
-                            <option value="In progress">In progress</option>
+                            <option value="In Progress">In Progress</option>
                             <option value="Done">Done</option>
                           </select>
                           {project.status === 'Not started' && <Clock size={14} className="absolute left-2 top-1/2 transform -translate-y-1/2 pointer-events-none" />}
@@ -933,6 +937,7 @@ const ProjectsPage = () => {
                           onSave={(value) => handleUpdateField(project.id, 'priority', value)}
                           type="select"
                           options={[
+                            { value: 'Critical', label: 'Critical' },
                             { value: 'High', label: 'High' },
                             { value: 'Medium', label: 'Medium' },
                             { value: 'Low', label: 'Low' }
@@ -1149,6 +1154,7 @@ const ProjectsPage = () => {
                     onChange={(e) => setEditForm({ ...editForm, priority: e.target.value })}
                     className={`w-full px-3 py-2 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${inputClass}`}
                   >
+                    <option value="Critical">Critical</option>
                     <option value="High">High</option>
                     <option value="Medium">Medium</option>
                     <option value="Low">Low</option>

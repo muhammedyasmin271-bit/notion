@@ -36,12 +36,14 @@ import {
   Code,
   ChevronUp,
   ChevronDown,
+  ChevronRight,
   Copy,
   Trash2,
   Maximize,
   Minimize,
   Target,
-  BarChart3
+  BarChart3,
+  Menu
 } from "lucide-react";
 import { useAppContext } from '../../context/AppContext';
 import ProjectsPage from '../ProjectsPage/ProjectsPage';
@@ -53,8 +55,70 @@ import '../../styles/animations.css';
 const ProjectDetailPage = ({ isNewProject = false }) => {
   const { projectId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAppContext();
+  const { user, canCreateProjects } = useAppContext();
   const { isDarkMode } = useTheme();
+
+  // Priority Selector Component
+  const PrioritySelector = ({ priority, onChange, isFullscreen, isDarkMode }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef(null);
+
+    const priorityOptions = [
+      { value: 'Critical', label: 'Critical', color: 'bg-red-500', textColor: 'text-red-500', hoverColor: 'hover:bg-red-500/20' },
+      { value: 'High', label: 'High', color: 'bg-orange-500', textColor: 'text-orange-500', hoverColor: 'hover:bg-orange-500/20' },
+      { value: 'Medium', label: 'Medium', color: 'bg-yellow-500', textColor: 'text-yellow-500', hoverColor: 'hover:bg-yellow-500/20' },
+      { value: 'Low', label: 'Low', color: 'bg-green-500', textColor: 'text-green-500', hoverColor: 'hover:bg-green-500/20' }
+    ];
+
+    const currentPriority = priorityOptions.find(option => option.value === priority) || priorityOptions[2]; // Default to Medium
+
+    useEffect(() => {
+      const handleClickOutside = (event) => {
+        if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+          setIsOpen(false);
+        }
+      };
+
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }, []);
+
+    return (
+      <div className="relative" ref={dropdownRef}>
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} rounded font-medium flex items-center gap-1.5 bg-transparent focus:outline-none ${isFullscreen ? 'min-w-[120px]' : 'min-w-[100px]'}`}
+        >
+          <span className={`w-2 h-2 rounded-full ${currentPriority.color}`}></span>
+          <span className={`${isDarkMode ? 'text-gray-100' : 'text-black'}`}>{currentPriority.label}</span>
+          <ChevronDown className={`h-3 w-3 ml-auto ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+        </button>
+
+        {isOpen && (
+          <div className={`absolute right-0 mt-1 rounded-xl shadow-2xl z-50 overflow-hidden backdrop-blur-xl bg-transparent w-full`}>
+            <div className="py-1">
+              {priorityOptions.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => {
+                    onChange(option.value);
+                    setIsOpen(false);
+                  }}
+                  className={`w-full flex items-center px-3 py-2 text-left ${option.hoverColor} transition-colors`}
+                >
+                  <span className={`w-2 h-2 rounded-full ${option.color} mr-2`}></span>
+                  <span className={`font-medium ${isDarkMode ? 'text-gray-200' : 'text-black'}`}>{option.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showAIAssistant, setShowAIAssistant] = useState(false);
@@ -78,6 +142,10 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
   const [aiInputBlock, setAiInputBlock] = useState(null);
   const [showAIPopup, setShowAIPopup] = useState(false);
   const [aiPopupQuery, setAiPopupQuery] = useState('');
+  const [showQuickNav, setShowQuickNav] = useState(false);
+  const [toggleStates, setToggleStates] = useState({});
+  const [tableData, setTableData] = useState({});
+  const [deleting, setDeleting] = useState(false);
 
   const formattingMenuRef = useRef(null);
   const userPickerRef = useRef(null);
@@ -95,17 +163,15 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
     { id: 'bullet', label: 'Bulleted list', icon: <List className="w-5 h-5" />, prefix: '• ' },
     { id: 'number', label: 'Numbered list', icon: <List className="w-5 h-5" />, prefix: '1. ' },
     { id: 'toggle', label: 'Toggle list', icon: <ChevronDown className="w-5 h-5" />, prefix: '▶ ' },
-    { id: 'quote', label: 'Quote', icon: <Quote className="w-5 h-5" />, prefix: '> ' },
     { id: 'callout', label: 'Callout', icon: <MessageSquare className="w-5 h-5" />, prefix: '💡 ' },
     { id: 'divider', label: 'Divider', icon: <Minus className="w-5 h-5" />, prefix: '---' },
-    { id: 'code', label: 'Code', icon: <Code className="w-5 h-5" />, prefix: '```\n' },
-    { id: 'table', label: 'Table', icon: <Hash className="w-5 h-5" />, prefix: '| Column 1 | Column 2 |\n|----------|----------|\n|          |          |' },
+    { id: 'table', label: 'Table', icon: <Hash className="w-5 h-5" />, prefix: '' },
     { id: 'columns', label: 'Columns', icon: <GripVertical className="w-5 h-5" />, prefix: '' },
-    { id: 'image', label: 'Image', icon: <FileText className="w-5 h-5" />, prefix: '![Image](url)' },
-    { id: 'video', label: 'Video', icon: <FileText className="w-5 h-5" />, prefix: '[Video](url)' },
-    { id: 'bookmark', label: 'Bookmark', icon: <Star className="w-5 h-5" />, prefix: '[Bookmark](url)' },
-    { id: 'embed', label: 'Embed', icon: <Share2 className="w-5 h-5" />, prefix: '<iframe src=""></iframe>' },
-    { id: 'math', label: 'Math', icon: <Hash className="w-5 h-5" />, prefix: '$$\n\n$$' },
+    { id: 'image', label: 'Image', icon: <FileText className="w-5 h-5" />, prefix: '' },
+    { id: 'video', label: 'Video', icon: <FileText className="w-5 h-5" />, prefix: '' },
+    { id: 'bookmark', label: 'Bookmark', icon: <Star className="w-5 h-5" />, prefix: '' },
+    { id: 'embed', label: 'Embed', icon: <Share2 className="w-5 h-5" />, prefix: '' },
+    { id: 'math', label: 'Math', icon: <Hash className="w-5 h-5" />, prefix: '' },
     { id: 'template', label: 'Template', icon: <Copy className="w-5 h-5" />, prefix: '' }
   ];
 
@@ -177,16 +243,17 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Completed': return 'bg-green-100 text-green-800';
+      case 'Done': return 'bg-green-100 text-green-800';
       case 'In Progress': return 'bg-blue-100 text-blue-800';
-      case 'On Hold': return 'bg-yellow-100 text-yellow-800';
+      case 'On hold': return 'bg-yellow-100 text-yellow-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getPriorityColor = (priority) => {
     switch (priority) {
-      case 'High': return 'bg-red-100 text-red-800';
+      case 'Critical': return 'bg-red-100 text-red-800';
+      case 'High': return 'bg-orange-100 text-orange-800';
       case 'Medium': return 'bg-yellow-100 text-yellow-800';
       case 'Low': return 'bg-green-100 text-green-800';
       default: return 'bg-gray-100 text-gray-800';
@@ -252,10 +319,11 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       if (response.ok) {
         const data = await response.json();
         setProject(data);
-        setTitle(data.name);
-        // Convert notes to blocks if they exist
-        if (data.notes) {
-          const noteBlocks = data.notes.split('\n').map((line, index) => ({
+        setTitle(data.name || data.title || '');
+        // Convert notes/description to blocks if they exist
+        const content = data.notes || data.description || '';
+        if (content) {
+          const noteBlocks = content.split('\n').map((line, index) => ({
             id: `block-${index + 1}`,
             type: getBlockTypeFromLine(line),
             content: getContentFromLine(line)
@@ -264,6 +332,8 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
         } else {
           setBlocks([{ id: 'block-1', type: 'text', content: '' }]);
         }
+      } else {
+        console.error('Failed to fetch project:', response.status);
       }
     } catch (error) {
       console.error('Error fetching project:', error);
@@ -315,8 +385,18 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
   };
 
   const handleSave = async () => {
-    if (!project || !title.trim()) return;
+    if (!canCreateProjects()) {
+      alert('You do not have permission to save projects. Only managers can create and edit projects.');
+      return;
+    }
+    
+    if (!project || !title.trim()) {
+      alert('Please enter a project title');
+      return;
+    }
+    
     setSaving(true);
+    console.log('Starting save process...', { projectId: project.id, title });
 
     // Convert blocks back to notes string
     const notesContent = blocks.map(block => {
@@ -344,41 +424,148 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
     }).join('\n');
 
     const projectData = {
-      ...project,
-      name: title,
-      notes: notesContent
+      title: title,
+      description: notesContent,
+      status: project.status,
+      priority: project.priority,
+      startDate: project.startDate,
+      endDate: project.endDate,
+      forPerson: project.forPerson
     };
 
+    console.log('Project data to save:', projectData);
+
     try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Please log in to save projects');
+        return;
+      }
+
       if (project.id === 'new') {
+        console.log('Creating new project...');
         const response = await fetch('http://localhost:5000/api/projects', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-auth-token': localStorage.getItem('token')
+            'x-auth-token': token
           },
           body: JSON.stringify(projectData)
         });
+        
+        console.log('Create response status:', response.status);
+        
         if (response.ok) {
           const newProject = await response.json();
-          setProject(newProject);
+          console.log('Project created successfully:', newProject);
+          alert('Project created successfully!');
+          navigate(`/projects/${newProject.id}`);
+        } else {
+          const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+          console.error('Failed to create project:', response.status, errorData);
+          alert(`Failed to create project: ${errorData.message || response.status}`);
         }
       } else {
+        console.log('Updating existing project...');
         const response = await fetch(`http://localhost:5000/api/projects/${project.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
-            'x-auth-token': localStorage.getItem('token')
+            'x-auth-token': token
           },
           body: JSON.stringify(projectData)
         });
+        
+        console.log('Update response status:', response.status);
+        
         if (response.ok) {
           const updatedProject = await response.json();
           setProject(updatedProject);
+          console.log('Project updated successfully:', updatedProject);
+          alert('Project updated successfully!');
+          return;
+        } else {
+          const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+          console.error('Failed to update project:', response.status, errorData);
+          alert(`Failed to update project: ${errorData.message || response.status}`);
         }
       }
     } catch (error) {
       console.error('Error saving project:', error);
+      alert('Network error occurred while saving');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleStatusUpdate = async (newStatus) => {
+    if (!project || project.id === 'new') return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Please log in to update project status');
+        return;
+      }
+      
+      const response = await fetch(`http://localhost:5000/api/projects/${project.id}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      
+      if (response.ok) {
+        const updatedProject = await response.json();
+        setProject(updatedProject);
+        console.log('Project status updated successfully:', updatedProject);
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        console.error('Failed to update project status:', response.status, errorData);
+        alert(`Failed to update project status: ${errorData.message || response.status}`);
+      }
+    } catch (error) {
+      console.error('Error updating project status:', error);
+      alert('Network error occurred while updating status');
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!project || project.id === 'new') return;
+    
+    if (!window.confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
+      return;
+    }
+    
+    setSaving(true);
+    
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Please log in to delete projects');
+        return;
+      }
+      
+      const response = await fetch(`http://localhost:5000/api/projects/${project.id}`, {
+        method: 'DELETE',
+        headers: {
+          'x-auth-token': token
+        }
+      });
+      
+      if (response.ok) {
+        alert('Project deleted successfully!');
+        navigate('/projects');
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        console.error('Failed to delete project:', response.status, errorData);
+        alert(`Failed to delete project: ${errorData.message || response.status}`);
+      }
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      alert('Network error occurred while deleting');
     } finally {
       setSaving(false);
     }
@@ -532,7 +719,13 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       const index = blocks.findIndex(block => block.id === id);
-      addBlock(index);
+      const currentBlock = blocks[index];
+      // For lists, create same type of block
+      if (['bullet', 'number', 'todo', 'toggle'].includes(currentBlock.type)) {
+        addBlock(index, currentBlock.type);
+      } else {
+        addBlock(index);
+      }
     } else if (e.key === 'Backspace' && e.target.value === '') {
       e.preventDefault();
       deleteBlock(id);
@@ -558,6 +751,38 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       setAiInputBlock(null);
       setAiQuery('');
     }
+  };
+
+  // Table functions
+  const addTableRow = (blockId) => {
+    setTableData(prev => {
+      const table = prev[blockId] || { rows: 3, cols: 3, data: Array(3).fill().map(() => Array(3).fill('')) };
+      const newData = [...table.data, Array(table.cols).fill('')];
+      return { ...prev, [blockId]: { ...table, rows: table.rows + 1, data: newData } };
+    });
+  };
+
+  const addTableCol = (blockId) => {
+    setTableData(prev => {
+      const table = prev[blockId] || { rows: 3, cols: 3, data: Array(3).fill().map(() => Array(3).fill('')) };
+      const newData = table.data.map(row => [...row, '']);
+      return { ...prev, [blockId]: { ...table, cols: table.cols + 1, data: newData } };
+    });
+  };
+
+  const updateTableCell = (blockId, row, col, value) => {
+    setTableData(prev => {
+      const table = prev[blockId];
+      if (!table) return prev;
+      const newData = table.data.map((r, i) =>
+        i === row ? r.map((c, j) => j === col ? value : c) : r
+      );
+      return { ...prev, [blockId]: { ...table, data: newData } };
+    });
+  };
+
+  const toggleBlock = (blockId) => {
+    setToggleStates(prev => ({ ...prev, [blockId]: !prev[blockId] }));
   };
 
   // Handle click on plus button to show formatting menu
@@ -612,14 +837,13 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       case 'todo':
         changeBlockType(activeBlockId, 'todo');
         break;
-      case 'quote':
-        changeBlockType(activeBlockId, 'quote');
-        break;
       case 'callout':
         changeBlockType(activeBlockId, 'callout');
         break;
       case 'table':
-        changeBlockType(activeBlockId, 'table');
+        const tableId = activeBlockId;
+        changeBlockType(tableId, 'table');
+        setTableData(prev => ({ ...prev, [tableId]: { rows: 3, cols: 3, data: Array(3).fill().map(() => Array(3).fill('')) } }));
         break;
       case 'columns':
         changeBlockType(activeBlockId, 'columns');
@@ -644,9 +868,6 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
         break;
       case 'divider':
         addBlock(blocks.findIndex(b => b.id === activeBlockId), 'divider');
-        break;
-      case 'code':
-        changeBlockType(activeBlockId, 'code');
         break;
       default:
         break;
@@ -746,8 +967,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
   const renderBlock = (block, index) => {
     const commonProps = {
       ref: (el) => blockRefs.current[block.id] = el,
-      key: block.id,
-      className: "w-full outline-none resize-none border-none bg-transparent py-1 px-2 rounded text-gray-800",
+      className: `w-full outline-none resize-none border-none bg-transparent py-1 px-2 rounded ${isDarkMode ? 'text-gray-100' : 'text-gray-800'}`,
       value: block.content,
       onChange: (e) => updateBlock(block.id, e.target.value),
       onKeyDown: (e) => handleBlockKeyDown(block.id, e),
@@ -783,34 +1003,34 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
             {showBlockMenu === block.id && (
               <div
                 ref={blockMenuRef}
-                className="absolute left-0 top-0 mt-8 w-48 rounded-lg shadow-lg border bg-white border-gray-200 z-10"
+                className={`absolute left-0 top-0 mt-8 w-48 rounded-lg shadow-lg border z-10 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
               >
                 <div className="py-1">
                   <button
                     onClick={() => duplicateBlock(block.id)}
-                    className="flex items-center w-full px-4 py-2 text-left hover:bg-gray-100"
+                    className={`flex items-center w-full px-4 py-2 text-left ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
                   >
                     <Copy className="w-4 h-4 mr-2" />
                     Duplicate
                   </button>
                   <button
                     onClick={() => moveBlockUp(block.id)}
-                    className="flex items-center w-full px-4 py-2 text-left hover:bg-gray-100"
+                    className={`flex items-center w-full px-4 py-2 text-left ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
                   >
                     <ChevronUp className="w-4 h-4 mr-2" />
                     Move up
                   </button>
                   <button
                     onClick={() => moveBlockDown(block.id)}
-                    className="flex items-center w-full px-4 py-2 text-left hover:bg-gray-100"
+                    className={`flex items-center w-full px-4 py-2 text-left ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
                   >
                     <ChevronDown className="w-4 h-4 mr-2" />
                     Move down
                   </button>
-                  <hr className="my-1 border-gray-200" />
+                  <hr className={`my-1 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`} />
                   <button
                     onClick={() => deleteBlock(block.id)}
-                    className="flex items-center w-full px-4 py-2 text-left text-red-600 hover:bg-red-50"
+                    className={`flex items-center w-full px-4 py-2 text-left text-red-600 ${isDarkMode ? 'hover:bg-red-900/20' : 'hover:bg-red-50'}`}
                   >
                     <Trash2 className="w-4 h-4 mr-2" />
                     Delete
@@ -847,37 +1067,37 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
             {showBlockMenu === block.id && (
               <div
                 ref={blockMenuRef}
-                className="absolute left-0 top-0 mt-8 w-48 rounded-lg shadow-lg border bg-white border-gray-200 z-10"
+                className="absolute left-0 top-0 mt-8 w-52 rounded-xl shadow-lg border bg-white border-gray-200 z-10 overflow-hidden"
               >
-                <div className="py-1">
+                <div className="py-1.5">
                   <button
                     onClick={() => duplicateBlock(block.id)}
-                    className="flex items-center w-full px-4 py-2 text-left hover:bg-gray-100"
+                    className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors"
                   >
-                    <Copy className="w-4 h-4 mr-2" />
-                    Duplicate
+                    <Copy className="w-4 h-4 mr-3 text-gray-600" />
+                    <span className="text-gray-800">Duplicate</span>
                   </button>
                   <button
                     onClick={() => moveBlockUp(block.id)}
-                    className="flex items-center w-full px-4 py-2 text-left hover:bg-gray-100"
+                    className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors"
                   >
-                    <ChevronUp className="w-4 h-4 mr-2" />
-                    Move up
+                    <ChevronUp className="w-4 h-4 mr-3 text-gray-600" />
+                    <span className="text-gray-800">Move up</span>
                   </button>
                   <button
                     onClick={() => moveBlockDown(block.id)}
-                    className="flex items-center w-full px-4 py-2 text-left hover:bg-gray-100"
+                    className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors"
                   >
-                    <ChevronDown className="w-4 h-4 mr-2" />
-                    Move down
+                    <ChevronDown className="w-4 h-4 mr-3 text-gray-600" />
+                    <span className="text-gray-800">Move down</span>
                   </button>
                   <hr className="my-1 border-gray-200" />
                   <button
                     onClick={() => deleteBlock(block.id)}
-                    className="flex items-center w-full px-4 py-2 text-left text-red-600 hover:bg-red-50"
+                    className="flex items-center w-full px-4 py-2.5 text-left text-red-600 hover:bg-red-50 transition-colors"
                   >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete
+                    <Trash2 className="w-4 h-4 mr-3" />
+                    <span>Delete</span>
                   </button>
                 </div>
               </div>
@@ -911,37 +1131,37 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
             {showBlockMenu === block.id && (
               <div
                 ref={blockMenuRef}
-                className="absolute left-0 top-0 mt-8 w-48 rounded-lg shadow-lg border bg-white border-gray-200 z-10"
+                className="absolute left-0 top-0 mt-8 w-52 rounded-xl shadow-lg border bg-white border-gray-200 z-10 overflow-hidden"
               >
-                <div className="py-1">
+                <div className="py-1.5">
                   <button
                     onClick={() => duplicateBlock(block.id)}
-                    className="flex items-center w-full px-4 py-2 text-left hover:bg-gray-100"
+                    className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors"
                   >
-                    <Copy className="w-4 h-4 mr-2" />
-                    Duplicate
+                    <Copy className="w-4 h-4 mr-3 text-gray-600" />
+                    <span className="text-gray-800">Duplicate</span>
                   </button>
                   <button
                     onClick={() => moveBlockUp(block.id)}
-                    className="flex items-center w-full px-4 py-2 text-left hover:bg-gray-100"
+                    className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors"
                   >
-                    <ChevronUp className="w-4 h-4 mr-2" />
-                    Move up
+                    <ChevronUp className="w-4 h-4 mr-3 text-gray-600" />
+                    <span className="text-gray-800">Move up</span>
                   </button>
                   <button
                     onClick={() => moveBlockDown(block.id)}
-                    className="flex items-center w-full px-4 py-2 text-left hover:bg-gray-100"
+                    className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors"
                   >
-                    <ChevronDown className="w-4 h-4 mr-2" />
-                    Move down
+                    <ChevronDown className="w-4 h-4 mr-3 text-gray-600" />
+                    <span className="text-gray-800">Move down</span>
                   </button>
                   <hr className="my-1 border-gray-200" />
                   <button
                     onClick={() => deleteBlock(block.id)}
-                    className="flex items-center w-full px-4 py-2 text-left text-red-600 hover:bg-red-50"
+                    className="flex items-center w-full px-4 py-2.5 text-left text-red-600 hover:bg-red-50 transition-colors"
                   >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete
+                    <Trash2 className="w-4 h-4 mr-3" />
+                    <span>Delete</span>
                   </button>
                 </div>
               </div>
@@ -969,43 +1189,43 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
               </button>
             </div>
             <div className="flex items-center">
-              <span className="mr-2">•</span>
+              <span className="mr-2 font-bold text-gray-600 text-lg leading-none">•</span>
               <input {...commonProps} />
             </div>
             {showBlockMenu === block.id && (
               <div
                 ref={blockMenuRef}
-                className="absolute left-0 top-0 mt-8 w-48 rounded-lg shadow-lg border bg-white border-gray-200 z-10"
+                className="absolute left-0 top-0 mt-8 w-52 rounded-xl shadow-lg border bg-white border-gray-200 z-10 overflow-hidden"
               >
-                <div className="py-1">
+                <div className="py-1.5">
                   <button
                     onClick={() => duplicateBlock(block.id)}
-                    className="flex items-center w-full px-4 py-2 text-left hover:bg-gray-100"
+                    className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors"
                   >
-                    <Copy className="w-4 h-4 mr-2" />
-                    Duplicate
+                    <Copy className="w-4 h-4 mr-3 text-gray-600" />
+                    <span className="text-gray-800">Duplicate</span>
                   </button>
                   <button
                     onClick={() => moveBlockUp(block.id)}
-                    className="flex items-center w-full px-4 py-2 text-left hover:bg-gray-100"
+                    className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors"
                   >
-                    <ChevronUp className="w-4 h-4 mr-2" />
-                    Move up
+                    <ChevronUp className="w-4 h-4 mr-3 text-gray-600" />
+                    <span className="text-gray-800">Move up</span>
                   </button>
                   <button
                     onClick={() => moveBlockDown(block.id)}
-                    className="flex items-center w-full px-4 py-2 text-left hover:bg-gray-100"
+                    className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors"
                   >
-                    <ChevronDown className="w-4 h-4 mr-2" />
-                    Move down
+                    <ChevronDown className="w-4 h-4 mr-3 text-gray-600" />
+                    <span className="text-gray-800">Move down</span>
                   </button>
                   <hr className="my-1 border-gray-200" />
                   <button
                     onClick={() => deleteBlock(block.id)}
-                    className="flex items-center w-full px-4 py-2 text-left text-red-600 hover:bg-red-50"
+                    className="flex items-center w-full px-4 py-2.5 text-left text-red-600 hover:bg-red-50 transition-colors"
                   >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete
+                    <Trash2 className="w-4 h-4 mr-3" />
+                    <span>Delete</span>
                   </button>
                 </div>
               </div>
@@ -1013,6 +1233,13 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
           </div>
         );
       case 'number':
+        const getNumberedIndex = () => {
+          let count = 1;
+          for (let i = 0; i < index; i++) {
+            if (blocks[i].type === 'number') count++;
+          }
+          return count;
+        };
         return (
           <div className="flex items-start group relative">
             <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
@@ -1033,43 +1260,43 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
               </button>
             </div>
             <div className="flex items-center">
-              <span className="mr-2">{index + 1}.</span>
+              <span className="mr-2 font-medium text-gray-600 min-w-[20px]">{getNumberedIndex()}.</span>
               <input {...commonProps} />
             </div>
             {showBlockMenu === block.id && (
               <div
                 ref={blockMenuRef}
-                className="absolute left-0 top-0 mt-8 w-48 rounded-lg shadow-lg border bg-white border-gray-200 z-10"
+                className="absolute left-0 top-0 mt-8 w-52 rounded-xl shadow-lg border bg-white border-gray-200 z-10 overflow-hidden"
               >
-                <div className="py-1">
+                <div className="py-1.5">
                   <button
                     onClick={() => duplicateBlock(block.id)}
-                    className="flex items-center w-full px-4 py-2 text-left hover:bg-gray-100"
+                    className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors"
                   >
-                    <Copy className="w-4 h-4 mr-2" />
-                    Duplicate
+                    <Copy className="w-4 h-4 mr-3 text-gray-600" />
+                    <span className="text-gray-800">Duplicate</span>
                   </button>
                   <button
                     onClick={() => moveBlockUp(block.id)}
-                    className="flex items-center w-full px-4 py-2 text-left hover:bg-gray-100"
+                    className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors"
                   >
-                    <ChevronUp className="w-4 h-4 mr-2" />
-                    Move up
+                    <ChevronUp className="w-4 h-4 mr-3 text-gray-600" />
+                    <span className="text-gray-800">Move up</span>
                   </button>
                   <button
                     onClick={() => moveBlockDown(block.id)}
-                    className="flex items-center w-full px-4 py-2 text-left hover:bg-gray-100"
+                    className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors"
                   >
-                    <ChevronDown className="w-4 h-4 mr-2" />
-                    Move down
+                    <ChevronDown className="w-4 h-4 mr-3 text-gray-600" />
+                    <span className="text-gray-800">Move down</span>
                   </button>
                   <hr className="my-1 border-gray-200" />
                   <button
                     onClick={() => deleteBlock(block.id)}
-                    className="flex items-center w-full px-4 py-2 text-left text-red-600 hover:bg-red-50"
+                    className="flex items-center w-full px-4 py-2.5 text-left text-red-600 hover:bg-red-50 transition-colors"
                   >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete
+                    <Trash2 className="w-4 h-4 mr-3" />
+                    <span>Delete</span>
                   </button>
                 </div>
               </div>
@@ -1140,93 +1367,48 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
             )}
           </div>
         );
-      case 'quote':
+
+      case 'toggle':
+        const isToggleOpen = toggleStates[block.id] || false;
         return (
-          <div className="flex items-start group relative">
-            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
-              <button
-                className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6"
-                onClick={(e) => handlePlusButtonClick(e, block.id)}
-              >
-                <Plus className="w-4 h-4" />
-              </button>
-              <button
-                className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowBlockMenu(showBlockMenu === block.id ? null : block.id);
-                }}
-              >
-                <GripVertical className="w-4 h-4" />
-              </button>
+          <div className="flex flex-col group relative">
+            <div className="flex items-start">
+              <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
+                <button
+                  className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6"
+                  onClick={(e) => handlePlusButtonClick(e, block.id)}
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+                <button
+                  className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowBlockMenu(showBlockMenu === block.id ? null : block.id);
+                  }}
+                >
+                  <GripVertical className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="flex items-center flex-1">
+                <button
+                  onClick={() => toggleBlock(block.id)}
+                  className="mr-2 p-1 hover:bg-gray-100 rounded transition-colors"
+                >
+                  {isToggleOpen ? <ChevronDown className="w-4 h-4 text-gray-500" /> : <ChevronRight className="w-4 h-4 text-gray-500" />}
+                </button>
+                <input {...commonProps} />
+              </div>
             </div>
-            <div className="border-l-4 border-gray-400 pl-4 py-1">
-              <input {...commonProps} />
-            </div>
-            {showBlockMenu === block.id && (
-              <div
-                ref={blockMenuRef}
-                className="absolute left-0 top-0 mt-8 w-52 rounded-xl shadow-lg border bg-white border-gray-200 z-10 overflow-hidden"
-              >
-                <div className="py-1.5">
-                  <button
-                    onClick={() => duplicateBlock(block.id)}
-                    className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors"
-                  >
-                    <Copy className="w-4 h-4 mr-3 text-gray-600" />
-                    <span className="text-gray-800">Duplicate</span>
-                  </button>
-                  <button
-                    onClick={() => moveBlockUp(block.id)}
-                    className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors"
-                  >
-                    <ChevronUp className="w-4 h-4 mr-3 text-gray-600" />
-                    <span className="text-gray-800">Move up</span>
-                  </button>
-                  <button
-                    onClick={() => moveBlockDown(block.id)}
-                    className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors"
-                  >
-                    <ChevronDown className="w-4 h-4 mr-3 text-gray-600" />
-                    <span className="text-gray-800">Move down</span>
-                  </button>
-                  <hr className="my-1 border-gray-200" />
-                  <button
-                    onClick={() => deleteBlock(block.id)}
-                    className="flex items-center w-full px-4 py-2.5 text-left text-red-600 hover:bg-red-50 transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4 mr-3" />
-                    <span>Delete</span>
-                  </button>
-                </div>
+            {isToggleOpen && (
+              <div className={`ml-8 mt-2 p-3 border-l-2 rounded ${isDarkMode ? 'border-gray-600 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
+                <textarea
+                  placeholder="Toggle content..."
+                  className={`w-full p-2 border-none outline-none bg-transparent resize-none ${isDarkMode ? 'text-gray-200 placeholder-gray-400' : 'text-gray-800 placeholder-gray-500'}`}
+                  rows="3"
+                />
               </div>
             )}
-          </div>
-        );
-      case 'toggle':
-        return (
-          <div className="flex items-start group relative">
-            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
-              <button
-                className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6"
-                onClick={(e) => handlePlusButtonClick(e, block.id)}
-              >
-                <Plus className="w-4 h-4" />
-              </button>
-              <button
-                className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowBlockMenu(showBlockMenu === block.id ? null : block.id);
-                }}
-              >
-                <GripVertical className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="flex items-center">
-              <ChevronDown className="w-4 h-4 mr-2 text-gray-500" />
-              <input {...commonProps} />
-            </div>
             {showBlockMenu === block.id && (
               <div ref={blockMenuRef} className="absolute left-0 top-0 mt-8 w-52 rounded-xl shadow-lg border bg-white border-gray-200 z-10 overflow-hidden">
                 <div className="py-1.5">
@@ -1268,7 +1450,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                 <GripVertical className="w-4 h-4" />
               </button>
             </div>
-            <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg flex-1">
+            <div className={`border-l-4 border-blue-400 p-4 rounded-r-lg flex-1 ${isDarkMode ? 'bg-blue-900/20' : 'bg-blue-50'}`}>
               <div className="flex items-center">
                 <span className="mr-2 text-lg">💡</span>
                 <input {...commonProps} className="bg-transparent border-none outline-none flex-1" />
@@ -1296,6 +1478,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
           </div>
         );
       case 'table':
+        const table = tableData[block.id] || { rows: 3, cols: 3, data: Array(3).fill().map(() => Array(3).fill('')) };
         return (
           <div className="flex items-start group relative">
             <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
@@ -1315,12 +1498,49 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                 <GripVertical className="w-4 h-4" />
               </button>
             </div>
-            <div className="border border-gray-300 rounded-lg overflow-hidden flex-1">
-              <textarea
-                {...commonProps}
-                className="w-full p-3 border-none outline-none resize-none font-mono text-sm"
-                rows="3"
-              />
+            <div className="flex-1 relative" style={{ marginRight: '40px', marginBottom: '40px' }}>
+              <div className={`border rounded-lg overflow-hidden shadow-sm ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-300 bg-white'}`}>
+                <table className="w-full border-collapse">
+                  <tbody>
+                    {table.data.map((row, rowIndex) => (
+                      <tr key={rowIndex} className={rowIndex === 0 ? (isDarkMode ? 'bg-gray-700' : 'bg-gray-50') : (isDarkMode ? 'hover:bg-gray-700/50' : 'hover:bg-gray-50/50')}>
+                        {row.map((cell, colIndex) => (
+                          <td key={`${rowIndex}-${colIndex}`} className={`border-r border-b p-0 relative group/cell ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
+                            <textarea
+                              value={cell}
+                              onChange={(e) => updateTableCell(block.id, rowIndex, colIndex, e.target.value)}
+                              className={`w-full min-h-[24px] px-2 py-1 border-none outline-none resize-none bg-transparent text-xs leading-tight ${rowIndex === 0 ? (isDarkMode ? 'font-semibold text-gray-200' : 'font-semibold text-gray-800') : (isDarkMode ? 'text-gray-300' : 'text-gray-700')
+                                } ${isDarkMode ? 'focus:bg-blue-900/20 focus:ring-1 focus:ring-blue-700 focus:ring-inset' : 'focus:bg-blue-50/50 focus:ring-1 focus:ring-blue-200 focus:ring-inset'}`}
+                              placeholder={rowIndex === 0 ? `Column ${colIndex + 1}` : ''}
+                              rows={1}
+                              onInput={(e) => {
+                                e.target.style.height = 'auto';
+                                e.target.style.height = Math.max(24, e.target.scrollHeight) + 'px';
+                              }}
+                            />
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {/* Add column button */}
+              <button
+                onClick={() => addTableCol(block.id)}
+                className={`absolute top-1/2 -right-8 transform -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-lg hover:bg-blue-500 hover:text-white hover:border-blue-500 ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'}`}
+                title="Add column"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+              {/* Add row button */}
+              <button
+                onClick={() => addTableRow(block.id)}
+                className={`absolute left-1/2 -bottom-8 transform -translate-x-1/2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-lg hover:bg-blue-500 hover:text-white hover:border-blue-500 ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'}`}
+                title="Add row"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
             </div>
             {showBlockMenu === block.id && (
               <div ref={blockMenuRef} className="absolute left-0 top-0 mt-8 w-52 rounded-xl shadow-lg border bg-white border-gray-200 z-10 overflow-hidden">
@@ -1344,780 +1564,1024 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
           </div>
         );
       case 'columns':
-return (
-  <div className="flex items-start group relative">
-    <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
-      <button className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
-        <Plus className="w-4 h-4" />
-      </button>
-      <button className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6" onClick={(e) => { e.stopPropagation(); setShowBlockMenu(showBlockMenu === block.id ? null : block.id); }}>
-        <GripVertical className="w-4 h-4" />
-      </button>
-    </div>
-    <div className="grid grid-cols-2 gap-4 flex-1 border border-gray-200 rounded-lg p-4">
-      <div className="border-r border-gray-200 pr-4">
-        <input {...commonProps} placeholder="Column 1" />
-      </div>
-      <div>
-        <input {...commonProps} placeholder="Column 2" />
-      </div>
-    </div>
-  </div>
-);
-      case 'image':
-return (
-  <div className="flex items-start group relative">
-    <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
-      <button className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
-        <Plus className="w-4 h-4" />
-      </button>
-      <button className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6" onClick={(e) => { e.stopPropagation(); setShowBlockMenu(showBlockMenu === block.id ? null : block.id); }}>
-        <GripVertical className="w-4 h-4" />
-      </button>
-    </div>
-    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 flex-1 text-center">
-      <FileText className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-      <input {...commonProps} placeholder="Paste image URL or click to upload" className="text-center" />
-    </div>
-  </div>
-);
-      case 'video':
-return (
-  <div className="flex items-start group relative">
-    <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
-      <button className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
-        <Plus className="w-4 h-4" />
-      </button>
-      <button className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6" onClick={(e) => { e.stopPropagation(); setShowBlockMenu(showBlockMenu === block.id ? null : block.id); }}>
-        <GripVertical className="w-4 h-4" />
-      </button>
-    </div>
-    <div className="border border-gray-300 rounded-lg p-4 flex-1 bg-gray-50">
-      <div className="flex items-center mb-2">
-        <FileText className="w-5 h-5 mr-2 text-gray-500" />
-        <span className="text-sm text-gray-600">Video</span>
-      </div>
-      <input {...commonProps} placeholder="Paste video URL (YouTube, Vimeo, etc.)" />
-    </div>
-  </div>
-);
-      case 'bookmark':
-return (
-  <div className="flex items-start group relative">
-    <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
-      <button className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
-        <Plus className="w-4 h-4" />
-      </button>
-      <button className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6" onClick={(e) => { e.stopPropagation(); setShowBlockMenu(showBlockMenu === block.id ? null : block.id); }}>
-        <GripVertical className="w-4 h-4" />
-      </button>
-    </div>
-    <div className="border border-gray-300 rounded-lg p-4 flex-1 bg-yellow-50">
-      <div className="flex items-center mb-2">
-        <Star className="w-5 h-5 mr-2 text-yellow-500" />
-        <span className="text-sm text-gray-600">Bookmark</span>
-      </div>
-      <input {...commonProps} placeholder="Paste any link to create a bookmark" />
-    </div>
-  </div>
-);
-      case 'embed':
-return (
-  <div className="flex items-start group relative">
-    <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
-      <button className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
-        <Plus className="w-4 h-4" />
-      </button>
-      <button className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6" onClick={(e) => { e.stopPropagation(); setShowBlockMenu(showBlockMenu === block.id ? null : block.id); }}>
-        <GripVertical className="w-4 h-4" />
-      </button>
-    </div>
-    <div className="border border-gray-300 rounded-lg overflow-hidden flex-1">
-      <textarea {...commonProps} className="w-full p-3 border-none outline-none resize-none font-mono text-sm" rows="4" placeholder="Paste embed code (iframe, script, etc.)" />
-    </div>
-  </div>
-);
-      case 'math':
-return (
-  <div className="flex items-start group relative">
-    <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
-      <button className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
-        <Plus className="w-4 h-4" />
-      </button>
-      <button className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6" onClick={(e) => { e.stopPropagation(); setShowBlockMenu(showBlockMenu === block.id ? null : block.id); }}>
-        <GripVertical className="w-4 h-4" />
-      </button>
-    </div>
-    <div className="border border-gray-300 rounded-lg p-4 flex-1 bg-purple-50">
-      <div className="flex items-center mb-2">
-        <Hash className="w-5 h-5 mr-2 text-purple-500" />
-        <span className="text-sm text-gray-600">Math Equation</span>
-      </div>
-      <textarea {...commonProps} className="w-full border-none outline-none resize-none font-mono" rows="2" placeholder="Enter LaTeX math equation" />
-    </div>
-  </div>
-);
-      case 'template':
-return (
-  <div className="flex items-start group relative">
-    <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
-      <button className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
-        <Plus className="w-4 h-4" />
-      </button>
-      <button className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6" onClick={(e) => { e.stopPropagation(); setShowBlockMenu(showBlockMenu === block.id ? null : block.id); }}>
-        <GripVertical className="w-4 h-4" />
-      </button>
-    </div>
-    <div className="border border-gray-300 rounded-lg p-4 flex-1 bg-green-50">
-      <div className="flex items-center mb-2">
-        <Copy className="w-5 h-5 mr-2 text-green-500" />
-        <span className="text-sm text-gray-600">Template</span>
-      </div>
-      <textarea {...commonProps} className="w-full border-none outline-none resize-none" rows="3" placeholder="Create a reusable template" />
-    </div>
-  </div>
-);
-      case 'divider':
-return (
-  <div className="flex items-center my-4 relative group">
-    <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
-      <button
-        className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6"
-        onClick={(e) => handlePlusButtonClick(e, block.id)}
-      >
-        <Plus className="w-4 h-4" />
-      </button>
-      <button
-        className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6"
-        onClick={(e) => {
-          e.stopPropagation();
-          setShowBlockMenu(showBlockMenu === block.id ? null : block.id);
-        }}
-      >
-        <GripVertical className="w-4 h-4" />
-      </button>
-    </div>
-    <div className="flex-grow border-t border-gray-300"></div>
-    {showBlockMenu === block.id && (
-      <div
-        ref={blockMenuRef}
-        className="absolute left-0 top-0 mt-8 w-48 rounded-lg shadow-lg border bg-white border-gray-200 z-10"
-      >
-        <div className="py-1">
-          <button
-            onClick={() => duplicateBlock(block.id)}
-            className="flex items-center w-full px-4 py-2 text-left hover:bg-gray-100"
-          >
-            <Copy className="w-4 h-4 mr-2" />
-            Duplicate
-          </button>
-          <button
-            onClick={() => moveBlockUp(block.id)}
-            className="flex items-center w-full px-4 py-2 text-left hover:bg-gray-100"
-          >
-            <ChevronUp className="w-4 h-4 mr-2" />
-            Move up
-          </button>
-          <button
-            onClick={() => moveBlockDown(block.id)}
-            className="flex items-center w-full px-4 py-2 text-left hover:bg-gray-100"
-          >
-            <ChevronDown className="w-4 h-4 mr-2" />
-            Move down
-          </button>
-          <hr className="my-1 border-gray-200" />
-          <button
-            onClick={() => deleteBlock(block.id)}
-            className="flex items-center w-full px-4 py-2 text-left text-red-600 hover:bg-red-50"
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Delete
-          </button>
-        </div>
-      </div>
-    )}
-  </div>
-);
-      default: // text
-return (
-  <div className={`flex items-start group relative ${aiInputBlock === block.id ? 'bg-blue-50/30 rounded-lg p-2' : ''} transition-all duration-200`}>
-    <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
-      <button
-        className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6"
-        onClick={(e) => handlePlusButtonClick(e, block.id)}
-      >
-        <Plus className="w-4 h-4" />
-      </button>
-      <button
-        className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6"
-        onClick={(e) => {
-          e.stopPropagation();
-          setShowBlockMenu(showBlockMenu === block.id ? null : block.id);
-        }}
-      >
-        <GripVertical className="w-4 h-4" />
-      </button>
-    </div>
-    <div className="flex-1 relative">
-      {aiInputBlock === block.id ? (
-        <div className={`flex items-center gap-3 px-3 py-2 rounded-lg ${isDarkMode ? 'bg-purple-900/20 border border-purple-800/30' : 'bg-purple-50 border border-purple-200'} transition-all duration-200`}>
-          <div className={`p-1 rounded ${isDarkMode ? 'bg-purple-900/40' : 'bg-purple-100'}`}>
-            <Sparkles className={`w-4 h-4 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`} />
+        return (
+          <div className="flex items-start group relative">
+            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
+              <button className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
+                <Plus className="w-4 h-4" />
+              </button>
+              <button className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6" onClick={(e) => { e.stopPropagation(); setShowBlockMenu(showBlockMenu === block.id ? null : block.id); }}>
+                <GripVertical className="w-4 h-4" />
+              </button>
+            </div>
+            <div className={`grid grid-cols-2 gap-4 flex-1 border rounded-lg p-4 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <div className={`border-r pr-4 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                <input {...commonProps} placeholder="Column 1" />
+              </div>
+              <div>
+                <input {...commonProps} placeholder="Column 2" />
+              </div>
+            </div>
+            {showBlockMenu === block.id && (
+              <div ref={blockMenuRef} className="absolute left-0 top-0 mt-8 w-52 rounded-xl shadow-lg border bg-white border-gray-200 z-10 overflow-hidden">
+                <div className="py-1.5">
+                  <button onClick={() => duplicateBlock(block.id)} className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors">
+                    <Copy className="w-4 h-4 mr-3 text-gray-600" /><span className="text-gray-800">Duplicate</span>
+                  </button>
+                  <button onClick={() => moveBlockUp(block.id)} className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors">
+                    <ChevronUp className="w-4 h-4 mr-3 text-gray-600" /><span className="text-gray-800">Move up</span>
+                  </button>
+                  <button onClick={() => moveBlockDown(block.id)} className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors">
+                    <ChevronDown className="w-4 h-4 mr-3 text-gray-600" /><span className="text-gray-800">Move down</span>
+                  </button>
+                  <hr className="my-1 border-gray-200" />
+                  <button onClick={() => deleteBlock(block.id)} className="flex items-center w-full px-4 py-2.5 text-left text-red-600 hover:bg-red-50 transition-colors">
+                    <Trash2 className="w-4 h-4 mr-3" /><span>Delete</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-          <input
-            type="text"
-            value={aiQuery}
-            onChange={(e) => setAiQuery(e.target.value)}
-            onKeyDown={handleAiQuerySubmit}
-            placeholder="Ask AI anything... (Press Enter to submit, Esc to cancel)"
-            className={`flex-1 outline-none bg-transparent text-sm font-medium ${isDarkMode ? 'text-purple-200 placeholder-purple-400' : 'text-purple-700 placeholder-purple-500'}`}
-            autoFocus
-          />
-        </div>
-      ) : (
-        <input {...commonProps} />
-      )}
-    </div>
-    {showBlockMenu === block.id && (
-      <div
-        ref={blockMenuRef}
-        className="absolute left-0 top-0 mt-8 w-48 rounded-lg shadow-lg border bg-white border-gray-200 z-10"
-      >
-        <div className="py-1">
-          <button
-            onClick={() => duplicateBlock(block.id)}
-            className="flex items-center w-full px-4 py-2 text-left hover:bg-gray-100"
-          >
-            <Copy className="w-4 h-4 mr-2" />
-            Duplicate
-          </button>
-          <button
-            onClick={() => moveBlockUp(block.id)}
-            className="flex items-center w-full px-4 py-2 text-left hover:bg-gray-100"
-          >
-            <ChevronUp className="w-4 h-4 mr-2" />
-            Move up
-          </button>
-          <button
-            onClick={() => moveBlockDown(block.id)}
-            className="flex items-center w-full px-4 py-2 text-left hover:bg-gray-100"
-          >
-            <ChevronDown className="w-4 h-4 mr-2" />
-            Move down
-          </button>
-          <hr className="my-1 border-gray-200" />
-          <button
-            onClick={() => deleteBlock(block.id)}
-            className="flex items-center w-full px-4 py-2 text-left text-red-600 hover:bg-red-50"
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Delete
-          </button>
-        </div>
-      </div>
-    )}
-  </div>
-);
+        );
+      case 'image':
+        return (
+          <div className="flex items-start group relative">
+            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
+              <button className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
+                <Plus className="w-4 h-4" />
+              </button>
+              <button className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6" onClick={(e) => { e.stopPropagation(); setShowBlockMenu(showBlockMenu === block.id ? null : block.id); }}>
+                <GripVertical className="w-4 h-4" />
+              </button>
+            </div>
+            <div className={`border-2 border-dashed rounded-lg p-3 flex-1 text-center ${isDarkMode ? 'border-gray-600 bg-gray-800' : 'border-gray-300 bg-gray-50'}`}>
+              {block.content ? (
+                <img src={block.content} alt="Uploaded" className="max-w-full h-auto rounded max-h-48" onError={(e) => e.target.style.display = 'none'} />
+              ) : (
+                <div>
+                  <FileText className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                  <p className="text-gray-500 mb-2 text-sm">Add an image</p>
+                  <button
+                    onClick={() => document.getElementById(`image-${block.id}`).click()}
+                    className="px-3 py-1.5 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors mb-2"
+                  >
+                    Choose File
+                  </button>
+                  <input
+                    id={`image-${block.id}`}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => updateBlock(block.id, e.target.result);
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                </div>
+              )}
+              <input {...commonProps} placeholder="Or paste image URL" className="text-center bg-transparent text-xs" />
+            </div>
+            {showBlockMenu === block.id && (
+              <div ref={blockMenuRef} className="absolute left-0 top-0 mt-8 w-52 rounded-xl shadow-lg border bg-white border-gray-200 z-10 overflow-hidden">
+                <div className="py-1.5">
+                  <button onClick={() => duplicateBlock(block.id)} className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors">
+                    <Copy className="w-4 h-4 mr-3 text-gray-600" /><span className="text-gray-800">Duplicate</span>
+                  </button>
+                  <button onClick={() => moveBlockUp(block.id)} className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors">
+                    <ChevronUp className="w-4 h-4 mr-3 text-gray-600" /><span className="text-gray-800">Move up</span>
+                  </button>
+                  <button onClick={() => moveBlockDown(block.id)} className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors">
+                    <ChevronDown className="w-4 h-4 mr-3 text-gray-600" /><span className="text-gray-800">Move down</span>
+                  </button>
+                  <hr className="my-1 border-gray-200" />
+                  <button onClick={() => deleteBlock(block.id)} className="flex items-center w-full px-4 py-2.5 text-left text-red-600 hover:bg-red-50 transition-colors">
+                    <Trash2 className="w-4 h-4 mr-3" /><span>Delete</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      case 'video':
+        return (
+          <div className="flex items-start group relative">
+            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
+              <button className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
+                <Plus className="w-4 h-4" />
+              </button>
+              <button className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6" onClick={(e) => { e.stopPropagation(); setShowBlockMenu(showBlockMenu === block.id ? null : block.id); }}>
+                <GripVertical className="w-4 h-4" />
+              </button>
+            </div>
+            <div className={`border rounded-lg p-4 flex-1 ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-300 bg-gray-50'}`}>
+              {block.content && (block.content.includes('youtube.com') || block.content.includes('youtu.be') || block.content.startsWith('data:video')) ? (
+                <div className="aspect-video max-h-48">
+                  {block.content.startsWith('data:video') ? (
+                    <video src={block.content} controls className="w-full h-full rounded" />
+                  ) : (
+                    <iframe
+                      src={block.content.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
+                      className="w-full h-full rounded"
+                      allowFullScreen
+                    />
+                  )}
+                </div>
+              ) : (
+                <div className="text-center mb-3">
+                  <FileText className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                  <p className="text-gray-500 mb-2 text-sm">Add a video</p>
+                  <button
+                    onClick={() => document.getElementById(`video-${block.id}`).click()}
+                    className="px-3 py-1.5 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors mb-2"
+                  >
+                    Choose File
+                  </button>
+                  <input
+                    id={`video-${block.id}`}
+                    type="file"
+                    accept="video/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => updateBlock(block.id, e.target.result);
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                </div>
+              )}
+              <input {...commonProps} placeholder="Or paste video URL (YouTube, Vimeo, etc.)" className="text-xs" />
+            </div>
+            {showBlockMenu === block.id && (
+              <div ref={blockMenuRef} className="absolute left-0 top-0 mt-8 w-52 rounded-xl shadow-lg border bg-white border-gray-200 z-10 overflow-hidden">
+                <div className="py-1.5">
+                  <button onClick={() => duplicateBlock(block.id)} className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors">
+                    <Copy className="w-4 h-4 mr-3 text-gray-600" /><span className="text-gray-800">Duplicate</span>
+                  </button>
+                  <button onClick={() => moveBlockUp(block.id)} className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors">
+                    <ChevronUp className="w-4 h-4 mr-3 text-gray-600" /><span className="text-gray-800">Move up</span>
+                  </button>
+                  <button onClick={() => moveBlockDown(block.id)} className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors">
+                    <ChevronDown className="w-4 h-4 mr-3 text-gray-600" /><span className="text-gray-800">Move down</span>
+                  </button>
+                  <hr className="my-1 border-gray-200" />
+                  <button onClick={() => deleteBlock(block.id)} className="flex items-center w-full px-4 py-2.5 text-left text-red-600 hover:bg-red-50 transition-colors">
+                    <Trash2 className="w-4 h-4 mr-3" /><span>Delete</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      case 'bookmark':
+        return (
+          <div className="flex items-start group relative">
+            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
+              <button className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
+                <Plus className="w-4 h-4" />
+              </button>
+              <button className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6" onClick={(e) => { e.stopPropagation(); setShowBlockMenu(showBlockMenu === block.id ? null : block.id); }}>
+                <GripVertical className="w-4 h-4" />
+              </button>
+            </div>
+            <div className={`border rounded-lg p-4 flex-1 ${isDarkMode ? 'border-gray-700 bg-yellow-900/20' : 'border-gray-300 bg-yellow-50'}`}>
+              {block.content ? (
+                <a href={block.content} target="_blank" rel="noopener noreferrer" className="flex items-center p-3 bg-white rounded border hover:shadow-md transition-shadow">
+                  <Star className="w-5 h-5 mr-3 text-yellow-500" />
+                  <div>
+                    <div className="font-medium text-gray-900">{block.content}</div>
+                    <div className="text-sm text-gray-500">Click to visit</div>
+                  </div>
+                </a>
+              ) : (
+                <div className="flex items-center mb-2">
+                  <Star className="w-5 h-5 mr-2 text-yellow-500" />
+                  <span className="text-sm text-gray-600">Bookmark</span>
+                </div>
+              )}
+              <input {...commonProps} placeholder="Paste any link to create a bookmark" className="mt-2" />
+            </div>
+            {showBlockMenu === block.id && (
+              <div ref={blockMenuRef} className="absolute left-0 top-0 mt-8 w-52 rounded-xl shadow-lg border bg-white border-gray-200 z-10 overflow-hidden">
+                <div className="py-1.5">
+                  <button onClick={() => duplicateBlock(block.id)} className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors">
+                    <Copy className="w-4 h-4 mr-3 text-gray-600" /><span className="text-gray-800">Duplicate</span>
+                  </button>
+                  <button onClick={() => moveBlockUp(block.id)} className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors">
+                    <ChevronUp className="w-4 h-4 mr-3 text-gray-600" /><span className="text-gray-800">Move up</span>
+                  </button>
+                  <button onClick={() => moveBlockDown(block.id)} className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors">
+                    <ChevronDown className="w-4 h-4 mr-3 text-gray-600" /><span className="text-gray-800">Move down</span>
+                  </button>
+                  <hr className="my-1 border-gray-200" />
+                  <button onClick={() => deleteBlock(block.id)} className="flex items-center w-full px-4 py-2.5 text-left text-red-600 hover:bg-red-50 transition-colors">
+                    <Trash2 className="w-4 h-4 mr-3" /><span>Delete</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      case 'embed':
+        return (
+          <div className="flex items-start group relative">
+            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
+              <button className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
+                <Plus className="w-4 h-4" />
+              </button>
+              <button className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6" onClick={(e) => { e.stopPropagation(); setShowBlockMenu(showBlockMenu === block.id ? null : block.id); }}>
+                <GripVertical className="w-4 h-4" />
+              </button>
+            </div>
+            <div className={`border rounded-lg overflow-hidden flex-1 ${isDarkMode ? 'border-gray-700' : 'border-gray-300'}`}>
+              {block.content && block.content.includes('<iframe') ? (
+                <div dangerouslySetInnerHTML={{ __html: block.content }} className="w-full" />
+              ) : (
+                <div className={`p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-gray-50'}`}>
+                  <Share2 className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                  <p className="text-center text-gray-500 mb-2">Embed content</p>
+                </div>
+              )}
+              <textarea {...commonProps} className="w-full p-3 border-none outline-none resize-none font-mono text-sm" rows="3" placeholder="Paste embed code (iframe, script, etc.)" />
+            </div>
+            {showBlockMenu === block.id && (
+              <div ref={blockMenuRef} className="absolute left-0 top-0 mt-8 w-52 rounded-xl shadow-lg border bg-white border-gray-200 z-10 overflow-hidden">
+                <div className="py-1.5">
+                  <button onClick={() => duplicateBlock(block.id)} className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors">
+                    <Copy className="w-4 h-4 mr-3 text-gray-600" /><span className="text-gray-800">Duplicate</span>
+                  </button>
+                  <button onClick={() => moveBlockUp(block.id)} className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors">
+                    <ChevronUp className="w-4 h-4 mr-3 text-gray-600" /><span className="text-gray-800">Move up</span>
+                  </button>
+                  <button onClick={() => moveBlockDown(block.id)} className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors">
+                    <ChevronDown className="w-4 h-4 mr-3 text-gray-600" /><span className="text-gray-800">Move down</span>
+                  </button>
+                  <hr className="my-1 border-gray-200" />
+                  <button onClick={() => deleteBlock(block.id)} className="flex items-center w-full px-4 py-2.5 text-left text-red-600 hover:bg-red-50 transition-colors">
+                    <Trash2 className="w-4 h-4 mr-3" /><span>Delete</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      case 'math':
+        return (
+          <div className="flex items-start group relative">
+            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
+              <button className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
+                <Plus className="w-4 h-4" />
+              </button>
+              <button className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6" onClick={(e) => { e.stopPropagation(); setShowBlockMenu(showBlockMenu === block.id ? null : block.id); }}>
+                <GripVertical className="w-4 h-4" />
+              </button>
+            </div>
+            <div className={`border rounded-lg p-4 flex-1 ${isDarkMode ? 'border-gray-700 bg-purple-900/20' : 'border-gray-300 bg-purple-50'}`}>
+              <div className="flex items-center mb-2">
+                <Hash className="w-5 h-5 mr-2 text-purple-500" />
+                <span className="text-sm text-gray-600">Math Equation</span>
+              </div>
+              <textarea {...commonProps} className="w-full border-none outline-none resize-none font-mono" rows="2" placeholder="Enter LaTeX math equation" />
+            </div>
+            {showBlockMenu === block.id && (
+              <div ref={blockMenuRef} className="absolute left-0 top-0 mt-8 w-52 rounded-xl shadow-lg border bg-white border-gray-200 z-10 overflow-hidden">
+                <div className="py-1.5">
+                  <button onClick={() => duplicateBlock(block.id)} className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors">
+                    <Copy className="w-4 h-4 mr-3 text-gray-600" /><span className="text-gray-800">Duplicate</span>
+                  </button>
+                  <button onClick={() => moveBlockUp(block.id)} className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors">
+                    <ChevronUp className="w-4 h-4 mr-3 text-gray-600" /><span className="text-gray-800">Move up</span>
+                  </button>
+                  <button onClick={() => moveBlockDown(block.id)} className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors">
+                    <ChevronDown className="w-4 h-4 mr-3 text-gray-600" /><span className="text-gray-800">Move down</span>
+                  </button>
+                  <hr className="my-1 border-gray-200" />
+                  <button onClick={() => deleteBlock(block.id)} className="flex items-center w-full px-4 py-2.5 text-left text-red-600 hover:bg-red-50 transition-colors">
+                    <Trash2 className="w-4 h-4 mr-3" /><span>Delete</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      case 'template':
+        return (
+          <div className="flex items-start group relative">
+            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
+              <button className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
+                <Plus className="w-4 h-4" />
+              </button>
+              <button className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6" onClick={(e) => { e.stopPropagation(); setShowBlockMenu(showBlockMenu === block.id ? null : block.id); }}>
+                <GripVertical className="w-4 h-4" />
+              </button>
+            </div>
+            <div className={`border rounded-lg p-4 flex-1 ${isDarkMode ? 'border-gray-700 bg-green-900/20' : 'border-gray-300 bg-green-50'}`}>
+              <div className="flex items-center mb-2">
+                <Copy className="w-5 h-5 mr-2 text-green-500" />
+                <span className="text-sm text-gray-600">Template</span>
+              </div>
+              <textarea {...commonProps} className="w-full border-none outline-none resize-none" rows="3" placeholder="Create a reusable template" />
+            </div>
+            {showBlockMenu === block.id && (
+              <div ref={blockMenuRef} className="absolute left-0 top-0 mt-8 w-52 rounded-xl shadow-lg border bg-white border-gray-200 z-10 overflow-hidden">
+                <div className="py-1.5">
+                  <button onClick={() => duplicateBlock(block.id)} className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors">
+                    <Copy className="w-4 h-4 mr-3 text-gray-600" /><span className="text-gray-800">Duplicate</span>
+                  </button>
+                  <button onClick={() => moveBlockUp(block.id)} className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors">
+                    <ChevronUp className="w-4 h-4 mr-3 text-gray-600" /><span className="text-gray-800">Move up</span>
+                  </button>
+                  <button onClick={() => moveBlockDown(block.id)} className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors">
+                    <ChevronDown className="w-4 h-4 mr-3 text-gray-600" /><span className="text-gray-800">Move down</span>
+                  </button>
+                  <hr className="my-1 border-gray-200" />
+                  <button onClick={() => deleteBlock(block.id)} className="flex items-center w-full px-4 py-2.5 text-left text-red-600 hover:bg-red-50 transition-colors">
+                    <Trash2 className="w-4 h-4 mr-3" /><span>Delete</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      case 'divider':
+        return (
+          <div className="flex items-center my-4 relative group">
+            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
+              <button
+                className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6"
+                onClick={(e) => handlePlusButtonClick(e, block.id)}
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+              <button
+                className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowBlockMenu(showBlockMenu === block.id ? null : block.id);
+                }}
+              >
+                <GripVertical className="w-4 h-4" />
+              </button>
+            </div>
+            <div className={`flex-grow border-t ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}></div>
+            {showBlockMenu === block.id && (
+              <div
+                ref={blockMenuRef}
+                className="absolute left-0 top-0 mt-8 w-52 rounded-xl shadow-lg border bg-white border-gray-200 z-10 overflow-hidden"
+              >
+                <div className="py-1.5">
+                  <button
+                    onClick={() => duplicateBlock(block.id)}
+                    className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors"
+                  >
+                    <Copy className="w-4 h-4 mr-3 text-gray-600" />
+                    <span className="text-gray-800">Duplicate</span>
+                  </button>
+                  <button
+                    onClick={() => moveBlockUp(block.id)}
+                    className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors"
+                  >
+                    <ChevronUp className="w-4 h-4 mr-3 text-gray-600" />
+                    <span className="text-gray-800">Move up</span>
+                  </button>
+                  <button
+                    onClick={() => moveBlockDown(block.id)}
+                    className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors"
+                  >
+                    <ChevronDown className="w-4 h-4 mr-3 text-gray-600" />
+                    <span className="text-gray-800">Move down</span>
+                  </button>
+                  <hr className="my-1 border-gray-200" />
+                  <button
+                    onClick={() => deleteBlock(block.id)}
+                    className="flex items-center w-full px-4 py-2.5 text-left text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4 mr-3" />
+                    <span>Delete</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      default: // text
+        return (
+          <div className={`flex items-start group relative ${aiInputBlock === block.id ? 'bg-blue-50/30 rounded-lg p-2' : ''} transition-all duration-200`}>
+            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
+              <button
+                className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6"
+                onClick={(e) => handlePlusButtonClick(e, block.id)}
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+              <button
+                className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowBlockMenu(showBlockMenu === block.id ? null : block.id);
+                }}
+              >
+                <GripVertical className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex-1 relative">
+              {aiInputBlock === block.id ? (
+                <div className={`flex items-center gap-3 px-3 py-2 rounded-lg ${isDarkMode ? 'bg-purple-900/20 border border-purple-800/30' : 'bg-purple-50 border border-purple-200'} transition-all duration-200`}>
+                  <div className={`p-1 rounded ${isDarkMode ? 'bg-purple-900/40' : 'bg-purple-100'}`}>
+                    <Sparkles className={`w-4 h-4 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`} />
+                  </div>
+                  <input
+                    type="text"
+                    value={aiQuery}
+                    onChange={(e) => setAiQuery(e.target.value)}
+                    onKeyDown={handleAiQuerySubmit}
+                    placeholder="Ask AI anything... (Press Enter to submit, Esc to cancel)"
+                    className={`flex-1 outline-none bg-transparent text-sm font-medium ${isDarkMode ? 'text-purple-200 placeholder-purple-400' : 'text-purple-700 placeholder-purple-500'}`}
+                    autoFocus
+                  />
+                </div>
+              ) : (
+                <input {...commonProps} />
+              )}
+            </div>
+            {showBlockMenu === block.id && (
+              <div
+                ref={blockMenuRef}
+                className="absolute left-0 top-0 mt-8 w-48 rounded-lg shadow-lg border bg-white border-gray-200 z-10"
+              >
+                <div className="py-1">
+                  <button
+                    onClick={() => duplicateBlock(block.id)}
+                    className="flex items-center w-full px-4 py-2 text-left hover:bg-gray-100"
+                  >
+                    <Copy className="w-4 h-4 mr-2" />
+                    Duplicate
+                  </button>
+                  <button
+                    onClick={() => moveBlockUp(block.id)}
+                    className="flex items-center w-full px-4 py-2 text-left hover:bg-gray-100"
+                  >
+                    <ChevronUp className="w-4 h-4 mr-2" />
+                    Move up
+                  </button>
+                  <button
+                    onClick={() => moveBlockDown(block.id)}
+                    className="flex items-center w-full px-4 py-2 text-left hover:bg-gray-100"
+                  >
+                    <ChevronDown className="w-4 h-4 mr-2" />
+                    Move down
+                  </button>
+                  <hr className="my-1 border-gray-200" />
+                  <button
+                    onClick={() => deleteBlock(block.id)}
+                    className="flex items-center w-full px-4 py-2 text-left text-red-600 hover:bg-red-50"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
     }
   };
 
-if (loading) {
-  return (
-    <div className={`${isDarkMode ? 'bg-black text-gray-100' : 'bg-white text-black'} min-h-screen font-sans flex items-center justify-center`}>
-      <div className="text-xl">Loading...</div>
-    </div>
-  );
-}
-
-if (!project) {
-  return (
-    <div className={`${isDarkMode ? 'bg-black text-gray-100' : 'bg-white text-black'} min-h-screen font-sans flex items-center justify-center`}>
-      <div className="text-xl">Project not found</div>
-    </div>
-  );
-}
-
-return (
-  <>
-    {/* Show ProjectsPage at full size when not in fullscreen mode */}
-    {!isFullscreen && (
-      <div className={`fixed top-0 left-0 w-full h-screen ${isDarkMode ? 'bg-black' : 'bg-white'} z-0`}>
-        <ProjectsPage />
-        {/* Overlay to detect clicks on ProjectsPage and close detail page */}
-        <div
-          className="absolute top-0 left-0 w-1/2 h-full cursor-pointer"
-          onClick={() => navigate('/projects')}
-        />
+  if (loading) {
+    return (
+      <div className={`${isDarkMode ? 'bg-black text-gray-100' : 'bg-white text-black'} min-h-screen font-sans flex items-center justify-center`}>
+        <div className="text-xl">Loading...</div>
       </div>
-    )}
+    );
+  }
 
-    <div className={`${isDarkMode ? 'bg-gradient-to-br from-slate-950 via-gray-950 to-black text-gray-100 border-l border-gray-800/80' : 'bg-gradient-to-br from-white via-gray-50 to-blue-50/30 text-black border-l border-gray-200/50'} font-sans antialiased fixed top-0 z-10 transition-all duration-300 h-screen overflow-y-auto shadow-2xl ${isFullscreen ? 'left-0 w-full' : 'right-0 w-full md:w-1/2'
-      }`}>
-      <div className={`sticky top-0 z-40 backdrop-blur-md transition-all duration-300 ${isDarkMode ? 'bg-gray-900/70 border-b border-gray-800/80' : 'bg-white/80 border-b border-gray-200/50'} ${isFullscreen ? 'px-4 sm:px-10 md:px-64' : 'px-4 sm:px-6'
-        }`}>
-        <div className="flex items-center justify-between h-14">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsFullscreen(!isFullscreen)}
-              className={`p-2 rounded-lg transition-all duration-200 ${isDarkMode ? 'text-gray-400 hover:bg-gray-800/60' : 'text-gray-500 hover:bg-gray-100'}`}
-              title={isFullscreen ? 'Half screen' : 'Full screen'}
-            >
-              {isFullscreen ? (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M15 15v4.5M15 15h4.5M15 15l5.25 5.25" />
-                </svg>
-              ) : (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9m11.25 11.25v-4.5m0 4.5h-4.5m4.5 0L15 15" />
-                </svg>
-              )}
-            </button>
+  if (!project) {
+    return (
+      <div className={`${isDarkMode ? 'bg-black text-gray-100' : 'bg-white text-black'} min-h-screen font-sans flex items-center justify-center`}>
+        <div className="text-xl">Project not found</div>
+      </div>
+    );
+  }
 
-            <button
-              onClick={() => navigate('/projects')}
-              className={`p-2 rounded-lg transition-all duration-200 border ${isDarkMode ? 'text-gray-400 hover:text-red-400 hover:bg-red-900/20 hover:border-red-900/40' : 'text-gray-500 hover:text-red-600 hover:bg-red-50 hover:border-red-200'}`}
-              title="Close"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 shadow-md hover:shadow-lg disabled:shadow-none mr-4 ${isDarkMode ? 'bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 disabled:from-gray-700 disabled:to-gray-800' : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-300 disabled:to-gray-400'} text-white`}
-          >
-            {saving ? (
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                Saving...
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Save className="w-4 h-4" />
-                Save
-              </div>
-            )}
-          </button>
+  return (
+    <>
+      {/* Show ProjectsPage at full size when not in fullscreen mode */}
+      {!isFullscreen && (
+        <div className={`fixed top-0 left-0 w-full h-screen ${isDarkMode ? 'bg-black' : 'bg-white'} z-0`}>
+          <ProjectsPage />
+          {/* Overlay to detect clicks on ProjectsPage and close detail page */}
+          <div
+            className="absolute top-0 left-0 w-1/2 h-full cursor-pointer"
+            onClick={() => navigate('/projects')}
+          />
         </div>
-      </div>
+      )}
 
-      <div className={`flex-1 ${isFullscreen
-        ? 'flex justify-center'
-        : ''
+      <div className={`${isDarkMode ? 'bg-gradient-to-br from-slate-950 via-gray-950 to-black text-gray-100 border-l border-gray-800/80' : isFullscreen ? 'bg-gradient-to-br from-white via-gray-50 to-blue-50/30 text-black border-l border-gray-200/50' : 'bg-white text-black border-l border-gray-200/50'} font-sans antialiased fixed top-0 z-10 transition-all duration-300 h-screen overflow-y-auto shadow-2xl ${isFullscreen ? 'left-0 w-full' : 'right-0 w-full md:w-1/2'
         }`}>
-
-        <div className={`w-full ${isFullscreen
-          ? 'max-w-5xl px-5 sm:px-12 lg:px-20 py-8 sm:py-12'
-          : 'px-4 sm:px-8 md:px-12 py-8 sm:py-12'
+        <div className={`sticky top-0 z-40 backdrop-blur-sm transition-all duration-300 border-b ${isDarkMode ? 'bg-gray-900/95 border-gray-800' : 'bg-white/95 border-gray-200'} ${isFullscreen ? 'px-4 sm:px-10 md:px-64' : 'px-4 sm:px-6'
           }`}>
-          <div className="mb-10 ml-8">
-            {project.id === 'new' || user?.role === 'manager' ? (
-              <input
-                ref={titleInputRef}
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                onKeyDown={handleTitleKeyDown}
-                placeholder="Untitled Project"
-                className={`text-3xl sm:text-5xl font-bold bg-transparent border-none outline-none w-full ${isDarkMode ? 'text-gray-100 placeholder-gray-500 hover:bg-gray-800/50' : 'text-gray-900 placeholder-gray-400 hover:bg-gray-50/50'} leading-tight focus:placeholder-gray-500 transition-all duration-200 rounded-lg px-2 py-1 -ml-2`}
-              />
-            ) : (
-              <h1 className={`text-3xl sm:text-5xl font-bold leading-tight bg-clip-text ${isDarkMode ? 'text-gray-100' : 'bg-gradient-to-r from-gray-900 to-gray-700 text-transparent'}`}>{title}</h1>
-            )}
-          </div>
+          <div className="flex items-center justify-between h-14">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsFullscreen(!isFullscreen)}
+                className={`p-2 rounded-lg transition-all duration-200 ${isDarkMode ? 'text-gray-400 hover:bg-gray-800/60' : 'text-gray-500 hover:bg-gray-100'}`}
+                title={isFullscreen ? 'Half screen' : 'Full screen'}
+              >
+                {isFullscreen ? (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M15 15v4.5M15 15h4.5M15 15l5.25 5.25" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9m11.25 11.25v-4.5m0 4.5h-4.5m4.5 0L15 15" />
+                  </svg>
+                )}
+              </button>
 
-          <div className="flex flex-wrap items-center gap-3 mb-10 text-sm ml-8">
-            <div className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl transition-all duration-200 border shadow-sm ${isDarkMode ? 'bg-gradient-to-r from-blue-900/20 to-indigo-900/20 border-blue-900/40' : 'bg-gradient-to-r from-blue-50 to-blue-100/50 border-blue-200/30 hover:from-blue-100 hover:to-blue-200/50'}`}>
-              <User className="h-4 w-4 text-blue-500" />
-              <span className={`${isDarkMode ? 'text-gray-200' : 'text-gray-800'} font-semibold`}>{project.creatorName || project.ownerName || 'Unknown'}</span>
+              <button
+                onClick={() => navigate('/projects')}
+                className={`p-2 rounded-lg transition-all duration-200 border ${isDarkMode ? 'text-gray-400 hover:text-red-400 hover:bg-red-900/20 hover:border-red-900/40' : 'text-gray-500 hover:text-red-600 hover:bg-red-50 hover:border-red-200'}`}
+                title="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
-            <div className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl transition-all duration-200 border shadow-sm ${isDarkMode ? 'bg-gradient-to-r from-emerald-900/20 to-green-900/20 border-emerald-900/40' : 'bg-gradient-to-r from-green-50 to-green-100/50 border-green-200/30 hover:from-green-100 hover:to-green-200/50'}`}>
-              <CheckCircle className="h-4 w-4 text-green-500" />
-              <span className={`px-3 py-1 rounded-lg text-xs font-semibold shadow-sm ${getStatusColor(project.status)}`}>
-                {project.status === 'Completed' ? '✓ Done' : project.status}
-              </span>
-            </div>
-
-            <div className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl transition-all duration-200 border shadow-sm ${isDarkMode ? 'bg-gradient-to-r from-purple-900/20 to-indigo-900/20 border-purple-900/40' : 'bg-gradient-to-r from-purple-50 to-purple-100/50 border-purple-200/30 hover:from-purple-100 hover:to-purple-200/50'}`}>
-              <Calendar className="h-4 w-4 text-purple-500" />
-              <span className={`${isDarkMode ? 'text-gray-200' : 'text-gray-800'} font-semibold`}>{getDaysLeft(project.endDate)}</span>
-            </div>
-          </div>
-
-          <div className="mb-8 ml-8">
-            <div className={`p-6 sm:p-8 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border ${isDarkMode ? 'bg-gray-900/60 border-gray-800' : 'bg-white/70 border-gray-200/50'}`}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 text-sm">
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between py-2">
+            <div className="flex items-center gap-2">
+              {canCreateProjects() && (
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700' : 'bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400'} text-white shadow-sm hover:shadow-md disabled:shadow-none`}
+                >
+                  {saving ? (
                     <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      {project.id === 'new' ? 'Creating...' : 'Updating...'}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Save className="w-4 h-4" />
+                      {project.id === 'new' ? 'Create' : 'Update'}
+                    </div>
+                  )}
+                </button>
+              )}
+              {project.id !== 'new' && canCreateProjects() && (
+                <button
+                  onClick={handleDelete}
+                  disabled={saving}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${isDarkMode ? 'bg-red-600 hover:bg-red-700 disabled:bg-gray-700' : 'bg-red-600 hover:bg-red-700 disabled:bg-gray-400'} text-white shadow-sm hover:shadow-md disabled:shadow-none`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Trash2 className="w-4 h-4" />
+                    Delete
+                  </div>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className={`flex-1 ${isFullscreen
+          ? 'flex justify-center'
+          : ''
+          }`}>
+
+          <div className={`w-full ${isFullscreen
+            ? 'max-w-5xl px-5 sm:px-12 lg:px-20 py-8 sm:py-12'
+            : 'px-3 sm:px-4 py-4 sm:py-6'
+            }`}>
+            <div className={`${isFullscreen ? 'mb-8 ml-16' : 'mb-4 ml-8'}`}>
+              {project.id === 'new' || canCreateProjects() ? (
+                <input
+                  ref={titleInputRef}
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  onKeyDown={handleTitleKeyDown}
+                  placeholder="Untitled Project"
+                  className={`${isFullscreen ? 'text-3xl sm:text-5xl' : 'text-xl sm:text-2xl'} font-bold bg-transparent border-none outline-none w-full ${isDarkMode ? 'text-white placeholder-gray-400' : 'text-gray-900 placeholder-gray-500'} leading-tight mb-2`}
+                />
+              ) : (
+                <h1 className={`${isFullscreen ? 'text-3xl sm:text-5xl' : 'text-xl sm:text-2xl'} font-bold leading-tight mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{title}</h1>
+              )}
+              <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                Created by {project.creatorName || project.ownerName || 'Unknown'}
+              </p>
+              {!canCreateProjects() && project.id !== 'new' && (
+                <div className={`mt-2 px-3 py-2 rounded-lg text-xs ${isDarkMode ? 'bg-blue-900/20 text-blue-300 border border-blue-800/30' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
+                  <span className="font-medium">View Mode:</span> You can view this project and update its status, but only managers can edit project details.
+                </div>
+              )}
+            </div>
+
+            <div className={`flex flex-wrap items-center gap-2 ${isFullscreen ? 'mb-1 ml-16' : 'mb-0.5 ml-8'} text-sm`}>
+              <div className={`flex items-center gap-1.5 ${isFullscreen ? 'px-4 py-2' : 'px-2 py-1'} rounded-lg ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} shadow-sm`}>
+                <CheckCircle className={`${isFullscreen ? 'h-4 w-4' : 'h-3 w-3'} text-green-500`} />
+                <span className={`px-1.5 py-0.5 rounded ${isFullscreen ? 'text-xs' : 'text-[10px]'} font-medium ${getStatusColor(project.status)}`}>
+                  {project.status === 'Done' ? '✓ Done' : project.status}
+                </span>
+              </div>
+
+              <div className={`flex items-center gap-1.5 ${isFullscreen ? 'px-4 py-2' : 'px-2 py-1'} rounded-lg ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} shadow-sm`}>
+                <Calendar className={`${isFullscreen ? 'h-4 w-4' : 'h-3 w-3'} text-blue-500`} />
+                <span className={`${isDarkMode ? 'text-gray-200' : 'text-black'} font-medium ${isFullscreen ? 'text-sm' : 'text-xs'}`}>{getDaysLeft(project.endDate)}</span>
+              </div>
+
+              <div className={`flex items-center gap-1.5 ${isFullscreen ? 'px-4 py-2' : 'px-2 py-1'} rounded-lg ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} shadow-sm`}>
+                <Tag className={`${isFullscreen ? 'h-4 w-4' : 'h-3 w-3'} text-orange-500`} />
+                <span className={`px-1.5 py-0.5 rounded ${isFullscreen ? 'text-xs' : 'text-[10px]'} font-medium ${getPriorityColor(project.priority)}`}>
+                  {project.priority}
+                </span>
+              </div>
+            </div>
+
+            <div className={`${isFullscreen ? 'mb-2 ml-16' : 'mb-1 ml-8'}`}>
+              <div className={`${isFullscreen ? 'p-6' : 'p-3'}`}>
+                <div className={`grid grid-cols-1 ${isFullscreen ? 'gap-2 sm:gap-3' : 'gap-1'} text-sm`}>
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-4">
                       <CheckCircle className="h-4 w-4 text-gray-500" />
                       <span className="text-gray-600 font-medium">Status</span>
+                      <select
+                        value={project.status}
+                        onChange={(e) => {
+                          if (canCreateProjects()) {
+                            updateProject('status', e.target.value);
+                          } else {
+                            handleStatusUpdate(e.target.value);
+                          }
+                        }}
+                        className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} rounded font-medium bg-transparent ${isDarkMode ? 'text-white' : 'text-black'} focus:outline-none ${isFullscreen ? 'min-w-[120px]' : ''}`}
+                      >
+                        <option value="Not started">Not started</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="On hold">On Hold</option>
+                        <option value="Done">Completed</option>
+                      </select>
                     </div>
-                    <select
-                      value={project.status}
-                      onChange={(e) => updateProject('status', e.target.value)}
-                      className="px-2 py-1 rounded text-xs font-medium bg-white border border-gray-300 text-black focus:outline-none"
-                    >
-                      <option value="Not started">Not started</option>
-                      <option value="In Progress">In Progress</option>
-                      <option value="On Hold">On Hold</option>
-                      <option value="Completed">Completed</option>
-                    </select>
-                  </div>
 
-                  <div className="flex items-center justify-between py-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-4">
                       <Tag className="h-4 w-4 text-gray-500" />
                       <span className="text-gray-600 font-medium">Priority</span>
+                      {canCreateProjects() ? (
+                        <PrioritySelector
+                          priority={project.priority}
+                          onChange={(value) => updateProject('priority', value)}
+                          isFullscreen={isFullscreen}
+                          isDarkMode={isDarkMode}
+                        />
+                      ) : (
+                        <span className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} rounded font-medium flex items-center gap-1.5`}>
+                          <span className={`w-2 h-2 rounded-full ${
+                            project.priority === 'Critical' ? 'bg-red-500' :
+                            project.priority === 'High' ? 'bg-orange-500' :
+                            project.priority === 'Medium' ? 'bg-yellow-500' :
+                            'bg-green-500'
+                          }`}></span>
+                          <span className={`${isDarkMode ? 'text-gray-100' : 'text-black'}`}>{project.priority}</span>
+                        </span>
+                      )}
                     </div>
-                    <select
-                      value={project.priority}
-                      onChange={(e) => updateProject('priority', e.target.value)}
-                      className="px-2 py-1 rounded text-xs font-medium bg-white border border-gray-300 text-black focus:outline-none"
-                    >
-                      <option value="High">High</option>
-                      <option value="Medium">Medium</option>
-                      <option value="Low">Low</option>
-                    </select>
-                  </div>
 
-                  <div className="flex items-center justify-between py-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-4">
                       <Calendar className="h-4 w-4 text-gray-500" />
                       <span className="text-gray-600 font-medium">Start Day</span>
+                      {canCreateProjects() ? (
+                        <input
+                          type="date"
+                          value={project.startDate}
+                          onChange={(e) => updateProject('startDate', e.target.value)}
+                          className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} rounded bg-transparent ${isDarkMode ? 'text-white' : 'text-black'} focus:outline-none`}
+                        />
+                      ) : (
+                        <span className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} rounded ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                          {formatDate(project.startDate)}
+                        </span>
+                      )}
                     </div>
-                    <input
-                      type="date"
-                      value={project.startDate}
-                      onChange={(e) => updateProject('startDate', e.target.value)}
-                      className="px-2 py-1 rounded text-xs bg-white border border-gray-300 text-black focus:outline-none"
-                    />
-                  </div>
-                </div>
 
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between py-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-4">
                       <Calendar className="h-4 w-4 text-gray-500" />
-                      <span className="text-gray-600 font-medium text-sm">End Day</span>
+                      <span className="text-gray-600 font-medium">End Day</span>
+                      {canCreateProjects() ? (
+                        <input
+                          type="date"
+                          value={project.endDate}
+                          onChange={(e) => updateProject('endDate', e.target.value)}
+                          className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} rounded bg-transparent ${isDarkMode ? 'text-white' : 'text-black'} focus:outline-none`}
+                        />
+                      ) : (
+                        <span className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} rounded ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                          {formatDate(project.endDate)}
+                        </span>
+                      )}
                     </div>
-                    <input
-                      type="date"
-                      value={project.endDate}
-                      onChange={(e) => updateProject('endDate', e.target.value)}
-                      className="px-3 py-1.5 rounded text-sm bg-white border border-gray-300 text-black focus:outline-none"
-                    />
-                  </div>
 
-                  <div className="flex items-center justify-between py-1">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-gray-500" />
-                      <span className="text-gray-600 font-medium text-sm">Created Day</span>
-                    </div>
-                    <span className="text-gray-600 font-medium text-sm min-w-[140px] text-right">{formatDate(project.createdAt)}</span>
-                  </div>
-
-                  <div className="flex items-center justify-between py-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-4">
                       <User className="h-4 w-4 text-gray-500" />
-                      <span className="text-gray-600 font-medium text-sm">Assign To</span>
+                      <span className="text-gray-600 font-medium">Assign To</span>
+                      {canCreateProjects() ? (
+                        <>
+                          <input
+                            type="text"
+                            value={project.forPerson}
+                            onChange={(e) => updateProject('forPerson', e.target.value)}
+                            placeholder="Enter name"
+                            className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} rounded bg-white border border-gray-300 text-black focus:outline-none min-w-[100px]`}
+                          />
+                          <button
+                            type="button"
+                            onClick={handlePickUser}
+                            className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors`}
+                          >
+                            Pick
+                          </button>
+                        </>
+                      ) : (
+                        <span className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} rounded ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                          {project.forPerson || 'Not assigned'}
+                        </span>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2">
+
+                    <div className="flex items-center gap-4">
+                      <Eye className="h-4 w-4 text-gray-500" />
+                      <span className="text-gray-600 font-medium">Viewers</span>
                       <input
                         type="text"
-                        value={project.forPerson}
-                        onChange={(e) => updateProject('forPerson', e.target.value)}
-                        placeholder="Enter name"
-                        className="px-3 py-1.5 rounded text-sm bg-white border border-gray-300 text-black focus:outline-none text-right min-w-[100px]"
+                        value="Aymen Arega"
+                        readOnly
+                        className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} rounded bg-white border border-gray-300 text-black focus:outline-none min-w-[100px]`}
                       />
                       <button
                         type="button"
-                        onClick={handlePickUser}
-                        className="px-3 py-1.5 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors"
+                        className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors`}
                       >
                         Pick
                       </button>
                     </div>
+
+                    <div className="flex items-center gap-4">
+                      <Calendar className="h-4 w-4 text-gray-500" />
+                      <span className="text-gray-600 font-medium">Created Day</span>
+                      <span className={`${isDarkMode ? 'text-white' : 'text-black'} font-medium ${isFullscreen ? 'text-sm' : 'text-xs'}`}>{formatDate(project.createdAt)}</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className="mb-20 ml-8">
-            <div className={`${isDarkMode ? 'bg-gray-900/60 border-gray-800' : 'bg-white/70 border-gray-200/50'} backdrop-blur-sm p-6 sm:p-8 rounded-2xl border shadow-lg hover:shadow-xl transition-all duration-300`}>
-              <div className="space-y-2 min-h-96">
-                {blocks.map((block, index) => renderBlock(block, index))}
-              </div>
-
-              {/* Add block button */}
-              <button
-                onClick={() => addBlock(blocks.length - 1)}
-                className={`flex items-center mt-4 px-4 py-2 rounded-lg transition-colors ${isDarkMode ? 'text-gray-300 hover:bg-gray-800' : 'text-gray-500 hover:bg-gray-100'}`}
-              >
-                <Plus className="w-5 h-5 mr-2" />
-                Add block
-              </button>
-              {isGenerating && (
-                <div className={`mt-4 flex items-center gap-3 px-4 py-3 rounded-lg ${isDarkMode ? 'bg-purple-900/20 border border-purple-800/30' : 'bg-purple-50 border border-purple-200'}`}>
-                  <div className="flex items-center justify-center">
-                    <div className="w-5 h-5 border-2 rounded-full border-purple-500 border-t-transparent animate-spin"></div>
-                  </div>
-                  <div className="flex-1">
-                    <div className={`text-sm font-medium ${isDarkMode ? 'text-purple-200' : 'text-purple-700'}`}>AI is generating...</div>
-                    <div className={`text-xs ${isDarkMode ? 'text-purple-400' : 'text-purple-500'}`}>This may take a few moments</div>
-                  </div>
-                </div>
-              )}
-              {aiError && (
-                <div className={`mt-4 flex items-center gap-3 px-4 py-3 rounded-lg ${isDarkMode ? 'bg-red-900/20 border border-red-800/30' : 'bg-red-50 border border-red-200'}`}>
-                  <AlertCircle className={`w-5 h-5 flex-shrink-0 ${isDarkMode ? 'text-red-400' : 'text-red-600'}`} />
-                  <span className={`text-sm ${isDarkMode ? 'text-red-300' : 'text-red-600'}`}>{aiError}</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {showAIAssistant && (
-            <div className={`mt-6 rounded-xl border transition-all duration-200 ${isDarkMode ? 'bg-gray-900/80 border-gray-700/50 backdrop-blur-lg' : 'bg-white border-gray-200 backdrop-blur-sm'} shadow-lg`}>
-              <div className="p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className={`p-1.5 rounded-md ${isDarkMode ? 'bg-blue-900/30' : 'bg-blue-100'}`}>
-                    <Sparkles className={`h-4 w-4 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
-                  </div>
-                  <span className={`text-sm font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>AI Suggestions</span>
-                </div>
-                <div className="space-y-2">
-                  {aiSuggestions.map((suggestion) => (
-                    <button
-                      key={suggestion.id}
-                      onClick={() => executeAIAction(suggestion.action)}
-                      className={`flex items-center gap-3 w-full p-3 text-left rounded-lg transition-all ${isDarkMode ? 'hover:bg-gray-800/60' : 'hover:bg-gray-50'} group`}
-                    >
-                      <Lightbulb className={`h-4 w-4 flex-shrink-0 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
-                      <span className={`text-sm ${isDarkMode ? 'text-gray-300 group-hover:text-gray-100' : 'text-gray-700 group-hover:text-gray-900'}`}>{suggestion.text}</span>
-                    </button>
+            <div className={`${isFullscreen ? 'mb-20 ml-16 mr-16' : 'mb-8 ml-8 mr-8'}`}>
+              <div className={`border-t ${isDarkMode ? 'border-gray-600' : 'border-gray-300'} mb-4`}></div>
+              <div className={`${isFullscreen ? 'p-6' : 'p-3'}`}>
+                <div className={`space-y-2 ${isFullscreen ? 'min-h-96' : 'min-h-48'}`}>
+                  {blocks.map((block, index) => (
+                    <div key={block.id}>
+                      {renderBlock(block, index)}
+                    </div>
                   ))}
                 </div>
+
+                {/* Add block button */}
+                <button
+                  onClick={() => addBlock(blocks.length - 1)}
+                  className={`flex items-center mt-4 px-4 py-2 rounded-lg transition-colors ${isDarkMode ? 'text-gray-300 hover:bg-gray-800' : 'text-gray-500 hover:bg-gray-100'}`}
+                >
+                  <Plus className="w-5 h-5 mr-2" />
+                  Add block
+                </button>
+                {isGenerating && (
+                  <div className={`mt-4 flex items-center gap-3 px-4 py-3 rounded-lg ${isDarkMode ? 'bg-purple-900/20 border border-purple-800/30' : 'bg-purple-50 border border-purple-200'}`}>
+                    <div className="flex items-center justify-center">
+                      <div className="w-5 h-5 border-2 rounded-full border-purple-500 border-t-transparent animate-spin"></div>
+                    </div>
+                    <div className="flex-1">
+                      <div className={`text-sm font-medium ${isDarkMode ? 'text-purple-200' : 'text-purple-700'}`}>AI is generating...</div>
+                      <div className={`text-xs ${isDarkMode ? 'text-purple-400' : 'text-purple-500'}`}>This may take a few moments</div>
+                    </div>
+                  </div>
+                )}
+                {aiError && (
+                  <div className={`mt-4 flex items-center gap-3 px-4 py-3 rounded-lg ${isDarkMode ? 'bg-red-900/20 border border-red-800/30' : 'bg-red-50 border border-red-200'}`}>
+                    <AlertCircle className={`w-5 h-5 flex-shrink-0 ${isDarkMode ? 'text-red-400' : 'text-red-600'}`} />
+                    <span className={`text-sm ${isDarkMode ? 'text-red-300' : 'text-red-600'}`}>{aiError}</span>
+                  </div>
+                )}
               </div>
             </div>
-          )}
 
-        </div>
-      </div>
-    </div>
-
-    {/* User Picker Dropdown */}
-    {showUserPicker && (
-      <div
-        ref={userPickerRef}
-        className="fixed w-72 bg-white border border-gray-200 rounded-xl shadow-xl z-[9999] max-h-80 overflow-y-auto"
-        style={{
-          right: '20px',
-          top: '50%',
-          transform: 'translateY(-50%)'
-        }}
-      >
-        <div className="p-3 border-b border-gray-100">
-          <span className="text-sm font-semibold text-gray-800">Select User</span>
-        </div>
-        {loadingUsers ? (
-          <div className="p-6 text-center text-gray-500">
-            <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-            <span className="text-sm">Loading users...</span>
-          </div>
-        ) : availableUsers.length > 0 ? (
-          <div className="py-1.5">
-            {availableUsers.map((user) => (
-              <button
-                key={user.id || user.username}
-                onClick={() => selectUser(user)}
-                className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 transition-colors"
-              >
-                <div className="w-9 h-9 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
-                  {(user.name || user.username).charAt(0).toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-gray-900 truncate">
-                    {user.name || user.username}
+            {showAIAssistant && (
+              <div className={`mt-6 rounded-xl border transition-all duration-200 ${isDarkMode ? 'bg-gray-900/80 border-gray-700/50 backdrop-blur-lg' : 'bg-white border-gray-200 backdrop-blur-sm'} shadow-lg`}>
+                <div className="p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className={`p-1.5 rounded-md ${isDarkMode ? 'bg-blue-900/30' : 'bg-blue-100'}`}>
+                      <Sparkles className={`h-4 w-4 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+                    </div>
+                    <span className={`text-sm font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>AI Suggestions</span>
                   </div>
-                  <div className="text-xs text-gray-500 truncate">
-                    {user.email} • {user.role}
+                  <div className="space-y-2">
+                    {aiSuggestions.map((suggestion) => (
+                      <button
+                        key={suggestion.id}
+                        onClick={() => executeAIAction(suggestion.action)}
+                        className={`flex items-center gap-3 w-full p-3 text-left rounded-lg transition-all ${isDarkMode ? 'hover:bg-gray-800/60' : 'hover:bg-gray-50'} group`}
+                      >
+                        <Lightbulb className={`h-4 w-4 flex-shrink-0 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+                        <span className={`text-sm ${isDarkMode ? 'text-gray-300 group-hover:text-gray-100' : 'text-gray-700 group-hover:text-gray-900'}`}>{suggestion.text}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
-              </button>
-            ))}
-          </div>
-        ) : (
-          <div className="p-6 text-center text-gray-500 text-sm">
-            No users available
-          </div>
-        )}
-      </div>
-    )}
-
-    {/* Action Buttons - Top Right Corner */}
-    {isFullscreen && (
-      <div className="fixed top-20 right-4 z-50 flex flex-col gap-2">
-        <button
-          onClick={() => navigate('/tasks')}
-          className={`flex flex-col items-center px-3.5 py-3 rounded-xl text-xs font-medium transition-all duration-200 border ${isDarkMode ? 'text-gray-200 hover:bg-gray-800/60 hover:border-gray-700 border-gray-800 bg-gray-900/80' : 'text-gray-700 hover:bg-blue-50 hover:border-blue-200 border-gray-200 bg-white/80'} hover:shadow-sm backdrop-blur-sm`}
-        >
-          <CheckSquare className="w-5 h-5 mb-1" />
-          <span>Tasks</span>
-        </button>
-
-        <button
-          onClick={() => navigate('/goals')}
-          className={`flex flex-col items-center px-3.5 py-3 rounded-xl text-xs font-medium transition-all duration-200 border ${isDarkMode ? 'text-gray-200 hover:bg-gray-800/60 hover:border-gray-700 border-gray-800 bg-gray-900/80' : 'text-gray-700 hover:bg-blue-50 hover:border-blue-200 border-gray-200 bg-white/80'} hover:shadow-sm backdrop-blur-sm`}
-        >
-          <Target className="w-5 h-5 mb-1" />
-          <span>Goal</span>
-        </button>
-
-        <button
-          onClick={() => navigate('/inbox')}
-          className={`flex flex-col items-center px-3.5 py-3 rounded-xl text-xs font-medium transition-all duration-200 border ${isDarkMode ? 'text-gray-200 hover:bg-gray-800/60 hover:border-gray-700 border-gray-800 bg-gray-900/80' : 'text-gray-700 hover:bg-blue-50 hover:border-blue-200 border-gray-200 bg-white/80'} hover:shadow-sm backdrop-blur-sm`}
-        >
-          <MessageSquare className="w-5 h-5 mb-1" />
-          <span>Comment</span>
-        </button>
-
-        <button
-          onClick={() => navigate('/reports')}
-          className={`flex flex-col items-center px-3.5 py-3 rounded-xl text-xs font-medium transition-all duration-200 border ${isDarkMode ? 'text-gray-200 hover:bg-gray-800/60 hover:border-gray-700 border-gray-800 bg-gray-900/80' : 'text-gray-700 hover:bg-blue-50 hover:border-blue-200 border-gray-200 bg-white/80'} hover:shadow-sm backdrop-blur-sm`}
-        >
-          <BarChart3 className="w-5 h-5 mb-1" />
-          <span>Report</span>
-        </button>
-      </div>
-    )}
-
-    {/* AI Button - Bottom Right Corner */}
-    <button
-      onClick={() => setShowAIPopup(true)}
-      className={`fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-lg transition-all duration-200 flex items-center justify-center hover:shadow-xl hover:scale-105 ${isDarkMode ? 'bg-gradient-to-br from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700' : 'bg-gradient-to-br from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600'} text-white`}
-    >
-      <Sparkles className="w-6 h-6" />
-    </button>
-
-  {/* AI Input - Notion Style */ }
-{
-  showAIPopup && (
-    <div className={`fixed bottom-24 right-6 z-[9999] w-96 rounded-xl shadow-2xl border transition-all duration-200 transform animate-in slide-in-from-bottom-2 ${isDarkMode ? 'bg-gray-900/95 border-gray-700/80 backdrop-blur-xl' : 'bg-white border-gray-200 backdrop-blur-lg'}`}>
-      <div className="p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <div className={`p-1.5 rounded-md ${isDarkMode ? 'bg-purple-900/50' : 'bg-purple-100'}`}>
-              <Sparkles className={`w-4 h-4 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`} />
-            </div>
-            <span className={`text-sm font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>Ask AI</span>
-          </div>
-          <button
-            onClick={() => setShowAIPopup(false)}
-            className={`p-1 rounded-md hover:opacity-75 transition-opacity ${isDarkMode ? 'text-gray-400 hover:bg-gray-800' : 'text-gray-500 hover:bg-gray-100'}`}
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={aiPopupQuery}
-            onChange={(e) => setAiPopupQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && aiPopupQuery.trim()) {
-                e.preventDefault();
-                handleAISubmit();
-              } else if (e.key === 'Escape') {
-                setShowAIPopup(false);
-                setAiPopupQuery('');
-              }
-            }}
-            placeholder="Ask anything..."
-            className={`flex-1 px-4 py-3 text-sm rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all ${isDarkMode ? 'bg-gray-800/80 border-gray-700 text-gray-100 placeholder-gray-500 focus:bg-gray-800' : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400 focus:bg-white'}`}
-            autoFocus
-          />
-          <button
-            onClick={handleAISubmit}
-            disabled={!aiPopupQuery.trim() || isGenerating}
-            className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center min-w-[42px] ${isDarkMode ?
-              'bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 disabled:from-gray-700 disabled:to-gray-800 text-white shadow-lg shadow-purple-900/20' :
-              'bg-gradient-to-br from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 disabled:from-gray-300 disabled:to-gray-400 text-white shadow-md shadow-purple-500/20'}`}
-          >
-            {isGenerating ? (
-              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-            ) : (
-              <Send className="w-4 h-4" />
+              </div>
             )}
-          </button>
-        </div>
-        <div className={`mt-3 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-          Press Enter to submit · Esc to close
+
+          </div>
         </div>
       </div>
-    </div>
-  )
-}
 
-{/* Formatting Menu - Notion Style */ }
-{
-  showFormattingMenu && (
-    <div
-      ref={formattingMenuRef}
-      className="absolute z-50 mt-1 rounded-xl shadow-xl border bg-white border-gray-200 overflow-hidden"
-      style={{
-        minWidth: '280px',
-        maxHeight: '400px',
-        left: `${formattingMenuPosition.x}px`,
-        top: `${formattingMenuPosition.y}px`,
-        transform: 'translateY(5px)'
-      }}
-    >
-      <div className="py-2 overflow-y-auto max-h-80">
-        {/* Basic blocks */}
-        <div className="px-3 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-          Basic blocks
+      {/* User Picker Dropdown */}
+      {showUserPicker && (
+        <div
+          ref={userPickerRef}
+          className={`fixed w-72 border rounded-xl shadow-xl z-[9999] max-h-80 overflow-y-auto ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'}`}
+          style={{
+            right: '20px',
+            top: '50%',
+            transform: 'translateY(-50%)'
+          }}
+        >
+          <div className={`p-3 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-100'}`}>
+            <span className={`text-sm font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Select User</span>
+          </div>
+          {loadingUsers ? (
+            <div className={`p-6 text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+              <span className="text-sm">Loading users...</span>
+            </div>
+          ) : availableUsers.length > 0 ? (
+            <div className="py-1.5">
+              {availableUsers.map((user) => (
+                <button
+                  key={user.id || user.username}
+                  onClick={() => selectUser(user)}
+                  className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors ${isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-50'}`}
+                >
+                  <div className="w-9 h-9 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+                    {(user.name || user.username).charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className={`text-sm font-medium truncate ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
+                      {user.name || user.username}
+                    </div>
+                    <div className={`text-xs truncate ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                      {user.email} • {user.role}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className={`p-6 text-center text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              No users available
+            </div>
+          )}
         </div>
-        {blockOptions.slice(0, 13).map(option => (
-          <button
-            key={option.id}
-            onClick={() => applyFormatting(option.id)}
-            className="w-full flex items-center px-3 py-2.5 text-left hover:bg-gray-100 transition-colors"
-          >
-            <div className="w-6 h-6 mr-3 text-gray-600 flex items-center justify-center">
-              {option.icon}
-            </div>
-            <div>
-              <div className="font-medium text-gray-900">{option.label}</div>
-            </div>
-          </button>
-        ))}
+      )}
 
-        {/* Media & Advanced */}
-        <div className="px-3 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider mt-1">
-          Media & Advanced
-        </div>
-        {blockOptions.slice(13).map(option => (
-          <button
-            key={option.id}
-            onClick={() => applyFormatting(option.id)}
-            className="w-full flex items-center px-3 py-2.5 text-left hover:bg-gray-100 transition-colors"
+
+
+      {/* AI Button - Bottom Right Corner */}
+      <button
+        onClick={() => setShowAIPopup(true)}
+        className={`fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-lg transition-all duration-200 flex items-center justify-center hover:shadow-xl hover:scale-105 ${isDarkMode ? 'bg-gradient-to-br from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700' : 'bg-gradient-to-br from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600'} text-white`}
+      >
+        <Sparkles className="w-6 h-6" />
+      </button>
+
+      {/* AI Input - Notion Style */}
+      {
+        showAIPopup && (
+          <div className={`fixed bottom-24 right-6 z-[9999] w-96 rounded-xl shadow-2xl border transition-all duration-200 transform animate-in slide-in-from-bottom-2 ${isDarkMode ? 'bg-gray-900/95 border-gray-700/80 backdrop-blur-xl' : 'bg-white border-gray-200 backdrop-blur-lg'}`}>
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className={`p-1.5 rounded-md ${isDarkMode ? 'bg-purple-900/50' : 'bg-purple-100'}`}>
+                    <Sparkles className={`w-4 h-4 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`} />
+                  </div>
+                  <span className={`text-sm font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>Ask AI</span>
+                </div>
+                <button
+                  onClick={() => setShowAIPopup(false)}
+                  className={`p-1 rounded-md hover:opacity-75 transition-opacity ${isDarkMode ? 'text-gray-400 hover:bg-gray-800' : 'text-gray-500 hover:bg-gray-100'}`}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={aiPopupQuery}
+                  onChange={(e) => setAiPopupQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && aiPopupQuery.trim()) {
+                      e.preventDefault();
+                      handleAISubmit();
+                    } else if (e.key === 'Escape') {
+                      setShowAIPopup(false);
+                      setAiPopupQuery('');
+                    }
+                  }}
+                  placeholder="Ask anything..."
+                  className={`flex-1 px-4 py-3 text-sm rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all ${isDarkMode ? 'bg-gray-800/80 border-gray-700 text-gray-100 placeholder-gray-500 focus:bg-gray-800' : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400 focus:bg-white'}`}
+                  autoFocus
+                />
+                <button
+                  onClick={handleAISubmit}
+                  disabled={!aiPopupQuery.trim() || isGenerating}
+                  className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center min-w-[42px] ${isDarkMode ?
+                    'bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 disabled:from-gray-700 disabled:to-gray-800 text-white shadow-lg shadow-purple-900/20' :
+                    'bg-gradient-to-br from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 disabled:from-gray-300 disabled:to-gray-400 text-white shadow-md shadow-purple-500/20'}`}
+                >
+                  {isGenerating ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+              <div className={`mt-3 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                Press Enter to submit · Esc to close
+              </div>
+            </div>
+          </div>
+        )
+      }
+
+      {/* Formatting Menu - Notion Style */}
+      {
+        showFormattingMenu && (
+          <div
+            ref={formattingMenuRef}
+            className={`absolute z-50 mt-1 rounded-xl shadow-xl border overflow-hidden ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'}`}
+            style={{
+              minWidth: '280px',
+              maxHeight: '400px',
+              left: `${formattingMenuPosition.x}px`,
+              top: `${formattingMenuPosition.y}px`,
+              transform: 'translateY(5px)'
+            }}
           >
-            <div className="w-6 h-6 mr-3 text-gray-600 flex items-center justify-center">
-              {option.icon}
+            <div className="py-2 overflow-y-auto max-h-80">
+              {/* Basic blocks */}
+              <div className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                Basic blocks
+              </div>
+              {blockOptions.slice(0, 10).map(option => (
+                <button
+                  key={option.id}
+                  onClick={() => applyFormatting(option.id)}
+                  className={`w-full flex items-center px-3 py-2.5 text-left transition-colors ${isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}
+                >
+                  <div className={`w-6 h-6 mr-3 flex items-center justify-center ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    {option.icon}
+                  </div>
+                  <div>
+                    <div className={`font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>{option.label}</div>
+                  </div>
+                </button>
+              ))}
+
+              {/* Media & Advanced */}
+              <div className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-wider mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                Media & Advanced
+              </div>
+              {blockOptions.slice(10).map(option => (
+                <button
+                  key={option.id}
+                  onClick={() => applyFormatting(option.id)}
+                  className={`w-full flex items-center px-3 py-2.5 text-left transition-colors ${isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}
+                >
+                  <div className={`w-6 h-6 mr-3 flex items-center justify-center ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    {option.icon}
+                  </div>
+                  <div>
+                    <div className={`font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>{option.label}</div>
+                  </div>
+                </button>
+              ))}
             </div>
-            <div>
-              <div className="font-medium text-gray-900">{option.label}</div>
-            </div>
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
+          </div>
+        )
+      }
 
 
     </>
