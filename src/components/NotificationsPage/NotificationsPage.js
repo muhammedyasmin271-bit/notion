@@ -70,17 +70,17 @@ const NotificationsPage = () => {
     const today = new Date();
     const week = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
     const month = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-    
+
     const todayCount = notifications.filter(n => new Date(n.createdAt) >= today).length;
     const weekCount = notifications.filter(n => new Date(n.createdAt) >= week).length;
     const monthCount = notifications.filter(n => new Date(n.createdAt) >= month).length;
-    
+
     const typeCounts = notifications.reduce((acc, n) => {
       acc[n.type] = (acc[n.type] || 0) + 1;
       return acc;
     }, {});
     const mostActiveType = Object.keys(typeCounts).reduce((a, b) => typeCounts[a] > typeCounts[b] ? a : b, 'meeting');
-    
+
     setAnalytics({
       todayCount,
       weekCount,
@@ -112,14 +112,14 @@ const NotificationsPage = () => {
     let filtered = notifications.filter(notification => {
       // Skip archived notifications
       if (archivedNotifications.includes(notification.id)) return false;
-      
+
       const matchesSearch = notification.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           notification.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           (notification.fromUserName && notification.fromUserName.toLowerCase().includes(searchQuery.toLowerCase()));
+        notification.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (notification.fromUserName && notification.fromUserName.toLowerCase().includes(searchQuery.toLowerCase()));
       const matchesType = filterType === 'all' || notification.type === filterType;
-      const matchesStatus = filterStatus === 'all' || 
-                           (filterStatus === 'read' && notification.read) ||
-                           (filterStatus === 'unread' && !notification.read);
+      const matchesStatus = filterStatus === 'all' ||
+        (filterStatus === 'read' && notification.read) ||
+        (filterStatus === 'unread' && !notification.read);
       return matchesSearch && matchesType && matchesStatus;
     });
 
@@ -130,7 +130,7 @@ const NotificationsPage = () => {
       const bPinned = pinnedNotifications.includes(b.id);
       if (aPinned && !bPinned) return -1;
       if (!aPinned && bPinned) return 1;
-      
+
       let comparison = 0;
       switch (sortBy) {
         case 'date':
@@ -154,7 +154,7 @@ const NotificationsPage = () => {
         default:
           comparison = new Date(b.createdAt) - new Date(a.createdAt);
       }
-      
+
       return sortOrder === 'desc' ? comparison : -comparison;
     });
 
@@ -172,7 +172,7 @@ const NotificationsPage = () => {
   };
 
   const handleSelectNotification = (id) => {
-    setSelectedNotifications(prev => 
+    setSelectedNotifications(prev =>
       prev.includes(id) ? prev.filter(nId => nId !== id) : [...prev, id]
     );
   };
@@ -201,7 +201,7 @@ const NotificationsPage = () => {
   };
 
   const handlePinNotification = (id) => {
-    setPinnedNotifications(prev => 
+    setPinnedNotifications(prev =>
       prev.includes(id) ? prev.filter(nId => nId !== id) : [...prev, id]
     );
   };
@@ -215,7 +215,7 @@ const NotificationsPage = () => {
       date: new Date(n.createdAt).toISOString(),
       read: n.read
     }));
-    
+
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -236,24 +236,24 @@ const NotificationsPage = () => {
 
   const calculateNotificationScore = (notification) => {
     let score = 0;
-    
+
     // Priority scoring
     const priority = getNotificationPriority(notification.type, notification.title);
     if (priority === 'high') score += 100;
     else if (priority === 'medium') score += 50;
-    
+
     // Recency scoring
     const age = Date.now() - new Date(notification.createdAt).getTime();
     const ageHours = age / (1000 * 60 * 60);
     score += Math.max(0, 50 - ageHours); // Newer = higher score
-    
+
     // Type importance
     const typeScores = { meeting: 30, system: 25, project: 20, goal: 15, chat: 10, user: 5 };
     score += typeScores[notification.type] || 0;
-    
+
     // Unread bonus
     if (!notification.read) score += 25;
-    
+
     return score;
   };
 
@@ -287,7 +287,7 @@ const NotificationsPage = () => {
     const date = new Date(timestamp);
     const now = new Date();
     const diffInMinutes = Math.floor((now - date) / (1000 * 60));
-    
+
     if (diffInMinutes < 1) return 'Just now';
     if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
     if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
@@ -296,9 +296,8 @@ const NotificationsPage = () => {
 
   return (
     <div
-      className={`content p-4 lg:p-6 font-sans min-h-screen relative ${
-        isDarkMode ? 'bg-black/60 text-white backdrop-blur-sm' : 'bg-white/60 text-gray-900 backdrop-blur-sm'
-      }`}
+      className={`content p-4 lg:p-6 font-sans min-h-screen relative ${isDarkMode ? 'bg-black/60 text-white backdrop-blur-sm' : 'bg-white/60 text-gray-900 backdrop-blur-sm'
+        }`}
       style={{
         backgroundImage: "url('/documents-bg.jpg')",
         backgroundRepeat: 'no-repeat',
@@ -329,9 +328,8 @@ const NotificationsPage = () => {
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleBulkMarkAsRead}
-                  className={`flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-                    isDarkMode ? 'bg-gray-800 text-white hover:bg-gray-700' : 'bg-gray-200 text-black hover:bg-gray-300'
-                  }`}
+                  className={`flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${isDarkMode ? 'bg-gray-800 text-white hover:bg-gray-700' : 'bg-gray-200 text-black hover:bg-gray-300'
+                    }`}
                 >
                   <CheckCircle className="w-4 h-4 mr-1" />
                   Mark Read
@@ -348,9 +346,8 @@ const NotificationsPage = () => {
             <button
               onClick={loadNotifications}
               disabled={loading}
-              className={`flex items-center px-6 py-3 text-sm font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 ${
-                isDarkMode ? 'bg-white text-black hover:bg-gray-100' : 'bg-black text-white hover:bg-gray-900'
-              } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`flex items-center px-6 py-3 text-sm font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 ${isDarkMode ? 'bg-white text-black hover:bg-gray-100' : 'bg-black text-white hover:bg-gray-900'
+                } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               {loading ? 'Loading...' : 'Refresh'}
@@ -368,18 +365,16 @@ const NotificationsPage = () => {
                 placeholder="Search notifications..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className={`pl-10 pr-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-80 text-sm border ${
-                  isDarkMode ? 'bg-gray-900 border-gray-700 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
-                }`}
+                className={`pl-10 pr-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-80 text-sm border ${isDarkMode ? 'bg-gray-900 border-gray-700 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+                  }`}
               />
             </div>
-            
+
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
-              className={`px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm border ${
-                isDarkMode ? 'bg-gray-900 border-gray-700 text-white' : 'bg-white border-gray-300 text-gray-900'
-              }`}
+              className={`px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm border ${isDarkMode ? 'bg-gray-900 border-gray-700 text-white' : 'bg-white border-gray-300 text-gray-900'
+                }`}
             >
               <option value="all">All Types</option>
               <option value="meeting">Meetings</option>
@@ -393,9 +388,8 @@ const NotificationsPage = () => {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className={`px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm border ${
-                isDarkMode ? 'bg-gray-900 border-gray-700 text-white' : 'bg-white border-gray-300 text-gray-900'
-              }`}
+              className={`px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm border ${isDarkMode ? 'bg-gray-900 border-gray-700 text-white' : 'bg-white border-gray-300 text-gray-900'
+                }`}
             >
               <option value="all">All Status</option>
               <option value="unread">Unread</option>
@@ -516,8 +510,8 @@ const NotificationsPage = () => {
               <Bell className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className={`mt-2 text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>No notifications found</h3>
               <p className={`mt-1 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
-                {searchQuery || filterType !== 'all' || filterStatus !== 'all' 
-                  ? 'Try adjusting your filters' 
+                {searchQuery || filterType !== 'all' || filterStatus !== 'all'
+                  ? 'Try adjusting your filters'
                   : 'You\'re all caught up!'}
               </p>
             </div>
@@ -571,9 +565,8 @@ const NotificationsPage = () => {
                   return (
                     <tr
                       key={notification.id}
-                      className={`transition-all duration-200 hover:scale-[1.01] cursor-pointer ${
-                        isDarkMode ? 'hover:bg-gray-900/40' : 'hover:bg-gray-50'
-                      } ${!notification.read ? 'border-l-4 border-blue-500' : ''} ${getPriorityColor(priority)}`}
+                      className={`transition-all duration-200 hover:scale-[1.01] cursor-pointer ${isDarkMode ? 'hover:bg-gray-900/40' : 'hover:bg-gray-50'
+                        } ${!notification.read ? 'border-l-4 border-blue-500' : ''} ${getPriorityColor(priority)}`}
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <input
@@ -586,20 +579,18 @@ const NotificationsPage = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap" onClick={() => !notification.read && handleMarkAsRead(notification.id)}>
                         <div className="flex items-center gap-4">
-                          <div className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center relative ${
-                            isDarkMode ? 'bg-gray-800' : 'bg-gray-100'
-                          }`}>
-                            {React.cloneElement(getNotificationIcon(notification.type), { 
-                              className: `w-6 h-6 ${isDarkMode ? 'text-white' : 'text-black'}` 
+                          <div className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center relative ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'
+                            }`}>
+                            {React.cloneElement(getNotificationIcon(notification.type), {
+                              className: `w-6 h-6 ${isDarkMode ? 'text-white' : 'text-black'}`
                             })}
                             {!notification.read && (
                               <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full" />
                             )}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <div className={`text-sm font-semibold mb-1 ${
-                              isDarkMode ? (!notification.read ? 'text-white' : 'text-gray-300') : (!notification.read ? 'text-gray-900' : 'text-gray-700')
-                            }`}>
+                            <div className={`text-sm font-semibold mb-1 ${isDarkMode ? (!notification.read ? 'text-white' : 'text-gray-300') : (!notification.read ? 'text-gray-900' : 'text-gray-700')
+                              }`}>
                               {notification.title}
                               {priority === 'high' && <span className="ml-2 text-red-500 text-xs font-bold">URGENT</span>}
                             </div>
@@ -610,9 +601,8 @@ const NotificationsPage = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold border ${
-                          isDarkMode ? 'bg-gray-700 text-white border-gray-600' : 'bg-gray-200 text-black border-gray-300'
-                        }`}>
+                        <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold border ${isDarkMode ? 'bg-gray-700 text-white border-gray-600' : 'bg-gray-200 text-black border-gray-300'
+                          }`}>
                           {notification.type}
                         </span>
                       </td>
@@ -638,11 +628,10 @@ const NotificationsPage = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold ${
-                          notification.read 
+                        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold ${notification.read
                             ? (isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700')
                             : (isDarkMode ? 'bg-blue-900 text-blue-300' : 'bg-blue-100 text-blue-800')
-                        }`}>
+                          }`}>
                           {notification.read ? 'Read' : 'Unread'}
                         </span>
                       </td>
@@ -651,18 +640,16 @@ const NotificationsPage = () => {
                           {!notification.read && (
                             <button
                               onClick={(e) => { e.stopPropagation(); handleMarkAsRead(notification.id); }}
-                              className={`p-1 rounded hover:scale-110 transition-transform ${
-                                isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-800'
-                              }`}
+                              className={`p-1 rounded hover:scale-110 transition-transform ${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-800'
+                                }`}
                               title="Mark as read"
                             >
                               <CheckCircle className="h-4 w-4" />
                             </button>
                           )}
                           <button
-                            className={`p-1 rounded hover:scale-110 transition-transform ${
-                              isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-600 hover:text-gray-800'
-                            }`}
+                            className={`p-1 rounded hover:scale-110 transition-transform ${isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-600 hover:text-gray-800'
+                              }`}
                             title="More options"
                           >
                             <MoreVertical className="h-4 w-4" />

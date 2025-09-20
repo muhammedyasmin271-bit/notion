@@ -7,7 +7,10 @@ import HomePage from './components/HomePage/HomePage';
 import NotificationsPage from './components/NotificationsPage/NotificationsPage';
 import ProjectsPage from './components/ProjectsPage/ProjectsPage';
 import ProjectDetailsPage from './components/ProjectDetailPage/ProjectDetailPage';
-import GoalsPage from './components/GoalsPage/GoalsPage';
+import CommentsPage from './components/CommentsPage/CommentsPage';
+import GoalPage from './components/GoalPage/GoalPage';
+import ProjectReportPage from './components/ReportPage/ReportPage';
+
 import DocumentsPage from './components/DocumentsPage/DocumentsPage';
 import NotepadPage from './components/NotepadPage/NotepadPage';
 import MeetingNotesPage from './components/MeetingNotesPage/MeetingNotesPage';
@@ -26,6 +29,8 @@ import AdminRoute from './components/AdminRoute/AdminRoute';
 import SavedNotesPage from './components/SavedNotesPage/SavedNotesPage';
 import ReportsPage from './components/ReportsPage/ReportsPage';
 import TasksPage from './components/TasksPage/TasksPage';
+import AIAssistant from './components/AIAssistant/AIAssistant';
+import NavigationPanel from './components/NavigationPanel/NavigationPanel';
 import './App.css';
 
 // Protected Route Component
@@ -47,6 +52,8 @@ const Layout = ({ children, hideNav = false }) => {
       <div className="app-content">
         {children}
       </div>
+      <AIAssistant />
+      <NavigationPanel />
     </div>
   );
 };
@@ -122,6 +129,30 @@ const AppContent = () => {
           </ProtectedRoute>
         } />
 
+        <Route path="/projects/:projectId/comments" element={
+          <ProtectedRoute>
+            <Layout>
+              <CommentsPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/projects/:projectId/goal" element={
+          <ProtectedRoute>
+            <Layout>
+              <GoalPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/projects/:projectId/report" element={
+          <ProtectedRoute>
+            <Layout>
+              <ProjectReportPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+
         <Route path="/projects/split/:projectId" element={
           <ProtectedRoute>
             <Layout>
@@ -139,21 +170,7 @@ const AppContent = () => {
           </ProtectedRoute>
         } />
 
-        <Route path="/goals" element={
-          <ProtectedRoute>
-            <Layout>
-              <GoalsPage />
-            </Layout>
-          </ProtectedRoute>
-        } />
 
-        <Route path="/goals/:goalId" element={
-          <ProtectedRoute>
-            <Layout hideNav={true}>
-              <GoalsPage />
-            </Layout>
-          </ProtectedRoute>
-        } />
 
         <Route path="/documents" element={
           <ProtectedRoute>
@@ -261,6 +278,22 @@ const AppContent = () => {
           <ProtectedRoute>
             <Layout>
               <TasksPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/comments" element={
+          <ProtectedRoute>
+            <Layout>
+              <CommentsPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/goals" element={
+          <ProtectedRoute>
+            <Layout>
+              <GoalPage />
             </Layout>
           </ProtectedRoute>
         } />

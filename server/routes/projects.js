@@ -47,10 +47,13 @@ router.get('/', auth, async (req, res) => {
 // POST /api/projects - Create new project (manager only)
 router.post('/', requireManager, async (req, res) => {
   try {
-    const { name, status, priority, forPerson, notes, startDate, endDate } = req.body || {};
+    const { name, title, status, priority, forPerson, notes, description, startDate, endDate } = req.body || {};
 
-    const safeName = (name && String(name).trim().length > 0) ? String(name).trim() : 'Untitled Project';
-    const safeDescription = (typeof notes === 'string' && notes.trim().length > 0)
+    const safeName = (name && String(name).trim().length > 0) ? String(name).trim() : 
+                     (title && String(title).trim().length > 0) ? String(title).trim() : 'Untitled Project';
+    const safeDescription = (typeof description === 'string' && description.trim().length > 0)
+      ? description
+      : (typeof notes === 'string' && notes.trim().length > 0)
       ? notes
       : 'Project description will be added here.';
 
@@ -108,11 +111,12 @@ router.put('/:id/status', auth, async (req, res) => {
 // PUT /api/projects/:id - Update project (manager only)
 router.put('/:id', requireManager, async (req, res) => {
   try {
-    const { name, notes, description, status, priority, forPerson, startDate, endDate } = req.body || {};
+    const { name, title, notes, description, status, priority, forPerson, startDate, endDate } = req.body || {};
 
     const p = await Project.findById(req.params.id);
     if (!p) return res.status(404).json({ message: 'Project not found' });
 
+    if (title !== undefined) p.title = title;
     if (name !== undefined) p.title = name;
     // Handle both notes and description fields for compatibility
     if (notes !== undefined) p.description = notes;
