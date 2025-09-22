@@ -77,6 +77,49 @@ const projectSchema = new mongoose.Schema({
     },
     completedAt: Date
   }],
+  // Embedded tasks
+  tasks: [{
+    text: {
+      type: String,
+      required: [true, 'Task text is required'],
+      trim: true,
+      maxlength: [1000, 'Task text is too long (max 1000 characters)']
+    },
+    completed: {
+      type: Boolean,
+      default: false
+    },
+    priority: {
+      type: String,
+      enum: ['low', 'medium', 'high'],
+      default: 'medium'
+    },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
+    dueDate: Date,
+    createdAt: {
+      type: Date,
+      default: Date.now
+    },
+    updatedAt: {
+      type: Date,
+      default: Date.now
+    },
+    comments: [{
+      text: String,
+      createdBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+      },
+      createdAt: {
+        type: Date,
+        default: Date.now
+      }
+    }]
+  }],
   budget: {
     estimated: Number,
     actual: Number,
@@ -93,15 +136,6 @@ const projectSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  tasks: [{
-    id: Number,
-    text: String,
-    priority: String,
-    dueDate: String,
-    completed: Boolean,
-    createdBy: String,
-    createdAt: String
-  }],
   comments: [{
     id: Number,
     text: String,
@@ -118,7 +152,46 @@ const projectSchema = new mongoose.Schema({
   }]
 }, {
   timestamps: true
+}, {
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
 });
+
+// Virtual for tasks count
+projectSchema.virtual('taskCount', {
+  ref: 'Task',
+  localField: '_id',
+  foreignField: 'projectId',
+  count: true
+});
+
+// Virtual for completed tasks count
+projectSchema.virtual('completedTasks', {
+  ref: 'Task',
+  localField: '_id',
+  foreignField: 'projectId',
+  match: { completed: true },
+  count: true
+});
+
+// Calculate progress based on completed tasks
+projectSchema.methods.calculateProgress = async function () {
+  const Task = mongoose.model('Task');
+  const totalTasks = await Task.countDocuments({ projectId: this._id });
+  const completedTasks = await Task.countDocuments({
+    projectId: this._id,
+    completed: true
+  });
+
+  this.progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  return this.save();
+};
+
+// Indexes for better query performance
+projectSchema.index({ owner: 1, status: 1 });
+projectSchema.index({ team: 1, status: 1 });
+projectSchema.index({ dueDate: 1 });
+projectSchema.index({ priority: 1 });
 
 // Indexes for better query performance
 projectSchema.index({ owner: 1 });

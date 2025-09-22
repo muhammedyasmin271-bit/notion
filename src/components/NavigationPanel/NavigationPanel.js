@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { 
   CheckSquare, 
   MessageSquare, 
@@ -15,6 +15,7 @@ import { useTheme } from '../../context/ThemeContext';
 const NavigationPanel = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { projectId } = useParams();
   const { isDarkMode } = useTheme();
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -35,7 +36,7 @@ const NavigationPanel = () => {
 
   const navItems = [
     { path: '/projects', icon: FolderOpen, label: 'Projects', color: 'text-purple-500' },
-    { path: '/tasks', icon: CheckSquare, label: 'Tasks', color: 'text-green-500' },
+    { path: projectId ? `/projects/${projectId}/tasks` : '/projects', icon: CheckSquare, label: 'Tasks', color: 'text-green-500' },
     { path: '/comments', icon: MessageSquare, label: 'Comments', color: 'text-orange-500' },
     { path: '/goals', icon: Target, label: 'Goals', color: 'text-red-500' },
     { path: '/reports', icon: FileText, label: 'Reports', color: 'text-indigo-500' }

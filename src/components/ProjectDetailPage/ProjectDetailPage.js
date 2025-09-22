@@ -47,6 +47,7 @@ import {
 } from "lucide-react";
 import { useAppContext } from '../../context/AppContext';
 import ProjectsPage from '../ProjectsPage/ProjectsPage';
+
 import { useTheme } from '../../context/ThemeContext';
 import { aiAssist } from '../../services/api';
 import '../../styles/animations.css';
@@ -147,6 +148,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
   const [tableData, setTableData] = useState({});
   const [deleting, setDeleting] = useState(false);
 
+
   const formattingMenuRef = useRef(null);
   const userPickerRef = useRef(null);
   const blockMenuRef = useRef(null);
@@ -176,6 +178,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
   ];
 
   useEffect(() => {
+    console.log('ProjectDetailPage useEffect - projectId:', projectId, 'isNewProject:', isNewProject);
     if (isNewProject || projectId === 'new') {
       const newProject = {
         id: 'new',
@@ -313,30 +316,56 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
 
   const fetchProject = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/projects/${projectId}`, {
+      console.log('Fetching project with ID:', projectId);
+      // First fetch the basic project data
+      const projectResponse = await fetch(`http://localhost:5000/api/projects/${projectId}`, {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
-      if (response.ok) {
-        const data = await response.json();
-        setProject(data);
-        setTitle(data.name || data.title || '');
-        // Convert notes/description to blocks if they exist
-        const content = data.notes || data.description || '';
-        if (content) {
-          const noteBlocks = content.split('\n').map((line, index) => ({
-            id: `block-${index + 1}`,
-            type: getBlockTypeFromLine(line),
-            content: getContentFromLine(line)
-          }));
-          setBlocks(noteBlocks.length > 0 ? noteBlocks : [{ id: 'block-1', type: 'text', content: '' }]);
+      
+      if (projectResponse.ok) {
+        const projectData = await projectResponse.json();
+        console.log('Fetched project data:', projectData);
+        setProject(projectData);
+        setTitle(projectData.name || projectData.title || '');
+        
+        // Fetch the project's tasks and other data
+        const dataResponse = await fetch(`http://localhost:5000/api/projects/${projectId}/data`, {
+          headers: { 'x-auth-token': localStorage.getItem('token') }
+        });
+        
+        if (dataResponse.ok) {
+          // Don't convert tasks to blocks - keep tasks separate from notes
+          const content = projectData.notes || projectData.description || '';
+          if (content) {
+            const noteBlocks = content.split('\n').map((line, index) => ({
+              id: `block-${index + 1}`,
+              type: getBlockTypeFromLine(line),
+              content: getContentFromLine(line)
+            }));
+            setBlocks(noteBlocks.length > 0 ? noteBlocks : [{ id: 'block-1', type: 'text', content: '' }]);
+          } else {
+            setBlocks([{ id: 'block-1', type: 'text', content: '' }]);
+          }
         } else {
-          setBlocks([{ id: 'block-1', type: 'text', content: '' }]);
+          console.error('Failed to fetch project data:', dataResponse.status);
+          const content = projectData.notes || projectData.description || '';
+          if (content) {
+            const noteBlocks = content.split('\n').map((line, index) => ({
+              id: `block-${index + 1}`,
+              type: getBlockTypeFromLine(line),
+              content: getContentFromLine(line)
+            }));
+            setBlocks(noteBlocks.length > 0 ? noteBlocks : [{ id: 'block-1', type: 'text', content: '' }]);
+          } else {
+            setBlocks([{ id: 'block-1', type: 'text', content: '' }]);
+          }
         }
       } else {
-        console.error('Failed to fetch project:', response.status);
+        console.error('Failed to fetch project:', projectResponse.status);
       }
     } catch (error) {
       console.error('Error fetching project:', error);
+      setBlocks([{ id: 'block-1', type: 'text', content: '' }]);
     } finally {
       setLoading(false);
     }
@@ -384,6 +413,148 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
     return line;
   };
 
+  const saveTasks = async (projectId) => {
+    try {
+      console.log('Saving tasks for project:', projectId);
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('No auth token found');
+        return;
+      }
+
+      // Get all todo blocks
+      const todoBlocks = blocks.filter(block => block.type === 'todo');
+      console.log('Current todo blocks:', todoBlocks);
+      
+      // First, get existing tasks to compare
+      const response = await fetch(`http://localhost:5000/api/projects/${projectId}/data`, {
+        headers: { 'x-auth-token': token }
+      });
+      
+      if (!response.ok) {
+        console.error('Failed to fetch existing tasks:', response.status);
+        return;
+      }
+      
+      const { tasks: existingTasks = [] } = await response.json();
+      console.log('Existing tasks from server:', existingTasks);
+      
+      const existingTaskMap = new Map(existingTasks.map(task => [task.id, task]));
+      const processedTaskIds = new Set();
+      
+      // Update or create tasks
+      for (const block of todoBlocks) {
+        const taskData = {
+          text: block.content,
+          completed: block.checked || false,
+          priority: 'Medium',
+          dueDate: new Date().toISOString().split('T')[0],
+          createdBy: user?.id || 'system',
+          updatedAt: new Date().toISOString()
+        };
+        
+        if (block.taskId) {
+          // Update existing task
+          console.log('Updating task:', block.taskId, 'with data:', taskData);
+          const updateResponse = await fetch(`http://localhost:5000/api/projects/${projectId}/tasks/${block.taskId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-auth-token': token
+            },
+            body: JSON.stringify(taskData)
+          });
+          
+          if (updateResponse.ok) {
+            console.log('Successfully updated task:', block.taskId);
+            processedTaskIds.add(block.taskId);
+          } else {
+            console.error('Failed to update task:', block.taskId, updateResponse.status);
+          }
+        } else {
+          // Create new task
+          console.log('Creating new task with data:', taskData);
+          const createResponse = await fetch(`http://localhost:5000/api/projects/${projectId}/tasks`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-auth-token': token
+            },
+            body: JSON.stringify(taskData)
+          });
+          
+          if (createResponse.ok) {
+            const newTask = await createResponse.json();
+            console.log('Created new task:', newTask);
+            // Update the block with the new task ID
+            setBlocks(prev => prev.map(b => 
+              b.id === block.id ? { ...b, taskId: newTask.id } : b
+            ));
+            processedTaskIds.add(newTask.id);
+          } else {
+            console.error('Failed to create task:', createResponse.status);
+          }
+        }
+      }
+      
+      // Delete tasks that were removed from the UI
+      const tasksToDelete = existingTasks.filter(task => !processedTaskIds.has(task.id));
+      console.log('Tasks to delete:', tasksToDelete);
+      
+      for (const task of tasksToDelete) {
+        console.log('Deleting task:', task.id);
+        const deleteResponse = await fetch(`http://localhost:5000/api/projects/${projectId}/tasks/${task.id}`, {
+          method: 'DELETE',
+          headers: { 'x-auth-token': token }
+        });
+        
+        if (!deleteResponse.ok) {
+          console.error('Failed to delete task:', task.id, deleteResponse.status);
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error saving tasks:', error);
+      throw error;
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!project || project.id === 'new') return;
+    
+    if (!window.confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
+      return;
+    }
+    
+    setSaving(true);
+    
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Please log in to delete projects');
+        return;
+      }
+
+      const response = await fetch(`http://localhost:5000/api/projects/${project.id}`, {
+        method: 'DELETE',
+        headers: { 'x-auth-token': token }
+      });
+
+      if (response.ok) {
+        alert('Project deleted successfully!');
+        navigate('/projects');
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        alert(`Failed to delete project: ${errorData.message || response.status}`);
+      }
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      alert('Failed to delete project. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!canCreateProjects()) {
       alert('You do not have permission to save projects. Only managers can create and edit projects.');
@@ -396,29 +567,19 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
     }
     
     setSaving(true);
-    console.log('Starting save process...', { projectId: project.id, title });
-
-    // Convert blocks back to notes string
+    
+    // Convert blocks to notes string
     const notesContent = blocks.map(block => {
       switch (block.type) {
         case 'h1': return `# ${block.content}`;
         case 'h2': return `## ${block.content}`;
         case 'h3': return `### ${block.content}`;
-        case 'todo': return `- [ ] ${block.content}`;
+        case 'todo': return `- [${block.checked ? 'x' : ' '}] ${block.content}`;
         case 'bullet': return `• ${block.content}`;
         case 'number': return `1. ${block.content}`;
         case 'toggle': return `▶ ${block.content}`;
         case 'quote': return `> ${block.content}`;
         case 'callout': return `💡 ${block.content}`;
-        case 'table': return block.content;
-        case 'image': return block.content;
-        case 'video': return block.content;
-        case 'bookmark': return block.content;
-        case 'embed': return block.content;
-        case 'math': return block.content;
-        case 'columns': return block.content;
-        case 'template': return block.content;
-        case 'divider': return '---';
         default: return block.content;
       }
     }).join('\n');
@@ -432,8 +593,6 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       endDate: project.endDate,
       forPerson: project.forPerson
     };
-
-    console.log('Project data to save:', projectData);
 
     try {
       const token = localStorage.getItem('token');
@@ -453,16 +612,20 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
           body: JSON.stringify(projectData)
         });
         
-        console.log('Create response status:', response.status);
-        
         if (response.ok) {
           const newProject = await response.json();
-          console.log('Project created successfully:', newProject);
+          
+          // Save tasks after project is created
+          try {
+            await saveTasks(newProject._id || newProject.id);
+          } catch (error) {
+            console.error('Error saving tasks for new project:', error);
+          }
+          
           alert('Project created successfully!');
-          navigate(`/projects/${newProject.id}`);
+          navigate(`/projects/${newProject._id || newProject.id}`);
         } else {
           const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-          console.error('Failed to create project:', response.status, errorData);
           alert(`Failed to create project: ${errorData.message || response.status}`);
         }
       } else {
@@ -476,96 +639,27 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
           body: JSON.stringify(projectData)
         });
         
-        console.log('Update response status:', response.status);
-        
         if (response.ok) {
           const updatedProject = await response.json();
           setProject(updatedProject);
-          console.log('Project updated successfully:', updatedProject);
+          
+          // Save tasks after project is updated
+          try {
+            await saveTasks(updatedProject._id || updatedProject.id);
+          } catch (error) {
+            console.error('Error saving tasks:', error);
+            alert('Project was saved, but there was an error saving tasks.');
+          }
+          
           alert('Project updated successfully!');
-          return;
         } else {
           const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-          console.error('Failed to update project:', response.status, errorData);
           alert(`Failed to update project: ${errorData.message || response.status}`);
         }
       }
     } catch (error) {
       console.error('Error saving project:', error);
-      alert('Network error occurred while saving');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleStatusUpdate = async (newStatus) => {
-    if (!project || project.id === 'new') return;
-    
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        alert('Please log in to update project status');
-        return;
-      }
-      
-      const response = await fetch(`http://localhost:5000/api/projects/${project.id}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': token
-        },
-        body: JSON.stringify({ status: newStatus })
-      });
-      
-      if (response.ok) {
-        const updatedProject = await response.json();
-        setProject(updatedProject);
-        console.log('Project status updated successfully:', updatedProject);
-      } else {
-        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-        console.error('Failed to update project status:', response.status, errorData);
-        alert(`Failed to update project status: ${errorData.message || response.status}`);
-      }
-    } catch (error) {
-      console.error('Error updating project status:', error);
-      alert('Network error occurred while updating status');
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!project || project.id === 'new') return;
-    
-    if (!window.confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
-      return;
-    }
-    
-    setSaving(true);
-    
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        alert('Please log in to delete projects');
-        return;
-      }
-      
-      const response = await fetch(`http://localhost:5000/api/projects/${project.id}`, {
-        method: 'DELETE',
-        headers: {
-          'x-auth-token': token
-        }
-      });
-      
-      if (response.ok) {
-        alert('Project deleted successfully!');
-        navigate('/projects');
-      } else {
-        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-        console.error('Failed to delete project:', response.status, errorData);
-        alert(`Failed to delete project: ${errorData.message || response.status}`);
-      }
-    } catch (error) {
-      console.error('Error deleting project:', error);
-      alert('Network error occurred while deleting');
+      alert('An error occurred while saving the project.');
     } finally {
       setSaving(false);
     }
@@ -573,6 +667,35 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
 
   const updateProject = (field, value) => {
     setProject(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleStatusUpdate = async (newStatus) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Please log in to update project status');
+        return;
+      }
+
+      const response = await fetch(`http://localhost:5000/api/projects/${project.id}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (response.ok) {
+        setProject(prev => ({ ...prev, status: newStatus }));
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to update status' }));
+        alert(`Error updating status: ${errorData.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error updating project status:', error);
+      alert('Failed to update project status. Please try again.');
+    }
   };
 
   const fetchUsers = async () => {
@@ -632,11 +755,12 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
   };
 
   // Add new block
-  const addBlock = (index, type = 'text') => {
+  const addBlock = (index, type = 'text', content = '') => {
     const newBlock = {
-      id: `block-${Date.now()}`,
+      id: `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       type,
-      content: ''
+      content,
+      ...(type === 'todo' ? { checked: false } : {})
     };
 
     const newBlocks = [...blocks];
@@ -650,13 +774,31 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
         blockRefs.current[newBlock.id].focus();
       }
     }, 10);
+    
+    // Auto-save if this is a new todo
+    if (type === 'todo' && project?.id && project.id !== 'new') {
+      saveTasks(project.id);
+    }
   };
 
   // Update block content
-  const updateBlock = (id, content) => {
-    setBlocks(prev => prev.map(block =>
-      block.id === id ? { ...block, content } : block
-    ));
+  const updateBlock = (id, updates) => {
+    setBlocks(prev => prev.map(block => {
+      if (block.id === id) {
+        // Handle todo checked state separately
+        if (updates.checked !== undefined && block.type === 'todo') {
+          return { ...block, checked: updates.checked };
+        }
+        // Handle content/text updates
+        if (updates.content !== undefined || updates.text !== undefined) {
+          const content = updates.content !== undefined ? updates.content : updates.text;
+          return { ...block, content };
+        }
+        // Handle other updates
+        return { ...block, ...updates };
+      }
+      return block;
+    }));
   };
 
   // Delete block
@@ -969,7 +1111,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       ref: (el) => blockRefs.current[block.id] = el,
       className: `w-full outline-none resize-none border-none bg-transparent py-1 px-2 rounded ${isDarkMode ? 'text-gray-100' : 'text-gray-800'}`,
       value: block.content,
-      onChange: (e) => updateBlock(block.id, e.target.value),
+      onChange: (e) => updateBlock(block.id, { content: e.target.value }),
       onKeyDown: (e) => handleBlockKeyDown(block.id, e),
       onFocus: () => setActiveBlockId(block.id),
       placeholder: getBlockPlaceholder(block.type)
@@ -1324,7 +1466,12 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
               </button>
             </div>
             <div className="flex items-center">
-              <input type="checkbox" className="mr-2 mt-1" />
+              <input 
+                type="checkbox" 
+                checked={block.checked || false}
+                onChange={(e) => updateBlock(block.id, { checked: e.target.checked })}
+                className="mr-2 mt-1" 
+              />
               <input {...commonProps} />
             </div>
             {showBlockMenu === block.id && (
@@ -2335,13 +2482,26 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                       <span className="text-gray-600 font-medium">Created Day</span>
                       <span className={`${isDarkMode ? 'text-white' : 'text-black'} font-medium ${isFullscreen ? 'text-sm' : 'text-xs'}`}>{formatDate(project.createdAt)}</span>
                     </div>
+
+                    <div className="flex items-center gap-4">
+                      <CheckSquare className="h-4 w-4 text-gray-500" />
+                      <span className="text-gray-600 font-medium">Tasks</span>
+                      <button
+                        onClick={() => navigate(`/projects/${project.id}/tasks`)}
+                        className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors`}
+                      >
+                        View Tasks
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
+            {/* Notes Section */}
             <div className={`${isFullscreen ? 'mb-20 ml-16 mr-16' : 'mb-8 ml-8 mr-8'}`}>
               <div className={`border-t ${isDarkMode ? 'border-gray-600' : 'border-gray-300'} mb-4`}></div>
+              <h3 className={`text-lg font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Project Notes</h3>
               <div className={`${isFullscreen ? 'p-6' : 'p-3'}`}>
                 <div className={`space-y-2 ${isFullscreen ? 'min-h-96' : 'min-h-48'}`}>
                   {blocks.map((block, index) => (
@@ -2378,6 +2538,8 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                 )}
               </div>
             </div>
+
+
 
             {showAIAssistant && (
               <div className={`mt-6 rounded-xl border transition-all duration-200 ${isDarkMode ? 'bg-gray-900/80 border-gray-700/50 backdrop-blur-lg' : 'bg-white border-gray-200 backdrop-blur-sm'} shadow-lg`}>

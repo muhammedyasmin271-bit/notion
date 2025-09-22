@@ -6,7 +6,7 @@ import NavBar from './components/NavBar/NavBar';
 import HomePage from './components/HomePage/HomePage';
 import NotificationsPage from './components/NotificationsPage/NotificationsPage';
 import ProjectsPage from './components/ProjectsPage/ProjectsPage';
-import ProjectDetailsPage from './components/ProjectDetailPage/ProjectDetailPage';
+import ProjectDetailPage from './components/ProjectDetailPage/ProjectDetailPage';
 import CommentsPage from './components/CommentsPage/CommentsPage';
 import GoalPage from './components/GoalPage/GoalPage';
 import ProjectReportPage from './components/ReportPage/ReportPage';
@@ -116,7 +116,7 @@ const AppContent = () => {
         <Route path="/projects/new" element={
           <ProtectedRoute>
             <Layout>
-              <ProjectDetailsPage isNewProject={true} />
+              <ProjectDetailPage isNewProject={true} />
             </Layout>
           </ProtectedRoute>
         } />
@@ -124,7 +124,7 @@ const AppContent = () => {
         <Route path="/projects/:projectId" element={
           <ProtectedRoute>
             <Layout>
-              <ProjectDetailsPage />
+              <ProjectDetailPage />
             </Layout>
           </ProtectedRoute>
         } />
@@ -162,7 +162,7 @@ const AppContent = () => {
                     <ProjectsPage />
                   </div>
                   <div className="min-h-screen overflow-auto">
-                    <ProjectDetailsPage />
+                    <ProjectDetailPage />
                   </div>
                 </div>
               </div>
@@ -274,7 +274,7 @@ const AppContent = () => {
           </ProtectedRoute>
         } />
 
-        <Route path="/tasks" element={
+        <Route path="/projects/:projectId/tasks" element={
           <ProtectedRoute>
             <Layout>
               <TasksPage />
