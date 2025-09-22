@@ -1495,8 +1495,8 @@ const NotepadPage = () => {
 								value={searchQuery}
 								onChange={(e) => setSearchQuery(e.target.value)}
 								className={`w-full pl-12 pr-4 py-4 rounded-2xl border-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base transition-all duration-200 ${isDarkMode
-										? 'bg-gray-800/50 border-gray-700 text-white placeholder-gray-400'
-										: 'bg-white/70 border-gray-300 text-gray-900 placeholder-gray-500'
+									? 'bg-gray-800/50 border-gray-700 text-white placeholder-gray-400'
+									: 'bg-white/70 border-gray-300 text-gray-900 placeholder-gray-500'
 									}`}
 							/>
 						</div>
@@ -1505,8 +1505,8 @@ const NotepadPage = () => {
 							<button
 								onClick={() => setViewMode('list')}
 								className={`p-3 rounded-xl transition-all duration-200 ${viewMode === 'list'
-										? (isDarkMode ? 'bg-blue-600 text-white shadow-lg' : 'bg-blue-500 text-white shadow-lg')
-										: (isDarkMode ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100')
+									? (isDarkMode ? 'bg-blue-600 text-white shadow-lg' : 'bg-blue-500 text-white shadow-lg')
+									: (isDarkMode ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100')
 									}`}
 							>
 								<List className="w-5 h-5" />
@@ -1514,8 +1514,8 @@ const NotepadPage = () => {
 							<button
 								onClick={() => setViewMode('grid')}
 								className={`p-3 rounded-xl transition-all duration-200 ${viewMode === 'grid'
-										? (isDarkMode ? 'bg-blue-600 text-white shadow-lg' : 'bg-blue-500 text-white shadow-lg')
-										: (isDarkMode ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100')
+									? (isDarkMode ? 'bg-blue-600 text-white shadow-lg' : 'bg-blue-500 text-white shadow-lg')
+									: (isDarkMode ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100')
 									}`}
 							>
 								<Grid className="w-5 h-5" />
@@ -1537,10 +1537,10 @@ const NotepadPage = () => {
 								<button
 									onClick={() => setSelectedTag('all')}
 									className={`px-2 py-1 text-xs rounded-full ${selectedTag === 'all'
-											? 'bg-blue-500 text-white'
-											: isDarkMode
-												? 'bg-gray-700 text-gray-300'
-												: 'bg-gray-200 text-gray-700'
+										? 'bg-blue-500 text-white'
+										: isDarkMode
+											? 'bg-gray-700 text-gray-300'
+											: 'bg-gray-200 text-gray-700'
 										}`}
 								>
 									All
@@ -1548,10 +1548,10 @@ const NotepadPage = () => {
 								<button
 									onClick={() => setSelectedTag('favorites')}
 									className={`px-2 py-1 text-xs rounded-full flex items-center ${selectedTag === 'favorites'
-											? 'bg-yellow-500 text-white'
-											: isDarkMode
-												? 'bg-gray-700 text-gray-300'
-												: 'bg-gray-200 text-gray-700'
+										? 'bg-yellow-500 text-white'
+										: isDarkMode
+											? 'bg-gray-700 text-gray-300'
+											: 'bg-gray-200 text-gray-700'
 										}`}
 								>
 									<Star className="w-3 h-3 mr-1" />
@@ -1562,10 +1562,10 @@ const NotepadPage = () => {
 										key={tag}
 										onClick={() => setSelectedTag(tag)}
 										className={`px-2 py-1 text-xs rounded-full ${selectedTag === tag
-												? 'bg-purple-500 text-white'
-												: isDarkMode
-													? 'bg-gray-700 text-gray-300'
-													: 'bg-gray-200 text-gray-700'
+											? 'bg-purple-500 text-white'
+											: isDarkMode
+												? 'bg-gray-700 text-gray-300'
+												: 'bg-gray-200 text-gray-700'
 											}`}
 									>
 										{tag}
@@ -1593,12 +1593,12 @@ const NotepadPage = () => {
 										key={note._id}
 										onClick={() => selectNote(note)}
 										className={`p-4 rounded-2xl cursor-pointer transition-all duration-300 hover:scale-105 relative shadow-lg backdrop-blur-sm ${selectedNote === note._id
-												? isDarkMode
-													? 'bg-blue-900/50 border-2 border-blue-500 ring-2 ring-blue-500/30'
-													: 'bg-blue-50 border-2 border-blue-500 ring-2 ring-blue-500/30'
-												: isDarkMode
-													? 'bg-gray-800/50 border-2 border-gray-700/50 hover:border-gray-600'
-													: 'bg-white/70 border-2 border-gray-200/50 hover:border-gray-300'
+											? isDarkMode
+												? 'bg-blue-900/50 border-2 border-blue-500 ring-2 ring-blue-500/30'
+												: 'bg-blue-50 border-2 border-blue-500 ring-2 ring-blue-500/30'
+											: isDarkMode
+												? 'bg-gray-800/50 border-2 border-gray-700/50 hover:border-gray-600'
+												: 'bg-white/70 border-2 border-gray-200/50 hover:border-gray-300'
 											}`}
 									>
 										<div className="flex justify-between items-start">
@@ -1654,7 +1654,7 @@ const NotepadPage = () => {
 				<div
 					ref={formattingMenuRef}
 					className={`absolute z-50 mt-1 rounded-lg shadow-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
-					style={{ 
+					style={{
 						minWidth: '250px',
 						maxHeight: '300px',
 						left: `${formattingMenuPosition.x}px`,
@@ -1826,7 +1826,7 @@ const NotepadPage = () => {
 									className={`w-full p-2 rounded-lg border ${isDarkMode
 										? 'bg-gray-700 border-gray-600 text-white'
 										: 'bg-gray-50 border-gray-300 text-gray-900'
-									}`}
+										}`}
 								/>
 							</div>
 
@@ -1851,7 +1851,7 @@ const NotepadPage = () => {
 									className={`px-4 py-2 rounded-lg ${isDarkMode
 										? 'bg-gray-700 hover:bg-gray-600'
 										: 'bg-gray-200 hover:bg-gray-300'
-									}`}
+										}`}
 								>
 									Cancel
 								</button>
@@ -1861,7 +1861,7 @@ const NotepadPage = () => {
 									className={`px-4 py-2 rounded-lg flex items-center ${newTag.trim()
 										? 'bg-blue-500 text-white hover:bg-blue-600'
 										: 'bg-gray-300 text-gray-500 cursor-not-allowed'
-									}`}
+										}`}
 								>
 									<Tag className="w-4 h-4 mr-2" />
 									Add Tag

@@ -13,7 +13,14 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(helmet());
-app.use(cors());
+// Configure CORS to allow all origins
+app.use(cors({
+  origin: '*', // Allow all origins
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token'],
+  exposedHeaders: ['x-auth-token']
+}));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -23,7 +30,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: 1000 // limit each IP to 1000 requests per windowMs
 });
 app.use(limiter);
 
@@ -37,9 +44,9 @@ const connectDB = async () => {
       connectTimeoutMS: 30000,
       socketTimeoutMS: 30000,
     });
-    
+
     console.log(`MongoDB connected: ${conn.connection.host}`);
-    
+
     // Ensure initial admin user exists
     await ensureInitialAdmin();
     await ensureEmailIndexIsSparse();
@@ -116,6 +123,7 @@ const chatRoutes = require('./routes/chat');
 const notificationRoutes = require('./routes/notifications');
 const aiRoutes = require('./routes/ai');
 const uploadRoutes = require('./routes/upload');
+const taskRoutes = require('./routes/tasks');
 
 // Use routes
 app.use('/api/auth', authRoutes);
@@ -129,11 +137,12 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/tasks', taskRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
+  res.json({
+    status: 'OK',
     message: 'Notion App Backend is running',
     timestamp: new Date().toISOString()
   });
@@ -142,7 +151,7 @@ app.get('/api/health', (req, res) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ 
+  res.status(500).json({
     message: 'Something went wrong!',
     error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
   });
