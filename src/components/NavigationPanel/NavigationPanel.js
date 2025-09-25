@@ -3,7 +3,6 @@ import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { 
   CheckSquare, 
   MessageSquare, 
-  Target, 
   FileText, 
   Menu,
   X,
@@ -28,7 +27,7 @@ const NavigationPanel = () => {
   }, []);
 
   // Only show on project detail pages
-  const isProjectDetailPage = location.pathname.match(/^\/projects\/[^/]+$/) || location.pathname === '/projects/new';
+  const isProjectDetailPage = location.pathname.match(/^\/projects\/[^/]+/) || location.pathname === '/projects/new';
   
   if (!isProjectDetailPage) {
     return null;
@@ -36,10 +35,7 @@ const NavigationPanel = () => {
 
   const navItems = [
     { path: '/projects', icon: FolderOpen, label: 'Projects', color: 'text-purple-500' },
-    { path: projectId ? `/projects/${projectId}/tasks` : '/projects', icon: CheckSquare, label: 'Tasks', color: 'text-green-500' },
-    { path: '/comments', icon: MessageSquare, label: 'Comments', color: 'text-orange-500' },
-    { path: '/goals', icon: Target, label: 'Goals', color: 'text-red-500' },
-    { path: '/reports', icon: FileText, label: 'Reports', color: 'text-indigo-500' }
+    { path: projectId ? `/projects/${projectId}/tasks` : '/projects', icon: CheckSquare, label: 'Tasks', color: 'text-green-500' }
   ];
 
   const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/');

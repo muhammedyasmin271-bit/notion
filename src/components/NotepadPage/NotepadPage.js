@@ -59,7 +59,9 @@ import {
 	Flag,
 	Paperclip,
 	AtSign,
-	Hash as HashIcon
+	Hash as HashIcon,
+	AlertTriangle,
+	GraduationCap
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -95,6 +97,9 @@ const NotepadPage = () => {
 	const [selectedTag, setSelectedTag] = useState('all');
 	const [showTagModal, setShowTagModal] = useState(false);
 	const [newTag, setNewTag] = useState('');
+	const [availableUsers, setAvailableUsers] = useState([]);
+	const [shareInput, setShareInput] = useState('');
+	const [lastSaved, setLastSaved] = useState(null);
 
 	const titleInputRef = useRef(null);
 	const formattingMenuRef = useRef(null);
@@ -113,6 +118,25 @@ const NotepadPage = () => {
 				// Extract unique tags
 				const allTags = [...new Set(data.flatMap(note => note.tags || []))];
 				setTags(allTags);
+
+				// Fetch available users for sharing
+				try {
+					const usersData = await get('/users');
+					console.log('Fetched users:', usersData);
+					const filteredUsers = Array.isArray(usersData) ? usersData.filter(u => u._id !== user?.id) : [];
+					setAvailableUsers(filteredUsers);
+				} catch (err) {
+					console.error('Error fetching users:', err);
+					// Fallback: try alternative endpoint
+					try {
+						const altUsersData = await get('/auth/users');
+						console.log('Fetched users from alt endpoint:', altUsersData);
+						const altFilteredUsers = Array.isArray(altUsersData) ? altUsersData.filter(u => u._id !== user?.id) : [];
+						setAvailableUsers(altFilteredUsers);
+					} catch (altErr) {
+						console.error('Error fetching users from alternative endpoint:', altErr);
+					}
+				}
 			} catch (err) {
 				console.error('Error fetching notes:', err);
 				setError('Failed to load notes');
@@ -154,15 +178,27 @@ const NotepadPage = () => {
 			const newNote = {
 				title: 'Untitled',
 				content: '',
-				blocks: [{ id: 'block-1', type: 'text', content: '' }],
-				tags: []
+				blocks: [{ id: 'block-1', type: 'text', text: '', checked: false, indent: 0, focus: false, metadata: {} }],
+				category: 'General',
+				tags: [],
+				isPublic: false
 			};
 
 			const response = await post('/notepad', newNote);
 			setNotes(prev => [response, ...prev]);
 			setCurrentNote(response);
 			setTitle(response.title);
-			setBlocks(response.blocks || [{ id: 'block-1', type: 'text', content: '' }]);
+			// Convert backend blocks to frontend format
+			const convertedBlocks = (response.blocks || []).map(block => ({
+				id: block.id,
+				type: block.type || 'text',
+				content: block.text || '',
+				checked: block.checked || false,
+				indent: block.indent || 0,
+				focus: block.focus || false,
+				metadata: block.metadata || {}
+			}));
+			setBlocks(convertedBlocks.length > 0 ? convertedBlocks : [{ id: 'block-1', type: 'text', content: '' }]);
 			setSelectedNote(response._id);
 
 			// Update tags
@@ -179,33 +215,107 @@ const NotepadPage = () => {
 		}
 	};
 
-	// Save note
+	// Save note with complete detailed structure
 	const saveNote = async () => {
 		if (!currentNote) return;
 
 		try {
+			// Generate unique save code
+			const saveCode = `NOTE_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+			
+			// Process each block with complete details - match backend schema
+			const processedBlocks = blocks.map((block, index) => {
+				const blockContent = block.content || '';
+				const lines = blockContent.split('\n');
+				
+				return {
+					id: block.id,
+					type: block.type || 'text',
+					text: blockContent, // Use 'text' instead of 'content' to match backend schema
+					checked: block.type === 'todo' ? false : undefined, // Only for todo blocks
+					indent: 0, // Default indent
+					focus: false, // Default focus
+					metadata: {}, // Default metadata
+					lines: lines,
+					lineCount: lines.length,
+					wordCount: blockContent.split(/\s+/).filter(word => word.length > 0).length,
+					characterCount: blockContent.length,
+					position: index,
+					isEmpty: blockContent.trim() === '',
+					createdAt: block.createdAt || new Date().toISOString(),
+					updatedAt: new Date().toISOString()
+				};
+			});
+			
+			// Convert all content to string with line preservation
+			const fullContent = processedBlocks.map(block => block.text).join('\n');
+			const allLines = fullContent.split('\n');
+			
+			// Calculate comprehensive statistics
+			const stats = {
+				totalLines: allLines.length,
+				nonEmptyLines: allLines.filter(line => line.trim() !== '').length,
+				emptyLines: allLines.filter(line => line.trim() === '').length,
+				totalWords: fullContent.split(/\s+/).filter(word => word.length > 0).length,
+				totalCharacters: fullContent.length,
+				totalCharactersNoSpaces: fullContent.replace(/\s/g, '').length,
+				totalBlocks: processedBlocks.length,
+				nonEmptyBlocks: processedBlocks.filter(block => !block.isEmpty).length,
+				emptyBlocks: processedBlocks.filter(block => block.isEmpty).length
+			};
+			
+			// Complete detailed note structure - send only fields that match backend schema
 			const updatedNote = {
 				...currentNote,
-				title,
-				blocks
+				title: title || 'Untitled',
+				blocks: processedBlocks,
+				content: fullContent,
+				category: currentNote.category || 'General',
+				tags: currentNote.tags || [],
+				isPublic: currentNote.isPublic || false,
+				// Remove extra fields that aren't in backend schema
+				lines: undefined,
+				stats: undefined,
+				saveCode: undefined,
+				lastModified: undefined,
+				saveTimestamp: undefined,
+				createdBy: undefined,
+				createdByName: undefined,
+				userRole: undefined,
+				sharedWith: undefined,
+				shareType: undefined,
+				version: undefined,
+				editHistory: undefined
 			};
 
+			console.log('Saving complete note structure:', {
+				saveCode,
+				stats,
+				blockDetails: processedBlocks,
+				fullNote: updatedNote
+			});
+			
 			const response = await put(`/notepad/${currentNote._id}`, updatedNote);
+			
+			// Update local state
 			setNotes(prev => prev.map(note =>
 				note._id === currentNote._id ? response : note
 			));
 			setCurrentNote(response);
+			setLastSaved(new Date()); // Update save timestamp
+
+			console.log('Note saved successfully with complete details:', response.saveCode);
 			addNotification({
 				type: 'success',
 				title: 'Saved',
-				message: 'Note saved successfully'
+				message: 'Note saved successfully with all details'
 			});
 		} catch (err) {
 			console.error('Error saving note:', err);
 			addNotification({
 				type: 'error',
-				title: 'Error',
-				message: 'Failed to save note'
+				title: 'Save Error',
+				message: 'Failed to save note: ' + err.message
 			});
 		}
 	};
@@ -241,7 +351,17 @@ const NotepadPage = () => {
 	const selectNote = (note) => {
 		setCurrentNote(note);
 		setTitle(note.title);
-		setBlocks(note.blocks || [{ id: 'block-1', type: 'text', content: '' }]);
+		// Convert backend blocks to frontend format
+		const convertedBlocks = (note.blocks || []).map(block => ({
+			id: block.id,
+			type: block.type || 'text',
+			content: block.text || '', // Convert 'text' to 'content' for frontend
+			checked: block.checked || false,
+			indent: block.indent || 0,
+			focus: block.focus || false,
+			metadata: block.metadata || {}
+		}));
+		setBlocks(convertedBlocks.length > 0 ? convertedBlocks : [{ id: 'block-1', type: 'text', content: '' }]);
 		setSelectedNote(note._id);
 	};
 
@@ -332,10 +452,32 @@ const NotepadPage = () => {
 	const handleBlockKeyDown = (id, e) => {
 		if (e.key === 'Enter' && !e.shiftKey) {
 			e.preventDefault();
-			const index = blocks.findIndex(block => block.id === id);
-			addBlock(index);
+			const currentIndex = blocks.findIndex(block => block.id === id);
+			const currentBlock = blocks[currentIndex];
+			
+			// Continue list types
+			if (currentBlock.type === 'bulleted' || currentBlock.type === 'numbered' || currentBlock.type === 'todo') {
+				addBlock(currentIndex, currentBlock.type);
+			} else {
+				addBlock(currentIndex);
+			}
 		} else if (e.key === 'Backspace' && e.target.value === '') {
 			e.preventDefault();
+			const currentIndex = blocks.findIndex(block => block.id === id);
+			if (blocks.length > 1 && currentIndex > 0) {
+				// Focus previous block before deleting current one
+				const prevBlock = blocks[currentIndex - 1];
+				setTimeout(() => {
+					if (blockRefs.current[prevBlock.id]) {
+						blockRefs.current[prevBlock.id].focus();
+						// Move cursor to end of previous block
+						const element = blockRefs.current[prevBlock.id];
+						if (element.setSelectionRange) {
+							element.setSelectionRange(element.value.length, element.value.length);
+						}
+					}
+				}, 0);
+			}
 			deleteBlock(id);
 		} else if (e.key === '/' || e.key === '+') {
 			e.preventDefault();
@@ -379,7 +521,8 @@ const NotepadPage = () => {
 		const block = blocks.find(b => b.id === activeBlockId);
 		if (!block) return;
 
-		// For simplicity, we'll just change the block type
+		const blockIndex = blocks.findIndex(b => b.id === activeBlockId);
+
 		switch (format) {
 			case 'text':
 				changeBlockType(activeBlockId, 'text');
@@ -406,13 +549,25 @@ const NotepadPage = () => {
 				changeBlockType(activeBlockId, 'quote');
 				break;
 			case 'divider':
-				addBlock(blocks.findIndex(b => b.id === activeBlockId), 'divider');
+				addBlock(blockIndex, 'divider');
 				break;
 			case 'callout':
 				changeBlockType(activeBlockId, 'callout');
 				break;
 			case 'code':
 				changeBlockType(activeBlockId, 'code');
+				break;
+			case 'table':
+				addBlock(blockIndex, 'table');
+				break;
+			case 'image':
+				addBlock(blockIndex, 'image');
+				break;
+			case 'video':
+				addBlock(blockIndex, 'video');
+				break;
+			case 'link':
+				addBlock(blockIndex, 'link');
 				break;
 			default:
 				break;
@@ -430,66 +585,127 @@ const NotepadPage = () => {
 			icon: <Users className="w-5 h-5" />,
 			blocks: [
 				{ id: 'block-1', type: 'h1', content: 'Meeting Notes' },
-				{ id: 'block-2', type: 'text', content: 'Date: ' },
-				{ id: 'block-3', type: 'text', content: 'Attendees: ' },
-				{ id: 'block-4', type: 'h2', content: 'Agenda' },
-				{ id: 'block-5', type: 'bulleted', content: '' },
-				{ id: 'block-6', type: 'h2', content: 'Action Items' },
-				{ id: 'block-7', type: 'todo', content: '' }
+				{ id: 'block-2', type: 'text', content: 'Date: ' + new Date().toLocaleDateString() },
+				{ id: 'block-3', type: 'text', content: 'Time: ' + new Date().toLocaleTimeString() },
+				{ id: 'block-4', type: 'text', content: 'Location: ' },
+				{ id: 'block-5', type: 'text', content: 'Meeting Type: ' },
+				{ id: 'block-6', type: 'h2', content: 'Attendees' },
+				{ id: 'block-7', type: 'bulleted', content: 'Present: ' },
+				{ id: 'block-8', type: 'bulleted', content: 'Absent: ' },
+				{ id: 'block-9', type: 'h2', content: 'Agenda Items' },
+				{ id: 'block-10', type: 'numbered', content: 'Review previous meeting minutes' },
+				{ id: 'block-11', type: 'numbered', content: 'Discuss current project status' },
+				{ id: 'block-12', type: 'numbered', content: 'Address outstanding issues' },
+				{ id: 'block-13', type: 'numbered', content: 'Plan next steps' },
+				{ id: 'block-14', type: 'h2', content: 'Discussion Points' },
+				{ id: 'block-15', type: 'text', content: '' },
+				{ id: 'block-16', type: 'h2', content: 'Decisions Made' },
+				{ id: 'block-17', type: 'bulleted', content: '' },
+				{ id: 'block-18', type: 'h2', content: 'Action Items' },
+				{ id: 'block-19', type: 'todo', content: 'Task 1 - Assigned to: [Name] - Due: [Date]' },
+				{ id: 'block-20', type: 'todo', content: 'Task 2 - Assigned to: [Name] - Due: [Date]' },
+				{ id: 'block-21', type: 'h2', content: 'Next Meeting' },
+				{ id: 'block-22', type: 'text', content: 'Date: ' },
+				{ id: 'block-23', type: 'text', content: 'Time: ' },
+				{ id: 'block-24', type: 'text', content: 'Location: ' }
 			]
 		},
 		{
 			name: 'Project Plan',
-			description: 'Outline your project goals and tasks',
+			description: 'Comprehensive project planning template',
 			icon: <Folder className="w-5 h-5" />,
 			blocks: [
 				{ id: 'block-1', type: 'h1', content: 'Project Plan' },
-				{ id: 'block-2', type: 'h2', content: 'Overview' },
-				{ id: 'block-3', type: 'text', content: '' },
-				{ id: 'block-4', type: 'h2', content: 'Goals' },
-				{ id: 'block-5', type: 'bulleted', content: '' },
-				{ id: 'block-6', type: 'h2', content: 'Timeline' },
-				{ id: 'block-7', type: 'text', content: '' }
+				{ id: 'block-2', type: 'text', content: 'Project Name: ' },
+				{ id: 'block-3', type: 'text', content: 'Project Manager: ' },
+				{ id: 'block-4', type: 'text', content: 'Start Date: ' },
+				{ id: 'block-5', type: 'text', content: 'End Date: ' },
+				{ id: 'block-6', type: 'text', content: 'Budget: ' },
+				{ id: 'block-7', type: 'h2', content: 'Project Overview' },
+				{ id: 'block-8', type: 'text', content: 'Brief description of the project and its purpose.' },
+				{ id: 'block-9', type: 'h2', content: 'Objectives' },
+				{ id: 'block-10', type: 'bulleted', content: 'Primary objective 1' },
+				{ id: 'block-11', type: 'bulleted', content: 'Primary objective 2' },
+				{ id: 'block-12', type: 'bulleted', content: 'Secondary objective 1' },
+				{ id: 'block-13', type: 'h2', content: 'Scope' },
+				{ id: 'block-14', type: 'text', content: 'What is included in this project:' },
+				{ id: 'block-15', type: 'bulleted', content: '' },
+				{ id: 'block-16', type: 'text', content: 'What is NOT included in this project:' },
+				{ id: 'block-17', type: 'bulleted', content: '' },
+				{ id: 'block-18', type: 'h2', content: 'Team Members' },
+				{ id: 'block-19', type: 'bulleted', content: 'Team Member 1 - Role' },
+				{ id: 'block-20', type: 'bulleted', content: 'Team Member 2 - Role' },
+				{ id: 'block-21', type: 'h2', content: 'Milestones' },
+				{ id: 'block-22', type: 'todo', content: 'Milestone 1 - Due: [Date]' },
+				{ id: 'block-23', type: 'todo', content: 'Milestone 2 - Due: [Date]' },
+				{ id: 'block-24', type: 'todo', content: 'Milestone 3 - Due: [Date]' },
+				{ id: 'block-25', type: 'h2', content: 'Risks & Mitigation' },
+				{ id: 'block-26', type: 'bulleted', content: 'Risk 1: [Description] - Mitigation: [Strategy]' },
+				{ id: 'block-27', type: 'bulleted', content: 'Risk 2: [Description] - Mitigation: [Strategy]' },
+				{ id: 'block-28', type: 'h2', content: 'Success Criteria' },
+				{ id: 'block-29', type: 'numbered', content: 'Criteria 1' },
+				{ id: 'block-30', type: 'numbered', content: 'Criteria 2' }
 			]
 		},
 		{
-			name: 'Brainstorm',
-			description: 'Organize your ideas and thoughts',
-			icon: <Lightbulb className="w-5 h-5" />,
+			name: 'Daily Journal',
+			description: 'Reflect on your day and thoughts',
+			icon: <BookOpen className="w-5 h-5" />,
 			blocks: [
-				{ id: 'block-1', type: 'h1', content: 'Brainstorm' },
-				{ id: 'block-2', type: 'text', content: 'Topic: ' },
-				{ id: 'block-3', type: 'callout', content: 'Add your ideas below' },
+				{ id: 'block-1', type: 'h1', content: 'Daily Journal' },
+				{ id: 'block-2', type: 'text', content: new Date().toLocaleDateString() },
+				{ id: 'block-3', type: 'h2', content: 'Today I am grateful for:' },
 				{ id: 'block-4', type: 'bulleted', content: '' },
-				{ id: 'block-5', type: 'bulleted', content: '' },
-				{ id: 'block-6', type: 'bulleted', content: '' }
+				{ id: 'block-5', type: 'h2', content: 'What happened today:' },
+				{ id: 'block-6', type: 'text', content: '' },
+				{ id: 'block-7', type: 'h2', content: 'Tomorrow I will:' },
+				{ id: 'block-8', type: 'todo', content: '' }
 			]
 		},
 		{
-			name: 'Weekly Planner',
-			description: 'Plan your week with tasks and goals',
+			name: 'Research Notes',
+			description: 'Organize research findings and sources',
+			icon: <Search className="w-5 h-5" />,
+			blocks: [
+				{ id: 'block-1', type: 'h1', content: 'Research Notes' },
+				{ id: 'block-2', type: 'text', content: 'Topic: ' },
+				{ id: 'block-3', type: 'h2', content: 'Key Findings' },
+				{ id: 'block-4', type: 'bulleted', content: '' },
+				{ id: 'block-5', type: 'h2', content: 'Sources' },
+				{ id: 'block-6', type: 'numbered', content: '' },
+				{ id: 'block-7', type: 'h2', content: 'Next Steps' },
+				{ id: 'block-8', type: 'todo', content: '' }
+			]
+		},
+		{
+			name: 'Recipe',
+			description: 'Document cooking recipes and instructions',
+			icon: <BookOpen className="w-5 h-5" />,
+			blocks: [
+				{ id: 'block-1', type: 'h1', content: 'Recipe Name' },
+				{ id: 'block-2', type: 'text', content: 'Prep Time: | Cook Time: | Serves: ' },
+				{ id: 'block-3', type: 'h2', content: 'Ingredients' },
+				{ id: 'block-4', type: 'bulleted', content: '' },
+				{ id: 'block-5', type: 'h2', content: 'Instructions' },
+				{ id: 'block-6', type: 'numbered', content: '' },
+				{ id: 'block-7', type: 'h2', content: 'Notes' },
+				{ id: 'block-8', type: 'text', content: '' }
+			]
+		},
+		{
+			name: 'Travel Itinerary',
+			description: 'Plan your trips and travel schedule',
 			icon: <Calendar className="w-5 h-5" />,
 			blocks: [
-				{ id: 'block-1', type: 'h1', content: 'Weekly Planner' },
-				{ id: 'block-2', type: 'h2', content: 'Monday' },
-				{ id: 'block-3', type: 'todo', content: '' },
-				{ id: 'block-4', type: 'h2', content: 'Tuesday' },
-				{ id: 'block-5', type: 'todo', content: '' },
-				{ id: 'block-6', type: 'h2', content: 'Wednesday' },
-				{ id: 'block-7', type: 'todo', content: '' }
-			]
-		},
-		{
-			name: 'Blog Post',
-			description: 'Write a blog post with sections',
-			icon: <FileText className="w-5 h-5" />,
-			blocks: [
-				{ id: 'block-1', type: 'h1', content: 'Blog Post Title' },
-				{ id: 'block-2', type: 'text', content: 'Introduction' },
-				{ id: 'block-3', type: 'h2', content: 'Main Content' },
-				{ id: 'block-4', type: 'text', content: '' },
-				{ id: 'block-5', type: 'h2', content: 'Conclusion' },
-				{ id: 'block-6', type: 'text', content: '' }
+				{ id: 'block-1', type: 'h1', content: 'Travel Itinerary' },
+				{ id: 'block-2', type: 'text', content: 'Destination: ' },
+				{ id: 'block-3', type: 'text', content: 'Dates: ' },
+				{ id: 'block-4', type: 'h2', content: 'Day 1' },
+				{ id: 'block-5', type: 'bulleted', content: '' },
+				{ id: 'block-6', type: 'h2', content: 'Day 2' },
+				{ id: 'block-7', type: 'bulleted', content: '' },
+				{ id: 'block-8', type: 'h2', content: 'Packing List' },
+				{ id: 'block-9', type: 'todo', content: '' }
 			]
 		},
 		{
@@ -505,6 +721,209 @@ const NotepadPage = () => {
 				{ id: 'block-6', type: 'h2', content: 'Important Quotes' },
 				{ id: 'block-7', type: 'quote', content: '' }
 			]
+		},
+		{
+			name: 'Bug Report',
+			description: 'Document software bugs and issues',
+			icon: <AlertTriangle className="w-5 h-5" />,
+			blocks: [
+				{ id: 'block-1', type: 'h1', content: 'Bug Report' },
+				{ id: 'block-2', type: 'text', content: 'Date: ' + new Date().toLocaleDateString() },
+				{ id: 'block-3', type: 'h2', content: 'Description' },
+				{ id: 'block-4', type: 'text', content: '' },
+				{ id: 'block-5', type: 'h2', content: 'Steps to Reproduce' },
+				{ id: 'block-6', type: 'numbered', content: '' },
+				{ id: 'block-7', type: 'h2', content: 'Expected vs Actual Result' },
+				{ id: 'block-8', type: 'text', content: 'Expected: ' },
+				{ id: 'block-9', type: 'text', content: 'Actual: ' }
+			]
+		},
+		{
+			name: 'Class Notes',
+			description: 'Take structured notes during lectures',
+			icon: <GraduationCap className="w-5 h-5" />,
+			blocks: [
+				{ id: 'block-1', type: 'h1', content: 'Class Notes' },
+				{ id: 'block-2', type: 'text', content: 'Subject: ' },
+				{ id: 'block-3', type: 'text', content: 'Date: ' + new Date().toLocaleDateString() },
+				{ id: 'block-4', type: 'h2', content: 'Key Topics' },
+				{ id: 'block-5', type: 'bulleted', content: '' },
+				{ id: 'block-6', type: 'h2', content: 'Important Concepts' },
+				{ id: 'block-7', type: 'text', content: '' },
+				{ id: 'block-8', type: 'h2', content: 'Questions/Review' },
+				{ id: 'block-9', type: 'todo', content: '' }
+			]
+		},
+		{
+			name: 'Weekly Report',
+			description: 'Comprehensive weekly status report',
+			icon: <Calendar className="w-5 h-5" />,
+			blocks: [
+				{ id: 'block-1', type: 'h1', content: 'Weekly Report' },
+				{ id: 'block-2', type: 'text', content: 'Week of: ' + new Date().toLocaleDateString() },
+				{ id: 'block-3', type: 'text', content: 'Reported by: ' },
+				{ id: 'block-4', type: 'text', content: 'Department/Team: ' },
+				{ id: 'block-5', type: 'h2', content: 'Key Accomplishments' },
+				{ id: 'block-6', type: 'bulleted', content: 'Completed project milestone X' },
+				{ id: 'block-7', type: 'bulleted', content: 'Resolved critical issue Y' },
+				{ id: 'block-8', type: 'bulleted', content: 'Delivered feature Z on schedule' },
+				{ id: 'block-9', type: 'h2', content: 'Metrics & KPIs' },
+				{ id: 'block-10', type: 'text', content: 'Tasks Completed: [Number]' },
+				{ id: 'block-11', type: 'text', content: 'Goals Met: [Percentage]%' },
+				{ id: 'block-12', type: 'text', content: 'Customer Satisfaction: [Score]' },
+				{ id: 'block-13', type: 'h2', content: 'Challenges & Blockers' },
+				{ id: 'block-14', type: 'bulleted', content: 'Challenge 1: [Description] - Status: [In Progress/Resolved]' },
+				{ id: 'block-15', type: 'bulleted', content: 'Challenge 2: [Description] - Status: [In Progress/Resolved]' },
+				{ id: 'block-16', type: 'h2', content: 'Next Week Priorities' },
+				{ id: 'block-17', type: 'todo', content: 'Priority 1 - Due: [Date]' },
+				{ id: 'block-18', type: 'todo', content: 'Priority 2 - Due: [Date]' },
+				{ id: 'block-19', type: 'todo', content: 'Priority 3 - Due: [Date]' },
+				{ id: 'block-20', type: 'h2', content: 'Resource Needs' },
+				{ id: 'block-21', type: 'bulleted', content: 'Additional team members needed for [Project]' },
+				{ id: 'block-22', type: 'bulleted', content: 'Budget approval required for [Item]' },
+				{ id: 'block-23', type: 'h2', content: 'Team Updates' },
+				{ id: 'block-24', type: 'text', content: 'New team members, departures, role changes, etc.' }
+			]
+		},
+		{
+			name: 'Product Requirements',
+			description: 'Detailed product requirements document',
+			icon: <File className="w-5 h-5" />,
+			blocks: [
+				{ id: 'block-1', type: 'h1', content: 'Product Requirements Document' },
+				{ id: 'block-2', type: 'text', content: 'Product Name: ' },
+				{ id: 'block-3', type: 'text', content: 'Version: ' },
+				{ id: 'block-4', type: 'text', content: 'Date: ' + new Date().toLocaleDateString() },
+				{ id: 'block-5', type: 'text', content: 'Product Manager: ' },
+				{ id: 'block-6', type: 'h2', content: 'Executive Summary' },
+				{ id: 'block-7', type: 'text', content: 'Brief overview of the product and its value proposition.' },
+				{ id: 'block-8', type: 'h2', content: 'Problem Statement' },
+				{ id: 'block-9', type: 'text', content: 'What problem does this product solve?' },
+				{ id: 'block-10', type: 'h2', content: 'Target Audience' },
+				{ id: 'block-11', type: 'text', content: 'Primary Users: ' },
+				{ id: 'block-12', type: 'text', content: 'Secondary Users: ' },
+				{ id: 'block-13', type: 'text', content: 'User Personas: ' },
+				{ id: 'block-14', type: 'h2', content: 'Functional Requirements' },
+				{ id: 'block-15', type: 'numbered', content: 'User must be able to [action]' },
+				{ id: 'block-16', type: 'numbered', content: 'System must support [functionality]' },
+				{ id: 'block-17', type: 'numbered', content: 'Product must integrate with [system]' },
+				{ id: 'block-18', type: 'h2', content: 'Non-Functional Requirements' },
+				{ id: 'block-19', type: 'bulleted', content: 'Performance: [Response time requirements]' },
+				{ id: 'block-20', type: 'bulleted', content: 'Security: [Security standards]' },
+				{ id: 'block-21', type: 'bulleted', content: 'Scalability: [User capacity]' },
+				{ id: 'block-22', type: 'bulleted', content: 'Availability: [Uptime requirements]' },
+				{ id: 'block-23', type: 'h2', content: 'User Stories' },
+				{ id: 'block-24', type: 'quote', content: 'As a [user type], I want [functionality] so that [benefit]' },
+				{ id: 'block-25', type: 'quote', content: 'As a [user type], I want [functionality] so that [benefit]' },
+				{ id: 'block-26', type: 'h2', content: 'Success Metrics' },
+				{ id: 'block-27', type: 'bulleted', content: 'User adoption rate: [Target]%' },
+				{ id: 'block-28', type: 'bulleted', content: 'User satisfaction score: [Target]' },
+				{ id: 'block-29', type: 'bulleted', content: 'Performance metric: [Target]' }
+			]
+		},
+		{
+			name: 'Event Planning',
+			description: 'Complete event planning checklist',
+			icon: <Calendar className="w-5 h-5" />,
+			blocks: [
+				{ id: 'block-1', type: 'h1', content: 'Event Planning Checklist' },
+				{ id: 'block-2', type: 'text', content: 'Event Name: ' },
+				{ id: 'block-3', type: 'text', content: 'Event Date: ' },
+				{ id: 'block-4', type: 'text', content: 'Event Time: ' },
+				{ id: 'block-5', type: 'text', content: 'Venue: ' },
+				{ id: 'block-6', type: 'text', content: 'Expected Attendees: ' },
+				{ id: 'block-7', type: 'text', content: 'Budget: ' },
+				{ id: 'block-8', type: 'h2', content: '8 Weeks Before' },
+				{ id: 'block-9', type: 'todo', content: 'Define event objectives and goals' },
+				{ id: 'block-10', type: 'todo', content: 'Set budget and get approval' },
+				{ id: 'block-11', type: 'todo', content: 'Book venue and confirm availability' },
+				{ id: 'block-12', type: 'todo', content: 'Create guest list' },
+				{ id: 'block-13', type: 'h2', content: '6 Weeks Before' },
+				{ id: 'block-14', type: 'todo', content: 'Send save-the-date announcements' },
+				{ id: 'block-15', type: 'todo', content: 'Book catering services' },
+				{ id: 'block-16', type: 'todo', content: 'Arrange transportation if needed' },
+				{ id: 'block-17', type: 'todo', content: 'Book entertainment/speakers' },
+				{ id: 'block-18', type: 'h2', content: '4 Weeks Before' },
+				{ id: 'block-19', type: 'todo', content: 'Send formal invitations' },
+				{ id: 'block-20', type: 'todo', content: 'Order decorations and supplies' },
+				{ id: 'block-21', type: 'todo', content: 'Confirm all vendors and services' },
+				{ id: 'block-22', type: 'todo', content: 'Create event timeline/schedule' },
+				{ id: 'block-23', type: 'h2', content: '2 Weeks Before' },
+				{ id: 'block-24', type: 'todo', content: 'Confirm RSVPs and final headcount' },
+				{ id: 'block-25', type: 'todo', content: 'Finalize seating arrangements' },
+				{ id: 'block-26', type: 'todo', content: 'Prepare welcome packets/materials' },
+				{ id: 'block-27', type: 'h2', content: '1 Week Before' },
+				{ id: 'block-28', type: 'todo', content: 'Final venue walkthrough' },
+				{ id: 'block-29', type: 'todo', content: 'Confirm all logistics with team' },
+				{ id: 'block-30', type: 'todo', content: 'Prepare contingency plans' },
+				{ id: 'block-31', type: 'h2', content: 'Day of Event' },
+				{ id: 'block-32', type: 'todo', content: 'Arrive early for setup' },
+				{ id: 'block-33', type: 'todo', content: 'Coordinate with vendors' },
+				{ id: 'block-34', type: 'todo', content: 'Manage event timeline' },
+				{ id: 'block-35', type: 'todo', content: 'Handle any issues that arise' },
+				{ id: 'block-36', type: 'h2', content: 'Post-Event' },
+				{ id: 'block-37', type: 'todo', content: 'Send thank you messages' },
+				{ id: 'block-38', type: 'todo', content: 'Collect feedback from attendees' },
+				{ id: 'block-39', type: 'todo', content: 'Review budget and expenses' },
+				{ id: 'block-40', type: 'todo', content: 'Document lessons learned' }
+			]
+		},
+		{
+			name: 'Job Interview Prep',
+			description: 'Comprehensive interview preparation guide',
+			icon: <User className="w-5 h-5" />,
+			blocks: [
+				{ id: 'block-1', type: 'h1', content: 'Job Interview Preparation' },
+				{ id: 'block-2', type: 'text', content: 'Company: ' },
+				{ id: 'block-3', type: 'text', content: 'Position: ' },
+				{ id: 'block-4', type: 'text', content: 'Interview Date: ' },
+				{ id: 'block-5', type: 'text', content: 'Interview Time: ' },
+				{ id: 'block-6', type: 'text', content: 'Interviewer(s): ' },
+				{ id: 'block-7', type: 'text', content: 'Interview Format: ' },
+				{ id: 'block-8', type: 'h2', content: 'Company Research' },
+				{ id: 'block-9', type: 'text', content: 'Company Mission: ' },
+				{ id: 'block-10', type: 'text', content: 'Company Values: ' },
+				{ id: 'block-11', type: 'text', content: 'Recent News/Updates: ' },
+				{ id: 'block-12', type: 'text', content: 'Company Culture: ' },
+				{ id: 'block-13', type: 'text', content: 'Key Competitors: ' },
+				{ id: 'block-14', type: 'h2', content: 'Role Analysis' },
+				{ id: 'block-15', type: 'text', content: 'Key Responsibilities: ' },
+				{ id: 'block-16', type: 'text', content: 'Required Skills: ' },
+				{ id: 'block-17', type: 'text', content: 'Preferred Qualifications: ' },
+				{ id: 'block-18', type: 'text', content: 'Growth Opportunities: ' },
+				{ id: 'block-19', type: 'h2', content: 'My Qualifications Match' },
+				{ id: 'block-20', type: 'bulleted', content: 'Skill 1: [How I demonstrate this]' },
+				{ id: 'block-21', type: 'bulleted', content: 'Skill 2: [How I demonstrate this]' },
+				{ id: 'block-22', type: 'bulleted', content: 'Experience 1: [Relevant project/role]' },
+				{ id: 'block-23', type: 'bulleted', content: 'Experience 2: [Relevant project/role]' },
+				{ id: 'block-24', type: 'h2', content: 'STAR Method Examples' },
+				{ id: 'block-25', type: 'text', content: 'Example 1 - Leadership:' },
+				{ id: 'block-26', type: 'text', content: 'Situation: [Context]' },
+				{ id: 'block-27', type: 'text', content: 'Task: [What needed to be done]' },
+				{ id: 'block-28', type: 'text', content: 'Action: [What I did]' },
+				{ id: 'block-29', type: 'text', content: 'Result: [Outcome and impact]' },
+				{ id: 'block-30', type: 'text', content: 'Example 2 - Problem Solving:' },
+				{ id: 'block-31', type: 'text', content: 'Situation: [Context]' },
+				{ id: 'block-32', type: 'text', content: 'Task: [What needed to be done]' },
+				{ id: 'block-33', type: 'text', content: 'Action: [What I did]' },
+				{ id: 'block-34', type: 'text', content: 'Result: [Outcome and impact]' },
+				{ id: 'block-35', type: 'h2', content: 'Questions to Ask Them' },
+				{ id: 'block-36', type: 'bulleted', content: 'What does success look like in this role?' },
+				{ id: 'block-37', type: 'bulleted', content: 'What are the biggest challenges facing the team?' },
+				{ id: 'block-38', type: 'bulleted', content: 'How would you describe the company culture?' },
+				{ id: 'block-39', type: 'bulleted', content: 'What opportunities are there for professional development?' },
+				{ id: 'block-40', type: 'bulleted', content: 'What are the next steps in the interview process?' },
+				{ id: 'block-41', type: 'h2', content: 'Logistics' },
+				{ id: 'block-42', type: 'todo', content: 'Research directions to interview location' },
+				{ id: 'block-43', type: 'todo', content: 'Plan outfit (professional, appropriate)' },
+				{ id: 'block-44', type: 'todo', content: 'Prepare copies of resume and references' },
+				{ id: 'block-45', type: 'todo', content: 'Practice common interview questions' },
+				{ id: 'block-46', type: 'todo', content: 'Prepare portfolio/work samples if relevant' },
+				{ id: 'block-47', type: 'h2', content: 'Post-Interview' },
+				{ id: 'block-48', type: 'todo', content: 'Send thank you email within 24 hours' },
+				{ id: 'block-49', type: 'todo', content: 'Note key points discussed for follow-up' },
+				{ id: 'block-50', type: 'todo', content: 'Follow up on timeline if not provided' }
+			]
 		}
 	];
 
@@ -518,21 +937,70 @@ const NotepadPage = () => {
 	const shareNote = async () => {
 		if (!currentNote) return;
 
+		let sharedWithUsers = [];
+
+		if (user?.role === 'manager') {
+			if (shareSettings.sharedWith.length === 0) return;
+			sharedWithUsers = shareSettings.sharedWith;
+		} else {
+			if (!shareInput.trim()) return;
+			// For non-managers, we need to convert usernames to user IDs
+			const usernames = shareInput.split(',').map(name => name.trim()).filter(name => name);
+			console.log('Sharing with usernames:', usernames);
+
+			// Try to find user IDs for these usernames
+			if (availableUsers.length > 0) {
+				sharedWithUsers = usernames.map(username => {
+					const foundUser = availableUsers.find(u =>
+						u.username === username || u.name === username || u.email === username
+					);
+					return foundUser ? foundUser._id : username; // Use ID if found, otherwise use username
+				});
+			} else {
+				// If no available users, just use the usernames as-is
+				sharedWithUsers = usernames;
+			}
+			console.log('Final sharedWithUsers:', sharedWithUsers);
+		}
+
 		try {
-			await post(`/notepad/${currentNote._id}/share`, shareSettings);
-			addNotification({
-				type: 'success',
-				title: 'Shared',
-				message: 'Note shared successfully'
-			});
+			// First save the current note content
+			await saveNote();
+
+			
+			// Then update with sharing info
+			const updatedNote = {
+				...currentNote,
+				title,
+				blocks,
+				content: blocks.map(block => block.content).join('\n'),
+				sharedWith: sharedWithUsers,
+				shareType: 'shared'
+			};
+
+			const response = await put(`/notepad/${currentNote._id}`, updatedNote);
+			
+			// Update local state
+			setCurrentNote(response);
+			setNotes(prev => prev.map(note =>
+				note._id === currentNote._id ? response : note
+			));
+
+			console.log('Note shared successfully:', response);
+			console.log('Updated note sharedWith:', response.sharedWith);
+			console.log('Current user ID:', user?.id);
+			console.log('Note createdBy:', response.createdBy);
+			console.log('sharedWith length:', response.sharedWith?.length);
+			console.log('All notes after sharing:', notes.map(n => ({ id: n._id, title: n.title, createdBy: n.createdBy, sharedWith: n.sharedWith })));
+
+			// Automatically switch to "Share Note" filter after sharing
+			setSelectedTag('shared');
+
 			setShowShareModal(false);
+			setShareSettings({ shareType: 'private', sharedWith: [] });
+			setShareInput('');
 		} catch (err) {
 			console.error('Error sharing note:', err);
-			addNotification({
-				type: 'error',
-				title: 'Error',
-				message: 'Failed to share note'
-			});
 		}
 	};
 
@@ -543,6 +1011,16 @@ const NotepadPage = () => {
 				? prev.filter(id => id !== noteId)
 				: [...prev, noteId]
 		);
+	};
+
+	// Select users for sharing
+	const selectUserForSharing = (userId) => {
+		setShareSettings(prev => ({
+			...prev,
+			sharedWith: prev.sharedWith.includes(userId)
+				? prev.sharedWith.filter(id => id !== userId)
+				: [...prev.sharedWith, userId]
+		}));
 	};
 
 	// Add tag to note
@@ -584,13 +1062,13 @@ const NotepadPage = () => {
 		const commonProps = {
 			ref: (el) => blockRefs.current[block.id] = el,
 			key: block.id,
-			className: `w-full outline-none resize-none border-none bg-transparent py-1 px-2 rounded ${isDarkMode ? 'text-gray-100' : 'text-gray-800'
-				}`,
+			className: `w-full outline-none resize-none border-none bg-transparent py-1 px-2 rounded transition-all duration-200 font-inter leading-relaxed ${isDarkMode ? 'text-gray-100 placeholder-gray-500 focus:bg-gray-800/20' : 'text-gray-800 placeholder-gray-400 focus:bg-gray-50/30'} hover:bg-opacity-30`,
 			value: block.content,
 			onChange: (e) => updateBlock(block.id, e.target.value),
 			onKeyDown: (e) => handleBlockKeyDown(block.id, e),
 			onFocus: () => setActiveBlockId(block.id),
-			placeholder: getBlockPlaceholder(block.type)
+			placeholder: getBlockPlaceholder(block.type),
+			style: { minHeight: '24px', lineHeight: '1.6' }
 		};
 
 		switch (block.type) {
@@ -616,7 +1094,8 @@ const NotepadPage = () => {
 						</div>
 						<input
 							{...commonProps}
-							className={`${commonProps.className} text-4xl font-bold`}
+							className={`${commonProps.className} text-4xl font-bold tracking-tight`}
+							style={{ ...commonProps.style, minHeight: '48px', lineHeight: '1.2' }}
 						/>
 						{showBlockMenu === block.id && (
 							<div
@@ -681,7 +1160,8 @@ const NotepadPage = () => {
 						</div>
 						<input
 							{...commonProps}
-							className={`${commonProps.className} text-3xl font-bold`}
+							className={`${commonProps.className} text-3xl font-bold tracking-tight`}
+							style={{ ...commonProps.style, minHeight: '40px', lineHeight: '1.3' }}
 						/>
 						{showBlockMenu === block.id && (
 							<div
@@ -746,7 +1226,8 @@ const NotepadPage = () => {
 						</div>
 						<input
 							{...commonProps}
-							className={`${commonProps.className} text-2xl font-bold`}
+							className={`${commonProps.className} text-2xl font-bold tracking-tight`}
+							style={{ ...commonProps.style, minHeight: '36px', lineHeight: '1.4' }}
 						/>
 						{showBlockMenu === block.id && (
 							<div
@@ -809,9 +1290,9 @@ const NotepadPage = () => {
 								<GripVertical className="w-4 h-4" />
 							</button>
 						</div>
-						<div className="flex items-center">
-							<span className="mr-2">•</span>
-							<input {...commonProps} />
+						<div className="flex items-start w-full">
+							<span className="mr-2 mt-1 flex-shrink-0">•</span>
+							<input {...commonProps} className={`${commonProps.className} flex-1`} />
 						</div>
 						{showBlockMenu === block.id && (
 							<div
@@ -874,9 +1355,9 @@ const NotepadPage = () => {
 								<GripVertical className="w-4 h-4" />
 							</button>
 						</div>
-						<div className="flex items-center">
-							<span className="mr-2">{index + 1}.</span>
-							<input {...commonProps} />
+						<div className="flex items-start w-full">
+							<span className="mr-2 mt-1 flex-shrink-0 min-w-[24px]">{index + 1}.</span>
+							<input {...commonProps} className={`${commonProps.className} flex-1`} />
 						</div>
 						{showBlockMenu === block.id && (
 							<div
@@ -939,9 +1420,9 @@ const NotepadPage = () => {
 								<GripVertical className="w-4 h-4" />
 							</button>
 						</div>
-						<div className="flex items-center">
-							<input type="checkbox" className="mr-2 mt-1" />
-							<input {...commonProps} />
+						<div className="flex items-start w-full">
+							<input type="checkbox" className="mr-2 mt-1 flex-shrink-0" />
+							<input {...commonProps} className={`${commonProps.className} flex-1`} />
 						</div>
 						{showBlockMenu === block.id && (
 							<div
@@ -1004,8 +1485,8 @@ const NotepadPage = () => {
 								<GripVertical className="w-4 h-4" />
 							</button>
 						</div>
-						<div className="border-l-4 border-gray-400 pl-4 py-1">
-							<input {...commonProps} />
+						<div className={`border-l-4 pl-4 py-2 transition-all duration-200 ${isDarkMode ? 'border-blue-500 bg-blue-900/10' : 'border-blue-400 bg-blue-50/50'}`}>
+							<input {...commonProps} className={`${commonProps.className} italic text-lg`} style={{ ...commonProps.style, minHeight: '32px' }} />
 						</div>
 						{showBlockMenu === block.id && (
 							<div
@@ -1193,12 +1674,13 @@ const NotepadPage = () => {
 								<GripVertical className="w-4 h-4" />
 							</button>
 						</div>
-						<div className={`w-full rounded-lg p-4 font-mono text-sm ${isDarkMode ? 'bg-gray-800 text-gray-100' : 'bg-gray-100 text-gray-800'
+						<div className={`w-full rounded-lg p-4 font-mono text-sm border transition-all duration-200 ${isDarkMode ? 'bg-gray-800/80 text-gray-100 border-gray-700 hover:border-gray-600' : 'bg-gray-50 text-gray-800 border-gray-200 hover:border-gray-300'}
 							}`}>
 							<textarea
 								{...commonProps}
-								className="w-full bg-transparent outline-none resize-none"
+								className="w-full bg-transparent outline-none resize-none font-mono leading-relaxed"
 								rows={Math.max(3, (block.content.match(/\n/g) || []).length + 1)}
+								style={{ lineHeight: '1.5' }}
 							/>
 						</div>
 						{showBlockMenu === block.id && (
@@ -1242,6 +1724,84 @@ const NotepadPage = () => {
 						)}
 					</div>
 				);
+			case 'table':
+				return (
+					<div className="flex items-start group relative">
+						<div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2">
+							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700" onClick={(e) => handlePlusButtonClick(e, block.id)}>
+								<Plus className="w-4 h-4" />
+							</button>
+							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700" onClick={(e) => { e.stopPropagation(); setShowBlockMenu(showBlockMenu === block.id ? null : block.id); }}>
+								<GripVertical className="w-4 h-4" />
+							</button>
+						</div>
+						<div className={`w-full border rounded-lg ${isDarkMode ? 'border-gray-700' : 'border-gray-300'}`}>
+							<table className="w-full">
+								<tbody>
+									<tr>
+										<td className={`border p-2 ${isDarkMode ? 'border-gray-700' : 'border-gray-300'}`}>
+											<input {...commonProps} placeholder="Cell 1" />
+										</td>
+										<td className={`border p-2 ${isDarkMode ? 'border-gray-700' : 'border-gray-300'}`}>
+											<input {...commonProps} placeholder="Cell 2" />
+										</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</div>
+				);
+			case 'image':
+				return (
+					<div className="flex items-start group relative">
+						<div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2">
+							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700" onClick={(e) => handlePlusButtonClick(e, block.id)}>
+								<Plus className="w-4 h-4" />
+							</button>
+							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700" onClick={(e) => { e.stopPropagation(); setShowBlockMenu(showBlockMenu === block.id ? null : block.id); }}>
+								<GripVertical className="w-4 h-4" />
+							</button>
+						</div>
+						<div className={`w-full p-4 border-2 border-dashed rounded-lg text-center ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-300 bg-gray-50'}`}>
+							<Image className="w-12 h-12 mx-auto mb-2 text-gray-400" />
+							<input {...commonProps} placeholder="Paste image URL or click to upload" />
+						</div>
+					</div>
+				);
+			case 'video':
+				return (
+					<div className="flex items-start group relative">
+						<div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2">
+							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700" onClick={(e) => handlePlusButtonClick(e, block.id)}>
+								<Plus className="w-4 h-4" />
+							</button>
+							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700" onClick={(e) => { e.stopPropagation(); setShowBlockMenu(showBlockMenu === block.id ? null : block.id); }}>
+								<GripVertical className="w-4 h-4" />
+							</button>
+						</div>
+						<div className={`w-full p-4 border-2 border-dashed rounded-lg text-center ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-300 bg-gray-50'}`}>
+							<Video className="w-12 h-12 mx-auto mb-2 text-gray-400" />
+							<input {...commonProps} placeholder="Paste video URL" />
+						</div>
+					</div>
+				);
+			case 'link':
+				return (
+					<div className="flex items-start group relative">
+						<div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2">
+							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700" onClick={(e) => handlePlusButtonClick(e, block.id)}>
+								<Plus className="w-4 h-4" />
+							</button>
+							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700" onClick={(e) => { e.stopPropagation(); setShowBlockMenu(showBlockMenu === block.id ? null : block.id); }}>
+								<GripVertical className="w-4 h-4" />
+							</button>
+						</div>
+						<div className="flex items-start w-full">
+							<Link className="w-5 h-5 mr-2 mt-1 text-blue-500 flex-shrink-0" />
+							<input {...commonProps} className={`${commonProps.className} flex-1`} placeholder="Paste or type a link" />
+						</div>
+					</div>
+				);
 			default: // text
 				return (
 					<div className="flex items-start group relative">
@@ -1262,7 +1822,17 @@ const NotepadPage = () => {
 								<GripVertical className="w-4 h-4" />
 							</button>
 						</div>
-						<input {...commonProps} />
+						<textarea 
+							ref={(el) => blockRefs.current[block.id] = el}
+							value={block.content}
+							onChange={(e) => updateBlock(block.id, e.target.value)}
+							onKeyDown={(e) => handleBlockKeyDown(block.id, e)}
+							onFocus={() => setActiveBlockId(block.id)}
+							placeholder={getBlockPlaceholder(block.type)}
+							rows={Math.max(1, ((block.content || '').match(/\n/g) || []).length + 1)}
+							className={`w-full outline-none resize-none border-none bg-transparent py-1 px-2 rounded transition-all duration-200 font-inter leading-relaxed overflow-hidden ${isDarkMode ? 'text-gray-100 placeholder-gray-500 focus:bg-gray-800/20' : 'text-gray-800 placeholder-gray-400 focus:bg-gray-50/30'} hover:bg-opacity-30`}
+							style={{ minHeight: '24px', lineHeight: '1.6' }}
+						/>
 						{showBlockMenu === block.id && (
 							<div
 								ref={blockMenuRef}
@@ -1319,18 +1889,45 @@ const NotepadPage = () => {
 			case 'quote': return 'Quote';
 			case 'callout': return 'Callout';
 			case 'code': return 'Code';
+			case 'table': return 'Table cell';
+			case 'image': return 'Image URL';
+			case 'video': return 'Video URL';
+			case 'link': return 'Link URL';
 			default: return 'Type \'/\' for commands';
 		}
 	};
 
 	// Filter notes based on search and tags
 	const filteredNotes = notes.filter(note => {
+		// Only show notes that have a meaningful title
+		const hasTitle = note.title && note.title.trim() !== '' && note.title !== 'Untitled';
+		if (!hasTitle) return false;
+
 		const matchesSearch = note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
 			note.content?.toLowerCase().includes(searchQuery.toLowerCase());
 
 		const matchesTag = selectedTag === 'all' ||
 			(selectedTag === 'favorites' && favorites.includes(note._id)) ||
+			(selectedTag === 'saved' && note.createdBy === user?.id && (!note.sharedWith || note.sharedWith.length === 0)) ||
+			(selectedTag === 'shared' && note.createdBy === user?.id && note.sharedWith && note.sharedWith.length > 0) ||
+			(selectedTag === 'received' && note.createdBy !== user?.id && note.sharedWith && (
+				note.sharedWith.includes(user?.id) ||
+				note.sharedWith.includes(user?.username) ||
+				note.sharedWith.includes(user?.name) ||
+				note.sharedWith.includes(user?.email)
+			)) ||
 			(note.tags && note.tags.includes(selectedTag));
+
+		// Debug logging for shared notes
+		if (selectedTag === 'shared') {
+			console.log('Filtering shared notes:');
+			console.log('Note:', { id: note._id, title: note.title, createdBy: note.createdBy, sharedWith: note.sharedWith });
+			console.log('User:', { id: user?.id, username: user?.username, name: user?.name, email: user?.email });
+			console.log('createdBy === user?.id:', note.createdBy === user?.id);
+			console.log('sharedWith exists:', !!note.sharedWith);
+			console.log('sharedWith length:', note.sharedWith?.length || 0);
+			console.log('Should match shared filter:', note.createdBy === user?.id && note.sharedWith && note.sharedWith.length > 0);
+		}
 
 		return matchesSearch && matchesTag;
 	});
@@ -1342,109 +1939,315 @@ const NotepadPage = () => {
 				<div className="flex-1 flex flex-col">
 					{currentNote ? (
 						<>
-							{/* Toolbar */}
-							<div className={`border-b ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-purple-500 border-purple-600'} p-3 shadow-lg`}>
-								<div className="flex items-center justify-between">
-									<div className="flex items-center space-x-2">
-										{isEditingTitle ? (
-											<input
-												ref={titleInputRef}
-												type="text"
-												value={title}
-												onChange={(e) => setTitle(e.target.value)}
-												onKeyDown={handleTitleKeyDown}
-												onBlur={() => {
-													setIsEditingTitle(false);
-													saveNote();
-												}}
-												className={`text-lg font-bold bg-transparent border-b-2 border-white outline-none ${isDarkMode ? 'text-white' : 'text-white'
-													}`}
-											/>
-										) : (
-											<h1
-												onClick={() => setIsEditingTitle(true)}
-												className="text-lg font-bold cursor-text hover:bg-blue-600 text-white rounded px-2 py-1"
-											>
-												{title}
-											</h1>
-										)}
-									</div>
-
-									<div className="flex items-center space-x-2">
-										<button
-											onClick={saveNote}
-											className="flex items-center px-3 py-2 rounded-lg bg-white/20 text-white hover:bg-white/30 transition-all duration-300 text-sm font-medium"
+							{/* Title Section */}
+							<div className={`p-8 ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
+								<div className="max-w-3xl mx-auto">
+									{isEditingTitle ? (
+										<input
+											ref={titleInputRef}
+											type="text"
+											value={title}
+											onChange={(e) => setTitle(e.target.value)}
+											onKeyDown={handleTitleKeyDown}
+											onBlur={() => {
+												setIsEditingTitle(false);
+												// If title is empty after editing, set it to "Untitled"
+												if (!title.trim()) {
+													setTitle('Untitled');
+												}
+												saveNote();
+											}}
+											className={`text-5xl font-bold bg-transparent border-none outline-none w-full leading-tight ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
+											placeholder=""
+											autoFocus
+											style={{
+												fontSize: '3rem',
+												lineHeight: '1.2',
+												fontWeight: '700',
+												letterSpacing: '-0.02em'
+											}}
+										/>
+									) : (
+										<div
+											onClick={() => {
+												setIsEditingTitle(true);
+												// Clear the title when clicking to edit from placeholder
+												if (title === 'Untitled' || !title.trim()) {
+													setTitle('');
+												}
+											}}
+											className="cursor-text"
 										>
-											<Save className="w-3 h-3 mr-1" />
-											Save
-										</button>
-										<RoleGuard requirePermission="shareContent">
-											<button
-												onClick={() => setShowShareModal(true)}
-												className="flex items-center px-3 py-2 rounded-lg bg-white/20 text-white hover:bg-white/30 transition-all duration-300 text-sm font-medium"
-											>
-												<Share2 className="w-3 h-3 mr-1" />
-												Share
-											</button>
-										</RoleGuard>
-										<button className={`p-2 rounded-lg transition-all duration-300 ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-white/20 text-white'}`}>
-											<Download className="w-4 h-4" />
-										</button>
-										<button
-											onClick={() => setShowTemplates(true)}
-											className="flex items-center px-3 py-2 rounded-lg bg-white/20 text-white hover:bg-white/30 transition-all duration-300 text-sm font-medium"
-										>
-											<FileText className="w-3 h-3 mr-1" />
-											Templates
-										</button>
-									</div>
-								</div>
-
-								{/* Tags for current note */}
-								<div className="flex items-center mt-2">
-									<Tag className="w-3 h-3 mr-2 text-white/70" />
-									<div className="flex flex-wrap gap-1">
-										{currentNote.tags && currentNote.tags.map(tag => (
-											<span
-												key={tag}
-												className="px-2 py-1 text-xs rounded-full bg-purple-500/20 text-purple-500 flex items-center"
-											>
-												{tag}
-												<button
-													onClick={() => {
-														// Remove tag functionality could be added here
+											{title && title !== 'Untitled' && title.trim() !== '' ? (
+												<h1 className={`text-5xl font-bold leading-tight ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
+													style={{
+														fontSize: '3rem',
+														lineHeight: '1.2',
+														fontWeight: '700',
+														letterSpacing: '-0.02em'
 													}}
-													className="ml-1 hover:text-purple-700"
 												>
-													<X className="w-3 h-3" />
-												</button>
-											</span>
-										))}
-										<button
-											onClick={() => setShowTagModal(true)}
-											className="px-2 py-1 text-xs rounded-full border border-dashed border-white/50 text-white/70 hover:bg-white/20"
-										>
-											+ Add tag
-										</button>
-									</div>
+													{title}
+												</h1>
+											) : (
+												<div className="w-full">
+													<div className={`text-5xl font-bold leading-tight opacity-60 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}
+														style={{
+															fontSize: '3rem',
+															lineHeight: '1.2',
+															fontWeight: '700',
+															letterSpacing: '-0.02em',
+															userSelect: 'none'
+														}}
+													>
+														Untitled
+													</div>
+												</div>
+											)}
+										</div>
+									)}
 								</div>
 							</div>
 
 							{/* Content */}
-							<div className="flex-1 overflow-y-auto p-8 bg-gradient-to-b from-transparent to-gray-50/30 dark:to-gray-900/30 max-h-screen">
+							<div className={`flex-1 overflow-y-auto p-8 pb-32 ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
 								<div className="max-w-3xl mx-auto">
-									<div className="space-y-2 min-h-96">
+									<div className="space-y-0.5 min-h-96">
 										{blocks.map((block, index) => renderBlock(block, index))}
 									</div>
 
 									{/* Add block button */}
 									<button
 										onClick={() => addBlock(blocks.length - 1)}
-										className="flex items-center mt-4 px-4 py-2 rounded-lg text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+										className={`flex items-center mt-4 px-4 py-2 rounded-lg transition-colors ${isDarkMode ? 'text-gray-500 hover:bg-gray-800' : 'text-gray-500 hover:bg-gray-100'}`}
 									>
 										<Plus className="w-5 h-5 mr-2" />
 										Add block
 									</button>
+								</div>
+							</div>
+
+							{/* Bottom Action Bar */}
+							<div className={`fixed bottom-0 left-0 right-0 border-t backdrop-blur-sm ${isDarkMode ? 'bg-gray-900/95 border-gray-700' : 'bg-white/95 border-gray-200'} p-4 shadow-lg`}>
+								<div className="max-w-3xl mx-auto flex items-center justify-between">
+									{/* Note Metadata */}
+									<div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} space-y-1`}>
+										<div className="flex items-center gap-2">
+											<User className="w-3 h-3" />
+											<span>Created by: {currentNote?.createdBy === user?.id ? 'You' : (currentNote?.createdByName || 'Unknown')}</span>
+										</div>
+										<div className="flex items-center gap-2">
+											<Clock className="w-3 h-3" />
+											<span>Created: {currentNote?.createdAt ? new Date(currentNote.createdAt).toLocaleDateString() : 'Unknown'}</span>
+										</div>
+									</div>
+
+									{/* Save Status Indicator - Right Side */}
+									<div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} space-y-1`}>
+										<div className="flex items-center gap-2">
+											<div className={`w-2 h-2 rounded-full ${lastSaved ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+											<span className={lastSaved ? 'text-green-600' : ''}>
+												{lastSaved ? `Saved ${new Date(lastSaved).toLocaleTimeString()}` : 'Not saved'}
+											</span>
+										</div>
+										{/* Specific sharing information */}
+										{currentNote?.sharedWith && currentNote.sharedWith.length > 0 ? (
+											<div className="flex items-center gap-2">
+												<Share2 className="w-3 h-3" />
+												<span>you share with {currentNote.sharedWith.length === 1 ? currentNote.sharedWith[0] : `${currentNote.sharedWith.length} users`}</span>
+											</div>
+										) : currentNote?.createdBy !== user?.id ? (
+											<div className="flex items-center gap-2">
+												<Users className="w-3 h-3" />
+												<span>from {currentNote?.createdByName || 'Unknown'}</span>
+											</div>
+										) : null}
+									</div>
+									
+									{/* Action Buttons */}
+									<div className="flex items-center gap-4">
+									<button
+										onClick={saveNote}
+										className={`flex items-center px-6 py-3 rounded-xl font-semibold transition-all duration-200 hover:scale-105 ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'} shadow-lg`}
+									>
+										<Save className="w-4 h-4 mr-2" />
+										Save
+									</button>
+
+										<div className="relative">
+											<button
+												onClick={async () => {
+													if (!showShareModal && availableUsers.length === 0) {
+														try {
+															const apiService = (await import('../../services/api')).default;
+															const response = await apiService.getUsers();
+															console.log('Fetched users response:', response);
+															const users = response.users || [];
+															console.log('Current user:', user);
+															console.log('All users from API:', users);
+															// Only filter if we have more than 1 user and can identify current user
+															if (users.length > 1 && user?._id) {
+																const filteredUsers = users.filter(u => u._id !== user._id);
+																console.log('Filtered users (excluding creator):', filteredUsers);
+																setAvailableUsers(filteredUsers);
+															} else {
+																console.log('Showing all users (no filtering applied)');
+																setAvailableUsers(users);
+															}
+														} catch (err) {
+															console.error('Failed to fetch users:', err);
+														}
+													}
+													setShowShareModal(!showShareModal);
+												}}
+												className={`flex items-center px-6 py-3 rounded-xl font-semibold transition-all duration-200 hover:scale-105 ${isDarkMode ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-green-500 hover:bg-green-600 text-white'} shadow-lg`}
+											>
+												<Share2 className="w-4 h-4 mr-2" />
+												Share
+												<ChevronDown className={`w-4 h-4 ml-2 transition-transform ${showShareModal ? 'rotate-180' : ''}`} />
+											</button>
+											{showShareModal && (
+												<div className={`absolute bottom-full mb-2 left-0 w-80 rounded-lg shadow-lg border z-50 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+													<div className="p-4">
+														<h3 className="text-lg font-semibold mb-3">Share Note</h3>
+														<div className="space-y-2 max-h-48 overflow-y-auto">
+															{availableUsers.length > 0 ? availableUsers.map(userItem => (
+																<button
+																	key={userItem._id}
+																	onClick={() => selectUserForSharing(userItem._id)}
+																	className={`w-full p-3 text-left rounded-lg transition-colors ${
+																		shareSettings.sharedWith.includes(userItem._id)
+																			? 'bg-blue-500/20 border border-blue-500'
+																			: isDarkMode
+																				? 'hover:bg-gray-700'
+																				: 'hover:bg-gray-100'
+																		}`}
+																>
+																	<div className="flex items-center justify-between">
+																		<div className="flex items-center">
+																			<div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-semibold mr-3">
+																				{userItem.name?.charAt(0).toUpperCase() || userItem.username?.charAt(0).toUpperCase() || 'U'}
+																			</div>
+																			<div>
+																				<div className="font-medium">{userItem.name || userItem.username}</div>
+																				<div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{userItem.email} • {userItem.role}</div>
+																			</div>
+																		</div>
+																		{shareSettings.sharedWith.includes(userItem._id) && (
+																			<div className="text-blue-500">
+																				<Users className="w-4 h-4" />
+																			</div>
+																		)}
+																	</div>
+																</button>
+															)) : (
+																<div className={`p-4 ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg`}>
+																	{user?.role === 'manager' ? (
+																		<>
+																			<div className={`text-sm font-medium mb-3 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+																				Select users to share with:
+																			</div>
+																			<select 
+																				multiple
+																				className={`w-full px-4 py-3 rounded-lg border h-32 ${isDarkMode ? 'bg-gray-600 border-gray-500 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+																			>
+																				<option value="john">john</option>
+																				<option value="mary">mary</option>
+																				<option value="alex">alex</option>
+																			</select>
+																		</>
+																	) : (
+																		<>
+																			<div className={`text-sm font-medium mb-3 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+																				Type usernames to share with:
+																			</div>
+																			<div className={`border rounded-lg overflow-hidden ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}>
+																				<table className="w-full">
+																					<thead className={`${isDarkMode ? 'bg-gray-600' : 'bg-gray-100'}`}>
+																						<tr>
+																							<th className={`px-4 py-2 text-left text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>Usernames (separated by commas)</th>
+																						</tr>
+																					</thead>
+																					<tbody>
+																						<tr className={`${isDarkMode ? 'bg-gray-700/30' : 'bg-white'}`}>
+																							<td className={`px-4 py-3 ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
+																								<input
+																									type="text"
+																									value={shareInput}
+																									onChange={(e) => setShareInput(e.target.value)}
+																									placeholder="john, mary, alex"
+																									className={`w-full px-3 py-2 text-sm rounded border ${isDarkMode ? 'bg-gray-600 border-gray-500 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+																								/>
+																							</td>
+																						</tr>
+																					</tbody>
+																				</table>
+																			</div>
+																		</>
+																	)}
+																</div>
+															)}
+														</div>
+														{shareSettings.sharedWith.length > 0 && (
+															<div className="mt-3 p-2 bg-green-500/20 rounded-lg">
+																<div className="text-sm text-green-600 font-medium">
+																	Share with usernames
+																</div>
+																<button
+																	onClick={() => {
+																		shareNote();
+																		setShowShareModal(false);
+																	}}
+																	className="mt-2 w-full bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
+																>
+																	Share Note
+																</button>
+															</div>
+														)}
+													</div>
+												</div>
+											)}
+										</div>
+
+									<div className="relative">
+										<button
+											onClick={() => setShowTemplates(!showTemplates)}
+											className={`flex items-center px-6 py-3 rounded-xl font-semibold transition-all duration-200 hover:scale-105 ${isDarkMode ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'bg-purple-500 hover:bg-purple-600 text-white'} shadow-lg`}
+										>
+											<FileText className="w-4 h-4 mr-2" />
+											Templates
+											<ChevronDown className={`w-4 h-4 ml-2 transition-transform ${showTemplates ? 'rotate-180' : ''}`} />
+										</button>
+										{showTemplates && (
+											<div className={`absolute bottom-full mb-2 left-0 w-80 rounded-lg shadow-lg border z-50 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+												<div className="p-4">
+													<h3 className="text-lg font-semibold mb-3">Choose Template</h3>
+													<div className="space-y-2 max-h-64 overflow-y-auto">
+														{templates.map((template, index) => (
+															<button
+																key={index}
+																onClick={() => {
+																	applyTemplate(template);
+																	setShowTemplates(false);
+																}}
+																className={`w-full p-3 text-left rounded-lg transition-colors ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+															>
+																<div className="flex items-center">
+																	{template.icon}
+																	<div className="ml-3">
+																		<div className="font-medium">{template.name}</div>
+																		<div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{template.description}</div>
+																	</div>
+																</div>
+															</button>
+														))}
+													</div>
+												</div>
+											</div>
+										)}
+									</div>
+									</div>
+
 								</div>
 							</div>
 						</>
@@ -1501,76 +2304,44 @@ const NotepadPage = () => {
 							/>
 						</div>
 
-						<div className={`flex items-center rounded-2xl p-1 mb-6 border-2 ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-300'}`}>
-							<button
-								onClick={() => setViewMode('list')}
-								className={`p-3 rounded-xl transition-all duration-200 ${viewMode === 'list'
-									? (isDarkMode ? 'bg-blue-600 text-white shadow-lg' : 'bg-blue-500 text-white shadow-lg')
-									: (isDarkMode ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100')
-									}`}
-							>
-								<List className="w-5 h-5" />
-							</button>
-							<button
-								onClick={() => setViewMode('grid')}
-								className={`p-3 rounded-xl transition-all duration-200 ${viewMode === 'grid'
-									? (isDarkMode ? 'bg-blue-600 text-white shadow-lg' : 'bg-blue-500 text-white shadow-lg')
-									: (isDarkMode ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100')
-									}`}
-							>
-								<Grid className="w-5 h-5" />
-							</button>
-						</div>
 
-						{/* Tags Filter */}
+
+						{/* Filter Buttons */}
 						<div className="mb-4">
-							<div className="flex items-center justify-between mb-2">
-								<h3 className="text-sm font-semibold">Tags</h3>
-								<button
-									onClick={() => setShowTagModal(true)}
-									className="text-blue-500 hover:text-blue-700"
-								>
-									<Plus className="w-4 h-4" />
-								</button>
-							</div>
 							<div className="flex flex-wrap gap-1">
 								<button
-									onClick={() => setSelectedTag('all')}
-									className={`px-2 py-1 text-xs rounded-full ${selectedTag === 'all'
+									onClick={() => setSelectedTag('saved')}
+									className={`px-2 py-1 text-xs rounded-full ${selectedTag === 'saved'
+										? 'bg-green-500 text-white'
+										: isDarkMode
+											? 'bg-gray-700 text-gray-300'
+											: 'bg-gray-200 text-gray-700'
+										}`}
+								>
+									Save Note
+								</button>
+								<button
+									onClick={() => setSelectedTag('shared')}
+									className={`px-2 py-1 text-xs rounded-full ${selectedTag === 'shared'
 										? 'bg-blue-500 text-white'
 										: isDarkMode
 											? 'bg-gray-700 text-gray-300'
 											: 'bg-gray-200 text-gray-700'
 										}`}
 								>
-									All
+									Share Note
 								</button>
 								<button
-									onClick={() => setSelectedTag('favorites')}
-									className={`px-2 py-1 text-xs rounded-full flex items-center ${selectedTag === 'favorites'
-										? 'bg-yellow-500 text-white'
+									onClick={() => setSelectedTag('received')}
+									className={`px-2 py-1 text-xs rounded-full ${selectedTag === 'received'
+										? 'bg-purple-500 text-white'
 										: isDarkMode
 											? 'bg-gray-700 text-gray-300'
 											: 'bg-gray-200 text-gray-700'
 										}`}
 								>
-									<Star className="w-3 h-3 mr-1" />
-									Favorites
+									Received Note
 								</button>
-								{tags.map(tag => (
-									<button
-										key={tag}
-										onClick={() => setSelectedTag(tag)}
-										className={`px-2 py-1 text-xs rounded-full ${selectedTag === tag
-											? 'bg-purple-500 text-white'
-											: isDarkMode
-												? 'bg-gray-700 text-gray-300'
-												: 'bg-gray-200 text-gray-700'
-											}`}
-									>
-										{tag}
-									</button>
-								))}
 							</div>
 						</div>
 					</div>
@@ -1603,19 +2374,30 @@ const NotepadPage = () => {
 									>
 										<div className="flex justify-between items-start">
 											<div className="font-medium truncate">{note.title}</div>
-											<button
-												onClick={(e) => {
-													e.stopPropagation();
-													toggleFavorite(note._id);
-												}}
-												className="ml-2"
-											>
-												{favorites.includes(note._id) ? (
-													<Star className="w-4 h-4 text-yellow-500 fill-current" />
-												) : (
-													<Star className="w-4 h-4 text-gray-400" />
-												)}
-											</button>
+											<div className="flex items-center gap-1">
+												<button
+													onClick={(e) => {
+														e.stopPropagation();
+														toggleFavorite(note._id);
+													}}
+													className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+												>
+													{favorites.includes(note._id) ? (
+														<Star className="w-4 h-4 text-yellow-500 fill-current" />
+													) : (
+														<Star className="w-4 h-4 text-gray-400" />
+													)}
+												</button>
+												<button
+													onClick={(e) => {
+														e.stopPropagation();
+														deleteNote(note._id);
+													}}
+													className="p-1 rounded hover:bg-red-200 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-500"
+												>
+													<Trash2 className="w-4 h-4" />
+												</button>
+											</div>
 										</div>
 										<div className="text-sm text-gray-500 truncate mt-1">
 											{note.content?.substring(0, 50) || 'No content'}
@@ -1795,6 +2577,71 @@ const NotepadPage = () => {
 							<div>
 								<div className="font-medium">Callout</div>
 								<div className="text-xs text-gray-500">Make writing stand out.</div>
+							</div>
+						</button>
+						<button
+							onClick={() => {
+								applyFormatting('code');
+							}}
+							className={`w-full flex items-center px-4 py-2 text-left hover:${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}
+						>
+							<Code className="w-5 h-5 mr-3 text-gray-500" />
+							<div>
+								<div className="font-medium">Code</div>
+								<div className="text-xs text-gray-500">Capture a code snippet.</div>
+							</div>
+						</button>
+
+						{/* Advanced section */}
+						<div className="px-2 py-1 text-xs font-semibold text-gray-500 uppercase tracking-wider mt-2">
+							Advanced
+						</div>
+						<button
+							onClick={() => {
+								applyFormatting('table');
+							}}
+							className={`w-full flex items-center px-4 py-2 text-left hover:${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}
+						>
+							<Table className="w-5 h-5 mr-3 text-gray-500" />
+							<div>
+								<div className="font-medium">Table</div>
+								<div className="text-xs text-gray-500">Add a simple table.</div>
+							</div>
+						</button>
+						<button
+							onClick={() => {
+								applyFormatting('image');
+							}}
+							className={`w-full flex items-center px-4 py-2 text-left hover:${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}
+						>
+							<Image className="w-5 h-5 mr-3 text-gray-500" />
+							<div>
+								<div className="font-medium">Image</div>
+								<div className="text-xs text-gray-500">Upload or embed an image.</div>
+							</div>
+						</button>
+						<button
+							onClick={() => {
+								applyFormatting('video');
+							}}
+							className={`w-full flex items-center px-4 py-2 text-left hover:${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}
+						>
+							<Video className="w-5 h-5 mr-3 text-gray-500" />
+							<div>
+								<div className="font-medium">Video</div>
+								<div className="text-xs text-gray-500">Embed a video.</div>
+							</div>
+						</button>
+						<button
+							onClick={() => {
+								applyFormatting('link');
+							}}
+							className={`w-full flex items-center px-4 py-2 text-left hover:${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}
+						>
+							<Link className="w-5 h-5 mr-3 text-gray-500" />
+							<div>
+								<div className="font-medium">Link</div>
+								<div className="text-xs text-gray-500">Add a web link.</div>
 							</div>
 						</button>
 					</div>

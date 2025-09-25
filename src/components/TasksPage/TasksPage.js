@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, CheckSquare, Plus, X, MessageSquare, Send, Target, FileText, Menu, Home, Inbox, FolderOpen, Calendar, BarChart3, Settings, Trash2, StickyNote, Users, Edit3, MoreHorizontal } from 'lucide-react';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { ArrowLeft, CheckSquare, Plus, X, MessageSquare, Send, Target, FileText, BarChart3 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
 const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'Project', embedded = false }) => {
@@ -10,6 +10,7 @@ const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'P
   
   console.log(`TasksPage initialized with projectId: ${projectId}, projectName: ${projectName}`);
   const navigate = useNavigate();
+  const location = useLocation();
   const { isDarkMode } = useTheme();
   const [tasks, setTasks] = useState([]);
   const [showAddTask, setShowAddTask] = useState(false);
@@ -19,9 +20,9 @@ const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'P
   const [showQuickNav, setShowQuickNav] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [editingTask, setEditingTask] = useState(null);
-  const [editText, setEditText] = useState('');
-  const [showTaskMenu, setShowTaskMenu] = useState({});
+
+
+  const quickNavRef = useRef(null);
 
   const prevProjectIdRef = useRef(projectId);
   const [initialized, setInitialized] = useState(false);
@@ -50,18 +51,7 @@ const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'P
     loadTasks();
   }, [projectId, projectName]);
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (!event.target.closest('.task-menu')) {
-        setShowTaskMenu({});
-      }
-    };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
 
   const fetchTasks = async () => {
     console.log('fetchTasks called with projectId:', projectId);
@@ -531,18 +521,7 @@ const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'P
         timestamp: new Date().toISOString()
       };
 
-      console.log('Adding comment with data:', commentData);
-
-      // Update the task with the new comment
-      const updateData = {
-        text: task.text,
-        priority: task.priority || 'medium',
-        completed: task.completed || false,
-        comments: [
-          ...(task.comments || []),
-          commentData
-        ]
-      };
+      const updatedComments = [...(task.comments || []), commentData];
 
       const response = await fetch(`http://localhost:5000/api/projects/${projectId}/tasks/${taskId}`, {
         method: 'PUT',
@@ -550,7 +529,12 @@ const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'P
           'Content-Type': 'application/json',
           'x-auth-token': token
         },
-        body: JSON.stringify(updateData)
+        body: JSON.stringify({
+          text: task.text,
+          priority: task.priority || 'medium',
+          completed: task.completed || false,
+          comments: updatedComments
+        })
       });
 
       console.log('Add comment response status:', response.status);
@@ -596,141 +580,34 @@ const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'P
     }
   };
 
-  const startEditing = (task) => {
-    setEditingTask(task.id || task._id);
-    setEditText(task.text);
-    setShowTaskMenu({});
-  };
 
-  const saveEdit = async (taskId) => {
-    try {
-      const task = tasks.find(t => t.id === taskId);
-      if (!task) {
-        console.error('Task not found for editing:', taskId);
-        return;
-      }
 
-      const token = localStorage.getItem('token');
-      if (!token) {
-        console.error('No authentication token found');
-        throw new Error('Authentication required');
-      }
 
-      if (!projectId) {
-        console.error('No project ID available');
-        throw new Error('Project ID is required');
-      }
-
-      console.log(`Saving edit for task ${taskId} in project ${projectId}`);
-      console.log('Edit text:', editText.trim());
-
-      const updateData = {
-        text: editText.trim(),
-        priority: task.priority || 'medium',
-        completed: task.completed || false
-      };
-
-      console.log('Update data:', updateData);
-
-      const response = await fetch(`http://localhost:5000/api/projects/${projectId}/tasks/${taskId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': token
-        },
-        body: JSON.stringify(updateData)
-      });
-
-      console.log('Save edit response status:', response.status);
-
-      if (!response.ok) {
-        let errorData;
-        try {
-          errorData = await response.json();
-        } catch (e) {
-          console.error('Failed to parse error response:', e);
-          errorData = { message: 'Failed to save task edit' };
-        }
-        throw new Error(errorData.message || 'Failed to save task edit');
-      }
-
-      const updatedTask = await response.json();
-      console.log('Task edit saved successfully:', updatedTask);
-
-      // Update local state
-      setTasks(prevTasks =>
-        prevTasks.map(t =>
-          t.id === taskId
-            ? {
-              ...t,
-              text: editText.trim(),
-              updatedAt: updatedTask.updatedAt
-            }
-            : t
-        )
-      );
-
-      // Reset editing state
-      setEditingTask(null);
-      setEditText('');
-
-      return updatedTask;
-    } catch (error) {
-      console.error('Error saving task edit:', error);
-      if (error.message === 'Failed to fetch') {
-        alert('Cannot connect to server. Please check if the backend is running.');
-      } else {
-        alert(`Failed to save edit: ${error.message}`);
-      }
-      return null;
-    }
-  };
-
-  const cancelEdit = () => {
-    setEditingTask(null);
-    setEditText('');
-  };
-
-  const handleDeleteTask = async (taskId) => {
-    try {
-      if (!taskId) {
-        console.error('Invalid task ID');
-        return;
-      }
-
-      if (window.confirm('Are you sure you want to delete this task?')) {
-        const success = await deleteTask(taskId);
-        if (success) {
-          setShowTaskMenu({});
-        }
-      }
-    } catch (error) {
-      console.error('Error handling delete task:', error);
-    }
-  };
-
-  const toggleTaskMenu = (taskId) => {
-    setShowTaskMenu(prev => ({ ...prev, [taskId]: !prev[taskId] }));
-  };
 
   const completedCount = tasks.filter(task => task.completed).length;
   const progressPercentage = tasks.length > 0 ? (completedCount / tasks.length) * 100 : 0;
 
   return (
+    <>
     <div className={`${embedded ? '' : `${isDarkMode ? 'bg-black text-gray-100' : 'bg-white text-black'} min-h-screen font-sans`}`}>
       <div className={embedded ? 'p-4' : 'max-w-6xl mx-auto px-4 py-8'}>
         {!embedded && (
-          <div className="flex items-center justify-between mb-8">
+          <div className={`flex items-center justify-between mb-8 p-6 rounded-2xl ${isDarkMode ? 'bg-gradient-to-r from-gray-900/80 to-gray-800/80 border border-gray-700/50' : 'bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border border-blue-100/50'} backdrop-blur-sm shadow-lg`}>
             <div className="flex items-center gap-4">
               <button
                 onClick={() => navigate(-1)}
-                className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}
+                className={`p-3 rounded-xl transition-all duration-200 ${isDarkMode ? 'hover:bg-gray-700/50 hover:scale-105' : 'hover:bg-white/70 hover:scale-105'} shadow-sm`}
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
-              <div className="flex items-center gap-3">
-                <CheckSquare className="w-8 h-8 text-blue-500" />
-                <h1 className="text-3xl font-bold">Tasks</h1>
+              <div className="flex items-center gap-4">
+                <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-blue-600/20' : 'bg-blue-500/10'} shadow-sm`}>
+                  <CheckSquare className="w-8 h-8 text-blue-500" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Tasks</h1>
+                  <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Manage your project tasks</p>
+                </div>
               </div>
             </div>
 
@@ -738,30 +615,48 @@ const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'P
         )}
 
         {!embedded && (
-          <div className={`${isDarkMode ? 'bg-gray-900/60 border-gray-800' : 'bg-white/70 border-gray-200/50'} backdrop-blur-sm p-6 rounded-2xl border shadow-lg mb-6`}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">Progress</h2>
-              <span className="text-sm text-gray-500">{completedCount}/{tasks.length} completed</span>
+          <div className={`${isDarkMode ? 'bg-gradient-to-br from-gray-900/80 to-gray-800/80 border-gray-700/50' : 'bg-gradient-to-br from-white/90 to-gray-50/90 border-gray-200/50'} backdrop-blur-sm p-8 rounded-3xl border shadow-xl mb-8`}>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-green-600/20' : 'bg-green-500/10'}`}>
+                  <BarChart3 className="w-5 h-5 text-green-500" />
+                </div>
+                <h2 className="text-2xl font-bold">Progress Overview</h2>
+              </div>
+              <div className={`px-4 py-2 rounded-full ${isDarkMode ? 'bg-blue-600/20 text-blue-300' : 'bg-blue-500/10 text-blue-600'} font-semibold`}>
+                {completedCount}/{tasks.length} completed
+              </div>
             </div>
-            <div className={`w-full bg-gray-200 rounded-full h-3 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
+            <div className={`w-full h-4 rounded-full ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-200/50'} overflow-hidden shadow-inner`}>
               <div
-                className="bg-gradient-to-r from-blue-500 to-green-500 h-3 rounded-full transition-all duration-300"
+                className="bg-gradient-to-r from-blue-500 via-purple-500 to-green-500 h-full rounded-full transition-all duration-500 ease-out shadow-sm"
                 style={{ width: `${progressPercentage}%` }}
               ></div>
             </div>
-            <p className="text-sm text-gray-500 mt-2">{Math.round(progressPercentage)}% complete</p>
+            <div className="flex items-center justify-between mt-4">
+              <p className={`text-lg font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{Math.round(progressPercentage)}% complete</p>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-500 to-green-500"></div>
+                <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Task completion</span>
+              </div>
+            </div>
           </div>
         )}
 
-        <div className={`${embedded ? '' : `${isDarkMode ? 'bg-gray-900/60 border-gray-800' : 'bg-white/70 border-gray-200/50'} backdrop-blur-sm rounded-2xl border shadow-lg`} p-6`}>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold">{projectId ? 'Project Tasks' : 'All Tasks'}</h2>
+        <div className={`${embedded ? '' : `${isDarkMode ? 'bg-gradient-to-br from-gray-900/80 to-gray-800/80 border-gray-700/50' : 'bg-gradient-to-br from-white/90 to-gray-50/90 border-gray-200/50'} backdrop-blur-sm rounded-3xl border shadow-xl`} p-8`}>
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-purple-600/20' : 'bg-purple-500/10'}`}>
+                <CheckSquare className="w-6 h-6 text-purple-500" />
+              </div>
+              <h2 className="text-2xl font-bold">{projectId ? 'Project Tasks' : 'All Tasks'}</h2>
+            </div>
             <button
               onClick={() => setShowAddTask(true)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white`}
+              className={`flex items-center gap-3 px-6 py-3 rounded-xl transition-all duration-200 ${isDarkMode ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800' : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700'} text-white font-semibold shadow-lg hover:shadow-xl hover:scale-105`}
             >
-              <Plus className="w-4 h-4" />
-              Add Task
+              <Plus className="w-5 h-5" />
+              Add New Task
             </button>
           </div>
 
@@ -817,7 +712,7 @@ const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'P
               </div>
             ) : (
               tasks.map(task => (
-                <div key={task.id || task._id} className={`p-4 rounded-lg border ${isDarkMode ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-gray-50'}`}>
+                <div key={task.id || task._id} className={`p-6 rounded-2xl border transition-all duration-200 hover:shadow-lg ${isDarkMode ? 'border-gray-700/50 bg-gradient-to-r from-gray-800/60 to-gray-700/60 hover:border-gray-600/50' : 'border-gray-200/50 bg-gradient-to-r from-white/80 to-gray-50/80 hover:border-gray-300/50'} backdrop-blur-sm`}>
                   <div className="flex items-center gap-3 mb-2">
                     <input
                       type="checkbox"
@@ -826,66 +721,11 @@ const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'P
                       className="w-4 h-4"
                     />
                     <div className="flex-1">
-                      {editingTask === (task.id || task._id) ? (
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={editText}
-                            onChange={(e) => setEditText(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') saveEdit(task.id || task._id);
-                              if (e.key === 'Escape') cancelEdit();
-                            }}
-                            className={`flex-1 px-2 py-1 text-sm rounded border focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-100' : 'bg-white border-gray-300 text-gray-900'}`}
-                            autoFocus
-                          />
-                          <button
-                            onClick={() => saveEdit(task.id || task._id)}
-                            className={`px-3 py-1 rounded text-sm transition-colors ${isDarkMode ? 'bg-green-600 hover:bg-green-700' : 'bg-green-500 hover:bg-green-600'} text-white`}
-                          >
-                            Save
-                          </button>
-                          <button
-                            onClick={cancelEdit}
-                            className={`px-3 py-1 rounded text-sm transition-colors ${isDarkMode ? 'bg-gray-600 hover:bg-gray-700' : 'bg-gray-400 hover:bg-gray-500'} text-white`}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      ) : (
-                        <span className={task.completed ? 'line-through text-gray-500' : ''}>
-                          {task.text}
-                        </span>
-                      )}
+                      <span className={task.completed ? 'line-through text-gray-500' : ''}>
+                        {task.text}
+                      </span>
                     </div>
-                    <div className="relative task-menu">
-                      <button
-                        onClick={() => toggleTaskMenu(task.id || task._id)}
-                        className={`p-1 rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
-                      >
-                        <MoreHorizontal className="w-4 h-4" />
-                      </button>
-                      {showTaskMenu[task.id || task._id] && (
-                        <div className={`absolute right-0 top-8 w-32 rounded-lg shadow-lg border z-10 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-                          <div className="py-1">
-                            <button
-                              onClick={() => startEditing(task)}
-                              className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 transition-colors ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-                            >
-                              <Edit3 className="w-3 h-3" />
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleDeleteTask(task.id || task._id)}
-                              className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 transition-colors text-red-600 ${isDarkMode ? 'hover:bg-red-900/20' : 'hover:bg-red-50'}`}
-                            >
-                              <Trash2 className="w-3 h-3" />
-                              Delete
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+
                   </div>
                   <button
                     onClick={() => toggleComments(task.id || task._id)}
@@ -928,7 +768,10 @@ const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'P
 
 
       </div>
+
+
     </div>
+    </>
   );
 };
 

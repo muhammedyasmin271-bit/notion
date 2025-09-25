@@ -1,19 +1,6 @@
 const mongoose = require('mongoose');
 
-const CommentSchema = new mongoose.Schema({
-  text: {
-    type: String,
-    required: true
-  },
-  timestamp: {
-    type: Date,
-    default: Date.now
-  },
-  createdBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  }
-});
+
 
 const TaskSchema = new mongoose.Schema({
   text: {
@@ -45,7 +32,7 @@ const TaskSchema = new mongoose.Schema({
       message: 'Due date must be in the future'
     }
   },
-  comments: [CommentSchema],
+
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

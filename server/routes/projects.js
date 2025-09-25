@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const auth = require('../middleware/auth');
 const Project = require('../models/Project');
 const { requireManager } = require('../middleware/roleAuth');
@@ -18,7 +19,7 @@ function mapProject(p) {
     name: p.title,
     priority: p.priority,
     forPerson: forPerson || '',
-    notes: p.description,
+    notes: p.notes || p.description, // Use notes field first, fallback to description
     description: p.description, // Add description field for frontend compatibility
     status: p.status,
     ownerUid: ownerId,
@@ -108,31 +109,102 @@ router.put('/:id/status', auth, async (req, res) => {
   }
 });
 
-// PUT /api/projects/:id - Update project (manager only)
-router.put('/:id', requireManager, async (req, res) => {
+// PUT /api/projects/:id - Update project
+router.put('/:id', auth, async (req, res) => {
   try {
-    const { name, title, notes, description, status, priority, forPerson, startDate, endDate } = req.body || {};
-
     const p = await Project.findById(req.params.id);
     if (!p) return res.status(404).json({ message: 'Project not found' });
 
-    if (title !== undefined) p.title = title;
-    if (name !== undefined) p.title = name;
-    // Handle both notes and description fields for compatibility
-    if (notes !== undefined) p.description = notes;
-    if (description !== undefined) p.description = description;
-    if (status !== undefined) p.status = status;
-    if (priority !== undefined) p.priority = priority;
-    if (forPerson !== undefined) p.tags = forPerson ? [String(forPerson)] : [];
-    if (startDate !== undefined) p.startDate = startDate ? new Date(startDate) : undefined;
-    if (endDate !== undefined) p.dueDate = endDate ? new Date(endDate) : undefined;
+    const { title, description, status, priority, forPerson, startDate, endDate } = req.body;
+    const isManager = req.user.role === 'manager';
+
+    // Allow status updates for all users
+    if (status) p.status = status;
+
+    // Only managers can update other fields
+    if (isManager) {
+      if (title) p.title = title;
+      if (description !== undefined) p.description = description;
+      if (priority) p.priority = priority;
+      if (forPerson !== undefined) p.tags = forPerson ? [forPerson] : [];
+      if (startDate) p.startDate = new Date(startDate);
+      if (endDate) p.dueDate = new Date(endDate);
+    }
 
     await p.save();
     await p.populate('owner', 'name email');
     res.json(mapProject(p));
   } catch (e) {
-    console.error('Failed to update project:', e.message);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Project update error:', e.message);
+    res.status(500).json({ message: 'Server error', error: e.message });
+  }
+});
+
+// PATCH /api/projects/:id/goal - Update project goal
+router.patch('/:id/goal', auth, async (req, res) => {
+  try {
+    const { goal } = req.body;
+
+    const p = await Project.findById(req.params.id);
+    if (!p) return res.status(404).json({ message: 'Project not found' });
+
+    // Update only the goal field without full validation
+    await Project.findByIdAndUpdate(
+      req.params.id,
+      { $set: { goal: goal } },
+      { new: true, runValidators: false } // Disable full validation
+    ).populate('owner', 'name email');
+
+    // Fetch the updated project to return
+    const updatedProject = await Project.findById(req.params.id).populate('owner', 'name email');
+    res.json(mapProject(updatedProject));
+  } catch (e) {
+    console.error('Project goal update error:', e.message);
+    res.status(500).json({ message: 'Server error', error: e.message });
+  }
+});
+
+// PATCH /api/projects/:id/notes - Update project notes
+router.patch('/:id/notes', auth, async (req, res) => {
+  try {
+    const { notes } = req.body;
+
+    const p = await Project.findById(req.params.id);
+    if (!p) return res.status(404).json({ message: 'Project not found' });
+
+    // Update only the notes field without full validation
+    await Project.findByIdAndUpdate(
+      req.params.id,
+      { $set: { notes: notes } },
+      { new: true, runValidators: false }
+    );
+
+    res.json({ success: true, message: 'Notes saved successfully' });
+  } catch (e) {
+    console.error('Project notes update error:', e.message);
+    res.status(500).json({ message: 'Server error', error: e.message });
+  }
+});
+
+// PATCH /api/projects/:id/goal - Update project goal
+router.patch('/:id/goal', auth, async (req, res) => {
+  try {
+    const { goal } = req.body;
+
+    const p = await Project.findById(req.params.id);
+    if (!p) return res.status(404).json({ message: 'Project not found' });
+
+    // Update only the goal field without full validation
+    await Project.findByIdAndUpdate(
+      req.params.id,
+      { $set: { goal: goal } },
+      { new: true, runValidators: false }
+    );
+
+    res.json({ success: true, message: 'Goal saved successfully' });
+  } catch (e) {
+    console.error('Project goal update error:', e.message);
+    res.status(500).json({ message: 'Server error', error: e.message });
   }
 });
 
@@ -175,7 +247,6 @@ router.get('/:id/data', auth, async (req, res) => {
         _id: undefined,
         __v: undefined
       })),
-      comments: project.comments || [],
       activities: project.activities || []
     };
 
@@ -187,52 +258,57 @@ router.get('/:id/data', auth, async (req, res) => {
   }
 });
 
-// POST /api/projects/:id/tasks - Add task
+// POST /api/projects/:id/tasks - Create a new task
 router.post('/:id/tasks', auth, async (req, res) => {
   try {
-    const { text, priority = 'medium', dueDate, completed = false } = req.body;
-    const projectId = req.params.id;
+    const { id: projectId } = req.params;
+    const { text, priority = 'medium', dueDate } = req.body;
     const userId = req.user.id;
 
-    console.log('Adding task to project:', { projectId, userId, text });
-
-    // Validate input
     if (!text || !text.trim()) {
       return res.status(400).json({ message: 'Task text is required' });
     }
 
-    // Check if project exists
+    if (!userId) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    console.log(`Creating task for project: ${projectId}, user: ${userId}`);
+
+    // Verify project exists and user has access
     const project = await Project.findById(projectId);
     if (!project) {
-      console.log('Project not found for task add:', projectId);
+      console.log('Project not found:', projectId);
       return res.status(404).json({ message: 'Project not found' });
     }
 
-    // Create new task document with required projectId
+    const isOwner = project.owner && project.owner.toString() === userId;
+    const isTeamMember = project.team && project.team.some(member => member.toString() === userId);
+
+    if (!isOwner && !isTeamMember) {
+      return res.status(403).json({ message: 'Not authorized to create tasks in this project' });
+    }
+
+    // Create the task
     const Task = require('../models/Task');
     const newTask = new Task({
       text: text.trim(),
       priority: ['low', 'medium', 'high'].includes(priority) ? priority : 'medium',
-      createdBy: userId,
-      projectId: projectId, // Required field - task MUST belong to this project
       dueDate: dueDate || null,
-      completed: Boolean(completed),
-      comments: []
+      createdBy: userId,
+      projectId: projectId
     });
 
-    // Save the task
     await newTask.save();
-
-    // Populate the createdBy field for the response
     await newTask.populate('createdBy', 'name email');
     await newTask.populate('projectId', 'name');
 
-    console.log('Task added successfully:', newTask._id);
+    console.log(`Task created successfully: ${newTask._id}`);
     res.status(201).json(newTask);
   } catch (e) {
-    console.error('Error adding task:', e);
+    console.error('Error creating task:', e);
     res.status(500).json({
-      message: 'Failed to add task',
+      message: 'Failed to create task',
       error: process.env.NODE_ENV === 'development' ? e.message : undefined
     });
   }
@@ -337,22 +413,6 @@ router.delete('/:id/tasks/:taskId', auth, async (req, res) => {
       message: 'Failed to delete task',
       error: process.env.NODE_ENV === 'development' ? e.message : undefined
     });
-  }
-});
-
-// POST /api/projects/:id/comments - Add comment
-router.post('/:id/comments', auth, async (req, res) => {
-  try {
-    const project = await Project.findById(req.params.id);
-    if (!project) return res.status(404).json({ message: 'Project not found' });
-
-    if (!project.comments) project.comments = [];
-    project.comments.push(req.body);
-    await project.save();
-
-    res.json(req.body);
-  } catch (e) {
-    res.status(500).json({ message: 'Server error' });
   }
 });
 

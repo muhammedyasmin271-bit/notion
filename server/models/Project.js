@@ -48,6 +48,12 @@ const projectSchema = new mongoose.Schema({
     max: 100,
     default: 0
   },
+  goal: {
+    type: String,
+    trim: true,
+    maxlength: [10000, 'Goal cannot exceed 10000 characters'],
+    default: ''
+  },
   tags: [{
     type: String,
     trim: true
@@ -108,17 +114,7 @@ const projectSchema = new mongoose.Schema({
       type: Date,
       default: Date.now
     },
-    comments: [{
-      text: String,
-      createdBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
-      },
-      createdAt: {
-        type: Date,
-        default: Date.now
-      }
-    }]
+    // Comments moved to the main project level
   }],
   budget: {
     estimated: Number,
@@ -136,20 +132,26 @@ const projectSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  comments: [{
-    id: Number,
-    text: String,
-    user: String,
-    timestamp: String,
-    reactions: [String]
-  }],
+
   activities: [{
     id: Number,
     user: String,
     action: String,
     timestamp: String,
     type: String
-  }]
+  }],
+
+  // Project notes as blocks
+  notes: {
+    type: String,
+    default: ''
+  },
+
+  // Project goals as blocks (separate from notes)
+  goal: {
+    type: String,
+    default: ''
+  }
 }, {
   timestamps: true
 }, {
