@@ -143,11 +143,11 @@ const NavBar = () => {
           {!isCollapsed && (
             <div className="flex items-center">
               <img
-                src="/darul-kubra-logo-removebg-preview.png"
-                alt="Darul Kubra Logo"
-                className="h-8 w-8 mr-2 object-contain"
+                src="/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png"
+                alt="Mela Note Logo"
+                className="h-12 w-12 mr-3 object-contain filter brightness-0 invert"
               />
-              <h1 className="text-xl font-bold">DARUL KUBRA</h1>
+              <h1 className="text-xl font-bold">MELA NOTE</h1>
             </div>
           )}
           <button

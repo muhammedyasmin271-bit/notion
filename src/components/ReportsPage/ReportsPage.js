@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   BarChart3,
   TrendingUp,
@@ -29,7 +30,8 @@ import { useAppContext } from '../../context/AppContext';
 const ReportsPage = () => {
   const { isDarkMode } = useTheme();
   const { user, users } = useAppContext();
-  const [activeTab, setActiveTab] = useState('overview');
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState('worker-reports');
   const [dateRange, setDateRange] = useState('30');
   const [isLoading, setIsLoading] = useState(false);
   const [workerReport, setWorkerReport] = useState('');
@@ -46,7 +48,14 @@ const ReportsPage = () => {
   useEffect(() => {
     loadReportData();
     loadWorkerReports();
-  }, [dateRange]);
+    
+    // Check for URL parameters to pre-fill project report
+    const urlParams = new URLSearchParams(location.search);
+    const projectTitle = urlParams.get('title');
+    if (projectTitle) {
+      setReportTitle(`Project Report: ${decodeURIComponent(projectTitle)}`);
+    }
+  }, [dateRange, location.search]);
 
   const loadWorkerReports = () => {
     const reports = JSON.parse(localStorage.getItem('workerReports') || '[]');
@@ -273,11 +282,8 @@ const ReportsPage = () => {
         {/* Enhanced Tab Navigation */}
         <div className={`flex space-x-2 p-2 rounded-2xl mb-10 shadow-lg border ${isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'}`}>
           {[
-            { id: 'overview', label: 'Overview', icon: BarChart3 },
-            { id: 'projects', label: 'Projects', icon: Target },
-            { id: 'team', label: 'Team Performance', icon: Users },
-            { id: 'productivity', label: 'Productivity', icon: TrendingUp },
-            { id: 'worker-reports', label: user?.role === 'manager' ? 'Worker Reports' : 'Submit Report', icon: FileText }
+            { id: 'worker-reports', label: user?.role === 'manager' ? 'Project Reports' : 'Submit Project Report', icon: FileText },
+            { id: 'overview', label: 'Analytics Overview', icon: BarChart3 }
           ].map(tab => {
             const Icon = tab.icon;
             return (
@@ -603,15 +609,18 @@ const ReportsPage = () => {
               <div>
                 <div className="flex items-center justify-between mb-6">
                   <h3 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    Worker Reports ({workerReports.length})
+                    Project Reports ({workerReports.length})
                   </h3>
+                  <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    All project reports submitted by team members
+                  </div>
                 </div>
                 
                 <div className="grid gap-6">
                   {workerReports.length === 0 ? (
                     <div className={`text-center py-12 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                       <FileText className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                      <p>No worker reports submitted yet</p>
+                      <p>No project reports submitted yet</p>
                     </div>
                   ) : (
                     workerReports.map((report) => (
@@ -650,10 +659,10 @@ const ReportsPage = () => {
               <div>
                 <div className="mb-6">
                   <h3 className={`text-2xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    Submit Professional Report
+                    Submit Project Report
                   </h3>
                   <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    Create and submit detailed reports for management review
+                    Create and submit detailed project reports for management review and tracking
                   </p>
                 </div>
 
@@ -661,13 +670,13 @@ const ReportsPage = () => {
                   <div className="space-y-6">
                     <div>
                       <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                        Report Title
+                        Project Report Title
                       </label>
                       <input
                         type="text"
                         value={reportTitle}
                         onChange={(e) => setReportTitle(e.target.value)}
-                        placeholder="Enter a descriptive title for your report"
+                        placeholder="e.g., Weekly Project Status Report - Marketing Campaign"
                         className={`w-full p-4 rounded-lg border font-medium ${isDarkMode 
                           ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400' 
                           : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
@@ -677,12 +686,12 @@ const ReportsPage = () => {
 
                     <div>
                       <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                        Report Content
+                        Project Report Details
                       </label>
                       <textarea
                         value={workerReport}
                         onChange={(e) => setWorkerReport(e.target.value)}
-                        placeholder="Write your detailed professional report here...\n\nInclude:\n• Key accomplishments\n• Challenges faced\n• Solutions implemented\n• Recommendations\n• Next steps"
+                        placeholder="Write your detailed project report here...\n\nInclude:\n• Project progress and milestones achieved\n• Current status and completion percentage\n• Challenges encountered and solutions\n• Team collaboration and performance\n• Budget and resource utilization\n• Next steps and upcoming deliverables\n• Recommendations for improvement"
                         rows={16}
                         className={`w-full p-6 rounded-lg border resize-none leading-relaxed ${isDarkMode 
                           ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400' 
@@ -707,7 +716,7 @@ const ReportsPage = () => {
                         }`}
                       >
                         <Upload className="w-4 h-4" />
-                        Submit Report
+                        Submit Project Report
                       </button>
                     </div>
                   </div>
@@ -717,7 +726,7 @@ const ReportsPage = () => {
                 {workerReports.filter(r => r.author === user?.name).length > 0 && (
                   <div className="mt-8">
                     <h4 className={`text-lg font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                      Your Recent Reports
+                      Your Recent Project Reports
                     </h4>
                     <div className="space-y-4">
                       {workerReports.filter(r => r.author === user?.name).slice(-3).reverse().map((report) => (

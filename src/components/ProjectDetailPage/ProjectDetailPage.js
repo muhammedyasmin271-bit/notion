@@ -56,7 +56,7 @@ import '../../styles/animations.css';
 const ProjectDetailPage = ({ isNewProject = false }) => {
   const { projectId } = useParams();
   const navigate = useNavigate();
-  const { user, canCreateProjects } = useAppContext();
+  const { user, canCreateProjects, users } = useAppContext();
   const { isDarkMode } = useTheme();
 
   // Priority Selector Component
@@ -93,7 +93,6 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
           onClick={() => setIsOpen(!isOpen)}
           className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} rounded font-medium flex items-center gap-1.5 bg-transparent focus:outline-none ${isFullscreen ? 'min-w-[120px]' : 'min-w-[100px]'}`}
         >
-          <span className={`w-2 h-2 rounded-full ${currentPriority.color}`}></span>
           <span className={`${isDarkMode ? 'text-gray-100' : 'text-black'}`}>{currentPriority.label}</span>
           <ChevronDown className={`h-3 w-3 ml-auto ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
         </button>
@@ -110,7 +109,6 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                   }}
                   className={`w-full flex items-center px-3 py-2 text-left ${option.hoverColor} transition-colors`}
                 >
-                  <span className={`w-2 h-2 rounded-full ${option.color} mr-2`}></span>
                   <span className={`font-medium ${isDarkMode ? 'text-gray-200' : 'text-black'}`}>{option.label}</span>
                 </button>
               ))}
@@ -138,8 +136,11 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiError, setAiError] = useState('');
   const [showUserPicker, setShowUserPicker] = useState(false);
+  const [showViewerPicker, setShowViewerPicker] = useState(false);
   const [availableUsers, setAvailableUsers] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [pickerType, setPickerType] = useState('assign'); // 'assign' or 'viewer'
+  const [selectedUsers, setSelectedUsers] = useState([]);
   const [aiInputBlock, setAiInputBlock] = useState(null);
   const [showAIPopup, setShowAIPopup] = useState(false);
   const [aiPopupQuery, setAiPopupQuery] = useState('');
@@ -147,7 +148,9 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
   const [toggleStates, setToggleStates] = useState({});
   const [tableData, setTableData] = useState({});
   const [deleting, setDeleting] = useState(false);
-
+  const [autoSaving, setAutoSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState(null);
+  const autoSaveTimeoutRef = useRef(null);
 
   const formattingMenuRef = useRef(null);
   const userPickerRef = useRef(null);
@@ -186,7 +189,8 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
         status: 'Not started',
         priority: 'Medium',
         isFavorite: false,
-        forPerson: user?.name || '',
+        forPerson: '',
+        viewers: '',
         notes: '',
         startDate: new Date().toISOString().split('T')[0],
         endDate: new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString().split('T')[0],
@@ -198,6 +202,8 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       setBlocks([{ id: 'block-1', type: 'text', content: '' }]);
       setLoading(false);
     } else if (projectId) {
+      // Store project ID for other pages to use
+      localStorage.setItem('currentProjectId', projectId);
       fetchProject();
     }
   }, [projectId, isNewProject, user]);
@@ -213,12 +219,15 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       if (userPickerRef.current && !userPickerRef.current.contains(event.target)) {
         setShowUserPicker(false);
       }
-
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      // Clear auto-save timeout on cleanup
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -325,6 +334,15 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       if (projectResponse.ok) {
         const projectData = await projectResponse.json();
         console.log('Fetched project data:', projectData);
+        console.log('Project viewers field:', projectData.viewers);
+        
+        // Initialize viewers field if it doesn't exist
+        if (!projectData.viewers) {
+          // Try to get viewers from localStorage backup
+          const storedViewers = localStorage.getItem(`project_${projectId}_viewers`);
+          projectData.viewers = storedViewers || '';
+        }
+        
         setProject(projectData);
         setTitle(projectData.name || projectData.title || '');
         
@@ -360,6 +378,9 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
             setBlocks([{ id: 'block-1', type: 'text', content: '' }]);
           }
         }
+        
+        // Set initial last saved time
+        setLastSaved(new Date(projectData.updatedAt || projectData.createdAt));
       } else {
         console.error('Failed to fetch project:', projectResponse.status);
       }
@@ -591,8 +612,11 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       priority: project.priority,
       startDate: project.startDate,
       endDate: project.endDate,
-      forPerson: project.forPerson
+      forPerson: project.forPerson || '',
+      viewers: project.viewers || ''
     };
+    
+    console.log('Sending project data:', projectData);
 
     try {
       const token = localStorage.getItem('token');
@@ -614,6 +638,17 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
         
         if (response.ok) {
           const newProject = await response.json();
+          console.log('Created project response:', newProject);
+          console.log('Created project viewers:', newProject.viewers);
+          
+          // Preserve viewers field if server doesn't return it
+          if (!newProject.viewers && project.viewers) {
+            newProject.viewers = project.viewers;
+            // Store in localStorage for persistence
+            localStorage.setItem(`project_${newProject._id || newProject.id}_viewers`, project.viewers);
+          }
+          
+          setProject(newProject);
           
           // Save tasks after project is created
           try {
@@ -641,6 +676,16 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
         
         if (response.ok) {
           const updatedProject = await response.json();
+          console.log('Updated project response:', updatedProject);
+          console.log('Updated project viewers:', updatedProject.viewers);
+          
+          // Preserve viewers field if server doesn't return it
+          if (!updatedProject.viewers && project.viewers) {
+            updatedProject.viewers = project.viewers;
+            // Store in localStorage for persistence
+            localStorage.setItem(`project_${project.id}_viewers`, project.viewers);
+          }
+          
           setProject(updatedProject);
           
           // Save tasks after project is updated
@@ -653,8 +698,9 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
           
           alert('Project updated successfully!');
         } else {
-          const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-          alert(`Failed to update project: ${errorData.message || response.status}`);
+          const errorText = await response.text().catch(() => 'Unknown error');
+          console.error('Update failed with status:', response.status, 'Response:', errorText);
+          alert(`Failed to update project: Server error (${response.status})`);
         }
       }
     } catch (error) {
@@ -667,6 +713,11 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
 
   const updateProject = (field, value) => {
     setProject(prev => ({ ...prev, [field]: value }));
+    
+    // Store viewers in localStorage as backup
+    if (field === 'viewers' && projectId && projectId !== 'new') {
+      localStorage.setItem(`project_${projectId}_viewers`, value);
+    }
   };
 
   const handleStatusUpdate = async (newStatus) => {
@@ -701,49 +752,106 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
   const fetchUsers = async () => {
     setLoadingUsers(true);
     try {
+      // Fetch users from database API
       const response = await fetch('http://localhost:5000/api/auth/users', {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
+      
       if (response.ok) {
-        const users = await response.json();
-        setAvailableUsers(users.filter(u => u.status === 'approved'));
+        const allUsers = await response.json();
+        // Filter out current user and demo users
+        const filteredUsers = allUsers.filter(u => 
+          u.email !== 'john@company.com' &&
+          u.email !== 'jane@company.com' &&
+          u.email !== 'admin@example.com' &&
+          u._id !== user?.id && 
+          u.username !== user?.username &&
+          u.name !== user?.name
+        );
+        setAvailableUsers(filteredUsers);
+      } else {
+        setAvailableUsers([]);
       }
     } catch (error) {
       console.error('Error fetching users:', error);
-      // Fallback to localStorage users
-      const loginUsers = JSON.parse(localStorage.getItem('loginUsers') || '[]');
-      setAvailableUsers(loginUsers);
+      setAvailableUsers([]);
     } finally {
       setLoadingUsers(false);
     }
   };
 
-  const handlePickUser = async () => {
-    if (!showUserPicker) {
+  const handlePickUser = async (type) => {
+    setPickerType(type);
+    if (!showUserPicker && !showViewerPicker) {
       await fetchUsers();
     }
-    setShowUserPicker(!showUserPicker);
+    if (type === 'assign') {
+      setShowUserPicker(!showUserPicker);
+      setShowViewerPicker(false);
+    } else {
+      setShowViewerPicker(!showViewerPicker);
+      setShowUserPicker(false);
+    }
   };
 
-  const selectUser = (user) => {
-    updateProject('forPerson', user.name || user.username);
-    setShowUserPicker(false);
+  const selectUser = (selectedUser) => {
+    const userName = selectedUser.name || selectedUser.username;
+    
+    if (pickerType === 'assign') {
+      // Multi-selection for assign
+      const currentAssigned = project.forPerson ? project.forPerson.split(', ').filter(v => v) : [];
+      const isSelected = currentAssigned.includes(userName);
+      
+      let newAssigned;
+      if (isSelected) {
+        newAssigned = currentAssigned.filter(v => v !== userName);
+      } else {
+        newAssigned = [...currentAssigned, userName];
+      }
+      
+      updateProject('forPerson', newAssigned.join(', '));
+    } else {
+      // Multi-selection for viewers
+      const currentViewers = project.viewers ? project.viewers.split(', ').filter(v => v) : [];
+      const isSelected = currentViewers.includes(userName);
+      
+      let newViewers;
+      if (isSelected) {
+        newViewers = currentViewers.filter(v => v !== userName);
+      } else {
+        newViewers = [...currentViewers, userName];
+      }
+      
+      updateProject('viewers', newViewers.join(', '));
+    }
   };
 
   const handleAISubmit = async () => {
     if (aiPopupQuery.trim()) {
       try {
         setIsGenerating(true);
+        
+        // Add the question as a block first
+        const questionBlock = {
+          id: `ai-question-${Date.now()}`,
+          type: 'text',
+          content: `Q: ${aiPopupQuery}`
+        };
+        
         const { content } = await aiAssist(aiPopupQuery, 'custom');
         const lines = (content || '').split('\n').filter(line => line.trim());
-        const newBlocks = lines.map((line, idx) => ({
-          id: `ai-popup-${Date.now()}-${idx}`,
+        const answerBlocks = lines.map((line, idx) => ({
+          id: `ai-answer-${Date.now()}-${idx}`,
           type: 'text',
           content: line.trim()
         }));
+        
+        // Add question block followed by answer blocks
+        const newBlocks = [questionBlock, ...answerBlocks];
         if (newBlocks.length > 0) {
           setBlocks(prev => [...prev, ...newBlocks]);
         }
+        
         setShowAIPopup(false);
         setAiPopupQuery('');
       } catch (e) {
@@ -763,9 +871,21 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       ...(type === 'todo' ? { checked: false } : {})
     };
 
-    const newBlocks = [...blocks];
-    newBlocks.splice(index + 1, 0, newBlock);
-    setBlocks(newBlocks);
+    setBlocks(prev => {
+      const newBlocks = [...prev];
+      newBlocks.splice(index + 1, 0, newBlock);
+      
+      // Trigger auto-save with debounce
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+      autoSaveTimeoutRef.current = setTimeout(() => {
+        autoSaveNotes(newBlocks);
+      }, 1000);
+      
+      return newBlocks;
+    });
+    
     setActiveBlockId(newBlock.id);
 
     // Focus the new block after a short delay
@@ -781,38 +901,120 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
     }
   };
 
+  // Auto-save notes to database
+  const autoSaveNotes = async (blocksToSave) => {
+    if (!project || project.id === 'new') return;
+    
+    try {
+      setAutoSaving(true);
+      
+      // Convert blocks to notes string
+      const notesContent = blocksToSave.map(block => {
+        switch (block.type) {
+          case 'h1': return `# ${block.content}`;
+          case 'h2': return `## ${block.content}`;
+          case 'h3': return `### ${block.content}`;
+          case 'todo': return `- [${block.checked ? 'x' : ' '}] ${block.content}`;
+          case 'bullet': return `• ${block.content}`;
+          case 'number': return `1. ${block.content}`;
+          case 'toggle': return `▶ ${block.content}`;
+          case 'quote': return `> ${block.content}`;
+          case 'callout': return `💡 ${block.content}`;
+          case 'divider': return '---';
+          default: return block.content;
+        }
+      }).join('\n');
+
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const response = await fetch(`http://localhost:5000/api/projects/${project.id}/notes`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token
+        },
+        body: JSON.stringify({ notes: notesContent })
+      });
+
+      if (response.ok) {
+        setLastSaved(new Date());
+      }
+    } catch (error) {
+      console.error('Auto-save failed:', error);
+    } finally {
+      setAutoSaving(false);
+    }
+  };
+
   // Update block content
   const updateBlock = (id, updates) => {
-    setBlocks(prev => prev.map(block => {
-      if (block.id === id) {
-        // Handle todo checked state separately
-        if (updates.checked !== undefined && block.type === 'todo') {
-          return { ...block, checked: updates.checked };
+    setBlocks(prev => {
+      const newBlocks = prev.map(block => {
+        if (block.id === id) {
+          // Handle todo checked state separately
+          if (updates.checked !== undefined && block.type === 'todo') {
+            return { ...block, checked: updates.checked };
+          }
+          // Handle content/text updates
+          if (updates.content !== undefined || updates.text !== undefined) {
+            const content = updates.content !== undefined ? updates.content : updates.text;
+            return { ...block, content };
+          }
+          // Handle other updates
+          return { ...block, ...updates };
         }
-        // Handle content/text updates
-        if (updates.content !== undefined || updates.text !== undefined) {
-          const content = updates.content !== undefined ? updates.content : updates.text;
-          return { ...block, content };
-        }
-        // Handle other updates
-        return { ...block, ...updates };
+        return block;
+      });
+      
+      // Trigger auto-save with debounce
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
       }
-      return block;
-    }));
+      autoSaveTimeoutRef.current = setTimeout(() => {
+        autoSaveNotes(newBlocks);
+      }, 1000); // Auto-save after 1 second of inactivity
+      
+      return newBlocks;
+    });
   };
 
   // Delete block
   const deleteBlock = (id) => {
     if (blocks.length <= 1) return;
 
-    setBlocks(prev => prev.filter(block => block.id !== id));
+    setBlocks(prev => {
+      const newBlocks = prev.filter(block => block.id !== id);
+      
+      // Trigger auto-save with debounce
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+      autoSaveTimeoutRef.current = setTimeout(() => {
+        autoSaveNotes(newBlocks);
+      }, 1000);
+      
+      return newBlocks;
+    });
   };
 
   // Change block type
   const changeBlockType = (id, type) => {
-    setBlocks(prev => prev.map(block =>
-      block.id === id ? { ...block, type } : block
-    ));
+    setBlocks(prev => {
+      const newBlocks = prev.map(block =>
+        block.id === id ? { ...block, type } : block
+      );
+      
+      // Trigger auto-save with debounce
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+      autoSaveTimeoutRef.current = setTimeout(() => {
+        autoSaveNotes(newBlocks);
+      }, 1000);
+      
+      return newBlocks;
+    });
     setShowFormattingMenu(null);
   };
 
@@ -870,6 +1072,16 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       }
     } else if (e.key === 'Backspace' && e.target.value === '') {
       e.preventDefault();
+      const currentIndex = blocks.findIndex(block => block.id === id);
+      if (currentIndex > 0) {
+        // Focus on the previous block
+        const previousBlockId = blocks[currentIndex - 1].id;
+        setTimeout(() => {
+          if (blockRefs.current[previousBlockId]) {
+            blockRefs.current[previousBlockId].focus();
+          }
+        }, 10);
+      }
       deleteBlock(id);
     } else if (e.key === '/' || e.key === '+') {
       e.preventDefault();
@@ -1081,7 +1293,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
   };
 
   // Get placeholder text for block
-  const getBlockPlaceholder = (type) => {
+  const getBlockPlaceholder = (type, index) => {
     switch (type) {
       case 'h1': return 'Heading 1';
       case 'h2': return 'Heading 2';
@@ -1101,7 +1313,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       case 'math': return 'Math equation';
       case 'template': return 'Template content';
       case 'code': return 'Code';
-      default: return 'Type \'/\' for commands';
+      default: return index === 0 ? 'Type \'/\' for commands' : '';
     }
   };
 
@@ -1114,7 +1326,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       onChange: (e) => updateBlock(block.id, { content: e.target.value }),
       onKeyDown: (e) => handleBlockKeyDown(block.id, e),
       onFocus: () => setActiveBlockId(block.id),
-      placeholder: getBlockPlaceholder(block.type)
+      placeholder: getBlockPlaceholder(block.type, index)
     };
 
     switch (block.type) {
@@ -2306,7 +2518,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
             ? 'max-w-5xl px-5 sm:px-12 lg:px-20 py-8 sm:py-12'
             : 'px-3 sm:px-4 py-4 sm:py-6'
             }`}>
-            <div className={`${isFullscreen ? 'mb-8 ml-16' : 'mb-4 ml-8'}`}>
+            <div className={`${isFullscreen ? 'mb-8 ml-16' : 'mb-3 ml-4'}`}>
               {project.id === 'new' || canCreateProjects() ? (
                 <input
                   ref={titleInputRef}
@@ -2315,22 +2527,22 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                   onChange={(e) => setTitle(e.target.value)}
                   onKeyDown={handleTitleKeyDown}
                   placeholder="Untitled Project"
-                  className={`${isFullscreen ? 'text-3xl sm:text-5xl' : 'text-xl sm:text-2xl'} font-bold bg-transparent border-none outline-none w-full ${isDarkMode ? 'text-white placeholder-gray-400' : 'text-gray-900 placeholder-gray-500'} leading-tight mb-2`}
+                  className={`${isFullscreen ? 'text-3xl sm:text-5xl' : 'text-2xl sm:text-3xl'} font-bold bg-transparent border-none outline-none w-full ${isDarkMode ? 'text-white placeholder-gray-400' : 'text-gray-900 placeholder-gray-500'} leading-tight mb-1`}
                 />
               ) : (
-                <h1 className={`${isFullscreen ? 'text-3xl sm:text-5xl' : 'text-xl sm:text-2xl'} font-bold leading-tight mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{title}</h1>
+                <h1 className={`${isFullscreen ? 'text-3xl sm:text-5xl' : 'text-2xl sm:text-3xl'} font-bold leading-tight mb-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{title}</h1>
               )}
               <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                 Created by {project.creatorName || project.ownerName || 'Unknown'}
               </p>
               {!canCreateProjects() && project.id !== 'new' && (
-                <div className={`mt-2 px-3 py-2 rounded-lg text-xs ${isDarkMode ? 'bg-blue-900/20 text-blue-300 border border-blue-800/30' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
+                <div className={`mt-1 px-2 py-1 rounded text-xs ${isDarkMode ? 'bg-blue-900/20 text-blue-300 border border-blue-800/30' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
                   <span className="font-medium">View Mode:</span> You can view this project and update its status, but only managers can edit project details.
                 </div>
               )}
             </div>
 
-            <div className={`flex flex-wrap items-center gap-2 ${isFullscreen ? 'mb-1 ml-16' : 'mb-0.5 ml-8'} text-sm`}>
+            <div className={`flex flex-wrap items-center gap-1 ${isFullscreen ? 'mb-1 ml-16' : 'mb-1 ml-4'} ${isFullscreen ? 'text-sm' : 'text-xs'}`}>
               <div className={`flex items-center gap-1.5 ${isFullscreen ? 'px-4 py-2' : 'px-2 py-1'} rounded-lg ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} shadow-sm`}>
                 <CheckCircle className={`${isFullscreen ? 'h-4 w-4' : 'h-3 w-3'} text-green-500`} />
                 <span className={`px-1.5 py-0.5 rounded ${isFullscreen ? 'text-xs' : 'text-[10px]'} font-medium ${getStatusColor(project.status)}`}>
@@ -2351,13 +2563,15 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
               </div>
             </div>
 
-            <div className={`${isFullscreen ? 'mb-2 ml-16' : 'mb-1 ml-8'}`}>
-              <div className={`${isFullscreen ? 'p-6' : 'p-3'}`}>
-                <div className={`grid grid-cols-1 ${isFullscreen ? 'gap-2 sm:gap-3' : 'gap-1'} text-sm`}>
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-4">
-                      <CheckCircle className="h-4 w-4 text-gray-500" />
-                      <span className="text-gray-600 font-medium">Status</span>
+            <div className={`${isFullscreen ? 'mb-2 ml-16' : 'mb-2 ml-4'}`}>
+              <div className={`${isFullscreen ? 'p-6' : 'p-2'}`}>
+                <div className={`grid grid-cols-1 ${isFullscreen ? 'gap-3' : 'gap-2'} ${isFullscreen ? 'text-sm' : 'text-xs'}`}>
+                  <div className="space-y-1">
+                    <div className="flex items-center">
+                      <div className="flex items-center gap-3 w-32">
+                        <CheckCircle className="h-4 w-4 text-gray-500" />
+                        <span className="text-gray-600 font-medium">Status</span>
+                      </div>
                       <select
                         value={project.status}
                         onChange={(e) => {
@@ -2376,9 +2590,11 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                       </select>
                     </div>
 
-                    <div className="flex items-center gap-4">
-                      <Tag className="h-4 w-4 text-gray-500" />
-                      <span className="text-gray-600 font-medium">Priority</span>
+                    <div className="flex items-center">
+                      <div className="flex items-center gap-3 w-32">
+                        <Tag className="h-4 w-4 text-gray-500" />
+                        <span className="text-gray-600 font-medium">Priority</span>
+                      </div>
                       {canCreateProjects() ? (
                         <PrioritySelector
                           priority={project.priority}
@@ -2399,9 +2615,11 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                       )}
                     </div>
 
-                    <div className="flex items-center gap-4">
-                      <Calendar className="h-4 w-4 text-gray-500" />
-                      <span className="text-gray-600 font-medium">Start Day</span>
+                    <div className="flex items-center">
+                      <div className="flex items-center gap-3 w-32">
+                        <Calendar className="h-4 w-4 text-gray-500" />
+                        <span className="text-gray-600 font-medium">Start Day</span>
+                      </div>
                       {canCreateProjects() ? (
                         <input
                           type="date"
@@ -2416,9 +2634,11 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                       )}
                     </div>
 
-                    <div className="flex items-center gap-4">
-                      <Calendar className="h-4 w-4 text-gray-500" />
-                      <span className="text-gray-600 font-medium">End Day</span>
+                    <div className="flex items-center">
+                      <div className="flex items-center gap-3 w-32">
+                        <Calendar className="h-4 w-4 text-gray-500" />
+                        <span className="text-gray-600 font-medium">End Day</span>
+                      </div>
                       {canCreateProjects() ? (
                         <input
                           type="date"
@@ -2433,65 +2653,91 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                       )}
                     </div>
 
-                    <div className="flex items-center gap-4">
-                      <User className="h-4 w-4 text-gray-500" />
-                      <span className="text-gray-600 font-medium">Assign To</span>
+                    <div className="flex items-center">
+                      <div className="flex items-center gap-3 w-32">
+                        <User className="h-4 w-4 text-gray-500" />
+                        <span className="text-gray-600 font-medium">Assign To</span>
+                      </div>
                       {canCreateProjects() ? (
-                        <>
-                          <input
-                            type="text"
-                            value={project.forPerson}
-                            onChange={(e) => updateProject('forPerson', e.target.value)}
-                            placeholder="Enter name"
-                            className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} rounded bg-white border border-gray-300 text-black focus:outline-none min-w-[100px]`}
-                          />
+                        <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap gap-1 min-w-[100px]">
+                            {project.forPerson && project.forPerson !== 'None' ? (
+                              project.forPerson.split(', ').map((person, index) => (
+                                <span key={index} className={`${isFullscreen ? 'px-2 py-1 text-xs' : 'px-1.5 py-0.5 text-xs'} bg-blue-100 text-blue-800 rounded`}>
+                                  {person}
+                                </span>
+                              ))
+                            ) : (
+                              <span className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} text-gray-500`}>None</span>
+                            )}
+                          </div>
                           <button
                             type="button"
-                            onClick={handlePickUser}
+                            onClick={() => handlePickUser('assign')}
                             className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors`}
                           >
                             Pick
                           </button>
-                        </>
+                        </div>
                       ) : (
                         <span className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} rounded ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                          {project.forPerson || 'Not assigned'}
+                          {project.forPerson || 'None'}
                         </span>
                       )}
                     </div>
 
-                    <div className="flex items-center gap-4">
-                      <Eye className="h-4 w-4 text-gray-500" />
-                      <span className="text-gray-600 font-medium">Viewers</span>
-                      <input
-                        type="text"
-                        value="Aymen Arega"
-                        readOnly
-                        className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} rounded bg-white border border-gray-300 text-black focus:outline-none min-w-[100px]`}
-                      />
-                      <button
-                        type="button"
-                        className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors`}
-                      >
-                        Pick
-                      </button>
+                    <div className="flex items-center">
+                      <div className="flex items-center gap-3 w-32">
+                        <Eye className="h-4 w-4 text-gray-500" />
+                        <span className="text-gray-600 font-medium">Viewers</span>
+                      </div>
+                      {canCreateProjects() ? (
+                        <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap gap-1 min-w-[100px]">
+                            {(() => {
+                              console.log('Viewers value:', project.viewers);
+                              return project.viewers && project.viewers !== 'None' && project.viewers.trim() !== '' ? (
+                                project.viewers.split(', ').filter(v => v.trim()).map((viewer, index) => (
+                                  <span key={index} className={`${isFullscreen ? 'px-2 py-1 text-xs' : 'px-1.5 py-0.5 text-xs'} bg-green-100 text-green-800 rounded`}>
+                                    {viewer.trim()}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} text-gray-500`}>None</span>
+                              );
+                            })()}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handlePickUser('viewer')}
+                            className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors`}
+                          >
+                            Pick
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap gap-1">
+                          {project.viewers && project.viewers !== 'None' && project.viewers.trim() !== '' ? (
+                            project.viewers.split(', ').filter(v => v.trim()).map((viewer, index) => (
+                              <span key={index} className={`${isFullscreen ? 'px-2 py-1 text-xs' : 'px-1.5 py-0.5 text-xs'} bg-green-100 text-green-800 rounded`}>
+                                {viewer.trim()}
+                              </span>
+                            ))
+                          ) : (
+                            <span className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} rounded ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                              None
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
 
-                    <div className="flex items-center gap-4">
-                      <Calendar className="h-4 w-4 text-gray-500" />
-                      <span className="text-gray-600 font-medium">Created Day</span>
+                    <div className="flex items-center">
+                      <div className="flex items-center gap-3 w-32">
+                        <Calendar className="h-4 w-4 text-gray-500" />
+                        <span className="text-gray-600 font-medium">Created Day</span>
+                      </div>
                       <span className={`${isDarkMode ? 'text-white' : 'text-black'} font-medium ${isFullscreen ? 'text-sm' : 'text-xs'}`}>{formatDate(project.createdAt)}</span>
-                    </div>
-
-                    <div className="flex items-center gap-4">
-                      <CheckSquare className="h-4 w-4 text-gray-500" />
-                      <span className="text-gray-600 font-medium">Tasks</span>
-                      <button
-                        onClick={() => navigate(`/projects/${project.id}/tasks`)}
-                        className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors`}
-                      >
-                        View Tasks
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -2499,11 +2745,11 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
             </div>
 
             {/* Notes Section */}
-            <div className={`${isFullscreen ? 'mb-20 ml-16 mr-16' : 'mb-8 ml-8 mr-8'}`}>
-              <div className={`border-t ${isDarkMode ? 'border-gray-600' : 'border-gray-300'} mb-4`}></div>
-              <h3 className={`text-lg font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Project Notes</h3>
-              <div className={`${isFullscreen ? 'p-6' : 'p-3'}`}>
-                <div className={`space-y-2 ${isFullscreen ? 'min-h-96' : 'min-h-48'}`}>
+            <div className={`${isFullscreen ? 'mb-20 ml-16 mr-16' : 'mb-4 ml-4 mr-4'}`}>
+              <div className={`border-t ${isDarkMode ? 'border-gray-600' : 'border-gray-300'} mb-2`}></div>
+              <h3 className={`${isFullscreen ? 'text-lg' : 'text-base'} font-semibold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Project Notes</h3>
+              <div className={`${isFullscreen ? 'p-6' : 'p-2'}`}>
+                <div className={`space-y-0 ${isFullscreen ? 'min-h-96' : 'min-h-32'}`}>
                   {blocks.map((block, index) => (
                     <div key={block.id}>
                       {renderBlock(block, index)}
@@ -2514,11 +2760,29 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                 {/* Add block button */}
                 <button
                   onClick={() => addBlock(blocks.length - 1)}
-                  className={`flex items-center mt-4 px-4 py-2 rounded-lg transition-colors ${isDarkMode ? 'text-gray-300 hover:bg-gray-800' : 'text-gray-500 hover:bg-gray-100'}`}
+                  className={`flex items-center ${isFullscreen ? 'mt-4 px-4 py-2' : 'mt-2 px-3 py-1'} rounded-lg transition-colors ${isDarkMode ? 'text-gray-300 hover:bg-gray-800' : 'text-gray-500 hover:bg-gray-100'}`}
                 >
-                  <Plus className="w-5 h-5 mr-2" />
-                  Add block
+                  <Plus className={`${isFullscreen ? 'w-5 h-5' : 'w-4 h-4'} mr-2`} />
+                  <span className={`${isFullscreen ? 'text-sm' : 'text-xs'}`}>Add block</span>
                 </button>
+                
+                {/* Auto-save indicator */}
+                {(autoSaving || lastSaved) && (
+                  <div className={`mt-2 flex items-center gap-2 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    {autoSaving ? (
+                      <>
+                        <div className="w-3 h-3 border border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                        <span>Saving...</span>
+                      </>
+                    ) : lastSaved ? (
+                      <>
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span>Saved {new Date(lastSaved).toLocaleTimeString()}</span>
+                      </>
+                    ) : null}
+                  </div>
+                )}
+                
                 {isGenerating && (
                   <div className={`mt-4 flex items-center gap-3 px-4 py-3 rounded-lg ${isDarkMode ? 'bg-purple-900/20 border border-purple-800/30' : 'bg-purple-50 border border-purple-200'}`}>
                     <div className="flex items-center justify-center">
@@ -2571,10 +2835,10 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       </div>
 
       {/* User Picker Dropdown */}
-      {showUserPicker && (
+      {(showUserPicker || showViewerPicker) && (
         <div
           ref={userPickerRef}
-          className={`fixed w-72 border rounded-xl shadow-xl z-[9999] max-h-80 overflow-y-auto ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'}`}
+          className={`fixed w-72 border rounded-xl shadow-xl z-[9999] max-h-64 overflow-y-auto ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'}`}
           style={{
             right: '20px',
             top: '50%',
@@ -2582,7 +2846,9 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
           }}
         >
           <div className={`p-3 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-100'}`}>
-            <span className={`text-sm font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Select User</span>
+            <span className={`text-sm font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+              {pickerType === 'assign' ? 'Select Worker' : 'Select Viewer'}
+            </span>
           </div>
           {loadingUsers ? (
             <div className={`p-6 text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -2591,25 +2857,58 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
             </div>
           ) : availableUsers.length > 0 ? (
             <div className="py-1.5">
-              {availableUsers.map((user) => (
+              {availableUsers.map((user) => {
+                const userName = user.name || user.username;
+                const isSelected = pickerType === 'viewer' 
+                  ? (project.viewers && project.viewers.split(', ').includes(userName))
+                  : (project.forPerson && project.forPerson.split(', ').includes(userName));
+                
+                return (
+                  <button
+                    key={user.id || user.username}
+                    onClick={() => selectUser(user)}
+                    className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors ${
+                      isSelected 
+                        ? (isDarkMode ? 'bg-blue-900/30 border-l-4 border-blue-500' : 'bg-blue-50 border-l-4 border-blue-500')
+                        : (isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-50')
+                    }`}
+                  >
+                    <div className="w-9 h-9 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+                      {userName.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className={`text-sm font-medium truncate ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
+                        {userName}
+                      </div>
+                      <div className={`text-xs truncate ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                        {user.email} • {user.role}
+                      </div>
+                    </div>
+                    {isSelected && (
+                      <div className="text-blue-500">
+                        <CheckCircle className="w-4 h-4" />
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+              <div className={`px-4 py-2 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} flex items-center justify-between`}>
+                <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Click to select/deselect multiple {pickerType === 'assign' ? 'workers' : 'viewers'}
+                </div>
                 <button
-                  key={user.id || user.username}
-                  onClick={() => selectUser(user)}
-                  className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors ${isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-50'}`}
+                  onClick={() => {
+                    if (pickerType === 'assign') {
+                      setShowUserPicker(false);
+                    } else {
+                      setShowViewerPicker(false);
+                    }
+                  }}
+                  className={`px-3 py-1 text-xs rounded ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white transition-colors`}
                 >
-                  <div className="w-9 h-9 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
-                    {(user.name || user.username).charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className={`text-sm font-medium truncate ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
-                      {user.name || user.username}
-                    </div>
-                    <div className={`text-xs truncate ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                      {user.email} • {user.role}
-                    </div>
-                  </div>
+                  Confirm
                 </button>
-              ))}
+              </div>
             </div>
           ) : (
             <div className={`p-6 text-center text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>

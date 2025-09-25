@@ -7,8 +7,8 @@ import HomePage from './components/HomePage/HomePage';
 import NotificationsPage from './components/NotificationsPage/NotificationsPage';
 import ProjectsPage from './components/ProjectsPage/ProjectsPage';
 import ProjectDetailPage from './components/ProjectDetailPage/ProjectDetailPage';
-import CommentsPage from './components/CommentsPage/CommentsPage';
-import GoalPage from './components/GoalPage/GoalPage';
+
+
 import ProjectReportPage from './components/ReportPage/ReportPage';
 
 import DocumentsPage from './components/DocumentsPage/DocumentsPage';
@@ -29,6 +29,7 @@ import AdminRoute from './components/AdminRoute/AdminRoute';
 import SavedNotesPage from './components/SavedNotesPage/SavedNotesPage';
 import ReportsPage from './components/ReportsPage/ReportsPage';
 import TasksPage from './components/TasksPage/TasksPage';
+import WorkerReports from './components/WorkerReports/WorkerReports';
 import AIAssistant from './components/AIAssistant/AIAssistant';
 import NavigationPanel from './components/NavigationPanel/NavigationPanel';
 import './App.css';
@@ -129,21 +130,9 @@ const AppContent = () => {
           </ProtectedRoute>
         } />
 
-        <Route path="/projects/:projectId/comments" element={
-          <ProtectedRoute>
-            <Layout>
-              <CommentsPage />
-            </Layout>
-          </ProtectedRoute>
-        } />
 
-        <Route path="/projects/:projectId/goal" element={
-          <ProtectedRoute>
-            <Layout>
-              <GoalPage />
-            </Layout>
-          </ProtectedRoute>
-        } />
+
+
 
         <Route path="/projects/:projectId/report" element={
           <ProtectedRoute>
@@ -282,21 +271,17 @@ const AppContent = () => {
           </ProtectedRoute>
         } />
 
-        <Route path="/comments" element={
+        <Route path="/projects/:projectId/worker-reports" element={
           <ProtectedRoute>
             <Layout>
-              <CommentsPage />
+              <WorkerReports />
             </Layout>
           </ProtectedRoute>
         } />
 
-        <Route path="/goals" element={
-          <ProtectedRoute>
-            <Layout>
-              <GoalPage />
-            </Layout>
-          </ProtectedRoute>
-        } />
+
+
+
 
         {/* Admin Routes */}
         <Route path="/admin" element={
