@@ -61,7 +61,13 @@ import {
 	AtSign,
 	Hash as HashIcon,
 	AlertTriangle,
-	GraduationCap
+	GraduationCap,
+	Bot,
+	Send,
+	Loader,
+	Sparkles,
+	Wand2,
+	RefreshCw
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -100,11 +106,17 @@ const NotepadPage = () => {
 	const [availableUsers, setAvailableUsers] = useState([]);
 	const [shareInput, setShareInput] = useState('');
 	const [lastSaved, setLastSaved] = useState(null);
+	const [tableData, setTableData] = useState({});
+	const [aiInputBlock, setAiInputBlock] = useState(null);
+	const [aiQuery, setAiQuery] = useState('');
+	const [isGenerating, setIsGenerating] = useState(false);
+	const [aiError, setAiError] = useState('');
 
 	const titleInputRef = useRef(null);
 	const formattingMenuRef = useRef(null);
 	const blockMenuRef = useRef(null);
 	const blockRefs = useRef({});
+
 
 	// Load notes
 	useEffect(() => {
@@ -232,10 +244,10 @@ const NotepadPage = () => {
 					id: block.id,
 					type: block.type || 'text',
 					text: blockContent, // Use 'text' instead of 'content' to match backend schema
-					checked: block.type === 'todo' ? false : undefined, // Only for todo blocks
+					checked: block.type === 'todo' ? (block.checked || false) : undefined, // Only for todo blocks
 					indent: 0, // Default indent
 					focus: false, // Default focus
-					metadata: {}, // Default metadata
+					metadata: block.type === 'table' ? { tableData: tableData[block.id] } : {}, // Include table data
 					lines: lines,
 					lineCount: lines.length,
 					wordCount: blockContent.split(/\s+/).filter(word => word.length > 0).length,
@@ -266,26 +278,13 @@ const NotepadPage = () => {
 			
 			// Complete detailed note structure - send only fields that match backend schema
 			const updatedNote = {
-				...currentNote,
 				title: title || 'Untitled',
 				blocks: processedBlocks,
 				content: fullContent,
 				category: currentNote.category || 'General',
 				tags: currentNote.tags || [],
 				isPublic: currentNote.isPublic || false,
-				// Remove extra fields that aren't in backend schema
-				lines: undefined,
-				stats: undefined,
-				saveCode: undefined,
-				lastModified: undefined,
-				saveTimestamp: undefined,
-				createdBy: undefined,
-				createdByName: undefined,
-				userRole: undefined,
-				sharedWith: undefined,
-				shareType: undefined,
-				version: undefined,
-				editHistory: undefined
+				tableData: tableData // Save table data separately
 			};
 
 			console.log('Saving complete note structure:', {
@@ -362,6 +361,10 @@ const NotepadPage = () => {
 			metadata: block.metadata || {}
 		}));
 		setBlocks(convertedBlocks.length > 0 ? convertedBlocks : [{ id: 'block-1', type: 'text', content: '' }]);
+		// Restore table data if available
+		if (note.tableData) {
+			setTableData(note.tableData);
+		}
 		setSelectedNote(note._id);
 	};
 
@@ -479,6 +482,11 @@ const NotepadPage = () => {
 				}, 0);
 			}
 			deleteBlock(id);
+		} else if (e.key === ' ' && e.target.value === '') {
+			// Show AI input when space is pressed on empty line
+			e.preventDefault();
+			setAiInputBlock(id);
+			setAiQuery('');
 		} else if (e.key === '/' || e.key === '+') {
 			e.preventDefault();
 			setActiveBlockId(id);
@@ -558,14 +566,14 @@ const NotepadPage = () => {
 				changeBlockType(activeBlockId, 'code');
 				break;
 			case 'table':
-				addBlock(blockIndex, 'table');
+				const tableId = activeBlockId;
+				changeBlockType(tableId, 'table');
+				setTableData(prev => ({ ...prev, [tableId]: { rows: 2, cols: 2, data: Array(2).fill().map(() => Array(2).fill('')) } }));
 				break;
 			case 'image':
 				addBlock(blockIndex, 'image');
 				break;
-			case 'video':
-				addBlock(blockIndex, 'video');
-				break;
+
 			case 'link':
 				addBlock(blockIndex, 'link');
 				break;
@@ -968,14 +976,20 @@ const NotepadPage = () => {
 			await saveNote();
 
 			
+			// Convert user IDs to proper sharedWith format
+			const sharedWithFormatted = sharedWithUsers.map(userId => ({
+				user: userId,
+				permission: 'read',
+				sharedAt: new Date()
+			}));
+			
 			// Then update with sharing info
 			const updatedNote = {
 				...currentNote,
 				title,
 				blocks,
 				content: blocks.map(block => block.content).join('\n'),
-				sharedWith: sharedWithUsers,
-				shareType: 'shared'
+				sharedWith: sharedWithFormatted
 			};
 
 			const response = await put(`/notepad/${currentNote._id}`, updatedNote);
@@ -1023,6 +1037,52 @@ const NotepadPage = () => {
 		}));
 	};
 
+	// Table functions
+	const addTableRow = (blockId) => {
+		setTableData(prev => {
+			const table = prev[blockId] || { rows: 2, cols: 2, data: Array(2).fill().map(() => Array(2).fill('')) };
+			const newData = [...table.data, Array(table.cols).fill('')];
+			return { ...prev, [blockId]: { ...table, rows: table.rows + 1, data: newData } };
+		});
+	};
+
+	const addTableCol = (blockId) => {
+		setTableData(prev => {
+			const table = prev[blockId] || { rows: 2, cols: 2, data: Array(2).fill().map(() => Array(2).fill('')) };
+			const newData = table.data.map(row => [...row, '']);
+			return { ...prev, [blockId]: { ...table, cols: table.cols + 1, data: newData } };
+		});
+	};
+
+	const updateTableCell = (blockId, row, col, value) => {
+		setTableData(prev => {
+			const table = prev[blockId];
+			if (!table) return prev;
+			const newData = table.data.map((r, i) =>
+				i === row ? r.map((c, j) => j === col ? value : c) : r
+			);
+			return { ...prev, [blockId]: { ...table, data: newData } };
+		});
+	};
+
+	const deleteTableRow = (blockId) => {
+		setTableData(prev => {
+			const table = prev[blockId] || { rows: 2, cols: 2, data: Array(2).fill().map(() => Array(2).fill('')) };
+			if (table.rows <= 1) return prev; // Don't delete if only one row
+			const newData = table.data.slice(0, -1);
+			return { ...prev, [blockId]: { ...table, rows: table.rows - 1, data: newData } };
+		});
+	};
+
+	const deleteTableCol = (blockId) => {
+		setTableData(prev => {
+			const table = prev[blockId] || { rows: 2, cols: 2, data: Array(2).fill().map(() => Array(2).fill('')) };
+			if (table.cols <= 1) return prev; // Don't delete if only one column
+			const newData = table.data.map(row => row.slice(0, -1));
+			return { ...prev, [blockId]: { ...table, cols: table.cols - 1, data: newData } };
+		});
+	};
+
 	// Add tag to note
 	const addTagToNote = async (tag) => {
 		if (!currentNote || !tag.trim()) return;
@@ -1057,6 +1117,69 @@ const NotepadPage = () => {
 		}
 	};
 
+	// Handle AI query submission
+	const handleAiQuerySubmit = async (e) => {
+		if (e.key === 'Enter' && aiQuery.trim()) {
+			e.preventDefault();
+			try {
+				setAiError('');
+				setIsGenerating(true);
+
+				const currentBlockIndex = blocks.findIndex(b => b.id === aiInputBlock);
+				const contextBlocks = blocks.slice(0, currentBlockIndex);
+
+				const context = contextBlocks.map(block => {
+					switch (block.type) {
+						case 'h1': return `# ${block.content}`;
+						case 'h2': return `## ${block.content}`;
+						case 'h3': return `### ${block.content}`;
+						case 'todo': return `- [ ] ${block.content}`;
+						case 'bulleted': return `• ${block.content}`;
+						case 'numbered': return `1. ${block.content}`;
+						case 'quote': return `> ${block.content}`;
+						case 'divider': return '---';
+						default: return block.content;
+					}
+				}).join('\n');
+
+				// Simulate AI response
+				await new Promise(resolve => setTimeout(resolve, 1000));
+				const content = `AI Response: ${aiQuery}\n\nHere's a helpful response based on your query about "${aiQuery}". This is a simulated AI response that would normally come from an AI service.`;
+
+				const lines = content.split('\n').filter(line => line.trim());
+				const newBlocks = lines.map((line, idx) => {
+					const l = line.trim();
+					if (l.startsWith('- [ ] ')) return { id: `ai-block-${Date.now()}-${idx}`, type: 'todo', content: l.replace(/^- \[ \]\s*/, '') };
+					if (l.startsWith('• ')) return { id: `ai-block-${Date.now()}-${idx}`, type: 'bulleted', content: l.replace(/^•\s*/, '') };
+					if (l.startsWith('### ')) return { id: `ai-block-${Date.now()}-${idx}`, type: 'h3', content: l.replace(/^###\s*/, '') };
+					if (l.startsWith('## ')) return { id: `ai-block-${Date.now()}-${idx}`, type: 'h2', content: l.replace(/^##\s*/, '') };
+					if (l.startsWith('# ')) return { id: `ai-block-${Date.now()}-${idx}`, type: 'h1', content: l.replace(/^#\s*/, '') };
+					if (l.startsWith('> ')) return { id: `ai-block-${Date.now()}-${idx}`, type: 'quote', content: l.replace(/^>\s*/, '') };
+					if (l === '---') return { id: `ai-block-${Date.now()}-${idx}`, type: 'divider', content: '' };
+					return { id: `ai-block-${Date.now()}-${idx}`, type: 'text', content: l };
+				});
+
+				if (newBlocks.length > 0) {
+					const updatedBlocks = [...blocks];
+					updatedBlocks.splice(currentBlockIndex + 1, 0, ...newBlocks);
+					setBlocks(updatedBlocks);
+				}
+
+				setAiInputBlock(null);
+				setAiQuery('');
+			} catch (e) {
+				console.error('AI assist failed:', e);
+				setAiError('AI assistant failed. Please try again.');
+			} finally {
+				setIsGenerating(false);
+			}
+		} else if (e.key === 'Escape') {
+			e.preventDefault();
+			setAiInputBlock(null);
+			setAiQuery('');
+		}
+	};
+
 	// Render block based on type
 	const renderBlock = (block, index) => {
 		const commonProps = {
@@ -1075,15 +1198,15 @@ const NotepadPage = () => {
 			case 'h1':
 				return (
 					<div className="flex items-start group relative">
-						<div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2">
+						<div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
 							<button
-								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center w-6 h-6"
 								onClick={(e) => handlePlusButtonClick(e, block.id)}
 							>
 								<Plus className="w-4 h-4" />
 							</button>
 							<button
-								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center w-6 h-6"
 								onClick={(e) => {
 									e.stopPropagation();
 									setShowBlockMenu(showBlockMenu === block.id ? null : block.id);
@@ -1336,6 +1459,18 @@ const NotepadPage = () => {
 					</div>
 				);
 			case 'numbered':
+				const getNumberedIndex = () => {
+					let count = 1;
+					for (let i = 0; i < index; i++) {
+						if (blocks[i].type === 'numbered') {
+							count++;
+						} else if (blocks[i].type !== 'numbered') {
+							// Reset count if we hit a non-numbered block
+							count = 1;
+						}
+					}
+					return count;
+				};
 				return (
 					<div className="flex items-start group relative">
 						<div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2">
@@ -1356,7 +1491,7 @@ const NotepadPage = () => {
 							</button>
 						</div>
 						<div className="flex items-start w-full">
-							<span className="mr-2 mt-1 flex-shrink-0 min-w-[24px]">{index + 1}.</span>
+							<span className="mr-2 mt-1 flex-shrink-0 min-w-[24px]">{getNumberedIndex()}.</span>
 							<input {...commonProps} className={`${commonProps.className} flex-1`} />
 						</div>
 						{showBlockMenu === block.id && (
@@ -1725,86 +1860,331 @@ const NotepadPage = () => {
 					</div>
 				);
 			case 'table':
+				const table = tableData[block.id] || { rows: 2, cols: 2, data: Array(2).fill().map(() => Array(2).fill('')) };
 				return (
-					<div className="flex items-start group relative">
-						<div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2">
-							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700" onClick={(e) => handlePlusButtonClick(e, block.id)}>
+					<div className="flex items-start group relative" style={{ marginRight: '40px', marginBottom: '40px' }}>
+						<div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
+							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
 								<Plus className="w-4 h-4" />
 							</button>
-							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700" onClick={(e) => { e.stopPropagation(); setShowBlockMenu(showBlockMenu === block.id ? null : block.id); }}>
+							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center w-6 h-6" onClick={(e) => { e.stopPropagation(); setShowBlockMenu(showBlockMenu === block.id ? null : block.id); }}>
 								<GripVertical className="w-4 h-4" />
 							</button>
 						</div>
-						<div className={`w-full border rounded-lg ${isDarkMode ? 'border-gray-700' : 'border-gray-300'}`}>
-							<table className="w-full">
-								<tbody>
-									<tr>
-										<td className={`border p-2 ${isDarkMode ? 'border-gray-700' : 'border-gray-300'}`}>
-											<input {...commonProps} placeholder="Cell 1" />
-										</td>
-										<td className={`border p-2 ${isDarkMode ? 'border-gray-700' : 'border-gray-300'}`}>
-											<input {...commonProps} placeholder="Cell 2" />
-										</td>
-									</tr>
-								</tbody>
-							</table>
+						<div className="flex-1 relative">
+							<div className={`border rounded-lg overflow-hidden shadow-sm ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-300 bg-white'}`}>
+								<table className="w-full border-collapse">
+									<tbody>
+										{table.data.map((row, rowIndex) => (
+											<tr key={rowIndex} className={rowIndex === 0 ? (isDarkMode ? 'bg-gray-700' : 'bg-gray-50') : (isDarkMode ? 'hover:bg-gray-700/50' : 'hover:bg-gray-50/50')}>
+												{row.map((cell, colIndex) => (
+													<td key={`${rowIndex}-${colIndex}`} className={`border-r border-b p-0 relative group/cell ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
+														<textarea
+															value={cell}
+															onChange={(e) => updateTableCell(block.id, rowIndex, colIndex, e.target.value)}
+															placeholder={rowIndex === 0 ? `Column ${colIndex + 1}` : ''}
+															className={`w-full min-h-[24px] px-2 py-1 border-none outline-none resize-none bg-transparent text-xs leading-tight ${rowIndex === 0 ? (isDarkMode ? 'font-semibold text-gray-200' : 'font-semibold text-gray-800') : (isDarkMode ? 'text-gray-300' : 'text-gray-700')
+																} ${isDarkMode ? 'focus:bg-blue-900/20 focus:ring-1 focus:ring-blue-700 focus:ring-inset' : 'focus:bg-blue-50/50 focus:ring-1 focus:ring-blue-200 focus:ring-inset'}`}
+															rows={1}
+															onInput={(e) => {
+																e.target.style.height = 'auto';
+																e.target.style.height = Math.max(24, e.target.scrollHeight) + 'px';
+															}}
+														/>
+													</td>
+												))}
+											</tr>
+										))}
+									</tbody>
+								</table>
+							</div>
+							{/* Add column button */}
+							<button
+								onClick={() => addTableCol(block.id)}
+								className={`absolute top-1/2 -right-8 transform -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-lg hover:bg-blue-500 hover:text-white hover:border-blue-500 ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'}`}
+								title="Add column"
+							>
+								<Plus className="w-3.5 h-3.5" />
+							</button>
+							{/* Delete column button */}
+							{table.cols > 1 && (
+								<button
+									onClick={() => deleteTableCol(block.id)}
+									className={`absolute top-1/2 -right-16 transform -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-lg hover:bg-red-500 hover:text-white hover:border-red-500 ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'}`}
+									title="Delete column"
+								>
+									<Minus className="w-3.5 h-3.5" />
+								</button>
+							)}
+							{/* Add row button */}
+							<button
+								onClick={() => addTableRow(block.id)}
+								className={`absolute left-1/2 -bottom-8 transform -translate-x-1/2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-lg hover:bg-blue-500 hover:text-white hover:border-blue-500 ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'}`}
+								title="Add row"
+							>
+								<Plus className="w-3.5 h-3.5" />
+							</button>
+							{/* Delete row button */}
+							{table.rows > 1 && (
+								<button
+									onClick={() => deleteTableRow(block.id)}
+									className={`absolute left-1/2 -bottom-16 transform -translate-x-1/2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-lg hover:bg-red-500 hover:text-white hover:border-red-500 ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'}`}
+									title="Delete row"
+								>
+									<Minus className="w-3.5 h-3.5" />
+								</button>
+							)}
 						</div>
+						{showBlockMenu === block.id && (
+							<div ref={blockMenuRef} className={`absolute left-0 top-0 mt-8 w-52 rounded-xl shadow-lg border z-10 overflow-hidden ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+								<div className="py-1.5">
+									<button onClick={() => duplicateBlock(block.id)} className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+										<Copy className="w-4 h-4 mr-3 text-gray-600" /><span className="text-gray-800 dark:text-gray-200">Duplicate</span>
+									</button>
+									<button onClick={() => moveBlockUp(block.id)} className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+										<ChevronUp className="w-4 h-4 mr-3 text-gray-600" /><span className="text-gray-800 dark:text-gray-200">Move up</span>
+									</button>
+									<button onClick={() => moveBlockDown(block.id)} className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+										<ChevronDown className="w-4 h-4 mr-3 text-gray-600" /><span className="text-gray-800 dark:text-gray-200">Move down</span>
+									</button>
+									<hr className="my-1 border-gray-200 dark:border-gray-700" />
+									<button onClick={() => deleteBlock(block.id)} className="flex items-center w-full px-4 py-2.5 text-left text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+										<Trash2 className="w-4 h-4 mr-3" /><span>Delete</span>
+									</button>
+								</div>
+							</div>
+						)}
 					</div>
 				);
 			case 'image':
 				return (
 					<div className="flex items-start group relative">
-						<div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2">
-							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700" onClick={(e) => handlePlusButtonClick(e, block.id)}>
+						<div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
+							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
 								<Plus className="w-4 h-4" />
 							</button>
-							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700" onClick={(e) => { e.stopPropagation(); setShowBlockMenu(showBlockMenu === block.id ? null : block.id); }}>
+							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center w-6 h-6" onClick={(e) => { e.stopPropagation(); setShowBlockMenu(showBlockMenu === block.id ? null : block.id); }}>
 								<GripVertical className="w-4 h-4" />
 							</button>
 						</div>
-						<div className={`w-full p-4 border-2 border-dashed rounded-lg text-center ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-300 bg-gray-50'}`}>
-							<Image className="w-12 h-12 mx-auto mb-2 text-gray-400" />
-							<input {...commonProps} placeholder="Paste image URL or click to upload" />
+						<div className={`border-2 border-dashed rounded-lg p-3 flex-1 text-center ${isDarkMode ? 'border-gray-600 bg-gray-800' : 'border-gray-300 bg-gray-50'}`}>
+							{block.content ? (
+								<img src={block.content} alt="Uploaded" className="max-w-full h-auto rounded max-h-48" onError={(e) => e.target.style.display = 'none'} />
+							) : (
+								<div>
+									<Image className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+									<p className="text-gray-500 mb-2 text-sm">Add an image</p>
+									<button
+										onClick={() => document.getElementById(`image-${block.id}`).click()}
+										className="px-3 py-1.5 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors mb-2"
+									>
+										Choose File
+									</button>
+									<input
+										id={`image-${block.id}`}
+										type="file"
+										accept="image/*"
+										className="hidden"
+										onChange={(e) => {
+											const file = e.target.files[0];
+											if (file) {
+												const reader = new FileReader();
+												reader.onload = (e) => updateBlock(block.id, e.target.result);
+												reader.readAsDataURL(file);
+											}
+										}}
+									/>
+								</div>
+							)}
+							<input 
+								{...commonProps} 
+								placeholder="Or paste image URL" 
+								className="text-center bg-transparent text-xs"
+								onChange={(e) => {
+									updateBlock(block.id, e.target.value);
+									// Auto-save when URL is entered
+									if (e.target.value.trim()) {
+										setTimeout(() => saveNote(), 500);
+									}
+								}}
+							/>
 						</div>
+						{showBlockMenu === block.id && (
+							<div ref={blockMenuRef} className={`absolute left-0 top-0 mt-8 w-52 rounded-xl shadow-lg border z-10 overflow-hidden ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+								<div className="py-1.5">
+									<button onClick={() => duplicateBlock(block.id)} className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+										<Copy className="w-4 h-4 mr-3 text-gray-600" /><span className="text-gray-800 dark:text-gray-200">Duplicate</span>
+									</button>
+									<button onClick={() => moveBlockUp(block.id)} className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+										<ChevronUp className="w-4 h-4 mr-3 text-gray-600" /><span className="text-gray-800 dark:text-gray-200">Move up</span>
+									</button>
+									<button onClick={() => moveBlockDown(block.id)} className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+										<ChevronDown className="w-4 h-4 mr-3 text-gray-600" /><span className="text-gray-800 dark:text-gray-200">Move down</span>
+									</button>
+									<hr className="my-1 border-gray-200 dark:border-gray-700" />
+									<button onClick={() => deleteBlock(block.id)} className="flex items-center w-full px-4 py-2.5 text-left text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+										<Trash2 className="w-4 h-4 mr-3" /><span>Delete</span>
+									</button>
+								</div>
+							</div>
+						)}
 					</div>
 				);
 			case 'video':
 				return (
 					<div className="flex items-start group relative">
-						<div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2">
-							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700" onClick={(e) => handlePlusButtonClick(e, block.id)}>
+						<div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
+							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
 								<Plus className="w-4 h-4" />
 							</button>
-							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700" onClick={(e) => { e.stopPropagation(); setShowBlockMenu(showBlockMenu === block.id ? null : block.id); }}>
+							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center w-6 h-6" onClick={(e) => { e.stopPropagation(); setShowBlockMenu(showBlockMenu === block.id ? null : block.id); }}>
 								<GripVertical className="w-4 h-4" />
 							</button>
 						</div>
-						<div className={`w-full p-4 border-2 border-dashed rounded-lg text-center ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-300 bg-gray-50'}`}>
-							<Video className="w-12 h-12 mx-auto mb-2 text-gray-400" />
-							<input {...commonProps} placeholder="Paste video URL" />
+						<div className={`border rounded-lg p-4 flex-1 ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-300 bg-gray-50'}`}>
+							{block.content && (block.content.includes('youtube.com') || block.content.includes('youtu.be') || block.content.includes('vimeo.com') || block.content.startsWith('data:video') || block.content.startsWith('http')) ? (
+								<div className="aspect-video max-h-48 mb-3">
+									{block.content.startsWith('data:video') ? (
+										<video src={block.content} controls className="w-full h-full rounded" />
+									) : block.content.includes('youtube.com') || block.content.includes('youtu.be') ? (
+										<iframe
+											src={block.content.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
+											className="w-full h-full rounded"
+											allowFullScreen
+										/>
+									) : block.content.includes('vimeo.com') ? (
+										<iframe
+											src={block.content.replace('vimeo.com/', 'player.vimeo.com/video/')}
+											className="w-full h-full rounded"
+											allowFullScreen
+										/>
+									) : (
+										<video src={block.content} controls className="w-full h-full rounded" onError={(e) => e.target.style.display = 'none'} />
+									)}
+								</div>
+							) : (
+								<div className="text-center mb-3">
+									<Video className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+									<p className="text-gray-500 mb-2 text-sm">Add a video</p>
+									<button
+										onClick={() => document.getElementById(`video-${block.id}`).click()}
+										className="px-3 py-1.5 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors mb-2"
+									>
+										Choose File
+									</button>
+									<input
+										id={`video-${block.id}`}
+										type="file"
+										accept="video/*"
+										className="hidden"
+										onChange={(e) => {
+											const file = e.target.files[0];
+											if (file) {
+												const reader = new FileReader();
+												reader.onload = (e) => updateBlock(block.id, e.target.result);
+												reader.readAsDataURL(file);
+											}
+										}}
+									/>
+								</div>
+							)}
+							<input 
+								{...commonProps} 
+								placeholder="Or paste video URL (YouTube, Vimeo, etc.)" 
+								className="text-xs"
+								onChange={(e) => {
+									updateBlock(block.id, e.target.value);
+									// Auto-save when URL is entered
+									if (e.target.value.trim()) {
+										setTimeout(() => saveNote(), 500);
+									}
+								}}
+							/>
 						</div>
+						{showBlockMenu === block.id && (
+							<div ref={blockMenuRef} className={`absolute left-0 top-0 mt-8 w-52 rounded-xl shadow-lg border z-10 overflow-hidden ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+								<div className="py-1.5">
+									<button onClick={() => duplicateBlock(block.id)} className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+										<Copy className="w-4 h-4 mr-3 text-gray-600" /><span className="text-gray-800 dark:text-gray-200">Duplicate</span>
+									</button>
+									<button onClick={() => moveBlockUp(block.id)} className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+										<ChevronUp className="w-4 h-4 mr-3 text-gray-600" /><span className="text-gray-800 dark:text-gray-200">Move up</span>
+									</button>
+									<button onClick={() => moveBlockDown(block.id)} className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+										<ChevronDown className="w-4 h-4 mr-3 text-gray-600" /><span className="text-gray-800 dark:text-gray-200">Move down</span>
+									</button>
+									<hr className="my-1 border-gray-200 dark:border-gray-700" />
+									<button onClick={() => deleteBlock(block.id)} className="flex items-center w-full px-4 py-2.5 text-left text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+										<Trash2 className="w-4 h-4 mr-3" /><span>Delete</span>
+									</button>
+								</div>
+							</div>
+						)}
 					</div>
 				);
 			case 'link':
 				return (
 					<div className="flex items-start group relative">
-						<div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2">
-							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700" onClick={(e) => handlePlusButtonClick(e, block.id)}>
+						<div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
+							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
 								<Plus className="w-4 h-4" />
 							</button>
-							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700" onClick={(e) => { e.stopPropagation(); setShowBlockMenu(showBlockMenu === block.id ? null : block.id); }}>
+							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center w-6 h-6" onClick={(e) => { e.stopPropagation(); setShowBlockMenu(showBlockMenu === block.id ? null : block.id); }}>
 								<GripVertical className="w-4 h-4" />
 							</button>
 						</div>
-						<div className="flex items-start w-full">
-							<Link className="w-5 h-5 mr-2 mt-1 text-blue-500 flex-shrink-0" />
-							<input {...commonProps} className={`${commonProps.className} flex-1`} placeholder="Paste or type a link" />
+						<div className={`border rounded-lg p-4 flex-1 ${isDarkMode ? 'border-gray-700 bg-yellow-900/20' : 'border-gray-300 bg-yellow-50'}`}>
+							{block.content ? (
+								<a href={block.content} target="_blank" rel="noopener noreferrer" className="flex items-center p-3 bg-white rounded border hover:shadow-md transition-shadow">
+									<Star className="w-5 h-5 mr-3 text-yellow-500" />
+									<div>
+										<div className="font-medium text-gray-900">{block.content}</div>
+										<div className="text-sm text-gray-500">Click to visit</div>
+									</div>
+								</a>
+							) : (
+								<div className="flex items-center mb-2">
+									<Star className="w-5 h-5 mr-2 text-yellow-500" />
+									<span className="text-sm text-gray-600">Bookmark</span>
+								</div>
+							)}
+							<input 
+								{...commonProps} 
+								placeholder="Paste any link to create a bookmark" 
+								className="mt-2"
+								onChange={(e) => {
+									updateBlock(block.id, e.target.value);
+									// Auto-save when URL is entered
+									if (e.target.value.trim()) {
+										setTimeout(() => saveNote(), 500);
+									}
+								}}
+							/>
 						</div>
+						{showBlockMenu === block.id && (
+							<div ref={blockMenuRef} className={`absolute left-0 top-0 mt-8 w-52 rounded-xl shadow-lg border z-10 overflow-hidden ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+								<div className="py-1.5">
+									<button onClick={() => duplicateBlock(block.id)} className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+										<Copy className="w-4 h-4 mr-3 text-gray-600" /><span className="text-gray-800 dark:text-gray-200">Duplicate</span>
+									</button>
+									<button onClick={() => moveBlockUp(block.id)} className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+										<ChevronUp className="w-4 h-4 mr-3 text-gray-600" /><span className="text-gray-800 dark:text-gray-200">Move up</span>
+									</button>
+									<button onClick={() => moveBlockDown(block.id)} className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+										<ChevronDown className="w-4 h-4 mr-3 text-gray-600" /><span className="text-gray-800 dark:text-gray-200">Move down</span>
+									</button>
+									<hr className="my-1 border-gray-200 dark:border-gray-700" />
+									<button onClick={() => deleteBlock(block.id)} className="flex items-center w-full px-4 py-2.5 text-left text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+										<Trash2 className="w-4 h-4 mr-3" /><span>Delete</span>
+									</button>
+								</div>
+							</div>
+						)}
 					</div>
 				);
 			default: // text
 				return (
-					<div className="flex items-start group relative">
+					<div className={`flex items-start group relative ${aiInputBlock === block.id ? 'bg-blue-50/30 rounded-lg p-2' : ''} transition-all duration-200`}>
 						<div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2">
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
@@ -1822,17 +2202,46 @@ const NotepadPage = () => {
 								<GripVertical className="w-4 h-4" />
 							</button>
 						</div>
-						<textarea 
-							ref={(el) => blockRefs.current[block.id] = el}
-							value={block.content}
-							onChange={(e) => updateBlock(block.id, e.target.value)}
-							onKeyDown={(e) => handleBlockKeyDown(block.id, e)}
-							onFocus={() => setActiveBlockId(block.id)}
-							placeholder={getBlockPlaceholder(block.type)}
-							rows={Math.max(1, ((block.content || '').match(/\n/g) || []).length + 1)}
-							className={`w-full outline-none resize-none border-none bg-transparent py-1 px-2 rounded transition-all duration-200 font-inter leading-relaxed overflow-hidden ${isDarkMode ? 'text-gray-100 placeholder-gray-500 focus:bg-gray-800/20' : 'text-gray-800 placeholder-gray-400 focus:bg-gray-50/30'} hover:bg-opacity-30`}
-							style={{ minHeight: '24px', lineHeight: '1.6' }}
-						/>
+						<div className="flex-1 relative">
+							{aiInputBlock === block.id ? (
+								<div className={`flex items-center gap-3 px-3 py-2 rounded-lg ${isDarkMode ? 'bg-purple-900/20 border border-purple-800/30' : 'bg-purple-50 border border-purple-200'} transition-all duration-200`}>
+									<div className={`p-1 rounded ${isDarkMode ? 'bg-purple-900/40' : 'bg-purple-100'}`}>
+										<Sparkles className={`w-4 h-4 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`} />
+									</div>
+									<input
+										type="text"
+										value={aiQuery}
+										onChange={(e) => setAiQuery(e.target.value)}
+										onKeyDown={handleAiQuerySubmit}
+										placeholder="Ask AI anything... (Press Enter to submit)"
+										className={`flex-1 outline-none bg-transparent text-sm font-medium ${isDarkMode ? 'text-purple-200 placeholder-purple-400' : 'text-purple-700 placeholder-purple-500'}`}
+										autoFocus
+									/>
+									<button
+										onClick={() => {
+											setAiInputBlock(null);
+											setAiQuery('');
+										}}
+										className={`p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${isDarkMode ? 'text-purple-400 hover:text-purple-300' : 'text-purple-600 hover:text-purple-700'}`}
+										title="Cancel"
+									>
+										<X className="w-4 h-4" />
+									</button>
+								</div>
+							) : (
+								<textarea 
+									ref={(el) => blockRefs.current[block.id] = el}
+									value={block.content}
+									onChange={(e) => updateBlock(block.id, e.target.value)}
+									onKeyDown={(e) => handleBlockKeyDown(block.id, e)}
+									onFocus={() => setActiveBlockId(block.id)}
+									placeholder={getBlockPlaceholder(block.type)}
+									rows={Math.max(1, ((block.content || '').match(/\n/g) || []).length + 1)}
+									className={`w-full outline-none resize-none border-none bg-transparent py-1 px-2 rounded transition-all duration-200 font-inter leading-relaxed overflow-hidden ${isDarkMode ? 'text-gray-100 placeholder-gray-500 focus:bg-gray-800/20' : 'text-gray-800 placeholder-gray-400 focus:bg-gray-50/30'} hover:bg-opacity-30`}
+									style={{ minHeight: '24px', lineHeight: '1.6' }}
+								/>
+							)}
+						</div>
 						{showBlockMenu === block.id && (
 							<div
 								ref={blockMenuRef}
@@ -1899,35 +2308,24 @@ const NotepadPage = () => {
 
 	// Filter notes based on search and tags
 	const filteredNotes = notes.filter(note => {
-		// Only show notes that have a meaningful title
-		const hasTitle = note.title && note.title.trim() !== '' && note.title !== 'Untitled';
-		if (!hasTitle) return false;
+		// Show all notes with content, including "Untitled" ones
+		const hasContent = note.title || note.content || (note.blocks && note.blocks.length > 0);
+		if (!hasContent) return false;
 
-		const matchesSearch = note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+		const matchesSearch = searchQuery === '' || 
+			note.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
 			note.content?.toLowerCase().includes(searchQuery.toLowerCase());
 
+		// Fix the filtering logic - use note.author._id instead of note.createdBy
+		const noteAuthorId = note.author?._id || note.author;
+		const currentUserId = user?.id || user?._id;
+		
 		const matchesTag = selectedTag === 'all' ||
 			(selectedTag === 'favorites' && favorites.includes(note._id)) ||
-			(selectedTag === 'saved' && note.createdBy === user?.id && (!note.sharedWith || note.sharedWith.length === 0)) ||
-			(selectedTag === 'shared' && note.createdBy === user?.id && note.sharedWith && note.sharedWith.length > 0) ||
-			(selectedTag === 'received' && note.createdBy !== user?.id && note.sharedWith && (
-				note.sharedWith.includes(user?.id) ||
-				note.sharedWith.includes(user?.username) ||
-				note.sharedWith.includes(user?.name) ||
-				note.sharedWith.includes(user?.email)
-			)) ||
+			(selectedTag === 'saved' && noteAuthorId === currentUserId && (!note.sharedWith || note.sharedWith.length === 0)) ||
+			(selectedTag === 'shared' && noteAuthorId === currentUserId && note.sharedWith && note.sharedWith.length > 0) ||
+			(selectedTag === 'received' && noteAuthorId !== currentUserId) ||
 			(note.tags && note.tags.includes(selectedTag));
-
-		// Debug logging for shared notes
-		if (selectedTag === 'shared') {
-			console.log('Filtering shared notes:');
-			console.log('Note:', { id: note._id, title: note.title, createdBy: note.createdBy, sharedWith: note.sharedWith });
-			console.log('User:', { id: user?.id, username: user?.username, name: user?.name, email: user?.email });
-			console.log('createdBy === user?.id:', note.createdBy === user?.id);
-			console.log('sharedWith exists:', !!note.sharedWith);
-			console.log('sharedWith length:', note.sharedWith?.length || 0);
-			console.log('Should match shared filter:', note.createdBy === user?.id && note.sharedWith && note.sharedWith.length > 0);
-		}
 
 		return matchesSearch && matchesTag;
 	});
@@ -2019,7 +2417,7 @@ const NotepadPage = () => {
 									{/* Add block button */}
 									<button
 										onClick={() => addBlock(blocks.length - 1)}
-										className={`flex items-center mt-4 px-4 py-2 rounded-lg transition-colors ${isDarkMode ? 'text-gray-500 hover:bg-gray-800' : 'text-gray-500 hover:bg-gray-100'}`}
+										className={`flex items-center mt-40 px-4 py-2 rounded-lg transition-colors ${isDarkMode ? 'text-gray-500 hover:bg-gray-800' : 'text-gray-500 hover:bg-gray-100'}`}
 									>
 										<Plus className="w-5 h-5 mr-2" />
 										Add block
@@ -2620,18 +3018,7 @@ const NotepadPage = () => {
 								<div className="text-xs text-gray-500">Upload or embed an image.</div>
 							</div>
 						</button>
-						<button
-							onClick={() => {
-								applyFormatting('video');
-							}}
-							className={`w-full flex items-center px-4 py-2 text-left hover:${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}
-						>
-							<Video className="w-5 h-5 mr-3 text-gray-500" />
-							<div>
-								<div className="font-medium">Video</div>
-								<div className="text-xs text-gray-500">Embed a video.</div>
-							</div>
-						</button>
+
 						<button
 							onClick={() => {
 								applyFormatting('link');
@@ -2647,6 +3034,8 @@ const NotepadPage = () => {
 					</div>
 				</div>
 			)}
+
+
 
 			{/* Tag Modal */}
 			{showTagModal && (

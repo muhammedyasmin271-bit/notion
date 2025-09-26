@@ -12,18 +12,29 @@ router.get('/', auth, async (req, res) => {
   try {
     const { category, search, isPinned, isArchived, sortBy = 'updatedAt', sortOrder = 'desc' } = req.query;
 
-    let query = { author: req.user.id, deleted: false };
+    // Get notes where user is author OR notes shared with user
+    let query = {
+      $or: [
+        { author: req.user.id }, // Notes created by user
+        { sharedWith: { $elemMatch: { user: req.user.id } } }, // Notes shared with user
+        { isPublic: true } // Public notes
+      ],
+      deleted: false
+    };
 
     // Apply filters
     if (category && category !== 'all') query.category = category;
     if (isPinned !== undefined) query.isPinned = isPinned === 'true';
     if (isArchived !== undefined) query.isArchived = isArchived === 'true';
     if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { content: { $regex: search, $options: 'i' } },
-        { tags: { $in: [new RegExp(search, 'i')] } }
-      ];
+      query.$and = query.$and || [];
+      query.$and.push({
+        $or: [
+          { title: { $regex: search, $options: 'i' } },
+          { content: { $regex: search, $options: 'i' } },
+          { tags: { $in: [new RegExp(search, 'i')] } }
+        ]
+      });
     }
 
     // Build sort object
@@ -43,7 +54,8 @@ router.get('/', auth, async (req, res) => {
 
     const notes = await Note.find(query)
       .sort(sort)
-      .populate('author', 'name email')
+      .populate('author', 'name email username')
+      .populate('sharedWith.user', 'name email username')
       .lean();
 
     res.json(notes);

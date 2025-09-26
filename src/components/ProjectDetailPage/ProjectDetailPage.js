@@ -173,7 +173,6 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
     { id: 'table', label: 'Table', icon: <Hash className="w-5 h-5" />, prefix: '' },
     { id: 'columns', label: 'Columns', icon: <GripVertical className="w-5 h-5" />, prefix: '' },
     { id: 'image', label: 'Image', icon: <FileText className="w-5 h-5" />, prefix: '' },
-    { id: 'video', label: 'Video', icon: <FileText className="w-5 h-5" />, prefix: '' },
     { id: 'bookmark', label: 'Bookmark', icon: <Star className="w-5 h-5" />, prefix: '' },
     { id: 'embed', label: 'Embed', icon: <Share2 className="w-5 h-5" />, prefix: '' },
     { id: 'math', label: 'Math', icon: <Hash className="w-5 h-5" />, prefix: '' },
@@ -1135,6 +1134,24 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
     });
   };
 
+  const deleteTableRow = (blockId) => {
+    setTableData(prev => {
+      const table = prev[blockId] || { rows: 3, cols: 3, data: Array(3).fill().map(() => Array(3).fill('')) };
+      if (table.rows <= 1) return prev;
+      const newData = table.data.slice(0, -1);
+      return { ...prev, [blockId]: { ...table, rows: table.rows - 1, data: newData } };
+    });
+  };
+
+  const deleteTableCol = (blockId) => {
+    setTableData(prev => {
+      const table = prev[blockId] || { rows: 3, cols: 3, data: Array(3).fill().map(() => Array(3).fill('')) };
+      if (table.cols <= 1) return prev;
+      const newData = table.data.map(row => row.slice(0, -1));
+      return { ...prev, [blockId]: { ...table, cols: table.cols - 1, data: newData } };
+    });
+  };
+
   const toggleBlock = (blockId) => {
     setToggleStates(prev => ({ ...prev, [blockId]: !prev[blockId] }));
   };
@@ -1205,9 +1222,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       case 'image':
         changeBlockType(activeBlockId, 'image');
         break;
-      case 'video':
-        changeBlockType(activeBlockId, 'video');
-        break;
+
       case 'bookmark':
         changeBlockType(activeBlockId, 'bookmark');
         break;
@@ -1892,6 +1907,16 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
               >
                 <Plus className="w-3.5 h-3.5" />
               </button>
+              {/* Delete column button */}
+              {table.cols > 1 && (
+                <button
+                  onClick={() => deleteTableCol(block.id)}
+                  className={`absolute top-1/2 -right-16 transform -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-lg hover:bg-red-500 hover:text-white hover:border-red-500 ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'}`}
+                  title="Delete column"
+                >
+                  <Minus className="w-3.5 h-3.5" />
+                </button>
+              )}
               {/* Add row button */}
               <button
                 onClick={() => addTableRow(block.id)}
@@ -1900,6 +1925,16 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
               >
                 <Plus className="w-3.5 h-3.5" />
               </button>
+              {/* Delete row button */}
+              {table.rows > 1 && (
+                <button
+                  onClick={() => deleteTableRow(block.id)}
+                  className={`absolute left-1/2 -bottom-16 transform -translate-x-1/2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-lg hover:bg-red-500 hover:text-white hover:border-red-500 ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'}`}
+                  title="Delete row"
+                >
+                  <Minus className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
             {showBlockMenu === block.id && (
               <div ref={blockMenuRef} className="absolute left-0 top-0 mt-8 w-52 rounded-xl shadow-lg border bg-white border-gray-200 z-10 overflow-hidden">
