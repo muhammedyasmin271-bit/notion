@@ -72,9 +72,6 @@ const AIAssistant = () => {
                   if (e.key === 'Enter' && aiQuery.trim()) {
                     e.preventDefault();
                     handleAISubmit();
-                  } else if (e.key === 'Escape') {
-                    setShowAIPopup(false);
-                    setAiQuery('');
                   }
                 }}
                 placeholder="Ask anything..."
@@ -102,7 +99,7 @@ const AIAssistant = () => {
               </button>
             </div>
             <div className={`mt-3 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-              Press Enter to submit · Esc to close
+              Press Enter to submit · Click X to close
             </div>
           </div>
         </div>
