@@ -3,6 +3,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { Plus, Search, Calendar, Clock, Users, FileText, Filter, MoreHorizontal, Edit, Trash2, Copy, CheckCircle, Circle, TrendingUp, BarChart2, Tag, Clock as ClockIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getMeetings, deleteMeeting, completeMeetingActionItem, addMeetingActionItem } from '../../services/api';
+import ServerStatus from '../ServerStatus/ServerStatus';
 
 const MeetingNotesPage = () => {
   const { isDarkMode } = useTheme();
@@ -31,7 +32,10 @@ const MeetingNotesPage = () => {
   const loadMeetings = async () => {
     try {
       setLoading(true);
+      console.log('Attempting to load meetings from API...');
       const data = await getMeetings();
+      console.log('Received meetings data:', data);
+      
       // Transform data to match our component structure
       const transformedMeetings = data.map(meeting => ({
         id: meeting._id,
@@ -47,60 +51,14 @@ const MeetingNotesPage = () => {
         tags: meeting.tags || [],
         createdAt: meeting.createdAt
       }));
+      
+      console.log('Transformed meetings:', transformedMeetings);
       setMeetings(transformedMeetings);
     } catch (error) {
       console.error('Error loading meetings:', error);
-      // Fallback to sample data
-      setMeetings([
-        {
-          id: 1,
-          title: 'Weekly Team Standup',
-          date: '2024-01-15',
-          time: '09:00 AM',
-          duration: '30 min',
-          attendees: ['John Doe', 'Jane Smith', 'Mike Johnson'],
-          status: 'completed',
-          type: 'Standup',
-          notes: 'Discussed project progress and upcoming deadlines...',
-          actionItems: [
-            { id: 1, description: 'Complete frontend design', assignee: 'John Doe', completed: true },
-            { id: 2, description: 'Review backend API', assignee: 'Jane Smith', completed: false }
-          ],
-          tags: ['weekly', 'team'],
-          createdAt: '2024-01-15T09:00:00Z'
-        },
-        {
-          id: 2,
-          title: 'Product Planning Session',
-          date: '2024-01-16',
-          time: '02:00 PM',
-          duration: '60 min',
-          attendees: ['Sarah Wilson', 'Tom Brown', 'Lisa Davis'],
-          status: 'scheduled',
-          type: 'Planning',
-          notes: '',
-          actionItems: [],
-          tags: ['planning', 'product'],
-          createdAt: '2024-01-16T14:00:00Z'
-        },
-        {
-          id: 3,
-          title: 'Client Presentation Review',
-          date: '2024-01-14',
-          time: '11:00 AM',
-          duration: '45 min',
-          attendees: ['Alex Chen', 'Maria Garcia'],
-          status: 'completed',
-          type: 'Review',
-          notes: 'Reviewed presentation slides and gathered feedback...',
-          actionItems: [
-            { id: 3, description: 'Update slides with feedback', assignee: 'Alex Chen', completed: true },
-            { id: 4, description: 'Schedule follow-up meeting', assignee: 'Maria Garcia', completed: false }
-          ],
-          tags: ['client', 'presentation'],
-          createdAt: '2024-01-14T11:00:00Z'
-        }
-      ]);
+      console.error('Error details:', error.message);
+      // Show empty list instead of fallback data
+      setMeetings([]);
     } finally {
       setLoading(false);
     }
@@ -433,6 +391,7 @@ const MeetingNotesPage = () => {
             )}
           </div>
         )}
+        <ServerStatus />
       </div>
     </div>
   );

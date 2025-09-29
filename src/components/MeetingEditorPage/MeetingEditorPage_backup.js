@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Save, ArrowLeft, Calendar, Clock, Users, Plus, X, CheckCircle, Circle, Video, Sparkles, GripVertical, Type, Hash, List, Quote, Code, Image, Trash2, Copy, ArrowUp, ArrowDown, ArrowRight, CheckSquare, Table, Calendar as CalendarIcon, Link2 as Link, Minus as Divider, AlertCircle, Star, Tag, MapPin, Phone, Mail, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, ListOrdered, FileText, Bookmark, Lightbulb, Info, AlertTriangle, Zap, Heart, Smile, Eye, Lock, Globe, Download, Upload, Search, Filter, Settings, MoreHorizontal } from 'lucide-react';
-import { getMeetingById, createMeeting, updateMeeting, addMeetingActionItem, getUsers } from '../../services/api';
+import { Save, ArrowLeft, Calendar, Clock, Users, Plus, X, CheckCircle, Circle, Video, Sparkles, GripVertical, Type, Hash, List, Quote, Code, Image, Trash2, Copy, ArrowUp, ArrowDown, ArrowRight, CheckSquare, Table, Calendar as CalendarIcon, Link2 as Link, Minus, Minus as Divider, AlertCircle, Star, Tag, MapPin, Phone, Mail, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, ListOrdered, FileText, Bookmark, Lightbulb, Info, AlertTriangle, Zap, Heart, Smile, Eye, Lock, Globe, Download, Upload, Search, Filter, Settings, MoreHorizontal } from 'lucide-react';
+import { getMeetingById, createMeeting, updateMeeting, addMeetingActionItem, getUsers, deleteMeeting } from '../../services/api';
 
 const MeetingEditorPage = () => {
   const { isDarkMode } = useTheme();
@@ -26,7 +26,7 @@ const MeetingEditorPage = () => {
     status: 'scheduled'
   });
 
-  const [blocks, setBlocks] = useState([{ id: 'block-1', type: 'text', content: '', style: {} }]);
+  const [blocks, setBlocks] = useState([]);
   const [tableData, setTableData] = useState({});
   const [selectedText, setSelectedText] = useState('');
   const [showFormattingBar, setShowFormattingBar] = useState(false);
@@ -40,6 +40,8 @@ const MeetingEditorPage = () => {
   const [showLineMenu, setShowLineMenu] = useState(null);
   const [aiInputBlock, setAiInputBlock] = useState(null);
   const [aiQuery, setAiQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -54,42 +56,599 @@ const MeetingEditorPage = () => {
     fetchUsers();
   }, []);
 
+
+  
+
+  
+
+  
+  // Function to load meeting data
+  const loadMeeting = useCallback(async () => {
+    if (!meetingId || isNewMeeting) {
+      setBlocks([{ id: 'block-1', type: 'text', content: '', style: {} }]);
+      setIsLoading(false);
+      return;
+    }
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Try to load from server first
+      const serverData = await fetchFromServer(meetingId);
+      
+      if (serverData) {
+        // If we got data from server, use it and save to localStorage
+        updateMeetingState(serverData);
+        localStorage.setItem(`meeting-${meetingId}`, JSON.stringify(serverData));
+      } else {
+        // Fallback to localStorage if server fetch fails
+        const savedMeeting = localStorage.getItem(`meeting-${meetingId}`);
+        if (savedMeeting) {
+          const meetingData = JSON.parse(savedMeeting);
+          console.log('Falling back to localStorage version');
+          updateMeetingState(meetingData);
+        } else {
+          setError('Failed to load meeting. Please check your connection and try again.');
+        }
+      }
+    } catch (error) {
+      console.error('Error in loadMeeting:', error);
+      setError('An error occurred while loading the meeting');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [meetingId, isNewMeeting]);
+  
+  // Load meeting when component mounts or meetingId changes
   useEffect(() => {
-    const loadMeeting = async () => {
-      if (!isNewMeeting && meetingId) {
-        try {
-          const meetingData = await getMeetingById(meetingId);
-          setMeeting({
-            title: meetingData.title || '',
-            type: meetingData.type || 'Standup',
-            date: meetingData.date ? new Date(meetingData.date).toISOString().split('T')[0] : '',
-            time: meetingData.time || '',
-            duration: meetingData.duration || '30',
-            attendees: meetingData.attendees || [],
-            agenda: meetingData.agenda || '',
-            notes: meetingData.notes || '',
-            actionItems: meetingData.actionItems || [],
-            tags: meetingData.tags || [],
-            location: meetingData.location || '',
-            meetingLink: meetingData.meetingLink || '',
-            status: meetingData.status || 'scheduled',
-            createdAt: meetingData.createdAt
-          });
-          
-          // Load blocks structure if available
-          if (meetingData.blocks && meetingData.blocks.length > 0) {
-            setBlocks(meetingData.blocks);
-          } else if (meetingData.notes) {
-            const noteLines = meetingData.notes.split('\n').filter(line => line.trim());
-            if (noteLines.length > 0) {
-              const noteBlocks = noteLines.map((line, idx) => ({
-                id: `block-${idx + 1}`,
-                type: 'text',
-                content: line,
-                style: {}
-              }));
-              setBlocks(noteBlocks);
-            }
+    loadMeeting();
+  }, [loadMeeting]);
+  
+  // Function to fetch meeting data from the server
+  const fetchFromServer = async (id) => {
+    try {
+      const response = await getMeetingById(id);
+      return response.meeting || response;
+    } catch (error) {
+      console.error('Error fetching meeting from server:', error);
+      return null;
+    }
+  };
+  
+  // Function to handle saving the meeting
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      
+      // Prepare the meeting data to save
+      const meetingToSave = {
+        ...meeting,
+        blocks: blocks,
+        updatedAt: new Date().toISOString()
+      };
+      
+      if (isNewMeeting) {
+        // Create new meeting
+        const newMeeting = await createMeeting(meetingToSave);
+        navigate(`/meetings/${newMeeting._id}`);
+        toast.success('Meeting created successfully');
+      } else {
+        // Update existing meeting
+        await updateMeeting(meetingId, meetingToSave);
+        toast.success('Meeting updated successfully');
+      }
+      
+      // Save to localStorage as well
+      localStorage.setItem(`meeting-${meetingId}`, JSON.stringify(meetingToSave));
+      
+    } catch (error) {
+      console.error('Error saving meeting:', error);
+      toast.error('Failed to save meeting. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  
+  // Function to handle block content changes
+  const handleBlockChange = (blockId, newContent) => {
+    setBlocks(blocks.map(block => 
+      block.id === blockId ? { ...block, content: newContent } : block
+    ));
+  };
+  
+  // Function to add a new block
+  const addBlock = (index, type = 'text', content = '') => {
+    const newBlock = {
+      id: `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      type,
+      content,
+      style: {}
+    };
+    
+    const newBlocks = [...blocks];
+    newBlocks.splice(index + 1, 0, newBlock);
+    setBlocks(newBlocks);
+  };
+  
+  // Function to remove a block
+  const removeBlock = (blockId) => {
+    if (blocks.length > 1) {
+      setBlocks(blocks.filter(block => block.id !== blockId));
+    }
+  };
+  
+  // Function to handle meeting field changes
+  const handleMeetingChange = (field, value) => {
+    setMeeting(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+  
+  // Function to add an attendee
+  const addAttendee = (attendee) => {
+    if (attendee.trim() && !meeting.attendees.includes(attendee.trim())) {
+      handleMeetingChange('attendees', [...meeting.attendees, attendee.trim()]);
+    }
+  };
+  
+  // Function to remove an attendee
+  const removeAttendee = (index) => {
+    const newAttendees = [...meeting.attendees];
+    newAttendees.splice(index, 1);
+    handleMeetingChange('attendees', newAttendees);
+  };
+  
+  // Function to add a tag
+  const addTag = (tag) => {
+    if (tag.trim() && !meeting.tags.includes(tag.trim())) {
+      handleMeetingChange('tags', [...meeting.tags, tag.trim()]);
+    }
+  };
+  
+  // Function to remove a tag
+  const removeTag = (index) => {
+    const newTags = [...meeting.tags];
+    newTags.splice(index, 1);
+    handleMeetingChange('tags', newTags);
+  };
+  
+  // Function to handle date changes
+  const handleDateChange = (date) => {
+    handleMeetingChange('date', formatDate(date));
+  };
+  
+  // Function to handle time changes
+  const handleTimeChange = (time) => {
+    handleMeetingChange('time', time);
+  };
+  
+  // Function to handle duration changes
+  const handleDurationChange = (duration) => {
+    handleMeetingChange('duration', duration);
+  };
+  
+  // Function to handle status changes
+  const handleStatusChange = (status) => {
+    handleMeetingChange('status', status);
+  };
+  
+  // Function to handle meeting link changes
+  const handleMeetingLinkChange = (link) => {
+    handleMeetingChange('meetingLink', link);
+  };
+  
+  // Function to handle location changes
+  const handleLocationChange = (location) => {
+    handleMeetingChange('location', location);
+  };
+  
+  // Function to fetch meeting data from the server
+  const fetchFromServer = async (id) => {
+    try {
+      const response = await getMeetingById(id);
+      return response.meeting || response;
+    } catch (error) {
+      console.error('Error fetching meeting from server:', error);
+      return null;
+    }
+  };
+  
+  // Function to load meeting data
+  const loadMeeting = useCallback(async () => {
+    if (!meetingId || isNewMeeting) {
+      setBlocks([{ id: 'block-1', type: 'text', content: '', style: {} }]);
+      setIsLoading(false);
+      return;
+    }
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Try to load from server first
+      const serverData = await fetchFromServer(meetingId);
+      
+      if (serverData) {
+        // If we got data from server, use it and save to localStorage
+        updateMeetingState(serverData);
+        localStorage.setItem(`meeting-${meetingId}`, JSON.stringify(serverData));
+      } else {
+        // Fallback to localStorage if server fetch fails
+        const savedMeeting = localStorage.getItem(`meeting-${meetingId}`);
+        if (savedMeeting) {
+          const meetingData = JSON.parse(savedMeeting);
+          console.log('Falling back to localStorage version');
+          updateMeetingState(meetingData);
+        } else {
+          setError('Failed to load meeting. Please check your connection and try again.');
+        }
+      }
+    } catch (error) {
+      console.error('Error in loadMeeting:', error);
+      setError('An error occurred while loading the meeting');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [meetingId, isNewMeeting]);
+  
+  // Load meeting when component mounts or meetingId changes
+  useEffect(() => {
+    loadMeeting();
+  }, [loadMeeting]);
+  
+  // Function to render the meeting editor UI
+  const renderMeetingEditor = () => {
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        {/* Meeting details form */}
+        <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+          <div className="px-4 py-5 sm:px-6">
+            <h3 className="text-lg leading-6 font-medium text-gray-900">
+              {isNewMeeting ? 'Create New Meeting' : 'Edit Meeting'}
+            </h3>
+          </div>
+          <div className="border-t border-gray-200 px-4 py-5 sm:p-0">
+            <dl className="sm:divide-y sm:divide-gray-200">
+              {/* Meeting title */}
+              <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt className="text-sm font-medium text-gray-500">Title</dt>
+                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                  <input
+                    type="text"
+                    value={meeting.title}
+                    onChange={(e) => handleMeetingChange('title', e.target.value)}
+                    className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                    placeholder="Enter meeting title"
+                  />
+                </dd>
+              </div>
+              
+              {/* Meeting type */}
+              <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt className="text-sm font-medium text-gray-500">Type</dt>
+                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                  <select
+                    value={meeting.type}
+                    onChange={(e) => handleMeetingChange('type', e.target.value)}
+                    className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                  >
+                    <option value="Standup">Standup</option>
+                    <option value="Sprint Planning">Sprint Planning</option>
+                    <option value="Retrospective">Retrospective</option>
+                    <option value="Review">Review</option>
+                    <option value="One-on-One">One-on-One</option>
+                    <option value="Team Meeting">Team Meeting</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </dd>
+              </div>
+              
+              {/* Date and time */}
+              <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt className="text-sm font-medium text-gray-500">Date & Time</dt>
+                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 space-y-4">
+                  <div className="flex space-x-4">
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                      <input
+                        type="date"
+                        value={meeting.date}
+                        onChange={(e) => handleDateChange(e.target.value)}
+                        className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Time</label>
+                      <input
+                        type="time"
+                        value={meeting.time}
+                        onChange={(e) => handleTimeChange(e.target.value)}
+                        className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Duration (min)</label>
+                      <input
+                        type="number"
+                        min="15"
+                        step="15"
+                        value={meeting.duration}
+                        onChange={(e) => handleDurationChange(e.target.value)}
+                        className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                      />
+                    </div>
+                  </div>
+                </dd>
+              </div>
+              
+              {/* Status */}
+              <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt className="text-sm font-medium text-gray-500">Status</dt>
+                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                  <select
+                    value={meeting.status}
+                    onChange={(e) => handleStatusChange(e.target.value)}
+                    className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                  >
+                    <option value="scheduled">Scheduled</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                    <option value="canceled">Canceled</option>
+                  </select>
+                </dd>
+              </div>
+              
+              {/* Location */}
+              <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt className="text-sm font-medium text-gray-500">Location</dt>
+                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                  <input
+                    type="text"
+                    value={meeting.location}
+                    onChange={(e) => handleLocationChange(e.target.value)}
+                    className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                    placeholder="Enter meeting location"
+                  />
+                </dd>
+              </div>
+              
+              {/* Meeting Link */}
+              <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt className="text-sm font-medium text-gray-500">Meeting Link</dt>
+                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                  <input
+                    type="url"
+                    value={meeting.meetingLink}
+                    onChange={(e) => handleMeetingLinkChange(e.target.value)}
+                    className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                    placeholder="https://meet.google.com/..."
+                  />
+                </dd>
+              </div>
+              
+              {/* Attendees */}
+              <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt className="text-sm font-medium text-gray-500">Attendees</dt>
+                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {meeting.attendees.map((attendee, index) => (
+                      <span key={index} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {attendee}
+                        <button
+                          type="button"
+                          onClick={() => removeAttendee(index)}
+                          className="ml-1.5 inline-flex items-center justify-center h-4 w-4 rounded-full text-blue-400 hover:bg-blue-200 hover:text-blue-500 focus:outline-none focus:bg-blue-500 focus:text-white"
+                        >
+                          <span className="sr-only">Remove attendee</span>
+                          <svg className="h-2 w-2" stroke="currentColor" fill="none" viewBox="0 0 8 8">
+                            <path strokeLinecap="round" strokeWidth="1.5" d="M1 1l6 6m0-6L1 7" />
+                          </svg>
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex">
+                    <input
+                      type="text"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ',') {
+                          e.preventDefault();
+                          addAttendee(e.target.value);
+                          e.target.value = '';
+                        }
+                      }}
+                      onBlur={(e) => {
+                        if (e.target.value.trim()) {
+                          addAttendee(e.target.value);
+                          e.target.value = '';
+                        }
+                      }}
+                      className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                      placeholder="Add attendee and press Enter"
+                    />
+                  </div>
+                </dd>
+              </div>
+              
+              {/* Tags */}
+              <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt className="text-sm font-medium text-gray-500">Tags</dt>
+                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {meeting.tags.map((tag, index) => (
+                      <span key={index} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        {tag}
+                        <button
+                          type="button"
+                          onClick={() => removeTag(index)}
+                          className="ml-1.5 inline-flex items-center justify-center h-4 w-4 rounded-full text-green-400 hover:bg-green-200 hover:text-green-500 focus:outline-none focus:bg-green-500 focus:text-white"
+                        >
+                          <span className="sr-only">Remove tag</span>
+                          <svg className="h-2 w-2" stroke="currentColor" fill="none" viewBox="0 0 8 8">
+                            <path strokeLinecap="round" strokeWidth="1.5" d="M1 1l6 6m0-6L1 7" />
+                          </svg>
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex">
+                    <input
+                      type="text"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ',') {
+                          e.preventDefault();
+                          addTag(e.target.value);
+                          e.target.value = '';
+                        }
+                      }}
+                      onBlur={(e) => {
+                        if (e.target.value.trim()) {
+                          addTag(e.target.value);
+                          e.target.value = '';
+                        }
+                      }}
+                      className="shadow-sm focus:ring-green-500 focus:border-green-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                      placeholder="Add tag and press Enter"
+                    />
+                  </div>
+                </dd>
+              </div>
+              
+              {/* Agenda */}
+              <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt className="text-sm font-medium text-gray-500">Agenda</dt>
+                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                  <textarea
+                    rows={3}
+                    value={meeting.agenda}
+                    onChange={(e) => handleMeetingChange('agenda', e.target.value)}
+                    className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border border-gray-300 rounded-md"
+                    placeholder="Meeting agenda and key discussion points"
+                  />
+                </dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+        
+        {/* Action buttons */}
+        <div className="flex justify-end space-x-3">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={isSaving}
+            className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${isSaving ? 'opacity-75 cursor-not-allowed' : ''}`}
+          >
+            {isSaving ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Saving...
+              </>
+            ) : 'Save Meeting'}
+          </button>
+        </div>
+      </div>
+    );
+  };
+  
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-900">
+          {isNewMeeting ? 'New Meeting' : 'Edit Meeting'}
+        </h2>
+      </div>
+      
+      {renderMeetingEditor()}
+      
+      {/* Meeting notes editor */}
+      <div className="mt-8">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">Meeting Notes</h3>
+          <div className="flex space-x-2">
+            <button
+              type="button"
+              onClick={() => addBlock(blocks.length - 1, 'text')}
+              className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              <Plus className="-ml-0.5 mr-1.5 h-4 w-4" />
+              Add Block
+            </button>
+          </div>
+        </div>
+        
+        <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+          <div className="px-4 py-5 sm:p-6">
+            {blocks.map((block, index) => (
+              <div key={block.id} className="group flex items-start mb-4">
+                <div className="flex-1">
+                  {block.type === 'text' && (
+                    <textarea
+                      rows="1"
+                      value={block.content}
+                      onChange={(e) => handleBlockChange(block.id, e.target.value)}
+                      className="block w-full border-0 p-0 text-gray-900 placeholder-gray-500 focus:ring-0 sm:text-sm"
+                      placeholder="Type / for commands"
+                    />
+                  )}
+                  {/* Add other block types here */}
+                </div>
+                <div className="ml-3 flex-shrink-0 opacity-0 group-hover:opacity-100">
+                  <button
+                    type="button"
+                    onClick={() => removeBlock(block.id)}
+                    className="inline-flex items-center p-1 border border-transparent rounded-full text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+          } else {
+            // No notes, create default empty block
+            setBlocks([{ id: 'block-1', type: 'text', content: '', style: {} }]);
           }
           
           // Load table data if available
@@ -97,20 +656,51 @@ const MeetingEditorPage = () => {
             setTableData(meetingData.tableData);
           }
         } catch (error) {
-          console.error('Error loading meeting:', error);
-          // Fallback: try to load from localStorage for offline support
+          console.error('Error loading meeting from server:', error);
+          
+          // If we have a saved version in localStorage, use that
           const savedMeeting = localStorage.getItem(`meeting-${meetingId}`);
           if (savedMeeting) {
-            const meetingData = JSON.parse(savedMeeting);
-            setMeeting(meetingData);
-            if (meetingData.blocks) {
-              setBlocks(meetingData.blocks);
-            }
-            if (meetingData.tableData) {
-              setTableData(meetingData.tableData);
+            try {
+              const meetingData = JSON.parse(savedMeeting);
+              console.log('Falling back to localStorage version');
+              setMeeting(meetingData);
+              
+              if (meetingData.blocks) {
+                setBlocks(meetingData.blocks);
+              } else if (meetingData.notes) {
+                // Parse notes into blocks if we have notes but no blocks
+                const noteLines = meetingData.notes.split('\n');
+                const noteBlocks = noteLines
+                  .filter(line => line.trim() !== '')
+                  .map((line, index) => ({
+                    id: `block-${Date.now()}-${index}`,
+                    type: 'text',
+                    content: line.trim(),
+                    style: {}
+                  }));
+                setBlocks(noteBlocks);
+              } else {
+                setBlocks([{ id: 'block-1', type: 'text', content: '', style: {} }]);
+              }
+              
+              return;
+            } catch (parseError) {
+              console.error('Error parsing saved meeting:', parseError);
             }
           }
+          
+          // If we get here, we couldn't load the meeting
+          setError('Failed to load meeting. You may not have permission to view this meeting or you might be offline.');
+          setIsLoading(false);
+          
+          // Set default empty state
+          setBlocks([{ id: 'block-1', type: 'text', content: '', style: {} }]);
         }
+      } else if (isNewMeeting) {
+        // For new meetings, ensure we have an empty block and don't show loading
+        setBlocks([{ id: 'block-1', type: 'text', content: '', style: {} }]);
+        setIsLoading(false);
       }
     };
     
@@ -180,37 +770,140 @@ const MeetingEditorPage = () => {
     }
     
     setIsSaving(true);
+    
     try {
-      const notesContent = blocks.map(block => block.content).join('\n');
+      // Convert blocks to structured notes content
+      const notesContent = blocks.map(block => {
+        switch (block.type) {
+          case 'heading1': return `# ${block.content}`;
+          case 'heading2': return `## ${block.content}`;
+          case 'heading3': return `### ${block.content}`;
+          case 'bullet': return `• ${block.content}`;
+          case 'numbered': return `1. ${block.content}`;
+          case 'todo': return `- [${block.checked ? 'x' : ' '}] ${block.content}`;
+          case 'toggle': return `▶ ${block.content}`;
+          case 'quote': return `> ${block.content}`;
+          case 'code': return `\`\`\`\n${block.content}\n\`\`\``;
+          case 'callout': return `💡 ${block.content}`;
+          case 'date': return `📅 ${block.content}`;
+          case 'time': return `🕐 ${block.content}`;
+          case 'priority': return `⭐ ${block.priorityLevel}: ${block.content}`;
+          case 'divider': return '---';
+          case 'table': return '[Table Data]';
+          default: return block.content;
+        }
+      }).join('\n');
+
+      // Comprehensive meeting data structure
       const meetingData = {
-        ...meeting,
-        notes: notesContent,
-        blocks: blocks,
-        tableData: tableData,
+        title: meeting.title.trim(),
+        type: meeting.type || 'Standup',
         date: meeting.date ? new Date(meeting.date).toISOString() : new Date().toISOString(),
+        time: meeting.time || '',
+        duration: parseInt(meeting.duration) || 30,
+        attendees: meeting.attendees || [],
+        location: meeting.location || '',
+        meetingLink: meeting.meetingLink || '',
+        status: meeting.status || 'scheduled',
+        agenda: meeting.agenda || '',
+        notes: notesContent,
+        blocks: blocks.map(block => ({
+          id: block.id,
+          type: block.type,
+          content: block.content,
+          checked: block.checked || false,
+          priorityLevel: block.priorityLevel || null,
+          expanded: block.expanded || false,
+          toggleContent: block.toggleContent || '',
+          metadata: block.metadata || {}
+        })),
+        tableData: tableData || {},
+        actionItems: meeting.actionItems || [],
+        tags: meeting.tags || [],
+        createdBy: meeting.createdBy || 'current-user',
         createdAt: isNewMeeting ? new Date().toISOString() : meeting.createdAt,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        version: (meeting.version || 0) + 1,
+        wordCount: notesContent.split(/\s+/).filter(word => word.length > 0).length,
+        characterCount: notesContent.length,
+        blockCount: blocks.length,
+        attendeeCount: meeting.attendees ? meeting.attendees.length : 0
       };
 
-      console.log('Saving meeting data:', meetingData);
-      
-      let result;
+      console.log('Saving comprehensive meeting data:', meetingData);
+
+      let savedMeeting;
       if (isNewMeeting) {
-        console.log('Creating new meeting...');
-        result = await createMeeting(meetingData);
-        console.log('Meeting created successfully:', result);
+        savedMeeting = await createMeeting(meetingData);
+        console.log('Created new meeting:', savedMeeting);
+        // Store locally for offline access
+        localStorage.setItem(`meeting-${savedMeeting._id || savedMeeting.id}`, JSON.stringify(savedMeeting));
       } else {
-        console.log('Updating existing meeting...');
-        result = await updateMeeting(meetingId, meetingData);
-        console.log('Meeting updated successfully:', result);
+        savedMeeting = await updateMeeting(meetingId, meetingData);
+        console.log('Updated existing meeting:', savedMeeting);
+        // Update local storage
+        localStorage.setItem(`meeting-${meetingId}`, JSON.stringify(savedMeeting));
       }
+
+      // Show success message
+      const successMessage = isNewMeeting 
+        ? `Meeting "${meeting.title}" created successfully with ${blocks.length} blocks and ${meeting.attendees?.length || 0} attendees`
+        : `Meeting "${meeting.title}" updated successfully`;
       
-      alert(`Meeting ${isNewMeeting ? 'created' : 'updated'} successfully!`);
-      navigate('/meeting-notes');
+      // Create a temporary success notification
+      const notification = document.createElement('div');
+      notification.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-all duration-300';
+      notification.innerHTML = `
+        <div class="flex items-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+          </svg>
+          <span class="font-medium">${successMessage}</span>
+        </div>
+      `;
+      document.body.appendChild(notification);
+      
+      // Remove notification after 3 seconds
+      setTimeout(() => {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+          if (document.body.contains(notification)) {
+            document.body.removeChild(notification);
+          }
+        }, 300);
+      }, 3000);
+
+      // Navigate back to meeting list
+      setTimeout(() => {
+        navigate('/meeting-notes');
+      }, 1000);
+      
     } catch (error) {
       console.error('Error saving meeting:', error);
-      console.error('Error details:', error.message);
-      alert(`Failed to save meeting: ${error.message}`);
+      
+      // Show error notification
+      const errorNotification = document.createElement('div');
+      errorNotification.className = 'fixed top-4 right-4 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-all duration-300';
+      errorNotification.innerHTML = `
+        <div class="flex items-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <span class="font-medium">Failed to save meeting. Please try again.</span>
+        </div>
+      `;
+      document.body.appendChild(errorNotification);
+      
+      setTimeout(() => {
+        errorNotification.style.opacity = '0';
+        errorNotification.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+          if (document.body.contains(errorNotification)) {
+            document.body.removeChild(errorNotification);
+          }
+        }, 300);
+      }, 4000);
     } finally {
       setIsSaving(false);
     }
@@ -442,46 +1135,80 @@ const MeetingEditorPage = () => {
       };
       
       return (
-        <div className="border border-gray-600 rounded-lg overflow-hidden bg-gray-800/50 group relative">
-          <div className="flex items-center justify-between p-2 bg-gray-700 border-b border-gray-600">
-            <div className="flex items-center gap-2">
-              <button onClick={addRow} className="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded">
-                + Row
-              </button>
-              <button onClick={addColumn} className="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded">
-                + Column
-              </button>
-            </div>
-            <div className="flex items-center gap-2">
-              <button onClick={deleteRow} className="px-2 py-1 text-xs bg-red-600 hover:bg-red-700 text-white rounded">
-                - Row
-              </button>
-              <button onClick={deleteColumn} className="px-2 py-1 text-xs bg-red-600 hover:bg-red-700 text-white rounded">
-                - Column
-              </button>
-            </div>
+        <div className="flex items-start group relative" style={{ marginRight: '40px', marginBottom: '40px' }}>
+          <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
+            <button className="p-1 rounded hover:bg-gray-700 transition-colors text-gray-400 hover:text-gray-200 flex items-center justify-center w-6 h-6" onClick={() => setShowBlockMenu(showBlockMenu === block.id ? null : block.id)}>
+              <Plus className="w-4 h-4" />
+            </button>
+            <button className="p-1 rounded hover:bg-gray-700 transition-colors text-gray-400 hover:text-gray-200 flex items-center justify-center w-6 h-6" onClick={() => setShowLineMenu(showLineMenu === block.id ? null : block.id)}>
+              <GripVertical className="w-4 h-4" />
+            </button>
           </div>
-          <table className="w-full">
-            <tbody>
-              {table.data.map((row, rowIndex) => (
-                <tr key={rowIndex} className={rowIndex === 0 ? 'bg-gray-700' : 'hover:bg-gray-800/30'}>
-                  {row.map((cell, colIndex) => (
-                    <td key={colIndex} className="border-r border-gray-600 last:border-r-0">
-                      <textarea
-                        value={cell}
-                        onChange={(e) => updateCell(rowIndex, colIndex, e.target.value)}
-                        className={`w-full px-3 py-2 bg-transparent text-white text-sm resize-none focus:outline-none min-h-[40px] ${
-                          rowIndex === 0 ? 'font-medium' : ''
-                        }`}
-                        placeholder={rowIndex === 0 ? `Header ${colIndex + 1}` : 'Cell data'}
-                        rows={1}
-                      />
-                    </td>
+          <div className="flex-1 relative">
+            <div className="border border-gray-700 rounded-lg overflow-hidden shadow-sm bg-gray-800">
+              <table className="w-full border-collapse">
+                <tbody>
+                  {table.data.map((row, rowIndex) => (
+                    <tr key={rowIndex} className={rowIndex === 0 ? 'bg-gray-700' : 'hover:bg-gray-700/50'}>
+                      {row.map((cell, colIndex) => (
+                        <td key={`${rowIndex}-${colIndex}`} className="border-r border-b p-0 relative group/cell border-gray-600">  
+                          <textarea
+                            value={cell}
+                            onChange={(e) => updateCell(rowIndex, colIndex, e.target.value)}
+                            placeholder={rowIndex === 0 ? `Column ${colIndex + 1}` : ''}
+                            className={`w-full min-h-[24px] px-2 py-1 border-none outline-none resize-none bg-transparent text-xs leading-tight ${
+                              rowIndex === 0 ? 'font-semibold text-gray-200' : 'text-gray-300'
+                            } focus:bg-blue-900/20 focus:ring-1 focus:ring-blue-700 focus:ring-inset`}
+                            rows={1}
+                            onInput={(e) => {
+                              e.target.style.height = 'auto';
+                              e.target.style.height = Math.max(24, e.target.scrollHeight) + 'px';
+                            }}
+                          />
+                        </td>
+                      ))}
+                    </tr>
                   ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                </tbody>
+              </table>
+            </div>
+            {/* Add column button */}
+            <button
+              onClick={addColumn}
+              className="absolute top-1/2 -right-8 transform -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-lg hover:bg-blue-500 hover:text-white hover:border-blue-500 bg-gray-800 border-gray-600"
+              title="Add column"
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+            {/* Delete column button */}
+            {table.cols > 1 && (
+              <button
+                onClick={deleteColumn}
+                className="absolute top-1/2 -right-16 transform -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-lg hover:bg-red-500 hover:text-white hover:border-red-500 bg-gray-800 border-gray-600"
+                title="Delete column"
+              >
+                <Minus className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {/* Add row button */}
+            <button
+              onClick={addRow}
+              className="absolute left-1/2 -bottom-8 transform -translate-x-1/2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-lg hover:bg-blue-500 hover:text-white hover:border-blue-500 bg-gray-800 border-gray-600"
+              title="Add row"
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+            {/* Delete row button */}
+            {table.rows > 1 && (
+              <button
+                onClick={deleteRow}
+                className="absolute left-1/2 -bottom-16 transform -translate-x-1/2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-lg hover:bg-red-500 hover:text-white hover:border-red-500 bg-gray-800 border-gray-600"
+                title="Delete row"
+              >
+                <Minus className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
         </div>
       );
     }
@@ -771,7 +1498,7 @@ const MeetingEditorPage = () => {
               }
             }, 150);
           }}
-          placeholder={index === 0 ? "Start typing your meeting notes... " : "Continue typing... (Try markdown shortcuts)"}
+          placeholder={index === 0 ? "Start typing your meeting notes... " : "Continue typing.."}
           className={getInputClassName()}
         />
 
@@ -811,6 +1538,45 @@ const MeetingEditorPage = () => {
     }
   };
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p>Loading meeting data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white p-4">
+        <div className="text-center max-w-md">
+          <div className="text-red-500 text-5xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-bold mb-2">Error Loading Meeting</h2>
+          <p className="mb-6 text-gray-300">{error}</p>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+            >
+              Try Again
+            </button>
+            <button
+              onClick={() => navigate('/meeting-notes')}
+              className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 transition-colors"
+            >
+              Back to Meetings
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="w-full h-screen overflow-y-auto bg-gray-900">
@@ -826,6 +1592,25 @@ const MeetingEditorPage = () => {
                 </button>
               </div>
               <div className="flex items-center gap-3">
+                {!isNewMeeting && (
+                  <button
+                    onClick={async () => {
+                      if (window.confirm('Are you sure you want to delete this meeting?')) {
+                        try {
+                          await deleteMeeting(meetingId);
+                          navigate('/meeting-notes');
+                        } catch (error) {
+                          console.error('Error deleting meeting:', error);
+                          alert('Failed to delete meeting. Please try again.');
+                        }
+                      }
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all bg-red-600 hover:bg-red-700 text-white"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete
+                  </button>
+                )}
                 <button
                   onClick={handleSave}
                   disabled={isSaving || !meeting.title.trim()}
@@ -836,7 +1621,7 @@ const MeetingEditorPage = () => {
                   ) : (
                     <Save className="w-4 h-4" />
                   )}
-                  {isSaving ? 'Saving...' : (isNewMeeting ? 'Create Meeting' : 'Save Meeting')}
+                  {isSaving ? 'Saving...' : (isNewMeeting ? 'Create Meeting' : 'Update Meeting')}
                 </button>
               </div>
             </div>
@@ -855,7 +1640,12 @@ const MeetingEditorPage = () => {
                   className="w-full px-4 py-3 text-4xl ml-8 rounded-lg transition-colors bg-gray-900 text-white placeholder-gray-400 focus:outline-none"
                 />
                 <div className="ml-12 mt-2">
-                  <span className="text-sm text-gray-400">Created 9/28/2025</span>
+                  <span className="text-sm text-gray-400">
+                    {meeting.createdAt 
+                      ? `Created ${new Date(meeting.createdAt).toLocaleDateString('en-US')}` 
+                      : 'Created today'
+                    }
+                  </span>
                 </div>
               </div>
 
@@ -1209,6 +1999,9 @@ const MeetingEditorPage = () => {
                                   <div className="p-2">
                                     <button onClick={() => { const newBlocks = [...blocks]; const duplicated = { ...block, id: `block-${Date.now()}` }; newBlocks.splice(index + 1, 0, duplicated); setBlocks(newBlocks); setShowLineMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
                                       <Copy className="w-4 h-4" /> Duplicate
+                                    </button>
+                                    <button onClick={() => { const newBlocks = [...blocks]; newBlocks.push({ id: `block-${Date.now()}`, type: 'text', content: '', style: {} }); setBlocks(newBlocks); setShowLineMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                      <Plus className="w-4 h-4" /> Add Line
                                     </button>
                                     {blocks.length > 1 && (
                                       <button onClick={() => { const newBlocks = blocks.filter((_, i) => i !== index); setBlocks(newBlocks); setShowLineMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-red-400">
