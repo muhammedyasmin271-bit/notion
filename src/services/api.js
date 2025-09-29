@@ -488,7 +488,7 @@ class ApiService {
             return response;
         } catch (error) {
             console.error('Error fetching meetings:', error);
-            return [];
+            throw error;
         }
     }
 
@@ -524,6 +524,98 @@ class ApiService {
             return response;
         } catch (error) {
             console.error('Error fetching meeting:', error);
+            // Fallback to sample data for demo purposes
+            const sampleMeetings = {
+                '1': {
+                    _id: '1',
+                    title: 'Weekly Team Standup',
+                    type: 'Standup',
+                    date: '2024-01-15T09:00:00Z',
+                    time: '09:00',
+                    duration: 30,
+                    attendees: ['John Doe', 'Jane Smith', 'Mike Johnson'],
+                    status: 'completed',
+                    location: 'Conference Room A',
+                    meetingLink: '',
+                    agenda: 'Weekly team sync and progress updates',
+                    notes: '# Weekly Team Standup\n\n## Agenda\n• Review last week\'s progress\n• Discuss current blockers\n• Plan upcoming tasks\n\n## Discussion Points\n1. Project Alpha is 80% complete\n2. Need to resolve API integration issues\n3. Client feedback session scheduled for Friday\n\n## Action Items\n- [ ] Complete frontend design by Wednesday\n- [x] Review backend API documentation\n- [ ] Schedule client presentation\n\n## Next Steps\n> Focus on completing remaining tasks before the deadline\n\n**Priority Items:**\n⭐ high: Fix critical bug in payment system\n⭐ medium: Update user documentation\n\n---\n\nMeeting concluded at 9:30 AM',
+                    blocks: [
+                        { id: 'block-1', type: 'heading1', content: 'Weekly Team Standup', style: {} },
+                        { id: 'block-2', type: 'heading2', content: 'Agenda', style: {} },
+                        { id: 'block-3', type: 'bullet', content: '• Review last week\'s progress', style: {} },
+                        { id: 'block-4', type: 'bullet', content: '• Discuss current blockers', style: {} },
+                        { id: 'block-5', type: 'bullet', content: '• Plan upcoming tasks', style: {} },
+                        { id: 'block-6', type: 'heading2', content: 'Discussion Points', style: {} },
+                        { id: 'block-7', type: 'numbered', content: '1. Project Alpha is 80% complete', style: {} },
+                        { id: 'block-8', type: 'numbered', content: '2. Need to resolve API integration issues', style: {} },
+                        { id: 'block-9', type: 'numbered', content: '3. Client feedback session scheduled for Friday', style: {} },
+                        { id: 'block-10', type: 'heading2', content: 'Action Items', style: {} },
+                        { id: 'block-11', type: 'todo', content: '☐ Complete frontend design by Wednesday', style: {} },
+                        { id: 'block-12', type: 'todo', content: '☑ Review backend API documentation', style: {} },
+                        { id: 'block-13', type: 'todo', content: '☐ Schedule client presentation', style: {} },
+                        { id: 'block-14', type: 'heading2', content: 'Next Steps', style: {} },
+                        { id: 'block-15', type: 'quote', content: 'Focus on completing remaining tasks before the deadline', style: {} },
+                        { id: 'block-16', type: 'text', content: 'Priority Items:', style: { bold: true } },
+                        { id: 'block-17', type: 'priority', content: 'Fix critical bug in payment system', priorityLevel: 'high', style: {} },
+                        { id: 'block-18', type: 'priority', content: 'Update user documentation', priorityLevel: 'medium', style: {} },
+                        { id: 'block-19', type: 'divider', content: '', style: {} },
+                        { id: 'block-20', type: 'text', content: 'Meeting concluded at 9:30 AM', style: {} }
+                    ],
+                    actionItems: [
+                        { id: 1, description: 'Complete frontend design', assignee: 'John Doe', completed: false },
+                        { id: 2, description: 'Review backend API', assignee: 'Jane Smith', completed: true },
+                        { id: 3, description: 'Schedule client presentation', assignee: 'Mike Johnson', completed: false }
+                    ],
+                    tags: ['weekly', 'team', 'standup'],
+                    createdAt: '2024-01-15T09:00:00Z',
+                    updatedAt: '2024-01-15T09:30:00Z'
+                },
+                '2': {
+                    _id: '2',
+                    title: 'Product Planning Session',
+                    type: 'Planning',
+                    date: '2024-01-16T14:00:00Z',
+                    time: '14:00',
+                    duration: 60,
+                    attendees: ['Sarah Wilson', 'Tom Brown', 'Lisa Davis'],
+                    status: 'scheduled',
+                    location: 'Conference Room B',
+                    meetingLink: 'https://meet.google.com/abc-defg-hij',
+                    agenda: 'Plan Q1 product roadmap and feature prioritization',
+                    notes: '# Product Planning Session\n\n## Objectives\n• Define Q1 roadmap\n• Prioritize feature requests\n• Allocate resources\n\n## Key Features to Discuss\n1. User dashboard redesign\n2. Mobile app improvements\n3. API v2 development\n\n## Resource Allocation\n- Frontend: 3 developers\n- Backend: 2 developers\n- Design: 1 designer\n\n## Timeline\n📅 Q1 Start: January 1st\n📅 Mid-review: February 15th\n📅 Q1 End: March 31st',
+                    blocks: [
+                        { id: 'block-1', type: 'heading1', content: 'Product Planning Session', style: {} },
+                        { id: 'block-2', type: 'heading2', content: 'Objectives', style: {} },
+                        { id: 'block-3', type: 'bullet', content: '• Define Q1 roadmap', style: {} },
+                        { id: 'block-4', type: 'bullet', content: '• Prioritize feature requests', style: {} },
+                        { id: 'block-5', type: 'bullet', content: '• Allocate resources', style: {} },
+                        { id: 'block-6', type: 'heading2', content: 'Key Features to Discuss', style: {} },
+                        { id: 'block-7', type: 'numbered', content: '1. User dashboard redesign', style: {} },
+                        { id: 'block-8', type: 'numbered', content: '2. Mobile app improvements', style: {} },
+                        { id: 'block-9', type: 'numbered', content: '3. API v2 development', style: {} },
+                        { id: 'block-10', type: 'heading2', content: 'Resource Allocation', style: {} },
+                        { id: 'block-11', type: 'bullet', content: '• Frontend: 3 developers', style: {} },
+                        { id: 'block-12', type: 'bullet', content: '• Backend: 2 developers', style: {} },
+                        { id: 'block-13', type: 'bullet', content: '• Design: 1 designer', style: {} },
+                        { id: 'block-14', type: 'heading2', content: 'Timeline', style: {} },
+                        { id: 'block-15', type: 'date', content: '2024-01-01', style: {} },
+                        { id: 'block-16', type: 'text', content: 'Q1 Start: January 1st', style: {} },
+                        { id: 'block-17', type: 'date', content: '2024-02-15', style: {} },
+                        { id: 'block-18', type: 'text', content: 'Mid-review: February 15th', style: {} },
+                        { id: 'block-19', type: 'date', content: '2024-03-31', style: {} },
+                        { id: 'block-20', type: 'text', content: 'Q1 End: March 31st', style: {} }
+                    ],
+                    actionItems: [],
+                    tags: ['planning', 'product', 'roadmap'],
+                    createdAt: '2024-01-16T14:00:00Z',
+                    updatedAt: '2024-01-16T14:00:00Z'
+                }
+            };
+            
+            const meeting = sampleMeetings[meetingId];
+            if (meeting) {
+                return meeting;
+            }
             throw error;
         }
     }

@@ -1383,6 +1383,13 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                     Duplicate
                   </button>
                   <button
+                    onClick={() => { const newBlocks = [...blocks]; newBlocks.push({ id: `block-${Date.now()}`, type: 'text', content: '' }); setBlocks(newBlocks); setShowBlockMenu(null); }}
+                    className={`flex items-center w-full px-4 py-2 text-left ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Line
+                  </button>
+                  <button
                     onClick={() => moveBlockUp(block.id)}
                     className={`flex items-center w-full px-4 py-2 text-left ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
                   >
