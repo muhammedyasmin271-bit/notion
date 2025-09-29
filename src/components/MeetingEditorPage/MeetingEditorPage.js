@@ -1,954 +1,1255 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../../context/ThemeContext';
-import { useAppContext } from '../../context/AppContext';
-import PageHeader from '../common/PageHeader';
-import { 
-  Calendar, Clock, Users, Plus, X, User, 
-  ChevronDown, ChevronUp, Tag, AlertCircle, 
-  CheckCircle, Save, Trash2, FileText 
-} from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Save, ArrowLeft, Calendar, Clock, Users, Plus, X, CheckCircle, Circle, Video, Sparkles, GripVertical, Type, Hash, List, Quote, Code, Image, Trash2, Copy, ArrowUp, ArrowDown, ArrowRight, CheckSquare, Table, Calendar as CalendarIcon, Link2 as Link, Minus as Divider, AlertCircle, Star, Tag, MapPin, Phone, Mail, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, ListOrdered, FileText, Bookmark, Lightbulb, Info, AlertTriangle, Zap, Heart, Smile, Eye, Lock, Globe, Download, Upload, Search, Filter, Settings, MoreHorizontal } from 'lucide-react';
+import { getMeetingById, createMeeting, updateMeeting, addMeetingActionItem, getUsers } from '../../services/api';
 
-const MEETING_TYPES = [
-  'Standup', 'Planning', 'Review', 'Retro', 
-  'Presentation', 'Workshop', '1:1', 'Team Sync'
-];
-
-const MEETING_DURATIONS = [
-  '15 min', '30 min', '45 min', '1 hour', 
-  '1.5 hours', '2 hours', 'Half day', 'Full day'
-];
-
-const MEETING_STATUSES = [
-  'Scheduled', 'In Progress', 'Completed', 'Cancelled'
-];
-
-const defaultForm = {
-  title: '',
-  type: 'Standup',
-  date: '',
-  time: '',
-  duration: '30 min',
-  status: 'Scheduled',
-  participants: [],
-  summary: ''
-};
-
-export default function MeetingEditorPage() {
+const MeetingEditorPage = () => {
   const { isDarkMode } = useTheme();
-  const { user } = useAppContext();
+  const { meetingId } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
-  
-  // State for main form and UI
-  const [form, setForm] = useState({
-    ...defaultForm,
-    date: new Date().toISOString().split('T')[0], // Set default to today
-    time: '10:00' // Default time
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isDirty, setIsDirty] = useState(false);
-  const [notification, setNotification] = useState({ show: false, message: '', type: '' });
-  const [showSubMeetings, setShowSubMeetings] = useState(true);
-  const subMeetingFormRef = useRef(null);
-  const [subParticipantName, setSubParticipantName] = useState('');
-  // Rich text editor ref for Notes
-  const notesRteRef = useRef(null);
-  
-  // State for sub-meetings
-  const [subMeetings, setSubMeetings] = useState([]);
-  const [showSubMeetingForm, setShowSubMeetingForm] = useState(false);
-  const [subMeetingForm, setSubMeetingForm] = useState({
+  const isNewMeeting = !meetingId || meetingId === 'new';
+
+  const [meeting, setMeeting] = useState({
     title: '',
+    type: 'Standup',
+    date: '',
     time: '',
-    duration: '15 min',
-    participants: []
+    duration: '30',
+    attendees: [],
+    agenda: '',
+    notes: '',
+    actionItems: [],
+    tags: [],
+    location: '',
+    meetingLink: '',
+    status: 'scheduled'
   });
-  
-  // UI state
-  const [sections, setSections] = useState({
-    details: true,
-    participants: true,
-    subMeetings: true,
-    notes: true
-  });
-  // Scroll progress for top progress bar
-  const [scrollProgress, setScrollProgress] = useState(0);
-  
-  const isCreating = !!(typeof window !== 'undefined' && window.location && 
-    typeof window.location.pathname === 'string' && 
-    window.location.pathname.includes('meeting-new'));
-  
-  // Toggle section visibility
-  const toggleSection = useCallback((section) => {
-    setSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
-  }, []);
-  
-  // Show notification
-  const showNotification = useCallback((message, type = 'success') => {
-    setNotification({ show: true, message, type });
-    setTimeout(() => setNotification(prev => ({ ...prev, show: false })), 3000);
-  }, []);
-  
-  // Handle form field changes
-  const handleFormChange = useCallback((field, value) => {
-    setForm(prev => ({
-      ...prev,
-      [field]: value
-    }));
-    if (!isDirty) setIsDirty(true);
-  }, [isDirty]);
 
-  // Execute formatting commands for the Notes rich text editor
-  const handleRteCommand = useCallback((cmd, value = null) => {
-    // Ensure the editor is focused before executing
-    if (notesRteRef.current) notesRteRef.current.focus();
-    try {
-      if (cmd === 'formatBlock') {
-        document.execCommand('formatBlock', false, value);
-      } else {
-        document.execCommand(cmd, false, value);
-      }
-    } catch (e) {
-      // no-op; execCommand may be deprecated but works across browsers we target
-      console.warn('execCommand failed:', cmd, e);
-    }
-    // After command, update state with latest HTML
-    if (notesRteRef.current) {
-      const html = notesRteRef.current.innerHTML;
-      setForm(prev => ({ ...prev, summary: html }));
-      setIsDirty(true);
-    }
-  }, [setForm]);
+  const [blocks, setBlocks] = useState([{ id: 'block-1', type: 'text', content: '', style: {} }]);
+  const [tableData, setTableData] = useState({});
+  const [selectedText, setSelectedText] = useState('');
+  const [showFormattingBar, setShowFormattingBar] = useState(false);
+  const [currentBlockId, setCurrentBlockId] = useState(null);
+  const inputRefs = useRef({});
+  const [users, setUsers] = useState([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [showTemplateDropdown, setShowTemplateDropdown] = useState(false);
+  const [showBlockMenu, setShowBlockMenu] = useState(null);
+  const [showLineMenu, setShowLineMenu] = useState(null);
+  const [aiInputBlock, setAiInputBlock] = useState(null);
+  const [aiQuery, setAiQuery] = useState('');
 
-  // Keep contenteditable in sync when form.summary changes externally (e.g., draft load)
   useEffect(() => {
-    if (notesRteRef.current && notesRteRef.current.innerHTML !== (form.summary || '')) {
-      notesRteRef.current.innerHTML = form.summary || '';
-    }
-  }, [form.summary]);
-  
-  // Handle participant changes
-  const handleAddParticipant = useCallback((participant) => {
-    if (!participant) return;
-    
-    const participantObj = typeof participant === 'string' 
-      ? { id: Date.now().toString(), name: participant }
-      : participant;
-    
-    setForm(prev => ({
-      ...prev,
-      participants: [...prev.participants, participantObj]
-    }));
-    setIsDirty(true);
+    const fetchUsers = async () => {
+      try {
+        const { users } = await getUsers();
+        setUsers(users);
+      } catch (error) {
+        console.error('Error fetching users:', error);
+        setUsers([]);
+      }
+    };
+    fetchUsers();
   }, []);
-  
-  const handleRemoveParticipant = useCallback((index) => {
-    setForm(prev => ({
+
+  useEffect(() => {
+    const loadMeeting = async () => {
+      if (!isNewMeeting && meetingId) {
+        try {
+          const meetingData = await getMeetingById(meetingId);
+          setMeeting({
+            title: meetingData.title || '',
+            type: meetingData.type || 'Standup',
+            date: meetingData.date ? new Date(meetingData.date).toISOString().split('T')[0] : '',
+            time: meetingData.time || '',
+            duration: meetingData.duration || '30',
+            attendees: meetingData.attendees || [],
+            agenda: meetingData.agenda || '',
+            notes: meetingData.notes || '',
+            actionItems: meetingData.actionItems || [],
+            tags: meetingData.tags || [],
+            location: meetingData.location || '',
+            meetingLink: meetingData.meetingLink || '',
+            status: meetingData.status || 'scheduled',
+            createdAt: meetingData.createdAt
+          });
+          
+          // Load blocks structure if available
+          if (meetingData.blocks && meetingData.blocks.length > 0) {
+            setBlocks(meetingData.blocks);
+          } else if (meetingData.notes) {
+            const noteLines = meetingData.notes.split('\n').filter(line => line.trim());
+            if (noteLines.length > 0) {
+              const noteBlocks = noteLines.map((line, idx) => ({
+                id: `block-${idx + 1}`,
+                type: 'text',
+                content: line,
+                style: {}
+              }));
+              setBlocks(noteBlocks);
+            }
+          }
+          
+          // Load table data if available
+          if (meetingData.tableData) {
+            setTableData(meetingData.tableData);
+          }
+        } catch (error) {
+          console.error('Error loading meeting:', error);
+          // Fallback: try to load from localStorage for offline support
+          const savedMeeting = localStorage.getItem(`meeting-${meetingId}`);
+          if (savedMeeting) {
+            const meetingData = JSON.parse(savedMeeting);
+            setMeeting(meetingData);
+            if (meetingData.blocks) {
+              setBlocks(meetingData.blocks);
+            }
+            if (meetingData.tableData) {
+              setTableData(meetingData.tableData);
+            }
+          }
+        }
+      }
+    };
+    
+    loadMeeting();
+  }, [meetingId, isNewMeeting]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.formatting-toolbar') && !event.target.closest('input')) {
+        setCurrentBlockId(null);
+      }
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.ctrlKey || event.metaKey) {
+        switch (event.key) {
+          case 'b':
+            event.preventDefault();
+            if (currentBlockId) {
+              const block = blocks.find(b => b.id === currentBlockId);
+              if (block) {
+                updateBlockStyle(currentBlockId, { bold: !block.style?.bold });
+              }
+            }
+            break;
+          case 'i':
+            event.preventDefault();
+            if (currentBlockId) {
+              const block = blocks.find(b => b.id === currentBlockId);
+              if (block) {
+                updateBlockStyle(currentBlockId, { italic: !block.style?.italic });
+              }
+            }
+            break;
+          case 'u':
+            event.preventDefault();
+            if (currentBlockId) {
+              const block = blocks.find(b => b.id === currentBlockId);
+              if (block) {
+                updateBlockStyle(currentBlockId, { underline: !block.style?.underline });
+              }
+            }
+            break;
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [currentBlockId, blocks]);
+
+  const removeAttendee = (attendee) => {
+    setMeeting(prev => ({
       ...prev,
-      participants: prev.participants.filter((_, i) => i !== index)
+      attendees: prev.attendees.filter(a => a !== attendee)
     }));
-    setIsDirty(true);
-  }, []);
-  
-  // Handle form submission
-  const handleSubmit = useCallback(async (e) => {
-    if (e && typeof e.preventDefault === 'function') e.preventDefault();
-    setIsSubmitting(true);
+  };
+
+  const handleSave = async () => {
+    if (!meeting.title.trim()) return;
+    setIsSaving(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const notesContent = blocks.map(block => block.content).join('\n');
       const meetingData = {
-        ...form,
-        id: isCreating ? `meeting-${Date.now()}` : form.id,
-        updatedAt: new Date().toISOString(),
-        subMeetings,
+        ...meeting,
+        notes: notesContent,
+        blocks: blocks,
+        tableData: tableData,
+        date: meeting.date ? new Date(meeting.date).toISOString() : new Date().toISOString(),
+        createdAt: isNewMeeting ? new Date().toISOString() : meeting.createdAt,
+        updatedAt: new Date().toISOString()
       };
-      const meetings = JSON.parse(localStorage.getItem('meetingNotes') || '[]');
-      const updatedMeetings = isCreating
-        ? [meetingData, ...meetings]
-        : meetings.map(m => (m.id === meetingData.id ? meetingData : m));
-      localStorage.setItem('meetingNotes', JSON.stringify(updatedMeetings));
-      localStorage.removeItem('meetingDraft');
-      showNotification(isCreating ? 'Meeting created successfully!' : 'Meeting updated!', 'success');
-      setIsDirty(false);
-      if (isCreating) navigate(`/meeting-notes`);
+
+      if (isNewMeeting) {
+        await createMeeting(meetingData);
+      } else {
+        await updateMeeting(meetingId, meetingData);
+      }
+      navigate('/meeting-notes');
     } catch (error) {
       console.error('Error saving meeting:', error);
-      showNotification('Failed to save meeting. Please try again.', 'error');
+      alert('Failed to save meeting. Please try again.');
     } finally {
-      setIsSubmitting(false);
+      setIsSaving(false);
     }
-  }, [form, isCreating, navigate, showNotification, subMeetings]);
+  };
 
-  const handleAddSubMeeting = () => {
-    if (!subMeetingForm.title.trim()) return;
-    
-    const newSubMeeting = {
-      id: Date.now().toString(),
-      ...subMeetingForm,
-      time: subMeetingForm.time || form.time,
-      date: form.date,
-      // Only use the participants that were explicitly selected for this sub-meeting
-      participants: [...subMeetingForm.participants] // Create a new array to avoid reference issues
+  const updateBlockStyle = (blockId, styleUpdates) => {
+    setBlocks(prev => prev.map(block => 
+      block.id === blockId 
+        ? { ...block, style: { ...block.style, ...styleUpdates } }
+        : block
+    ));
+  };
+
+  const renderBlockContent = (block, index) => {
+    const updateBlockContent = (newContent) => {
+      const newBlocks = [...blocks];
+      newBlocks[index].content = newContent;
+      setBlocks(newBlocks);
     };
-    
-    setSubMeetings(prev => [...prev, newSubMeeting]);
-    setSubMeetingForm({
-      title: '',
-      time: '',
-      duration: '15 min',
-      participants: []
-    });
-  };
 
-  const removeSubMeeting = (id) => {
-    setSubMeetings(prev => prev.filter(m => m.id !== id));
-  };
+    const handleKeyDown = (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const newBlocks = [...blocks];
+        let newBlockType = 'text';
+        let newBlockContent = '';
 
-  const clearSubMeetings = () => {
-    setSubMeetings([]);
-  };
-
-  const getDisplayName = (u) => {
-    if (!u) {
-      console.log('getDisplayName: User object is undefined');
-      return 'User';
-    }
-    
-    const name = u.name || 
-                u.fullName || 
-                u.displayName || 
-                u.full_name ||
-                [u.firstName, u.lastName].filter(Boolean).join(' ') ||
-                u.username ||
-                'User';
-    
-    console.log('getDisplayName for user:', {
-      id: u.id || u._id,
-      name: u.name,
-      fullName: u.fullName,
-      firstName: u.firstName,
-      lastName: u.lastName,
-      username: u.username,
-      finalName: name
-    });
-    
-    return name;
-  };
-
-  // Visual helpers
-  const getInitials = (u) => {
-    const n = getDisplayName(u) || '';
-    const parts = n.trim().split(/\s+/).slice(0, 2);
-    return parts.map(p => p[0]?.toUpperCase() || '').join('');
-  };
-
-  const colorFromName = (name) => {
-    const palette = ['rose', 'fuchsia', 'violet', 'indigo', 'blue', 'cyan', 'teal', 'emerald', 'lime', 'amber', 'orange', 'pink', 'purple'];
-    let hash = 0; for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    const idx = Math.abs(hash) % palette.length;
-    return palette[idx]; // used to build Tailwind classes like bg-blue-100
-  };
-
-  // Load draft if any
-  useEffect(() => {
-    try {
-      const draftRaw = localStorage.getItem('meetingDraft');
-      if (draftRaw) {
-        const draft = JSON.parse(draftRaw);
-        const { subMeetings: draftSubs, ...rest } = draft || {};
-        setForm({ ...defaultForm, ...rest });
-        if (Array.isArray(draftSubs)) setSubMeetings(draftSubs);
-      }
-    } catch { }
-  }, []);
-
-  // Restore sub-meeting section visibility after returning from picker
-  useEffect(() => {
-    try {
-      const flag = localStorage.getItem('ui_showSubMeetingForm');
-      if (flag === '1') setShowSubMeetingForm(true);
-      localStorage.removeItem('ui_showSubMeetingForm');
-    } catch {}
-  }, []);
-
-  // Load/show preference for showing sub-meetings section
-  useEffect(() => {
-    try {
-      const v = localStorage.getItem('ui_showSubMeetings');
-      if (v === '0') setShowSubMeetings(false);
-    } catch {}
-  }, []);
-
-  // Persist preference for showing sub-meetings section
-  useEffect(() => {
-    try {
-      localStorage.setItem('ui_showSubMeetings', showSubMeetings ? '1' : '0');
-    } catch {}
-  }, [showSubMeetings]);
-
-  // Persist draft on change (include subMeetings so deletions stick)
-  useEffect(() => {
-    try {
-      localStorage.setItem('meetingDraft', JSON.stringify({ ...form, subMeetings }));
-    } catch { }
-  }, [form, subMeetings]);
-
-  // Update scroll progress bar
-  useEffect(() => {
-    const onScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
-      const total = scrollHeight - clientHeight;
-      const p = total > 0 ? (scrollTop / total) * 100 : 0;
-      setScrollProgress(p);
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
-  const openUserPagePicker = (isForSubMeeting = false) => {
-    // Persist UI state so the sub-meeting section stays open after returning
-    try { localStorage.setItem('ui_showSubMeetingForm', showSubMeetingForm ? '1' : '0'); } catch {}
-    // Store the current state based on which picker is being used
-    if (isForSubMeeting) {
-      // For sub-meeting picker
-      localStorage.setItem('subMeetingFormDraft', JSON.stringify(subMeetingForm));
-      localStorage.setItem('isSubMeetingPicker', 'true');
-      
-      // Set preselected participants for sub-meeting
-      const preselected = (subMeetingForm.participants || []).map(p => p.id || p._id).filter(Boolean);
-      const intent = {
-        source: 'submeeting-participants',
-        returnTo: '/meeting-new',
-        preselected,
-        filters: { activeOnly: true, role: 'all' },
-        multi: true,
-        timestamp: Date.now()
-      };
-      
-      localStorage.setItem('peoplePickerIntent', JSON.stringify(intent));
-    } else {
-      // For main meeting picker
-      localStorage.removeItem('isSubMeetingPicker');
-      const preselected = (form.participants || []).map(p => p.id || p._id).filter(Boolean);
-      const intent = {
-        source: 'meeting-participants',
-        returnTo: '/meeting-new',
-        preselected,
-        filters: { activeOnly: true, role: 'all' },
-        multi: true,
-        timestamp: Date.now()
-      };
-      
-      localStorage.setItem('peoplePickerIntent', JSON.stringify(intent));
-      localStorage.setItem('meetingDraft', JSON.stringify(form));
-    }
-    
-    navigate('/users?picker=1');
-  };
-
-  // Handle picker result
-  useEffect(() => {
-    const checkPickerResult = () => {
-      try {
-        const raw = localStorage.getItem('peoplePickerResult');
-        if (!raw) {
-          console.log('No peoplePickerResult found in localStorage');
-          return;
+        if (block.type === 'bullet') {
+          newBlockType = 'bullet';
+          newBlockContent = '• ';
+        } else if (block.type === 'numbered') {
+          newBlockType = 'numbered';
+          const currentNum = parseInt(block.content.match(/^(\d+)\./)?.[1] || '1');
+          newBlockContent = `${currentNum + 1}. `;
+        } else if (block.type === 'todo') {
+          newBlockType = 'todo';
+          newBlockContent = '☐ ';
+        } else if (block.type === 'toggle') {
+          newBlockType = 'toggle';
+          newBlockContent = '▶ ';
         }
-        
-        const pickerResult = JSON.parse(raw);
-        const intent = JSON.parse(localStorage.getItem('peoplePickerIntent') || '{}');
-        
-        // Clear the result immediately to prevent duplicate processing
-        localStorage.removeItem('peoplePickerResult');
-        const isSubFlag = localStorage.getItem('isSubMeetingPicker') === 'true';
-        const isSubPick = intent.source === 'submeeting-participants' || isSubFlag;
-        
-        if (!pickerResult || !Array.isArray(pickerResult.selected)) {
-          console.log('No selected users in picker result');
-          return;
-        }
-        
-        // Map user data from picker result
-        const mapUserData = (u) => ({
-          id: u.id || u._id,
-          name: u.name || u.fullName || u.displayName || u.username,
-          username: u.username,
-          fullName: u.fullName,
-          displayName: u.displayName,
-          full_name: u.full_name,
-          firstName: u.firstName,
-          lastName: u.lastName,
-        });
-        
-        // Handle sub-meeting participant selection
-        if (isSubPick) {
-          const mappedParticipants = pickerResult.selected.map(mapUserData);
-          console.log('Picker: updating SUB participants', {
-            count: mappedParticipants.length,
-            intentSource: intent.source,
-            isSubFlag
-          });
-          
-          setSubMeetingForm(prev => ({
-            ...prev,
-            participants: mappedParticipants
-          }));
-          
-          // Update the sub-meeting draft
-          try {
-            const draft = { ...subMeetingForm, participants: mappedParticipants };
-            localStorage.setItem('subMeetingFormDraft', JSON.stringify(draft));
-          } catch (err) {
-            console.error('Failed to persist subMeetingFormDraft', err);
+
+        const newBlockId = `block-${Date.now()}`;
+        newBlocks.splice(index + 1, 0, { id: newBlockId, type: newBlockType, content: newBlockContent });
+        setBlocks(newBlocks);
+        // Focus new block
+        setTimeout(() => {
+          if (inputRefs.current[newBlockId]) {
+            inputRefs.current[newBlockId].focus();
           }
-          // Clear sub-meeting flag after handling
-          localStorage.removeItem('isSubMeetingPicker');
-        } else {
-          // Default to MAIN participants when not a sub pick
-          const mappedParticipants = pickerResult.selected.map(mapUserData);
-          console.log('Picker: updating MAIN participants', {
-            count: mappedParticipants.length,
-            intentSource: intent.source,
-            isSubFlag
-          });
-          setForm(prev => ({
-            ...prev,
-            participants: mappedParticipants
-          }));
+        }, 0);
+      } else if (e.key === ' ') {
+        // Markdown shortcuts
+        const content = block.content.trim();
+        if (content === '#' && block.type === 'text') {
+          e.preventDefault();
+          const newBlocks = [...blocks];
+          newBlocks[index] = { ...block, type: 'heading1', content: '' };
+          setBlocks(newBlocks);
+        } else if (content === '##' && block.type === 'text') {
+          e.preventDefault();
+          const newBlocks = [...blocks];
+          newBlocks[index] = { ...block, type: 'heading2', content: '' };
+          setBlocks(newBlocks);
+        } else if (content === '###' && block.type === 'text') {
+          e.preventDefault();
+          const newBlocks = [...blocks];
+          newBlocks[index] = { ...block, type: 'heading3', content: '' };
+          setBlocks(newBlocks);
+        } else if (content === '>' && block.type === 'text') {
+          e.preventDefault();
+          const newBlocks = [...blocks];
+          newBlocks[index] = { ...block, type: 'quote', content: '' };
+          setBlocks(newBlocks);
+        } else if (content === '-' && block.type === 'text') {
+          e.preventDefault();
+          const newBlocks = [...blocks];
+          newBlocks[index] = { ...block, type: 'bullet', content: '• ' };
+          setBlocks(newBlocks);
+        } else if (content === '1.' && block.type === 'text') {
+          e.preventDefault();
+          const newBlocks = [...blocks];
+          newBlocks[index] = { ...block, type: 'numbered', content: '1. ' };
+          setBlocks(newBlocks);
+        } else if (content === '[]' && block.type === 'text') {
+          e.preventDefault();
+          const newBlocks = [...blocks];
+          newBlocks[index] = { ...block, type: 'todo', content: '☐ ' };
+          setBlocks(newBlocks);
+        } else if (content === '```' && block.type === 'text') {
+          e.preventDefault();
+          const newBlocks = [...blocks];
+          newBlocks[index] = { ...block, type: 'code', content: '' };
+          setBlocks(newBlocks);
+        } else if (content === '---' && block.type === 'text') {
+          e.preventDefault();
+          const newBlocks = [...blocks];
+          newBlocks[index] = { ...block, type: 'divider', content: '' };
+          setBlocks(newBlocks);
+        } else if (block.content === '' && block.type === 'text') {
+          e.preventDefault();
+          setAiInputBlock(block.id);
+          setAiQuery('');
         }
-        // Clear intent after handling to avoid stale routing on next mount
-        localStorage.removeItem('peoplePickerIntent');
-      } catch (err) {
-        console.error('Error handling picker result', err);
+      } else if (e.key === 'Backspace' && block.content === '' && index > 0) {
+        e.preventDefault();
+        const newBlocks = blocks.filter((_, i) => i !== index);
+        setBlocks(newBlocks);
+        // Focus previous block
+        setTimeout(() => {
+          const prevBlock = newBlocks[index - 1];
+          if (prevBlock && inputRefs.current[prevBlock.id]) {
+            inputRefs.current[prevBlock.id].focus();
+          }
+        }, 0);
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+        e.preventDefault();
+        if (blocks.length > 1) {
+          const newBlocks = blocks.filter((_, i) => i !== index);
+          setBlocks(newBlocks);
+          // Focus next or previous block
+          setTimeout(() => {
+            const targetIndex = index < newBlocks.length ? index : index - 1;
+            const targetBlock = newBlocks[targetIndex];
+            if (targetBlock && inputRefs.current[targetBlock.id]) {
+              inputRefs.current[targetBlock.id].focus();
+            }
+          }, 0);
+        }
+      } else if (e.key === 'Delete' && e.shiftKey) {
+        e.preventDefault();
+        if (blocks.length > 1) {
+          const newBlocks = blocks.filter((_, i) => i !== index);
+          setBlocks(newBlocks);
+          // Focus next or previous block
+          setTimeout(() => {
+            const targetIndex = index < newBlocks.length ? index : index - 1;
+            const targetBlock = newBlocks[targetIndex];
+            if (targetBlock && inputRefs.current[targetBlock.id]) {
+              targetBlock.focus();
+            }
+          }, 0);
+        }
+      } else if (e.key === 'Tab') {
+        e.preventDefault();
+        // Indent functionality for lists
+        if (block.type === 'bullet' || block.type === 'numbered' || block.type === 'todo') {
+          updateBlockContent('  ' + block.content);
+        }
       }
     };
 
-    const interval = setInterval(checkPickerResult, 500);
-    return () => clearInterval(interval);
-  }, [navigate, subMeetingForm]);
+    const getInputClassName = () => {
+      const baseClass = "w-full px-3 py-2 bg-transparent text-white placeholder-gray-400 focus:outline-none border-none leading-tight";
+      const styleClass = `${
+        block.style?.bold ? 'font-bold ' : ''
+      }${
+        block.style?.italic ? 'italic ' : ''
+      }${
+        block.style?.underline ? 'underline ' : ''
+      }${
+        block.style?.strikethrough ? 'line-through ' : ''
+      }${
+        block.style?.align === 'center' ? 'text-center ' : 
+        block.style?.align === 'right' ? 'text-right ' : 'text-left '
+      }`;
 
-  // keep page position stable; no auto-scroll to avoid hiding other sections visually
+      switch (block.type) {
+        case 'heading1':
+          return `${baseClass} ${styleClass} text-3xl font-bold`;
+        case 'heading2':
+          return `${baseClass} ${styleClass} text-2xl font-semibold`;
+        case 'heading3':
+          return `${baseClass} ${styleClass} text-xl font-medium`;
+        case 'code':
+          return `${baseClass} ${styleClass} font-mono bg-gray-800 rounded px-2 py-1 text-green-400`;
+        default:
+          return `${baseClass} ${styleClass} text-base`;
+      }
+    };
 
-  const handleSaveDraft = () => {
-    try {
-      const draft = { ...form, subMeetings };
-      localStorage.setItem('meetingDraft', JSON.stringify(draft));
-      // Lightweight feedback
-      console.log('Draft saved');
-    } catch (err) {
-      console.error('Failed to save draft', err);
+    if (block.type === 'table') {
+      const table = tableData[block.id] || { rows: 2, cols: 2, data: [['Header 1', 'Header 2'], ['Row 1', 'Row 2']] };
+      
+      const updateCell = (rowIndex, colIndex, value) => {
+        setTableData(prev => {
+          const newTable = { ...prev[block.id] };
+          newTable.data[rowIndex][colIndex] = value;
+          return { ...prev, [block.id]: newTable };
+        });
+      };
+      
+      const addRow = () => {
+        setTableData(prev => {
+          const newTable = { ...prev[block.id] };
+          newTable.data.push(Array(newTable.cols).fill(''));
+          newTable.rows += 1;
+          return { ...prev, [block.id]: newTable };
+        });
+      };
+      
+      const addColumn = () => {
+        setTableData(prev => {
+          const newTable = { ...prev[block.id] };
+          newTable.data = newTable.data.map(row => [...row, '']);
+          newTable.cols += 1;
+          return { ...prev, [block.id]: newTable };
+        });
+      };
+      
+      const deleteRow = () => {
+        if (table.rows <= 1) return;
+        setTableData(prev => {
+          const newTable = { ...prev[block.id] };
+          newTable.data.pop();
+          newTable.rows -= 1;
+          return { ...prev, [block.id]: newTable };
+        });
+      };
+      
+      const deleteColumn = () => {
+        if (table.cols <= 1) return;
+        setTableData(prev => {
+          const newTable = { ...prev[block.id] };
+          newTable.data = newTable.data.map(row => row.slice(0, -1));
+          newTable.cols -= 1;
+          return { ...prev, [block.id]: newTable };
+        });
+      };
+      
+      return (
+        <div className="border border-gray-600 rounded-lg overflow-hidden bg-gray-800/50 group relative">
+          <div className="flex items-center justify-between p-2 bg-gray-700 border-b border-gray-600">
+            <div className="flex items-center gap-2">
+              <button onClick={addRow} className="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded">
+                + Row
+              </button>
+              <button onClick={addColumn} className="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded">
+                + Column
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={deleteRow} className="px-2 py-1 text-xs bg-red-600 hover:bg-red-700 text-white rounded">
+                - Row
+              </button>
+              <button onClick={deleteColumn} className="px-2 py-1 text-xs bg-red-600 hover:bg-red-700 text-white rounded">
+                - Column
+              </button>
+            </div>
+          </div>
+          <table className="w-full">
+            <tbody>
+              {table.data.map((row, rowIndex) => (
+                <tr key={rowIndex} className={rowIndex === 0 ? 'bg-gray-700' : 'hover:bg-gray-800/30'}>
+                  {row.map((cell, colIndex) => (
+                    <td key={colIndex} className="border-r border-gray-600 last:border-r-0">
+                      <textarea
+                        value={cell}
+                        onChange={(e) => updateCell(rowIndex, colIndex, e.target.value)}
+                        className={`w-full px-3 py-2 bg-transparent text-white text-sm resize-none focus:outline-none min-h-[40px] ${
+                          rowIndex === 0 ? 'font-medium' : ''
+                        }`}
+                        placeholder={rowIndex === 0 ? `Header ${colIndex + 1}` : 'Cell data'}
+                        rows={1}
+                      />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
     }
+
+    if (block.type === 'quote') {
+      return (
+        <div className="border-l-4 border-gray-400 bg-gray-800/30 pl-6 py-4 rounded-r-md">
+          <input
+            ref={(el) => inputRefs.current[block.id] = el}
+            type="text"
+            value={block.content}
+            onChange={(e) => updateBlockContent(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Quote text..."
+            className="w-full bg-transparent text-white text-base italic placeholder-gray-400 focus:outline-none border-none"
+          />
+        </div>
+      );
+    }
+
+    if (block.type === 'callout') {
+      const calloutTypes = {
+        info: { bg: 'bg-blue-900/20', border: 'border-blue-500/30', icon: Info, color: 'text-blue-400' },
+        warning: { bg: 'bg-yellow-900/20', border: 'border-yellow-500/30', icon: AlertTriangle, color: 'text-yellow-400' },
+        error: { bg: 'bg-red-900/20', border: 'border-red-500/30', icon: AlertCircle, color: 'text-red-400' },
+        success: { bg: 'bg-green-900/20', border: 'border-green-500/30', icon: CheckCircle, color: 'text-green-400' },
+        tip: { bg: 'bg-purple-900/20', border: 'border-purple-500/30', icon: Lightbulb, color: 'text-purple-400' }
+      };
+      const callout = calloutTypes[block.calloutType || 'info'];
+      const IconComponent = callout.icon;
+      
+      return (
+        <div className={`${callout.bg} ${callout.border} border rounded-lg p-4 flex items-start gap-3`}>
+          <IconComponent className={`w-5 h-5 ${callout.color} mt-0.5 flex-shrink-0`} />
+          <input
+            ref={(el) => inputRefs.current[block.id] = el}
+            type="text"
+            value={block.content}
+            onChange={(e) => updateBlockContent(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Callout text..."
+            className="flex-1 bg-transparent text-white placeholder-gray-400 focus:outline-none border-none"
+          />
+        </div>
+      );
+    }
+
+    if (block.type === 'divider') {
+      return (
+        <div className="py-4">
+          <hr className="border-gray-600" />
+        </div>
+      );
+    }
+
+    if (block.type === 'bullet') {
+      return (
+        <div className="flex items-start gap-2">
+          <span className="text-gray-400 mt-2 text-lg leading-none">•</span>
+          <input
+            ref={(el) => inputRefs.current[block.id] = el}
+            type="text"
+            value={block.content.replace(/^• /, '')}
+            onChange={(e) => updateBlockContent(`• ${e.target.value}`)}
+            onKeyDown={handleKeyDown}
+            placeholder="List item..."
+            className={getInputClassName()}
+          />
+        </div>
+      );
+    }
+
+    if (block.type === 'numbered') {
+      const number = block.content.match(/^(\d+)\./)?.[1] || '1';
+      return (
+        <div className="flex items-start gap-2">
+          <span className="text-gray-400 mt-2 min-w-[20px]">{number}.</span>
+          <input
+            ref={(el) => inputRefs.current[block.id] = el}
+            type="text"
+            value={block.content.replace(/^\d+\. /, '')}
+            onChange={(e) => updateBlockContent(`${number}. ${e.target.value}`)}
+            onKeyDown={handleKeyDown}
+            placeholder="List item..."
+            className={getInputClassName()}
+          />
+        </div>
+      );
+    }
+
+    if (block.type === 'todo') {
+      const isChecked = block.content.includes('☑');
+      return (
+        <div className="flex items-start gap-2">
+          <button
+            onClick={() => {
+              const newContent = isChecked 
+                ? block.content.replace('☑', '☐')
+                : block.content.replace('☐', '☑');
+              updateBlockContent(newContent);
+            }}
+            className="mt-2 text-gray-400 hover:text-white transition-colors"
+          >
+            {isChecked ? <CheckSquare className="w-4 h-4 text-green-400" /> : <CheckSquare className="w-4 h-4" />}
+          </button>
+          <input
+            ref={(el) => inputRefs.current[block.id] = el}
+            type="text"
+            value={block.content.replace(/^[☐☑] /, '')}
+            onChange={(e) => updateBlockContent(`${isChecked ? '☑' : '☐'} ${e.target.value}`)}
+            onKeyDown={handleKeyDown}
+            placeholder="To-do item..."
+            className={`${getInputClassName()} ${isChecked ? 'line-through text-gray-500' : ''}`}
+          />
+        </div>
+      );
+    }
+
+    if (block.type === 'toggle') {
+      const isExpanded = block.expanded || false;
+      return (
+        <div>
+          <div className="flex items-start gap-2">
+            <button
+              onClick={() => {
+                const newBlocks = [...blocks];
+                newBlocks[index].expanded = !isExpanded;
+                setBlocks(newBlocks);
+              }}
+              className="mt-2 text-gray-400 hover:text-white transition-colors"
+            >
+              {isExpanded ? '▼' : '▶'}
+            </button>
+            <input
+              ref={(el) => inputRefs.current[block.id] = el}
+              type="text"
+              value={block.content.replace(/^[▶▼] /, '')}
+              onChange={(e) => updateBlockContent(`${isExpanded ? '▼' : '▶'} ${e.target.value}`)}
+              onKeyDown={handleKeyDown}
+              placeholder="Toggle item..."
+              className={getInputClassName()}
+            />
+          </div>
+          {isExpanded && (
+            <div className="ml-6 mt-2 p-3 bg-gray-800/30 rounded border-l-2 border-gray-600">
+              <input
+                type="text"
+                placeholder="Toggle content... (nested content)"
+                onChange={(e) => {
+                  const newBlocks = [...blocks];
+                  if (!newBlocks[index].toggleContent) newBlocks[index].toggleContent = '';
+                  newBlocks[index].toggleContent = e.target.value;
+                  setBlocks(newBlocks);
+                }}
+                value={block.toggleContent || ''}
+                className="w-full bg-transparent text-gray-300 placeholder-gray-500 focus:outline-none"
+              />
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if (block.type === 'code') {
+      return (
+        <div className="bg-gray-900 border border-gray-700 rounded-lg overflow-hidden">
+          <div className="flex items-center justify-between px-3 py-2 bg-gray-800 border-b border-gray-700">
+            <span className="text-xs text-gray-400">Code Block</span>
+            <button className="text-xs text-gray-400 hover:text-white">
+              <Copy className="w-3 h-3" />
+            </button>
+          </div>
+          <textarea
+            ref={(el) => inputRefs.current[block.id] = el}
+            value={block.content}
+            onChange={(e) => updateBlockContent(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Enter your code..."
+            className="w-full p-3 bg-transparent text-green-400 font-mono text-sm placeholder-gray-500 focus:outline-none resize-none min-h-[100px]"
+          />
+        </div>
+      );
+    }
+
+    if (block.type === 'date') {
+      const formatDate = (dateStr) => {
+        if (!dateStr) return 'mm/dd/yyyy';
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('en-US');
+      };
+      
+      return (
+        <div className="flex items-center gap-2 p-2 bg-blue-900/20 border border-blue-500/30 rounded">
+          <Calendar className="w-4 h-4 text-blue-400" />
+          <input
+            ref={(el) => inputRefs.current[block.id] = el}
+            type="date"
+            value={block.content}
+            onChange={(e) => updateBlockContent(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="bg-transparent text-white focus:outline-none"
+            style={{ colorScheme: 'dark' }}
+          />
+          <span className="text-blue-300 text-sm">{formatDate(block.content)}</span>
+        </div>
+      );
+    }
+
+    if (block.type === 'time') {
+      const formatTime = (timeStr) => {
+        if (!timeStr) return '09:11 AM';
+        const [hours, minutes] = timeStr.split(':');
+        const hour = parseInt(hours);
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        const displayHour = hour % 12 || 12;
+        return `${displayHour}:${minutes} ${ampm}`;
+      };
+      
+      return (
+        <div className="flex items-center gap-2 p-2 bg-green-900/20 border border-green-500/30 rounded">
+          <Clock className="w-4 h-4 text-green-400" />
+          <input
+            ref={(el) => inputRefs.current[block.id] = el}
+            type="time"
+            value={block.content}
+            onChange={(e) => updateBlockContent(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="bg-transparent text-white focus:outline-none"
+            style={{ colorScheme: 'dark' }}
+          />
+          <span className="text-green-300 text-sm">{formatTime(block.content)}</span>
+        </div>
+      );
+    }
+
+    if (block.type === 'priority') {
+      const priorities = {
+        high: { color: 'text-red-400', bg: 'bg-red-900/20', border: 'border-red-500/30', label: 'High Priority' },
+        medium: { color: 'text-yellow-400', bg: 'bg-yellow-900/20', border: 'border-yellow-500/30', label: 'Medium Priority' },
+        low: { color: 'text-green-400', bg: 'bg-green-900/20', border: 'border-green-500/30', label: 'Low Priority' }
+      };
+      const priority = priorities[block.priorityLevel || 'medium'];
+      
+      return (
+        <div className={`flex items-center gap-2 p-2 ${priority.bg} border ${priority.border} rounded`}>
+          <Star className={`w-4 h-4 ${priority.color}`} />
+          <select
+            value={block.priorityLevel || 'medium'}
+            onChange={(e) => {
+              const newBlocks = [...blocks];
+              newBlocks[index].priorityLevel = e.target.value;
+              setBlocks(newBlocks);
+            }}
+            className="bg-transparent text-white focus:outline-none"
+          >
+            <option value="high" className="bg-gray-800">High Priority</option>
+            <option value="medium" className="bg-gray-800">Medium Priority</option>
+            <option value="low" className="bg-gray-800">Low Priority</option>
+          </select>
+          <input
+            ref={(el) => inputRefs.current[block.id] = el}
+            type="text"
+            value={block.content}
+            onChange={(e) => updateBlockContent(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Priority item..."
+            className="flex-1 bg-transparent text-white placeholder-gray-400 focus:outline-none"
+          />
+        </div>
+      );
+    }
+
+    return (
+      <div className="relative">
+        <input
+          ref={(el) => inputRefs.current[block.id] = el}
+          type="text"
+          value={block.content}
+          onChange={(e) => updateBlockContent(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onFocus={() => setCurrentBlockId(block.id)}
+          onBlur={(e) => {
+            // Delay hiding toolbar to allow clicking on toolbar buttons
+            setTimeout(() => {
+              if (!document.activeElement?.closest('.formatting-toolbar')) {
+                setCurrentBlockId(null);
+              }
+            }, 150);
+          }}
+          placeholder={index === 0 ? "Start typing your meeting notes... " : "Continue typing... (Try markdown shortcuts)"}
+          className={getInputClassName()}
+        />
+
+      </div>
+    );
   };
 
-  const cancel = () => {
-    const ok = window.confirm('Are you sure you want to cancel? Any unsaved changes will be lost.');
-    if (!ok) return;
-    try {
-      localStorage.removeItem('meetingDraft');
-      localStorage.removeItem('subMeetingFormDraft');
-    } catch {}
-    navigate('/meeting-notes');
+  const handleAiQuerySubmit = async (e) => {
+    if (e.key === 'Enter' && aiQuery.trim()) {
+      e.preventDefault();
+      try {
+        const currentBlockIndex = blocks.findIndex(b => b.id === aiInputBlock);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const content = `AI Response: ${aiQuery}\n\nHere's a helpful response based on your query about "${aiQuery}". This is a simulated AI response.`;
+
+        const lines = content.split('\n').filter(line => line.trim());
+        const newBlocks = lines.map((line, idx) => {
+          const l = line.trim();
+          return { id: `ai-block-${Date.now()}-${idx}`, type: 'text', content: l };
+        });
+
+        if (newBlocks.length > 0) {
+          const updatedBlocks = [...blocks];
+          updatedBlocks.splice(currentBlockIndex + 1, 0, ...newBlocks);
+          setBlocks(updatedBlocks);
+        }
+
+        setAiInputBlock(null);
+        setAiQuery('');
+      } catch (e) {
+        console.error('AI assist failed:', e);
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setAiInputBlock(null);
+      setAiQuery('');
+    }
   };
 
   return (
-    <div className={`min-h-screen ${isDarkMode ? 'bg-gray-950' : 'bg-gradient-to-b from-slate-50 via-white to-slate-50'} transition-colors duration-300`}>
-      {/* Scroll progress bar */}
-      <div className="fixed top-0 left-0 right-0 h-1 z-50 pointer-events-none">
-        <div className="h-full bg-gradient-to-r from-indigo-500 to-cyan-500" style={{ width: `${scrollProgress}%` }} />
-      </div>
-      {/* Local animations to avoid Tailwind config changes */}
-      <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fadeIn { animation: fadeIn 200ms ease-out; }
-        .card-hover { transition: transform 180ms ease, box-shadow 200ms ease; will-change: transform; transform: translateZ(0); }
-        .card-hover:hover { transform: translateY(-2px); }
-      `}</style>
-      {/* Gradient hero */}
-      <div className={`relative ${isDarkMode ? 'bg-gradient-to-r from-indigo-950 via-slate-900 to-cyan-950' : 'bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-500'} text-white`}> 
-        <div className="absolute inset-0 opacity-20 blur-2xl pointer-events-none" aria-hidden>
-          <div className="w-72 h-72 rounded-full bg-white/20 absolute -top-10 -left-10" />
-          <div className="w-80 h-80 rounded-full bg-white/10 absolute -bottom-12 right-10" />
-        </div>
-        {/* Decorative pattern */}
-        <svg className="absolute inset-0 h-full w-full opacity-10 mix-blend-overlay pointer-events-none" aria-hidden viewBox="0 0 100 100" preserveAspectRatio="none">
-          <defs>
-            <linearGradient id="gridGrad" x1="0" x2="1" y1="0" y2="1">
-              <stop offset="0%" stopColor="white" stopOpacity="0.2" />
-              <stop offset="100%" stopColor="white" stopOpacity="0.0" />
-            </linearGradient>
-          </defs>
-          <path d="M0 10 H100 M0 30 H100 M0 50 H100 M0 70 H100 M0 90 H100 M10 0 V100 M30 0 V100 M50 0 V100 M70 0 V100 M90 0 V100" stroke="url(#gridGrad)" strokeWidth="0.3" />
-        </svg>
-        <div className="max-w-5xl mx-auto px-4 py-8 relative">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
-                {isCreating ? 'Schedule New Meeting' : 'Edit Meeting'}
-              </h1>
-              <p className="mt-1 text-white/80 text-sm">
-                {isCreating ? 'Schedule New Meeting' : 'Update details and participants, then save your changes'}
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                <span className="inline-flex items-center rounded-full bg-white/15 backdrop-blur px-2.5 py-1"> 
-                  <Calendar className="h-3.5 w-3.5 mr-1.5" /> {form.date || 'Date'}
-                </span>
-                <span className="inline-flex items-center rounded-full bg-white/15 backdrop-blur px-2.5 py-1">
-                  <Clock className="h-3.5 w-3.5 mr-1.5" /> {form.time || 'Time'} • {form.duration}
-                </span>
-                <span className="inline-flex items-center rounded-full bg-white/15 backdrop-blur px-2.5 py-1">
-                  <Tag className="h-3.5 w-3.5 mr-1.5" /> {form.type}
-                </span>
-              </div>
-            </div>
-            <div className="hidden sm:flex items-center gap-2">
-              <button type="button" onClick={cancel} className="inline-flex items-center px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 backdrop-blur transition">
-                <X className="h-4 w-4 mr-1" /> Cancel
-              </button>
-              <button type="button" onClick={handleSaveDraft} className="inline-flex items-center px-3 py-2 rounded-lg bg-white text-slate-900 hover:bg-slate-100 transition">
-                <Save className="h-4 w-4 mr-1" /> Save draft
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <div className="max-w-4xl mx-auto p-4 pb-24 relative">
-        {notification.show && (
-          <div 
-            className={`fixed bottom-6 right-6 px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2 z-50 ${
-              notification.type === 'error' ? 'bg-red-500 text-white' : 'bg-green-500 text-white'
-            }`}
-          >
-            {notification.type === 'error' ? (
-              <AlertCircle className="h-5 w-5" />
-            ) : (
-              <CheckCircle className="h-5 w-5" />
-            )}
-            <span>{notification.message}</span>
-          </div>
-        )}
-
-        {/* Decorative background accents */}
-        <div className="pointer-events-none absolute inset-0 -z-10">
-          <div className="absolute -top-8 -left-10 w-72 h-72 bg-indigo-500/10 blur-3xl rounded-full" />
-          <div className="absolute -bottom-16 right-0 w-80 h-80 bg-cyan-500/10 blur-3xl rounded-full" />
-        </div>
-
-        <div className="rounded-2xl p-[1px] bg-gradient-to-r from-indigo-500/40 to-cyan-500/40">
-          <div className={`${isDarkMode ? 'bg-slate-900/70' : 'bg-white/80'} backdrop-blur-xl rounded-2xl shadow-xl ring-1 ${isDarkMode ? 'ring-white/10' : 'ring-black/5'} overflow-hidden transition-all`}> 
-            <form onSubmit={handleSubmit} className="divide-y divide-gray-200/60 dark:divide-white/10">
-            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-semibold">
-                <span className="bg-gradient-to-r from-indigo-500 to-cyan-500 bg-clip-text text-transparent">
-                  {isCreating ? 'Schedule New Meeting' : 'Edit Meeting'}
-                </span>
-              </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                {isCreating ? 'Fill in the details below to schedule a new meeting' : 'Update details and save changes'}
-              </p>
-              <div className="mt-2 h-0.5 w-24 rounded-full bg-gradient-to-r from-indigo-500 to-cyan-500" />
-            </div>
-
-            <div className="p-6 space-y-6">
-              {/* Title */}
-              <div className="space-y-1">
-                <label htmlFor="title" className={`block text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Meeting Title <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="title"
-                  type="text"
-                  value={form.title}
-                  onChange={(e) => handleFormChange('title', e.target.value)}
-                  className={`w-full px-4 py-2.5 rounded-lg border text-sm transition focus:ring-2 focus:ring-offset-0 ${isDarkMode ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:ring-blue-500/50' : 'bg-white border-gray-200 text-gray-900 placeholder-gray-500 focus:ring-blue-500/30'}`}
-                  placeholder="Team standup, Project kickoff, etc."
-                  required
-                />
-              </div>
-
-              {/* Date/Time/Duration */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-1">
-                  <label htmlFor="date" className={`block text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Date <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Calendar className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <input
-                      id="date"
-                      type="date"
-                      value={form.date}
-                      onChange={(e) => handleFormChange('date', e.target.value)}
-                      className={`w-full pl-10 pr-4 py-2.5 rounded-lg border text-sm transition focus:ring-2 ${isDarkMode ? 'bg-gray-800 border-gray-700 text-white focus:ring-blue-500/40' : 'bg-white border-gray-200 text-gray-900 focus:ring-blue-500/30'}`}
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <label htmlFor="time" className={`block text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Start Time <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Clock className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <input
-                      id="time"
-                      type="time"
-                      value={form.time}
-                      onChange={(e) => handleFormChange('time', e.target.value)}
-                      className={`w-full pl-10 pr-4 py-2.5 rounded-lg border text-sm transition focus:ring-2 ${isDarkMode ? 'bg-gray-800 border-gray-700 text-white focus:ring-blue-500/40' : 'bg-white border-gray-200 text-gray-900 focus:ring-blue-500/30'}`}
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <label htmlFor="duration" className={`block text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Duration
-                  </label>
-                  <div className="relative">
-                    <select
-                      id="duration"
-                      value={form.duration}
-                      onChange={(e) => handleFormChange('duration', e.target.value)}
-                      className={`w-full pl-3 pr-10 py-2.5 rounded-lg border text-sm appearance-none transition focus:ring-2 ${isDarkMode ? 'bg-gray-800 border-gray-700 text-white focus:ring-blue-500/40' : 'bg-white border-gray-200 text-gray-900 focus:ring-blue-500/30'}`}
-                    >
-                      {MEETING_DURATIONS.map(d => (
-                        <option key={d} value={d}>{d}</option>
-                      ))}
-                    </select>
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                      <ChevronDown className="h-4 w-4 text-gray-400" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Type/Status */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label htmlFor="type" className={`block text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Meeting Type
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Tag className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <select
-                      id="type"
-                      value={form.type}
-                      onChange={(e) => handleFormChange('type', e.target.value)}
-                      className={`w-full pl-10 pr-10 py-2.5 rounded-lg border text-sm appearance-none transition focus:ring-2 ${isDarkMode ? 'bg-gray-800 border-gray-700 text-white focus:ring-blue-500/40' : 'bg-white border-gray-200 text-gray-900 focus:ring-blue-500/30'}`}
-                    >
-                      {MEETING_TYPES.map(t => (
-                        <option key={t} value={t}>{t}</option>
-                      ))}
-                    </select>
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                      <ChevronDown className="h-4 w-4 text-gray-400" />
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <label htmlFor="status" className={`block text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Status
-                  </label>
-                  <div className="relative">
-                    <select
-                      id="status"
-                      value={form.status}
-                      onChange={(e) => handleFormChange('status', e.target.value)}
-                      className={`w-full pl-3 pr-10 py-2.5 rounded-lg border text-sm appearance-none transition focus:ring-2 ${isDarkMode ? 'bg-gray-800 border-gray-700 text-white focus:ring-blue-500/40' : 'bg-white border-gray-200 text-gray-900 focus:ring-blue-500/30'}`}
-                    >
-                      {MEETING_STATUSES.map(s => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                      <ChevronDown className="h-4 w-4 text-gray-400" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Participants */}
-              <div className="pt-2">
+    <div className="min-h-screen bg-gray-900 text-white">
+      <div className="w-full h-screen overflow-y-auto bg-gray-900">
+        <div className="bg-gray-900 sticky top-0 z-10">
+          <div className="max-w-7xl mx-auto px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
                 <button
-                  type="button"
-                  onClick={() => toggleSection('participants')}
-                  className="flex items-center w-full text-left focus:outline-none py-2 transition hover:opacity-90"
+                  onClick={() => navigate('/meeting-notes')}
+                  className="p-2 rounded-lg transition-colors text-gray-400 hover:bg-gray-800"
                 >
-                  <Users className={`${isDarkMode ? 'text-blue-400' : 'text-blue-500'} h-5 w-5 mr-2`} />
-                  <span className="font-medium">Participants</span>
-                  <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} ml-2 text-sm`}>
-                    {form.participants.length} {form.participants.length === 1 ? 'participant' : 'participants'}
-                  </span>
-                  {sections.participants ? (
-                    <ChevronUp className="ml-auto h-5 w-5 text-gray-400" />
-                  ) : (
-                    <ChevronDown className="ml-auto h-5 w-5 text-gray-400" />
-                  )}
+                  <ArrowLeft className="w-5 h-5" />
                 </button>
-                {sections.participants && (
-                  <div className="pl-7 mt-2 space-y-3 animate-fadeIn">
-                    {form.participants.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {form.participants.map((p, idx) => {
-                          const name = getDisplayName(p);
-                          const color = colorFromName(name);
-                          const light = `${color}-100`;
-                          const dark = `${color}-900/30`;
-                          return (
-                            <span key={`p-${p.id || p._id || idx}`} className={`inline-flex items-center pr-2 pl-1.5 py-1.5 rounded-full text-sm shadow-sm ring-1 ${isDarkMode ? 'ring-white/10' : 'ring-black/5'} ${isDarkMode ? `bg-${dark} text-${color}-200` : `bg-${light} text-${color}-800`} transition`}> 
-                              <span className={`mr-1.5 flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${isDarkMode ? `bg-${color}-800 text-${color}-100` : `bg-${color}-200 text-${color}-800`}`}>{getInitials(p)}</span>
-                              {name}
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveParticipant(idx)}
-                                className={`${isDarkMode ? 'text-white/70 hover:text-white hover:bg-white/10' : 'text-black/50 hover:text-black hover:bg-black/5'} ml-1.5 rounded-full p-0.5`}
-                                aria-label="Remove participant"
-                              >
-                                <X className="h-3.5 w-3.5" />
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleSave}
+                  disabled={isSaving || !meeting.title.trim()}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 text-white"
+                >
+                  {isSaving ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  {isSaving ? 'Saving...' : (isNewMeeting ? 'Create Meeting' : 'Save Meeting')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto pt-2 pb-6 overflow-y-auto px-6">
+          <div className="w-full">
+            <div>
+              <div className="rounded-lg pt-0 pb-0 bg-gray-900 px-6">
+                <input
+                  type="text"
+                  value={meeting.title}
+                  onChange={(e) => setMeeting(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="Untitled"
+                  className="w-full px-4 py-3 text-4xl ml-8 rounded-lg transition-colors bg-gray-900 text-white placeholder-gray-400 focus:outline-none"
+                />
+                <div className="ml-12 mt-2">
+                  <span className="text-sm text-gray-400">Created 9/28/2025</span>
+                </div>
+              </div>
+
+              <div className="rounded-lg bg-gray-900">
+                <div className="p-6">
+                  <div className="flex gap-8 ml-24">
+                    <div className="flex-1 space-y-1">
+                      <div className="p-4">
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-3">
+                            <Calendar className="w-4 h-4 text-blue-400" />
+                            <label className="text-sm font-medium text-gray-300 min-w-[70px]">
+                              Date
+                            </label>
+                            <input
+                              type="date"
+                              value={meeting.date}
+                              onChange={(e) => setMeeting(prev => ({ ...prev, date: e.target.value }))}
+                              className="px-3 py-2 rounded-lg bg-gray-800 text-white text-sm focus:outline-none"
+                              style={{ colorScheme: 'dark' }}
+                            />
+                            <span className="text-sm text-gray-400">
+                              {meeting.date ? new Date(meeting.date).toLocaleDateString('en-US') : 'mm/dd/yyyy'}
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center gap-3">
+                            <Clock className="w-4 h-4 text-green-400" />
+                            <label className="text-sm font-medium text-gray-300 min-w-[70px]">
+                              Time
+                            </label>
+                            <input
+                              type="time"
+                              value={meeting.time}
+                              onChange={(e) => setMeeting(prev => ({ ...prev, time: e.target.value }))}
+                              className="px-3 py-2 rounded-lg bg-gray-800 text-white text-sm focus:outline-none"
+                              style={{ colorScheme: 'dark' }}
+                            />
+                            <span className="text-sm text-gray-400">
+                              {meeting.time ? (() => {
+                                const [hours, minutes] = meeting.time.split(':');
+                                const hour = parseInt(hours);
+                                const ampm = hour >= 12 ? 'PM' : 'AM';
+                                const displayHour = hour % 12 || 12;
+                                return `${displayHour}:${minutes} ${ampm}`;
+                              })() : '09:32 PM'}
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center gap-3">
+                            <Clock className="w-4 h-4 text-purple-400" />
+                            <label className="text-sm font-medium text-gray-300 min-w-[70px]">
+                              Duration
+                            </label>
+                            <input
+                              type="number"
+                              value={meeting.duration}
+                              onChange={(e) => setMeeting(prev => ({ ...prev, duration: e.target.value }))}
+                              className="px-3 py-2 rounded-lg bg-gray-800 text-white text-sm focus:outline-none w-20"
+                              min="5"
+                              max="480"
+                            />
+                            <span className="text-sm text-gray-400">min</span>
+                          </div>
+                          
+                          <div className="flex items-center gap-3">
+                            <Circle className={`w-4 h-4 ${
+                              meeting.status === 'active' ? 'text-green-400' :
+                              meeting.status === 'completed' ? 'text-blue-400' :
+                              meeting.status === 'cancelled' ? 'text-red-400' :
+                              'text-gray-400'
+                            }`} />
+                            <label className="text-sm font-medium text-gray-300 min-w-[70px]">
+                              Status
+                            </label>
+                            <select
+                              value={meeting.status}
+                              onChange={(e) => setMeeting(prev => ({ ...prev, status: e.target.value }))}
+                              className="px-3 py-2 rounded-lg bg-gray-800 text-white text-sm focus:outline-none flex-1"
+                            >
+                              <option value="scheduled">Scheduled</option>
+                              <option value="active">Active</option>
+                              <option value="completed">Completed</option>
+                              <option value="cancelled">Cancelled</option>
+                            </select>
+                          </div>
+                          
+                          <div className="flex items-center gap-3">
+                            <Tag className="w-4 h-4 text-orange-400" />
+                            <label className="text-sm font-medium text-gray-300 min-w-[70px]">
+                              Type
+                            </label>
+                            <select
+                              value={meeting.type}
+                              onChange={(e) => setMeeting(prev => ({ ...prev, type: e.target.value }))}
+                              className="px-3 py-2 rounded-lg bg-gray-800 text-white text-sm focus:outline-none flex-1"
+                            >
+                              <option value="Standup">Standup</option>
+                              <option value="Planning">Planning</option>
+                              <option value="Review">Review</option>
+                              <option value="Retrospective">Retrospective</option>
+                              <option value="One-on-One">One-on-One</option>
+                              <option value="All-Hands">All-Hands</option>
+                              <option value="Client Meeting">Client Meeting</option>
+                              <option value="Interview">Interview</option>
+                            </select>
+                          </div>
+                          
+                          <div className="flex items-center gap-3">
+                            <MapPin className="w-4 h-4 text-yellow-400" />
+                            <label className="text-sm font-medium text-gray-300 min-w-[70px]">
+                              Location
+                            </label>
+                            <input
+                              type="text"
+                              value={meeting.location}
+                              onChange={(e) => setMeeting(prev => ({ ...prev, location: e.target.value }))}
+                              placeholder="Conference Room A"
+                              className="px-3 py-2 rounded-lg bg-gray-800 text-white text-sm focus:outline-none flex-1"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 relative">
+                          <label className="text-sm font-medium text-gray-300">
+                            <Users className="w-4 h-4 inline mr-1" />
+                            Participants
+                          </label>
+                          <button
+                            onClick={() => setShowUserDropdown(!showUserDropdown)}
+                            className="p-1 rounded bg-blue-600 hover:bg-blue-700 text-white"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                          {showUserDropdown && (
+                            <div className="absolute right-0 top-8 w-64 max-h-screen overflow-y-auto rounded-lg shadow-xl border z-50 bg-gray-800 border-gray-700">
+                              <div className="p-2">
+                                {users.map((user) => {
+                                  const isSelected = meeting.attendees.includes(user.name);
+                                  return (
+                                    <div
+                                      key={user.id}
+                                      onClick={() => {
+                                        if (isSelected) {
+                                          setMeeting(prev => ({
+                                            ...prev,
+                                            attendees: prev.attendees.filter(a => a !== user.name)
+                                          }));
+                                        } else {
+                                          setMeeting(prev => ({
+                                            ...prev,
+                                            attendees: [...prev.attendees, user.name]
+                                          }));
+                                        }
+                                      }}
+                                      className={`w-full flex items-center px-3 py-2 rounded cursor-pointer transition-colors ${isSelected
+                                        ? 'bg-blue-600/20 border border-blue-500/30 text-blue-300'
+                                        : 'hover:bg-gray-700 text-gray-300'
+                                        }`}
+                                    >
+                                      <div className="mr-3">
+                                        {isSelected ? (
+                                          <CheckCircle className="w-5 h-5 text-blue-400" />
+                                        ) : (
+                                          <Circle className="w-5 h-5 text-gray-500" />
+                                        )}
+                                      </div>
+                                      <div className="flex items-center">
+                                        <Users className="w-4 h-4 mr-2" />
+                                        <div>
+                                          <div className="font-medium">{user.name}</div>
+                                          <div className="text-xs text-gray-400">{user.email} • {user.role}</div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {meeting.attendees.map((attendee, index) => (
+                            <span key={index} className="px-2 py-1 bg-gray-800 text-gray-300 rounded text-sm flex items-center gap-1">
+                              {attendee}
+                              <button onClick={() => removeAttendee(attendee)} className="text-gray-500 hover:text-red-400">
+                                <X className="w-3 h-3" />
                               </button>
                             </span>
-                          );
-                        })}
+                          ))}
+                        </div>
                       </div>
-                    ) : (
-                      <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-sm`}>
-                        No participants added yet.
-                      </p>
-                    )}
-                    <div>
-                      <button
-                        type="button"
-                        onClick={() => openUserPagePicker(false)}
-                        className={`inline-flex items-center px-3 py-1.5 border border-dashed rounded-md text-sm ${isDarkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700/50' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}
-                      >
-                        <Plus className="h-4 w-4 mr-1.5" /> Add Participants
-                      </button>
                     </div>
                   </div>
-                )}
-              </div>
 
-              {/* Notes */}
-              <div className="pt-2">
-                <button
-                  type="button"
-                  onClick={() => toggleSection('notes')}
-                  className="flex items-center w-full text-left focus:outline-none py-2 transition hover:opacity-90"
-                >
-                  <FileText className={`${isDarkMode ? 'text-green-400' : 'text-green-500'} h-5 w-5 mr-2`} />
-                  <span className="font-medium">Notes</span>
-                  {sections.notes ? (
-                    <ChevronUp className="ml-auto h-5 w-5 text-gray-400" />
-                  ) : (
-                    <ChevronDown className="ml-auto h-5 w-5 text-gray-400" />
-                  )}
-                </button>
-                {sections.notes && (
-                  <div className="pl-7 mt-2 animate-fadeIn">
-                    {/* Notes Rich Text Toolbar */}
-                    <div className="flex flex-wrap gap-1 mb-2">
-                      <button type="button" className={`px-2 py-1 text-xs rounded border ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-700' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'}`} onClick={() => handleRteCommand('bold')}><strong>B</strong></button>
-                      <button type="button" className={`px-2 py-1 text-xs rounded border italic ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-700' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'}`} onClick={() => handleRteCommand('italic')}>I</button>
-                      <button type="button" className={`px-2 py-1 text-xs rounded border underline ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-700' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'}`} onClick={() => handleRteCommand('underline')}>U</button>
-                      <button type="button" className={`px-2 py-1 text-xs rounded border line-through ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-700' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'}`} onClick={() => handleRteCommand('strikeThrough')}>S</button>
-                      <span className={`${isDarkMode ? 'text-gray-500' : 'text-gray-400'} mx-1`}>|</span>
-                      <button type="button" className={`px-2 py-1 text-xs rounded border font-semibold ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-700' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'}`} onClick={() => handleRteCommand('formatBlock', 'H1')}>H1</button>
-                      <button type="button" className={`px-2 py-1 text-xs rounded border font-semibold ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-700' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'}`} onClick={() => handleRteCommand('formatBlock', 'H2')}>H2</button>
-                      <button type="button" className={`px-2 py-1 text-xs rounded border font-semibold ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-700' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'}`} onClick={() => handleRteCommand('formatBlock', 'H3')}>H3</button>
-                      <span className={`${isDarkMode ? 'text-gray-500' : 'text-gray-400'} mx-1`}>|</span>
-                      <button type="button" className={`px-2 py-1 text-xs rounded border ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-700' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'}`} onClick={() => handleRteCommand('insertUnorderedList')}>• List</button>
-                      <button type="button" className={`px-2 py-1 text-xs rounded border ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-700' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'}`} onClick={() => handleRteCommand('insertOrderedList')}>1. List</button>
-                      <button type="button" className={`px-2 py-1 text-xs rounded border ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-700' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'}`} onClick={() => handleRteCommand('formatBlock', 'BLOCKQUOTE')}>❝ Quote</button>
-                      <button type="button" className={`px-2 py-1 text-xs rounded border font-mono ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-700' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'}`} onClick={() => handleRteCommand('formatBlock', 'PRE')}>{'<>'} Code</button>
-                      <span className={`${isDarkMode ? 'text-gray-500' : 'text-gray-400'} mx-1`}>|</span>
-                      <button type="button" className={`px-2 py-1 text-xs rounded border ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-700' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'}`} onClick={() => handleRteCommand('removeFormat')}>Clear</button>
+                  <hr className="border-gray-700 my-2" />
+
+                  <div className="mt-2 relative">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-sm font-medium text-gray-300">Notes</div>
+                      <div className="relative">
+                        <button
+                          onClick={() => setShowTemplateDropdown(showTemplateDropdown === 'notes-header' ? null : 'notes-header')}
+                          className="p-1 rounded hover:bg-gray-700 transition-colors text-gray-400 hover:text-gray-200"
+                          title="Templates"
+                        >
+                          <FileText className="w-4 h-4" />
+                        </button>
+                        {showTemplateDropdown === 'notes-header' && (
+                          <div className="absolute right-0 top-8 w-64 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
+                            <div className="p-2">
+                              <div className="text-xs text-gray-400 px-2 py-1 font-medium">MEETING TEMPLATES</div>
+                              <button onClick={() => { const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: '📋 Meeting Agenda', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'Meeting Objectives:', style: {} }, { id: `block-${Date.now()}-3`, type: 'bullet', content: '• Review project progress and milestones', style: {} }, { id: `block-${Date.now()}-4`, type: 'bullet', content: '• Discuss upcoming deadlines and deliverables', style: {} }, { id: `block-${Date.now()}-5`, type: 'bullet', content: '• Address any blockers or challenges', style: {} }, { id: `block-${Date.now()}-6`, type: 'text', content: 'Discussion Topics:', style: {} }, { id: `block-${Date.now()}-7`, type: 'numbered', content: '1. Sprint review and retrospective', style: {} }, { id: `block-${Date.now()}-8`, type: 'numbered', content: '2. Resource allocation and team capacity', style: {} }, { id: `block-${Date.now()}-9`, type: 'numbered', content: '3. Next sprint planning and priorities', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                <FileText className="w-4 h-4 text-blue-400" /> Meeting Agenda
+                              </button>
+                              <button onClick={() => { const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: '✅ Action Items', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'High Priority:', style: {} }, { id: `block-${Date.now()}-3`, type: 'todo', content: '☐ Complete user authentication module by Friday', style: {} }, { id: `block-${Date.now()}-4`, type: 'todo', content: '☐ Review and approve design mockups', style: {} }, { id: `block-${Date.now()}-5`, type: 'text', content: 'Medium Priority:', style: {} }, { id: `block-${Date.now()}-6`, type: 'todo', content: '☐ Update project documentation', style: {} }, { id: `block-${Date.now()}-7`, type: 'todo', content: '☐ Schedule client feedback session', style: {} }, { id: `block-${Date.now()}-8`, type: 'text', content: 'Follow-up Items:', style: {} }, { id: `block-${Date.now()}-9`, type: 'todo', content: '☐ Send meeting summary to stakeholders', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                <CheckSquare className="w-4 h-4 text-green-400" /> Action Items
+                              </button>
+                              <button onClick={() => { const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: '📝 Meeting Notes', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'Key Discussion Points:', style: {} }, { id: `block-${Date.now()}-3`, type: 'bullet', content: '• Team velocity has improved by 15% this sprint', style: {} }, { id: `block-${Date.now()}-4`, type: 'bullet', content: '• New feature requests from client feedback', style: {} }, { id: `block-${Date.now()}-5`, type: 'bullet', content: '• Technical debt prioritization discussion', style: {} }, { id: `block-${Date.now()}-6`, type: 'text', content: 'Important Announcements:', style: {} }, { id: `block-${Date.now()}-7`, type: 'bullet', content: '• New team member joining next week', style: {} }, { id: `block-${Date.now()}-8`, type: 'bullet', content: '• Office relocation scheduled for next month', style: {} }, { id: `block-${Date.now()}-9`, type: 'text', content: 'Questions & Concerns:', style: {} }, { id: `block-${Date.now()}-10`, type: 'bullet', content: '• Clarification needed on API requirements', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                <FileText className="w-4 h-4 text-purple-400" /> Meeting Notes
+                              </button>
+                              <button onClick={() => { const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: '🎯 Decisions Made', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'Strategic Decisions:', style: {} }, { id: `block-${Date.now()}-3`, type: 'numbered', content: '1. Approved budget increase for Q2 development', style: {} }, { id: `block-${Date.now()}-4`, type: 'numbered', content: '2. Decided to implement new testing framework', style: {} }, { id: `block-${Date.now()}-5`, type: 'text', content: 'Process Changes:', style: {} }, { id: `block-${Date.now()}-6`, type: 'numbered', content: '1. Weekly standup time changed to 9:30 AM', style: {} }, { id: `block-${Date.now()}-7`, type: 'numbered', content: '2. Code review process updated with new guidelines', style: {} }, { id: `block-${Date.now()}-8`, type: 'text', content: 'Next Steps:', style: {} }, { id: `block-${Date.now()}-9`, type: 'bullet', content: '• Document decisions in project wiki', style: {} }, { id: `block-${Date.now()}-10`, type: 'bullet', content: '• Communicate changes to all team members', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                <CheckCircle className="w-4 h-4 text-yellow-400" /> Decisions
+                              </button>
+                              <button onClick={() => { const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: '🚀 Sprint Planning', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'Sprint Goals:', style: {} }, { id: `block-${Date.now()}-3`, type: 'bullet', content: '• Complete user dashboard redesign', style: {} }, { id: `block-${Date.now()}-4`, type: 'bullet', content: '• Implement payment integration', style: {} }, { id: `block-${Date.now()}-5`, type: 'text', content: 'Story Points Estimation:', style: {} }, { id: `block-${Date.now()}-6`, type: 'numbered', content: '1. User authentication (8 points)', style: {} }, { id: `block-${Date.now()}-7`, type: 'numbered', content: '2. Dashboard UI components (13 points)', style: {} }, { id: `block-${Date.now()}-8`, type: 'numbered', content: '3. API integration (5 points)', style: {} }, { id: `block-${Date.now()}-9`, type: 'text', content: 'Team Capacity: 26 points', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                <Calendar className="w-4 h-4 text-indigo-400" /> Sprint Planning
+                              </button>
+                              <button onClick={() => { const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: '🔄 Retrospective', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'What Went Well:', style: {} }, { id: `block-${Date.now()}-3`, type: 'bullet', content: '• Great team collaboration on complex features', style: {} }, { id: `block-${Date.now()}-4`, type: 'bullet', content: '• Improved code quality with new review process', style: {} }, { id: `block-${Date.now()}-5`, type: 'text', content: 'What Could Be Improved:', style: {} }, { id: `block-${Date.now()}-6`, type: 'bullet', content: '• Better estimation accuracy needed', style: {} }, { id: `block-${Date.now()}-7`, type: 'bullet', content: '• More frequent client communication', style: {} }, { id: `block-${Date.now()}-8`, type: 'text', content: 'Action Items for Next Sprint:', style: {} }, { id: `block-${Date.now()}-9`, type: 'todo', content: '☐ Implement story point tracking', style: {} }, { id: `block-${Date.now()}-10`, type: 'todo', content: '☐ Schedule weekly client check-ins', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                <ArrowRight className="w-4 h-4 text-pink-400" /> Retrospective
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    {/* Contenteditable editor */}
-                    <div
-                      ref={notesRteRef}
-                      contentEditable
-                      role="textbox"
-                      aria-label="Meeting notes rich text editor"
-                      className={`min-h-[120px] w-full px-3 py-2 rounded-lg border text-sm transition focus:ring-2 focus:border-transparent outline-none prose prose-sm ${isDarkMode ? 'bg-gray-900/60 border-gray-700 text-white focus:ring-green-500/40' : 'bg-white border-gray-200 text-gray-900 focus:ring-green-500/30'}`}
-                      onInput={(e) => {
-                        const html = e.currentTarget.innerHTML;
-                        handleFormChange('summary', html);
-                      }}
-                      onBlur={(e) => {
-                        const html = e.currentTarget.innerHTML;
-                        if (html !== form.summary) handleFormChange('summary', html);
-                      }}
-                      suppressContentEditableWarning
-                      placeholder="Add meeting agenda, notes, or key points..."
-                    />
-                  </div>
-                )}
-              </div>
+                    <hr className="border-gray-700 my-1" />
 
-              {/* Sub-meetings */}
-              {!isCreating && (
-                <div className="pt-2">
-                  <div className="flex items-center justify-between">
-                    <button type="button" onClick={() => toggleSection('subMeetings')} className="flex items-center focus:outline-none py-2">
-                      <Users className={`${isDarkMode ? 'text-purple-400' : 'text-purple-500'} h-5 w-5 mr-2`} />
-                      <span className="font-medium">Sub-meetings</span>
-                      <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} ml-2 text-sm`}>{subMeetings.length}</span>
-                      {sections.subMeetings ? (
-                        <ChevronUp className="ml-2 h-5 w-5 text-gray-400" />
-                      ) : (
-                        <ChevronDown className="ml-2 h-5 w-5 text-gray-400" />
-                      )}
-                    </button>
-                    {sections.subMeetings && (
-                      <button
-                        type="button"
-                        onClick={() => setShowSubMeetingForm(true)}
-                        className={`${isDarkMode ? 'bg-purple-900/30 text-purple-300 hover:bg-purple-800/50' : 'bg-purple-50 text-purple-700 hover:bg-purple-100'} inline-flex items-center px-3 py-1.5 text-sm rounded-md`}
-                      >
-                        <Plus className="h-4 w-4 mr-1.5" /> Add Sub-meeting
-                      </button>
-                    )}
-                  </div>
-                  {sections.subMeetings && (
-                    <div className="pl-7 mt-2 space-y-3 animate-fadeIn">
-                      {subMeetings.length > 0 ? (
-                        <div className="space-y-2">
-                          {subMeetings.map(m => (
-                            <div key={m.id} className={`card-hover ${isDarkMode ? 'bg-gray-800/60 border-white/10' : 'bg-white/80 border-black/5'} backdrop-blur rounded-lg border p-3 hover:shadow-md`}>
-                              <div className="flex items-start justify-between">
-                                <div>
-                                  <h4 className="font-medium">{m.title || 'Untitled Meeting'}</h4>
-                                  <div className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} flex items-center text-xs mt-1 space-x-3`}>
-                                    <span className="inline-flex items-center"><Clock className="h-3.5 w-3.5 mr-1" />{m.time || form.time} • {m.duration}</span>
-                                    {m.participants?.length > 0 && (
-                                      <span className="inline-flex items-center"><Users className="h-3.5 w-3.5 mr-1" />{m.participants.length}</span>
+                    <div className="p-4 min-h-[300px]">
+                      {blocks.map((block, index) => (
+                        <div key={block.id} className={`flex items-start group relative mb-1 rounded px-2 py-1 ${aiInputBlock === block.id ? 'bg-purple-50/30 rounded-lg p-2' : ''} transition-all duration-200`}>
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 mr-2">
+                            <div className="relative">
+                              <button
+                                onClick={() => setShowBlockMenu(showBlockMenu === block.id ? null : block.id)}
+                                className="p-1 rounded hover:bg-gray-700 transition-colors text-gray-400 hover:text-gray-200"
+                                title="Add block"
+                              >
+                                <Plus className="w-4 h-4" />
+                              </button>
+                              {showBlockMenu === block.id && (
+                                <div className="absolute left-0 top-8 w-64 max-h-96 overflow-y-auto bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
+                                  <div className="p-2">
+                                    <div className="text-xs text-gray-400 px-2 py-1 font-medium">BASIC BLOCKS</div>
+                                    <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'text', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                      <Type className="w-4 h-4" /> Text
+                                    </button>
+                                    <button onClick={() => { const newBlocks = [...blocks]; newBlocks[index] = { ...block, type: 'heading1' }; setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                      <Hash className="w-4 h-4" /> Heading 1
+                                    </button>
+                                    <button onClick={() => { const newBlocks = [...blocks]; newBlocks[index] = { ...block, type: 'heading2' }; setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                      <Hash className="w-4 h-4" /> Heading 2
+                                    </button>
+                                    <button onClick={() => { const newBlocks = [...blocks]; newBlocks[index] = { ...block, type: 'heading3' }; setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                      <Hash className="w-4 h-4" /> Heading 3
+                                    </button>
+                                    
+                                    <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-2">LISTS</div>
+                                    <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'bullet', content: '• ', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                      <List className="w-4 h-4" /> Bullet List
+                                    </button>
+                                    <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'numbered', content: '1. ', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                      <ListOrdered className="w-4 h-4" /> Numbered List
+                                    </button>
+                                    <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'todo', content: '☐ ', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                      <CheckSquare className="w-4 h-4" /> To-do List
+                                    </button>
+                                    <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'toggle', content: '▶ ', style: {}, expanded: false }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                      <ArrowRight className="w-4 h-4" /> Toggle List
+                                    </button>
+                                    
+                                    <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-2">MEDIA</div>
+                                    <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'quote', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                      <Quote className="w-4 h-4" /> Quote
+                                    </button>
+                                    <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'code', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                      <Code className="w-4 h-4" /> Code Block
+                                    </button>
+                                    <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'divider', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                      <Divider className="w-4 h-4" /> Divider
+                                    </button>
+                                    
+                                    <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-2">FUNCTIONAL</div>
+                                    <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'date', content: new Date().toISOString().split('T')[0], style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                      <Calendar className="w-4 h-4 text-blue-400" /> Date
+                                    </button>
+                                    <button onClick={() => { const newBlocks = [...blocks]; const now = new Date(); const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0'); newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'time', content: timeStr, style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                      <Clock className="w-4 h-4 text-green-400" /> Time
+                                    </button>
+                                    <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'priority', content: '', priorityLevel: 'medium', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                      <Star className="w-4 h-4 text-yellow-400" /> Priority
+                                    </button>
+                                    
+                                    <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-2">ADVANCED</div>
+                                    <button onClick={() => {
+                                      const tableId = `block-${Date.now()}`;
+                                      const newBlocks = [...blocks];
+                                      newBlocks.splice(index + 1, 0, { id: tableId, type: 'table', style: {} });
+                                      setBlocks(newBlocks);
+                                      setTableData(prev => ({
+                                        ...prev,
+                                        [tableId]: { rows: 2, cols: 2, data: [['Header 1', 'Header 2'], ['Row 1', 'Row 2']] }
+                                      }));
+                                      setShowBlockMenu(null);
+                                    }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                      <Table className="w-4 h-4" /> Table
+                                    </button>
+                                    
+                                    <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-2">CALLOUTS</div>
+                                    <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'callout', calloutType: 'info', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                      <Info className="w-4 h-4 text-blue-400" /> Info Callout
+                                    </button>
+                                    <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'callout', calloutType: 'warning', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                      <AlertTriangle className="w-4 h-4 text-yellow-400" /> Warning Callout
+                                    </button>
+                                    <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'callout', calloutType: 'error', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                      <AlertCircle className="w-4 h-4 text-red-400" /> Error Callout
+                                    </button>
+                                    <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'callout', calloutType: 'success', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                      <CheckCircle className="w-4 h-4 text-green-400" /> Success Callout
+                                    </button>
+                                    <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'callout', calloutType: 'tip', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                      <Lightbulb className="w-4 h-4 text-purple-400" /> Tip Callout
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                            <div className="relative">
+                              <button
+                                onClick={() => setShowLineMenu(showLineMenu === block.id ? null : block.id)}
+                                className="p-1 rounded hover:bg-gray-700 transition-colors text-gray-400 hover:text-gray-200"
+                                title="Line options"
+                              >
+                                <GripVertical className="w-4 h-4" />
+                              </button>
+                              {showLineMenu === block.id && (
+                                <div className="absolute left-0 top-8 w-40 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
+                                  <div className="p-2">
+                                    <button onClick={() => { const newBlocks = [...blocks]; const duplicated = { ...block, id: `block-${Date.now()}` }; newBlocks.splice(index + 1, 0, duplicated); setBlocks(newBlocks); setShowLineMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                      <Copy className="w-4 h-4" /> Duplicate
+                                    </button>
+                                    {blocks.length > 1 && (
+                                      <button onClick={() => { const newBlocks = blocks.filter((_, i) => i !== index); setBlocks(newBlocks); setShowLineMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-red-400">
+                                        <Trash2 className="w-4 h-4" /> Delete
+                                      </button>
                                     )}
                                   </div>
                                 </div>
-                                <button type="button" onClick={() => removeSubMeeting(m.id)} className={`${isDarkMode ? 'text-gray-300 hover:text-red-400 hover:bg-white/10' : 'text-gray-500 hover:text-red-500 hover:bg-black/5'} p-1 rounded-full transition`}>
-                                  <X className="h-4 w-4" />
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex-1 relative">
+                            {aiInputBlock === block.id ? (
+                              <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-purple-900/20 border border-purple-800/30 transition-all duration-200">
+                                <div className="p-1 rounded bg-purple-900/40">
+                                  <Sparkles className="w-4 h-4 text-purple-400" />
+                                </div>
+                                <input
+                                  type="text"
+                                  value={aiQuery}
+                                  onChange={(e) => setAiQuery(e.target.value)}
+                                  onKeyDown={handleAiQuerySubmit}
+                                  placeholder="Ask AI anything... (Press Enter to submit)"
+                                  className="flex-1 outline-none bg-transparent text-sm font-medium text-purple-200 placeholder-purple-400"
+                                  autoFocus
+                                />
+                                <button
+                                  onClick={() => {
+                                    setAiInputBlock(null);
+                                    setAiQuery('');
+                                  }}
+                                  className="p-1 rounded-full hover:bg-gray-700 transition-colors text-purple-400 hover:text-purple-300"
+                                  title="Cancel"
+                                >
+                                  <X className="w-4 h-4" />
                                 </button>
                               </div>
-                            </div>
-                          ))}
+                            ) : (
+                              <div className="block-content">
+                                {renderBlockContent(block, index)}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      ) : (
-                        <div className={`${isDarkMode ? 'bg-gray-800/30 border-gray-700' : 'bg-gray-50 border-gray-200'} p-4 text-center rounded-lg border border-dashed`}>
-                          <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-sm`}>No sub-meetings added yet.</p>
-                        </div>
-                      )}
+                      ))}
                     </div>
-                  )}
-                  {sections.subMeetings && showSubMeetingForm && (
-                    <div ref={subMeetingFormRef} className={`${isDarkMode ? 'bg-gray-900/60 border-white/10' : 'bg-white/80 border-black/5'} backdrop-blur p-4 rounded-lg border mt-3 animate-fadeIn`}>
- 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="md:col-span-2">
-                          <label className={`block text-xs font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Title</label>
-                          <input type="text" value={subMeetingForm.title} onChange={e => setSubMeetingForm(prev => ({ ...prev, title: e.target.value }))} className={`${isDarkMode ? 'bg-gray-900/60 border-gray-700 text-white' : 'bg-white border-gray-200'} w-full px-3 py-2 border rounded-md text-sm transition focus:ring-2 ${isDarkMode ? 'focus:ring-purple-500/40' : 'focus:ring-purple-500/30'}`} />
-                        </div>
-                        <div>
-                          <label className={`block text-xs font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Time</label>
-                          <input type="time" value={subMeetingForm.time} onChange={e => setSubMeetingForm(prev => ({ ...prev, time: e.target.value }))} className={`${isDarkMode ? 'bg-gray-900/60 border-gray-700 text-white' : 'bg-white border-gray-200'} w-full px-3 py-2 border rounded-md text-sm transition focus:ring-2 ${isDarkMode ? 'focus:ring-purple-500/40' : 'focus:ring-purple-500/30'}`} />
-                        </div>
-                        <div>
-                          <label className={`block text-xs font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Duration</label>
-                          <select value={subMeetingForm.duration} onChange={e => setSubMeetingForm(prev => ({ ...prev, duration: e.target.value }))} className={`${isDarkMode ? 'bg-gray-900/60 border-gray-700 text-white' : 'bg-white border-gray-200'} w-full px-3 py-2 border rounded-md text-sm transition focus:ring-2 ${isDarkMode ? 'focus:ring-purple-500/40' : 'focus:ring-purple-500/30'}`}>
-                            <option>15 min</option>
-                            <option>30 min</option>
-                            <option>45 min</option>
-                            <option>60 min</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <div className="mt-4">
-                        <label className={`block text-xs font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Participants</label>
-                        <div className="flex flex-wrap gap-2 mb-3">
-                          {subMeetingForm.participants.length > 0 ? (
-                            subMeetingForm.participants.map((p, idx) => (
-                              <span key={`sm-${p.id || p._id || idx}`} className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200 shadow-sm">
-                                <span className="mr-1.5 inline-flex items-center justify-center h-6 w-6 rounded-full bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-100 font-semibold text-[10px]">{getInitials(p)}</span>
-                                {getDisplayName(p)}
-                                <button type="button" onClick={() => setSubMeetingForm(prev => ({ ...prev, participants: prev.participants.filter((_, i) => i !== idx) }))} className="ml-2 -mr-1 text-green-600 hover:text-red-500 focus:outline-none transition-colors" aria-label="Remove participant">×</button>
-                              </span>
-                            ))
-                          ) : (
-                            <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-sm`}>No participants added</p>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <input type="text" value={subParticipantName} onChange={e => setSubParticipantName(e.target.value)} placeholder="Type participant name" className={`${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'} flex-1 px-3 py-2 border rounded-md text-sm`} />
-                          <button type="button" onClick={() => { const name = subParticipantName.trim(); if (!name) return; setSubMeetingForm(prev => ({ ...prev, participants: [...prev.participants, { id: Date.now().toString(), name }] })); setSubParticipantName(''); }} className="px-3 py-2 text-xs rounded-md bg-green-600 text-white hover:bg-green-700">Add</button>
-                          <button type="button" onClick={() => openUserPagePicker(true)} className={`${isDarkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-100'} px-3 py-2 text-xs rounded-md border`}>Pick from users</button>
-                        </div>
-                      </div>
-
-                      <div className="mt-4 flex justify-end gap-2">
-                        <button type="button" onClick={() => setShowSubMeetingForm(false)} className={`${isDarkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-100'} px-4 py-2 text-xs rounded-md border`}>Cancel</button>
-                        <button type="button" onClick={handleAddSubMeeting} className="px-4 py-2 text-xs rounded-md bg-green-600 text-white hover:bg-green-700">Add Sub-meeting</button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Actions */}
-            <div className={`${isDarkMode ? 'border-white/10 bg-slate-900/60' : 'border-black/5 bg-white/60'} sticky bottom-0 z-10 backdrop-blur px-6 py-4 border-t shadow-lg`}> 
-              <div className="flex flex-col sm:flex-row justify-between items-center space-y-3 sm:space-y-0">
-                <div className="flex items-center">
-                  {isDirty && (
-                    <div className={`${isDarkMode ? 'text-amber-400' : 'text-amber-600'} inline-flex items-center text-sm`}>
-                      <AlertCircle className="h-4 w-4 mr-1.5" />
-                      <span>Unsaved changes</span>
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
-                  <button type="button" onClick={cancel} className={`${isDarkMode ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-black/5'} px-4 py-2.5 rounded-lg font-medium transition`}>Cancel</button>
-                  <button type="submit" disabled={isSubmitting || !form.title || !form.date || !form.time} className={`px-6 py-2.5 rounded-lg font-medium text-white bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-blue-500/40 flex items-center justify-center ${isSubmitting ? 'opacity-75 cursor-not-allowed' : ''}`}>
-                    {isSubmitting ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                        {isCreating ? 'Creating...' : 'Saving...'}
-                      </>
-                    ) : (
-                      <>
-                        <Save className="h-4 w-4 mr-1.5" />
-                        {isCreating ? 'Create Meeting' : 'Save Changes'}
-                      </>
-                    )}
-                  </button>
+                  </div>
                 </div>
               </div>
             </div>
-            </form>
           </div>
         </div>
       </div>
-
-      {/* Floating save when there are unsaved changes */}
-      {isDirty && !isSubmitting && (
-        <div className="fixed bottom-6 right-6 z-40">
-          <button onClick={handleSubmit} className="shadow-xl inline-flex items-center gap-2 rounded-full px-5 py-3 text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40">
-            <Save className="h-4 w-4" /> Quick Save
-          </button>
-        </div>
-      )}
     </div>
   );
-}
+};
+
+export default MeetingEditorPage;

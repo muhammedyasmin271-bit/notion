@@ -32,6 +32,8 @@ import TasksPage from './components/TasksPage/TasksPage';
 import WorkerReports from './components/WorkerReports/WorkerReports';
 import AIAssistant from './components/AIAssistant/AIAssistant';
 import NavigationPanel from './components/NavigationPanel/NavigationPanel';
+import MeetingTemplatesPage from './components/MeetingTemplatesPage/MeetingTemplatesPage';
+
 import './App.css';
 
 // Protected Route Component
@@ -207,7 +209,23 @@ const AppContent = () => {
           </ProtectedRoute>
         } />
 
+        <Route path="/meeting-templates" element={
+          <ProtectedRoute>
+            <Layout>
+              <MeetingTemplatesPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+
         <Route path="/meeting-new" element={
+          <ProtectedRoute>
+            <Layout>
+              <MeetingEditorPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/meeting-editor/:meetingId" element={
           <ProtectedRoute>
             <Layout>
               <MeetingEditorPage />
