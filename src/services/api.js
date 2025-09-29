@@ -472,6 +472,190 @@ class ApiService {
             throw error;
         }
     }
+
+    // Meeting API methods
+    async getMeetings(filters = {}) {
+        try {
+            const queryParams = new URLSearchParams();
+            Object.keys(filters).forEach(key => {
+                if (filters[key] !== undefined && filters[key] !== '') {
+                    queryParams.append(key, filters[key]);
+                }
+            });
+
+            const url = `/meetings${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+            const response = await this.request(url);
+            return response;
+        } catch (error) {
+            console.error('Error fetching meetings:', error);
+            return [];
+        }
+    }
+
+    async createMeeting(meetingData) {
+        try {
+            const response = await this.request('/meetings', {
+                method: 'POST',
+                body: JSON.stringify(meetingData),
+            });
+            return response;
+        } catch (error) {
+            console.error('Error creating meeting:', error);
+            throw error;
+        }
+    }
+
+    async updateMeeting(meetingId, meetingData) {
+        try {
+            const response = await this.request(`/meetings/${meetingId}`, {
+                method: 'PUT',
+                body: JSON.stringify(meetingData),
+            });
+            return response;
+        } catch (error) {
+            console.error('Error updating meeting:', error);
+            throw error;
+        }
+    }
+
+    async getMeetingById(meetingId) {
+        try {
+            const response = await this.request(`/meetings/${meetingId}`);
+            return response;
+        } catch (error) {
+            console.error('Error fetching meeting:', error);
+            throw error;
+        }
+    }
+
+    async deleteMeeting(meetingId) {
+        try {
+            const response = await this.request(`/meetings/${meetingId}`, {
+                method: 'DELETE',
+            });
+            return response;
+        } catch (error) {
+            console.error('Error deleting meeting:', error);
+            throw error;
+        }
+    }
+
+    async addMeetingActionItem(meetingId, actionItem) {
+        try {
+            const response = await this.request(`/meetings/${meetingId}/action-items`, {
+                method: 'POST',
+                body: JSON.stringify(actionItem),
+            });
+            return response;
+        } catch (error) {
+            console.error('Error adding action item:', error);
+            throw error;
+        }
+    }
+
+    async completeMeetingActionItem(meetingId, actionItemId) {
+        try {
+            const response = await this.request(`/meetings/${meetingId}/action-items/${actionItemId}/complete`, {
+                method: 'PATCH',
+            });
+            return response;
+        } catch (error) {
+            console.error('Error completing action item:', error);
+            throw error;
+        }
+    }
+
+    async restoreMeeting(meetingId) {
+        try {
+            const response = await this.request(`/meetings/${meetingId}/restore`, {
+                method: 'PATCH',
+            });
+            return response;
+        } catch (error) {
+            console.error('Error restoring meeting:', error);
+            throw error;
+        }
+    }
+
+    async completeMeeting(meetingId) {
+        try {
+            const response = await this.request(`/meetings/${meetingId}/complete`, {
+                method: 'PATCH',
+            });
+            return response;
+        } catch (error) {
+            console.error('Error completing meeting:', error);
+            throw error;
+        }
+    }
+
+    // Meeting Template API methods
+    async getMeetingTemplates(filters = {}) {
+        try {
+            const queryParams = new URLSearchParams();
+            Object.keys(filters).forEach(key => {
+                if (filters[key] !== undefined && filters[key] !== '') {
+                    queryParams.append(key, filters[key]);
+                }
+            });
+
+            const url = `/meeting-templates${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+            const response = await this.request(url);
+            return response;
+        } catch (error) {
+            console.error('Error fetching meeting templates:', error);
+            return [];
+        }
+    }
+
+    async createMeetingTemplate(templateData) {
+        try {
+            const response = await this.request('/meeting-templates', {
+                method: 'POST',
+                body: JSON.stringify(templateData),
+            });
+            return response;
+        } catch (error) {
+            console.error('Error creating meeting template:', error);
+            throw error;
+        }
+    }
+
+    async updateMeetingTemplate(templateId, templateData) {
+        try {
+            const response = await this.request(`/meeting-templates/${templateId}`, {
+                method: 'PUT',
+                body: JSON.stringify(templateData),
+            });
+            return response;
+        } catch (error) {
+            console.error('Error updating meeting template:', error);
+            throw error;
+        }
+    }
+
+    async getMeetingTemplateById(templateId) {
+        try {
+            const response = await this.request(`/meeting-templates/${templateId}`);
+            return response;
+        } catch (error) {
+            console.error('Error fetching meeting template:', error);
+            throw error;
+        }
+    }
+
+    async deleteMeetingTemplate(templateId) {
+        try {
+            const response = await this.request(`/meeting-templates/${templateId}`, {
+                method: 'DELETE',
+            });
+            return response;
+        } catch (error) {
+            console.error('Error deleting meeting template:', error);
+            throw error;
+        }
+    }
+
     isAuthenticated() {
         const token = this.getAuthToken();
         if (!token) return false;
@@ -584,3 +768,21 @@ export const shareNote = (noteId, shareType) => apiService.shareNote(noteId, sha
 export const toggleNotePin = (noteId) => apiService.toggleNotePin(noteId);
 export const toggleNoteArchive = (noteId) => apiService.toggleNoteArchive(noteId);
 export const restoreNote = (noteId) => apiService.restoreNote(noteId);
+
+// Meeting exports
+export const getMeetings = (filters) => apiService.getMeetings(filters);
+export const createMeeting = (meetingData) => apiService.createMeeting(meetingData);
+export const updateMeeting = (meetingId, meetingData) => apiService.updateMeeting(meetingId, meetingData);
+export const getMeetingById = (meetingId) => apiService.getMeetingById(meetingId);
+export const deleteMeeting = (meetingId) => apiService.deleteMeeting(meetingId);
+export const addMeetingActionItem = (meetingId, actionItem) => apiService.addMeetingActionItem(meetingId, actionItem);
+export const completeMeetingActionItem = (meetingId, actionItemId) => apiService.completeMeetingActionItem(meetingId, actionItemId);
+export const restoreMeeting = (meetingId) => apiService.restoreMeeting(meetingId);
+export const completeMeeting = (meetingId) => apiService.completeMeeting(meetingId);
+
+// Meeting Template exports
+export const getMeetingTemplates = (filters) => apiService.getMeetingTemplates(filters);
+export const createMeetingTemplate = (templateData) => apiService.createMeetingTemplate(templateData);
+export const updateMeetingTemplate = (templateId, templateData) => apiService.updateMeetingTemplate(templateId, templateData);
+export const getMeetingTemplateById = (templateId) => apiService.getMeetingTemplateById(templateId);
+export const deleteMeetingTemplate = (templateId) => apiService.deleteMeetingTemplate(templateId);

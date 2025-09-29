@@ -1,1086 +1,439 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Plus, Search, Edit2, Trash as TrashIcon, Users, Clock, FileText, CheckCircle, User, X } from 'lucide-react';
-import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
+import { Plus, Search, Calendar, Clock, Users, FileText, Filter, MoreHorizontal, Edit, Trash2, Copy, CheckCircle, Circle, TrendingUp, BarChart2, Tag, Clock as ClockIcon } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { getMeetings, deleteMeeting, completeMeetingActionItem, addMeetingActionItem } from '../../services/api';
 
 const MeetingNotesPage = () => {
-  const { user } = useAppContext();
   const { isDarkMode } = useTheme();
-  const [meetingNotes, setMeetingNotes] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
+  const [meetings, setMeetings] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterType, setFilterType] = useState('all');
-  const [editingNote, setEditingNote] = useState(null);
-  const [editForm, setEditForm] = useState({});
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [selectedMeeting, setSelectedMeeting] = useState(null);
-  const [createForm, setCreateForm] = useState({
-    title: '',
-    type: 'Standup',
-    date: new Date().toISOString().split('T')[0],
-    time: '09:00',
-    duration: '30 min',
-    status: 'Scheduled',
-    description: '',
-    location: '',
-    participants: []
-  });
-  
-  const [availableUsers] = useState([
-    { id: 1, name: 'John Doe', email: 'john@company.com', role: 'Developer' },
-    { id: 2, name: 'Jane Smith', email: 'jane@company.com', role: 'Designer' },
-    { id: 3, name: 'Mike Johnson', email: 'mike@company.com', role: 'Manager' },
-    { id: 4, name: 'Sarah Wilson', email: 'sarah@company.com', role: 'Product Manager' },
-    { id: 5, name: 'David Brown', email: 'david@company.com', role: 'Developer' }
-  ]);
+  const [sortBy, setSortBy] = useState('date');
+  const [showDropdown, setShowDropdown] = useState(null);
+  const [templates, setTemplates] = useState([]);
+  const [loading, setLoading] = useState(true);
 
+  // Load meetings from API
   useEffect(() => {
-    const storedNotes = localStorage.getItem('meetingNotes');
-    if (storedNotes) {
-      setMeetingNotes(JSON.parse(storedNotes));
-    } else {
-      const sampleNotes = [
+    loadMeetings();
+
+    // Sample templates
+    setTemplates([
+      { id: 1, name: 'Weekly Standup', type: 'Standup', description: 'Daily team sync meeting' },
+      { id: 2, name: 'Project Planning', type: 'Planning', description: 'Project kickoff meeting' },
+      { id: 3, name: 'Retrospective', type: 'Retro', description: 'Team retrospective meeting' }
+    ]);
+  }, []);
+
+  const loadMeetings = async () => {
+    try {
+      setLoading(true);
+      const data = await getMeetings();
+      // Transform data to match our component structure
+      const transformedMeetings = data.map(meeting => ({
+        id: meeting._id,
+        title: meeting.title,
+        date: new Date(meeting.date).toISOString().split('T')[0],
+        time: meeting.time,
+        duration: meeting.duration,
+        attendees: meeting.attendees || [],
+        status: meeting.status.toLowerCase(),
+        type: meeting.type,
+        notes: meeting.notes || '',
+        actionItems: meeting.actionItems || [],
+        tags: meeting.tags || [],
+        createdAt: meeting.createdAt
+      }));
+      setMeetings(transformedMeetings);
+    } catch (error) {
+      console.error('Error loading meetings:', error);
+      // Fallback to sample data
+      setMeetings([
         {
           id: 1,
-          title: "Weekly team sync",
-          type: "Standup",
-          date: "2025-02-13",
-          time: "09:00",
-          duration: "30 min",
-          status: "Scheduled",
-          participants: [],
-          actionItems: ["Follow up on database migration", "Review PR for user authentication"],
-          createdBy: "A Aymen Arega",
-          summary: "No content",
+          title: 'Weekly Team Standup',
+          date: '2024-01-15',
+          time: '09:00 AM',
+          duration: '30 min',
+          attendees: ['John Doe', 'Jane Smith', 'Mike Johnson'],
+          status: 'completed',
+          type: 'Standup',
+          notes: 'Discussed project progress and upcoming deadlines...',
+          actionItems: [
+            { id: 1, description: 'Complete frontend design', assignee: 'John Doe', completed: true },
+            { id: 2, description: 'Review backend API', assignee: 'Jane Smith', completed: false }
+          ],
+          tags: ['weekly', 'team'],
+          createdAt: '2024-01-15T09:00:00Z'
         },
         {
           id: 2,
-          title: "Product release post-mortem",
-          type: "Retro",
-          date: "2025-02-13",
-          time: "14:00",
-          duration: "2 hours",
-          status: "Completed",
-          participants: [],
-          actionItems: ["Create user stories", "Define acceptance criteria"],
-          createdBy: "A Aymen Arega",
-          summary: "Discussion agenda includes notes and action items.",
+          title: 'Product Planning Session',
+          date: '2024-01-16',
+          time: '02:00 PM',
+          duration: '60 min',
+          attendees: ['Sarah Wilson', 'Tom Brown', 'Lisa Davis'],
+          status: 'scheduled',
+          type: 'Planning',
+          notes: '',
+          actionItems: [],
+          tags: ['planning', 'product'],
+          createdAt: '2024-01-16T14:00:00Z'
         },
         {
           id: 3,
-          title: "GTM strategy presentation",
-          type: "Presentation",
-          date: "2025-02-13",
-          time: "16:00",
-          duration: "1 hour",
-          status: "Scheduled",
-          participants: [],
-          actionItems: ["Review Q4 goals", "Plan team building event"],
-          createdBy: "A Aymen Arega",
-          summary: "No content",
+          title: 'Client Presentation Review',
+          date: '2024-01-14',
+          time: '11:00 AM',
+          duration: '45 min',
+          attendees: ['Alex Chen', 'Maria Garcia'],
+          status: 'completed',
+          type: 'Review',
+          notes: 'Reviewed presentation slides and gathered feedback...',
+          actionItems: [
+            { id: 3, description: 'Update slides with feedback', assignee: 'Alex Chen', completed: true },
+            { id: 4, description: 'Schedule follow-up meeting', assignee: 'Maria Garcia', completed: false }
+          ],
+          tags: ['client', 'presentation'],
+          createdAt: '2024-01-14T11:00:00Z'
         }
-      ];
-      setMeetingNotes(sampleNotes);
-      localStorage.setItem('meetingNotes', JSON.stringify(sampleNotes));
+      ]);
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  };
 
-  useEffect(() => {
-    localStorage.setItem('meetingNotes', JSON.stringify(meetingNotes));
-  }, [meetingNotes]);
-
-  const filteredNotes = meetingNotes.filter(note => {
-    const matchesSearch = note.title?.toLowerCase().includes(searchQuery.toLowerCase()) || false;
-    const matchesStatus = filterStatus === 'all' || note.status === filterStatus;
-    const matchesType = filterType === 'all' || note.type === filterType;
+  const filteredMeetings = meetings.filter(meeting => {
+    const matchesSearch = meeting.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      meeting.attendees.some(attendee => attendee.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (meeting.tags && meeting.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())));
+    const matchesStatus = filterStatus === 'all' || meeting.status === filterStatus;
+    const matchesType = filterType === 'all' || meeting.type === filterType;
     return matchesSearch && matchesStatus && matchesType;
+  }).sort((a, b) => {
+    if (sortBy === 'date') {
+      return new Date(b.date) - new Date(a.date);
+    } else if (sortBy === 'title') {
+      return a.title.localeCompare(b.title);
+    } else if (sortBy === 'status') {
+      return a.status.localeCompare(b.status);
+    }
+    return 0;
   });
 
-  const createNewMeeting = () => {
-    if (user?.role !== 'manager') {
-      alert('Only managers can create meetings');
-      return;
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'completed': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+      case 'scheduled': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
+      case 'in-progress': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+      case 'cancelled': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
     }
-    setShowCreateModal(true);
   };
 
-  const handleCreateMeeting = () => {
-    if (!createForm.title.trim()) {
-      alert('Please enter a meeting title');
-      return;
+  const getTypeColor = (type) => {
+    switch (type) {
+      case 'Standup': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400';
+      case 'Planning': return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400';
+      case 'Review': return 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-400';
+      case 'Retro': return 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
     }
-    const newNote = {
+  };
+
+  const handleDeleteMeeting = async (meetingId) => {
+    try {
+      await deleteMeeting(meetingId);
+      setMeetings(meetings.filter(m => m.id !== meetingId));
+      setShowDropdown(null);
+    } catch (error) {
+      console.error('Error deleting meeting:', error);
+      // Fallback to local state update
+      setMeetings(meetings.filter(m => m.id !== meetingId));
+      setShowDropdown(null);
+    }
+  };
+
+  const handleDuplicateMeeting = (meeting) => {
+    const newMeeting = {
+      ...meeting,
       id: Date.now(),
-      title: createForm.title,
-      type: createForm.type,
-      date: createForm.date,
-      time: createForm.time,
-      duration: createForm.duration,
-      status: createForm.status,
-      description: createForm.description,
-      location: createForm.location,
-      participants: createForm.participants,
-      actionItems: [],
-      createdBy: user?.name || 'Unknown User',
-      summary: createForm.description || 'No content',
+      title: `${meeting.title} (Copy)`,
+      status: 'scheduled',
+      createdAt: new Date().toISOString()
     };
-    setMeetingNotes([newNote, ...meetingNotes]);
-    setShowCreateModal(false);
-    setCreateForm({
-      title: '',
-      type: 'Standup',
-      date: new Date().toISOString().split('T')[0],
-      time: '09:00',
-      duration: '30 min',
-      status: 'Scheduled',
-      description: '',
-      location: ''
-    });
+    setMeetings([newMeeting, ...meetings]);
+    setShowDropdown(null);
   };
 
-  const cancelCreate = () => {
-    setShowCreateModal(false);
-    setCreateForm({
-      title: '',
-      type: 'Standup',
-      date: new Date().toISOString().split('T')[0],
-      time: '09:00',
-      duration: '30 min',
-      status: 'Scheduled',
-      description: '',
-      location: '',
-      participants: []
-    });
-  };
+  const toggleActionItem = async (meetingId, actionItemId) => {
+    try {
+      // Find the meeting and action item
+      const meeting = meetings.find(m => m.id === meetingId);
+      if (!meeting) return;
 
-  const addParticipant = (user) => {
-    const currentParticipants = (createForm.participants && Array.isArray(createForm.participants)) ? createForm.participants : [];
-    if (!currentParticipants.find(p => p.id === user.id)) {
-      setCreateForm({
-        ...createForm,
-        participants: [...currentParticipants, user]
-      });
-    }
-  };
+      const actionItem = meeting.actionItems.find(item => item.id === actionItemId);
+      if (!actionItem) return;
 
-  const removeParticipant = (userId) => {
-    setCreateForm({
-      ...createForm,
-      participants: (createForm.participants && Array.isArray(createForm.participants)) 
-        ? createForm.participants.filter(p => p.id !== userId) 
-        : []
-    });
-  };
-
-  const openUserPicker = () => {
-    // Save current form state
-    localStorage.setItem('meetingFormState', JSON.stringify(createForm));
-    localStorage.setItem('meetingPickerSource', 'create-meeting');
-    // Navigate to users page
-    window.location.href = '/users?picker=1';
-  };
-
-  // Handle return from user picker
-  useEffect(() => {
-    const checkPickerResult = () => {
-      const pickerResult = localStorage.getItem('peoplePickerResult');
-      const pickerSource = localStorage.getItem('meetingPickerSource');
-      const savedFormState = localStorage.getItem('meetingFormState');
-      
-      if (pickerResult && pickerSource === 'create-meeting' && savedFormState) {
-        try {
-          const selectedUsers = JSON.parse(pickerResult);
-          const formState = JSON.parse(savedFormState);
-          
-          // Update form with selected participants
-          setCreateForm({
-            ...formState,
-            participants: selectedUsers.selected || []
-          });
-          
-          // Show modal again
-          setShowCreateModal(true);
-          
-          // Clean up
-          localStorage.removeItem('peoplePickerResult');
-          localStorage.removeItem('meetingPickerSource');
-          localStorage.removeItem('meetingFormState');
-        } catch (error) {
-          console.error('Error processing picker result:', error);
+      // Update locally first for immediate feedback
+      setMeetings(meetings.map(m => {
+        if (m.id === meetingId) {
+          const updatedActionItems = m.actionItems.map(item =>
+            item.id === actionItemId ? { ...item, completed: !item.completed } : item
+          );
+          return { ...m, actionItems: updatedActionItems };
         }
-      }
-    };
-    
-    checkPickerResult();
-  }, []);
+        return m;
+      }));
 
-  const startEditing = (note) => {
-    setEditingNote(note.id);
-    setEditForm({
-      title: note.title || '',
-      type: note.type || 'Standup',
-      date: note.date || '',
-      time: note.time || '',
-      status: note.status || 'Scheduled',
-    });
-  };
-
-  const saveEdit = () => {
-    const updatedNotes = meetingNotes.map(note =>
-      note.id === editingNote
-        ? { ...note, ...editForm, updatedAt: new Date().toISOString() }
-        : note
-    );
-    setMeetingNotes(updatedNotes);
-    setEditingNote(null);
-    setEditForm({});
-  };
-
-  const cancelEdit = () => {
-    setEditingNote(null);
-    setEditForm({});
-  };
-
-  const deleteMeetingNote = (noteId) => {
-    if (window.confirm('Delete this meeting?')) {
-      const updatedNotes = meetingNotes.filter(note => note.id !== noteId);
-      setMeetingNotes(updatedNotes);
+      // Update on server
+      await completeMeetingActionItem(meetingId, actionItemId);
+    } catch (error) {
+      console.error('Error toggling action item:', error);
+      // Revert local change on error
+      setMeetings(meetings.map(m => {
+        if (m.id === meetingId) {
+          const updatedActionItems = m.actionItems.map(item =>
+            item.id === actionItemId ? { ...item, completed: !item.completed } : item
+          );
+          return { ...m, actionItems: updatedActionItems };
+        }
+        return m;
+      }));
     }
   };
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
+  const getCompletionStats = () => {
+    const totalActionItems = meetings.reduce((total, meeting) => total + (meeting.actionItems ? meeting.actionItems.length : 0), 0);
+    const completedActionItems = meetings.reduce((completed, meeting) =>
+      completed + (meeting.actionItems ? meeting.actionItems.filter(item => item.completed).length : 0), 0);
+
+    return {
+      total: totalActionItems,
+      completed: completedActionItems,
+      percentage: totalActionItems > 0 ? Math.round((completedActionItems / totalActionItems) * 100) : 0
+    };
   };
 
-  return (
-    <div className={`flex h-screen font-sans ${
-      isDarkMode ? 'bg-black text-white' : 'bg-white text-gray-900'
-    }`}>
-      {/* Left Half - Meeting List */}
-      <div className={`${selectedMeeting || showCreateModal ? 'w-1/2' : 'w-full'} transition-all duration-300 overflow-y-auto p-6 lg:p-8`}>
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center">
-            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mr-6 shadow-lg transition-all duration-300 ${
-              isDarkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white border border-gray-200'
-            }`}>
-              <Calendar className={`w-8 h-8 ${isDarkMode ? 'text-white' : 'text-black'}`} />
-            </div>
-            <div>
-              <h1 className={`text-4xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>Meeting Notes</h1>
-              <p className={`text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Schedule and manage team meetings</p>
+  const stats = getCompletionStats();
+
+  const MeetingListItem = ({ meeting }) => (
+    <div className={`border-b last:border-b-0 transition-all duration-200 hover:bg-gradient-to-r ${isDarkMode ? 'border-gray-700/50 hover:from-gray-800/30 hover:to-gray-800/10' : 'border-gray-200/60 hover:from-blue-50/30 hover:to-purple-50/20'} group`}>
+      <div className="p-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-6 flex-1">
+            <div className={`w-3 h-3 rounded-full flex-shrink-0 ${getStatusColor(meeting.status).includes('green') ? 'bg-emerald-500' : getStatusColor(meeting.status).includes('blue') ? 'bg-blue-500' : getStatusColor(meeting.status).includes('yellow') ? 'bg-amber-500' : 'bg-gray-500'}`}></div>
+            <div 
+              className="flex-1 min-w-0 cursor-pointer"
+              onClick={() => navigate(`/meeting-editor/${meeting.id}`)}
+            >
+              <div className={`flex items-center text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                <input
+                  type="text"
+                  value={meeting.title}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    // Handle title change
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className={`font-semibold text-lg bg-transparent border-none outline-none mr-3 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'} group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors`}
+                />
+                <span className="mr-3">•</span>
+                <select
+                  value={meeting.type}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    // Handle type change
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className={`px-2 py-0.5 rounded text-xs font-medium bg-transparent border-none outline-none mr-3 ${getTypeColor(meeting.type)}`}
+                >
+                  <option value="Standup">Standup</option>
+                  <option value="Planning">Planning</option>
+                  <option value="Review">Review</option>
+                  <option value="Retro">Retro</option>
+                </select>
+                <span className="mr-3">•</span>
+                <select
+                  value={meeting.status}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    // Handle status change
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className={`px-2 py-0.5 rounded text-xs font-medium bg-transparent border-none outline-none mr-3 ${getStatusColor(meeting.status)}`}
+                >
+                  <option value="scheduled">Scheduled</option>
+                  <option value="in-progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+                <span className="mr-3">•</span>
+                <input
+                  type="date"
+                  value={meeting.date}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    // Handle date change
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="font-medium bg-transparent border-none outline-none mr-3"
+                />
+                <span className="mr-3">•</span>
+                <input
+                  type="time"
+                  value={meeting.time}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    // Handle time change
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="bg-transparent border-none outline-none mr-3"
+                />
+                <span className="mr-3">•</span>
+                <span>{meeting.attendees ? meeting.attendees.length : 0} people</span>
+              </div>
             </div>
           </div>
+
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className={`min-h-screen p-6 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Meeting Notes</h1>
+            <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Manage your meeting notes and schedules
+            </p>
+          </div>
           <button
-            onClick={createNewMeeting}
-            className={`flex items-center px-6 py-3 text-sm font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 ${
-              isDarkMode ? 'bg-white text-black hover:bg-gray-100' : 'bg-black text-white hover:bg-gray-900'
-            }`}
+            onClick={() => navigate('/meeting-new')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
           >
-            <Plus className="w-4 h-4 mr-2" />
-            New Meeting
+            <Plus className="w-4 h-4" />
+            Create Meeting
           </button>
         </div>
 
-        {/* Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className={`p-6 rounded-2xl shadow-lg border transition-all duration-300 hover:shadow-xl hover:scale-105 ${
-            isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
-          }`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>{filteredNotes.length}</p>
-                <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Meetings</p>
-              </div>
-              <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-white' : 'bg-black'}`}>
-                <Calendar className={`h-8 w-8 ${isDarkMode ? 'text-black' : 'text-white'}`} />
-              </div>
-            </div>
-          </div>
-          <div className={`p-6 rounded-2xl shadow-lg border transition-all duration-300 hover:shadow-xl hover:scale-105 ${
-            isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
-          }`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                  {meetingNotes.filter(n => n.status === 'Scheduled').length}
-                </p>
-                <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Scheduled</p>
-              </div>
-              <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-gray-700' : 'bg-gray-300'}`}>
-                <Clock className={`h-8 w-8 ${isDarkMode ? 'text-white' : 'text-black'}`} />
-              </div>
-            </div>
-          </div>
-          <div className={`p-6 rounded-2xl shadow-lg border transition-all duration-300 hover:shadow-xl hover:scale-105 ${
-            isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
-          }`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                  {meetingNotes.filter(n => n.status === 'Completed').length}
-                </p>
-                <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Completed</p>
-              </div>
-              <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-gray-800' : 'bg-gray-200'}`}>
-                <CheckCircle className={`h-8 w-8 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Search and Filters */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-4">
-            <div className="relative">
-              <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 ${
-                isDarkMode ? 'text-gray-400' : 'text-gray-400'
-              }`} />
-              <input
-                type="text"
-                placeholder="Search meetings..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className={`pl-10 pr-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-80 text-sm border ${
-                  isDarkMode ? 'bg-gray-900 border-gray-700 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
-                }`}
-              />
-            </div>
-            
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="relative flex-1">
+            <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+            <input
+              type="text"
+              placeholder="Search meetings, attendees, tags..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className={`w-full pl-10 pr-4 py-2 rounded-lg border transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-400 focus:border-blue-500' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500'} focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Filter className={`w-4 h-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className={`px-3 py-2 rounded-lg border transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-100' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
+            >
+              <option value="all">All Status</option>
+              <option value="scheduled">Scheduled</option>
+              <option value="in-progress">In Progress</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
-              className={`px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm border ${
-                isDarkMode ? 'bg-gray-900 border-gray-700 text-white' : 'bg-white border-gray-300 text-gray-900'
-              }`}
+              className={`px-3 py-2 rounded-lg border transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-100' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
             >
               <option value="all">All Types</option>
               <option value="Standup">Standup</option>
               <option value="Planning">Planning</option>
               <option value="Review">Review</option>
               <option value="Retro">Retro</option>
-              <option value="Presentation">Presentation</option>
             </select>
-
             <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className={`px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm border ${
-                isDarkMode ? 'bg-gray-900 border-gray-700 text-white' : 'bg-white border-gray-300 text-gray-900'
-              }`}
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className={`px-3 py-2 rounded-lg border transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-100' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
             >
-              <option value="all">All Status</option>
-              <option value="Scheduled">Scheduled</option>
-              <option value="Completed">Completed</option>
-              <option value="Cancelled">Cancelled</option>
-              <option value="Postponed">Postponed</option>
+              <option value="date">Sort by Date</option>
+              <option value="title">Sort by Title</option>
+              <option value="status">Sort by Status</option>
             </select>
           </div>
+        </div>
 
-          <div className="flex items-center gap-2">
-            <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              {filteredNotes.length} meetings
-            </span>
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <div className={`rounded-lg p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+            <div className={`text-2xl font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+              {meetings.length}
+            </div>
+            <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Meetings</div>
+          </div>
+          <div className={`rounded-lg p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+            <div className={`text-2xl font-bold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
+              {meetings.filter(m => m.status === 'completed').length}
+            </div>
+            <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Completed</div>
+          </div>
+          <div className={`rounded-lg p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+            <div className={`text-2xl font-bold ${isDarkMode ? 'text-yellow-400' : 'text-yellow-600'}`}>
+              {meetings.filter(m => m.status === 'scheduled').length}
+            </div>
+            <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Scheduled</div>
+          </div>
+          <div className={`rounded-lg p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+            <div className={`text-2xl font-bold ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>
+              {stats.percentage}%
+            </div>
+            <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Action Items Done</div>
           </div>
         </div>
+
+        {/* Meetings List */}
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          </div>
+        ) : filteredMeetings.length > 0 ? (
+          <div className={`rounded-2xl border shadow-lg ${isDarkMode ? 'bg-gray-800/50 border-gray-700/50 backdrop-blur-sm' : 'bg-white/80 border-gray-200/60 backdrop-blur-sm'}`}>
+            {filteredMeetings.map(meeting => (
+              <MeetingListItem key={meeting.id} meeting={meeting} />
+            ))}
+          </div>
+        ) : (
+          <div className={`text-center py-12 rounded-lg ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+            <Calendar className={`w-12 h-12 mx-auto mb-4 ${isDarkMode ? 'text-gray-600' : 'text-gray-400'}`} />
+            <h3 className={`text-lg font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+              {searchTerm || filterStatus !== 'all' || filterType !== 'all' ? 'No meetings found' : 'No meetings yet'}
+            </h3>
+            <p className={`${isDarkMode ? 'text-gray-500' : 'text-gray-500'} mb-4`}>
+              {searchTerm || filterStatus !== 'all' || filterType !== 'all'
+                ? 'Try adjusting your search or filter criteria'
+                : 'Create your first meeting to get started'
+              }
+            </p>
+            {!searchTerm && filterStatus === 'all' && filterType === 'all' && (
+              <button
+                onClick={() => navigate('/meeting-new')}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
+              >
+                Create Meeting
+              </button>
+            )}
+          </div>
+        )}
       </div>
-
-      {/* Meeting List */}
-      <div className={`rounded-xl shadow-lg border overflow-hidden ${
-        isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
-      }`}>
-        <div className={`divide-y ${isDarkMode ? 'divide-gray-800' : 'divide-gray-200'}`}>
-          {filteredNotes.map((note) => (
-            <div
-              key={note.id}
-              className={`group flex items-center justify-between p-6 transition-all duration-200 hover:scale-105 cursor-pointer ${
-                isDarkMode ? 'hover:bg-gray-900/40' : 'hover:bg-gray-50'
-              }`}
-              onClick={() => setSelectedMeeting(note)}
-            >
-              <div className="flex items-center space-x-4 flex-1">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                  isDarkMode ? 'bg-white' : 'bg-black'
-                }`}>
-                  <Calendar className={`w-6 h-6 ${isDarkMode ? 'text-black' : 'text-white'}`} />
-                </div>
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className={`font-semibold text-lg truncate ${
-                      isDarkMode ? 'text-white' : 'text-gray-900'
-                    }`}>
-                      {note.title}
-                    </h3>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium border ${
-                      isDarkMode ? 'bg-gray-800 text-gray-300 border-gray-700' : 'bg-gray-100 text-gray-700 border-gray-200'
-                    }`}>
-                      {note.type}
-                    </span>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium border ${
-                      note.status === 'Completed' 
-                        ? (isDarkMode ? 'bg-green-900 text-green-300 border-green-700' : 'bg-green-100 text-green-800 border-green-300')
-                        : note.status === 'Scheduled'
-                        ? (isDarkMode ? 'bg-blue-900 text-blue-300 border-blue-700' : 'bg-blue-100 text-blue-800 border-blue-300')
-                        : (isDarkMode ? 'bg-gray-800 text-gray-300 border-gray-700' : 'bg-gray-100 text-gray-700 border-gray-200')
-                    }`}>
-                      {note.status}
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center gap-6 text-sm">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 opacity-50" />
-                      <span className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
-                        {formatDate(note.date)} at {note.time || 'No time'}
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4 opacity-50" />
-                      <span className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
-                        {(note.participants && Array.isArray(note.participants) && note.participants.length > 0)
-                          ? `${note.participants.length} participants`
-                          : 'No participants'}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 opacity-50" />
-                      <span className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
-                        {note.createdBy}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                <button 
-                  title="Edit" 
-                  className={`p-2 rounded-lg transition-all duration-200 hover:scale-110 ${
-                    isDarkMode ? 'bg-blue-900 text-blue-300 hover:bg-blue-800' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                  }`} 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    startEditing(note);
-                  }}
-                >
-                  <Edit2 className="w-4 h-4" />
-                </button>
-                <button 
-                  title="Delete" 
-                  className={`p-2 rounded-lg transition-all duration-200 hover:scale-110 ${
-                    isDarkMode ? 'bg-red-900 text-red-300 hover:bg-red-800' : 'bg-red-100 text-red-700 hover:bg-red-200'
-                  }`} 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteMeetingNote(note.id);
-                  }}
-                >
-                  <TrashIcon className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          ))}
-
-          {filteredNotes.length === 0 && (
-            <div className="px-6 py-12 text-center">
-              <Calendar className={`${isDarkMode ? 'text-gray-500' : 'text-gray-400'} mx-auto h-12 w-12 mb-4`} />
-              <h3 className={`text-lg font-medium mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>No meetings found</h3>
-              <p className={`text-sm mb-6 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Get started by creating your first meeting.</p>
-              {user?.role === 'manager' ? (
-                <button
-                  onClick={createNewMeeting}
-                  className={`inline-flex items-center px-6 py-3 text-sm font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 ${
-                    isDarkMode ? 'bg-white text-black hover:bg-gray-100' : 'bg-black text-white hover:bg-gray-900'
-                  }`}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Meeting
-                </button>
-              ) : (
-                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Only managers can create meetings</p>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Edit Modal */}
-      {editingNote && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className={`rounded-xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto border ${
-            isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'
-          }`}>
-            <div className="flex items-center justify-between mb-6">
-              <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Edit Meeting</h3>
-              <button
-                onClick={cancelEdit}
-                className={`transition-colors duration-200 ${
-                  isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-400 hover:text-gray-600'
-                }`}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className={`block text-sm font-medium mb-1 ${
-                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                }`}>Title</label>
-                <input
-                  type="text"
-                  value={editForm.title}
-                  onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                  className={`w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    isDarkMode ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400' : 'bg-white border-gray-300'
-                  }`}
-                />
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className={`block text-sm font-medium mb-1 ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                  }`}>Date</label>
-                  <input
-                    type="date"
-                    value={editForm.date}
-                    onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      isDarkMode ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400' : 'bg-white border-gray-300'
-                    }`}
-                  />
-                </div>
-                <div>
-                  <label className={`block text-sm font-medium mb-1 ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                  }`}>Time</label>
-                  <input
-                    type="time"
-                    value={editForm.time}
-                    onChange={(e) => setEditForm({ ...editForm, time: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      isDarkMode ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400' : 'bg-white border-gray-300'
-                    }`}
-                  />
-                </div>
-                <div>
-                  <label className={`block text-sm font-medium mb-1 ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                  }`}>Status</label>
-                  <select
-                    value={editForm.status}
-                    onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      isDarkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-300'
-                    }`}
-                  >
-                    <option value="Scheduled">Scheduled</option>
-                    <option value="Completed">Completed</option>
-                    <option value="Cancelled">Cancelled</option>
-                    <option value="Postponed">Postponed</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end space-x-3 mt-6">
-              <button
-                onClick={cancelEdit}
-                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
-                  isDarkMode ? 'text-gray-300 bg-gray-800 hover:bg-gray-700' : 'text-gray-600 bg-gray-100 hover:bg-gray-200'
-                }`}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={saveEdit}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors duration-200"
-              >
-                Save Changes
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Create Meeting Form in Right Half */}
-      {showCreateModal && (
-        <div className={`w-1/2 border-l overflow-y-auto ${
-          isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'
-        }`}>
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center space-x-4">
-                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg ${
-                  isDarkMode ? 'bg-white' : 'bg-black'
-                }`}>
-                  <Calendar className={`w-8 h-8 ${isDarkMode ? 'text-black' : 'text-white'}`} />
-                </div>
-                <div>
-                  <h3 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Create New Meeting</h3>
-                  <p className={`text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Schedule and organize your team meeting</p>
-                </div>
-              </div>
-              <button
-                onClick={cancelCreate}
-                className={`p-3 rounded-2xl transition-all duration-200 hover:scale-110 ${
-                  isDarkMode ? 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700' : 'bg-gray-100 text-gray-600 hover:text-gray-900 hover:bg-gray-200'
-                }`}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="space-y-8">
-              {/* Meeting Details Section */}
-              <div className={`p-6 rounded-2xl border-2 ${
-                isDarkMode ? 'bg-gray-900/50 border-gray-700' : 'bg-white/50 border-gray-200'
-              }`}>
-                <h4 className={`text-lg font-semibold mb-4 flex items-center ${
-                  isDarkMode ? 'text-white' : 'text-gray-900'
-                }`}>
-                  <FileText className="w-5 h-5 mr-2" />
-                  Meeting Details
-                </h4>
-                <div className="grid grid-cols-2 gap-6">
-                  <div>
-                    <label className={`block text-sm font-semibold mb-3 ${
-                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                    }`}>Meeting Title *</label>
-                    <input
-                      type="text"
-                      value={createForm.title}
-                      onChange={(e) => setCreateForm({ ...createForm, title: e.target.value })}
-                      className={`w-full px-4 py-3 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${
-                        isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                      }`}
-                      placeholder="Enter meeting title"
-                    />
-                  </div>
-                  <div>
-                    <label className={`block text-sm font-semibold mb-3 ${
-                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                    }`}>Meeting Type</label>
-                    <select
-                      value={createForm.type}
-                      onChange={(e) => setCreateForm({ ...createForm, type: e.target.value })}
-                      className={`w-full px-4 py-3 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 cursor-pointer ${
-                        isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
-                      }`}
-                    >
-                      <option value="Standup">🏃 Standup</option>
-                      <option value="Planning">📅 Planning</option>
-                      <option value="Review">🔍 Review</option>
-                      <option value="Retro">🔄 Retro</option>
-                      <option value="Presentation">📊 Presentation</option>
-                      <option value="One-on-One">👥 One-on-One</option>
-                      <option value="All-Hands">🙌 All-Hands</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Scheduling Section */}
-              <div className={`p-6 rounded-2xl border-2 ${
-                isDarkMode ? 'bg-gray-900/50 border-gray-700' : 'bg-white/50 border-gray-200'
-              }`}>
-                <h4 className={`text-lg font-semibold mb-4 flex items-center ${
-                  isDarkMode ? 'text-white' : 'text-gray-900'
-                }`}>
-                  <Clock className="w-5 h-5 mr-2" />
-                  Schedule & Duration
-                </h4>
-                <div className="grid grid-cols-3 gap-6">
-                  <div>
-                    <label className={`block text-sm font-semibold mb-3 ${
-                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                    }`}>Date *</label>
-                    <input
-                      type="date"
-                      value={createForm.date}
-                      onChange={(e) => setCreateForm({ ...createForm, date: e.target.value })}
-                      className={`w-full px-4 py-3 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${
-                        isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
-                      }`}
-                    />
-                  </div>
-                  <div>
-                    <label className={`block text-sm font-semibold mb-3 ${
-                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                    }`}>Time *</label>
-                    <input
-                      type="time"
-                      value={createForm.time}
-                      onChange={(e) => setCreateForm({ ...createForm, time: e.target.value })}
-                      className={`w-full px-4 py-3 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${
-                        isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
-                      }`}
-                    />
-                  </div>
-                  <div>
-                    <label className={`block text-sm font-semibold mb-3 ${
-                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                    }`}>Duration</label>
-                    <select
-                      value={createForm.duration}
-                      onChange={(e) => setCreateForm({ ...createForm, duration: e.target.value })}
-                      className={`w-full px-4 py-3 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 cursor-pointer ${
-                        isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
-                      }`}
-                    >
-                      <option value="15 min">⏱️ 15 minutes</option>
-                      <option value="30 min">⏱️ 30 minutes</option>
-                      <option value="45 min">⏱️ 45 minutes</option>
-                      <option value="1 hour">⏰ 1 hour</option>
-                      <option value="1.5 hours">⏰ 1.5 hours</option>
-                      <option value="2 hours">⏰ 2 hours</option>
-                      <option value="3 hours">⏰ 3 hours</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Participants Section */}
-              <div className={`p-6 rounded-2xl border-2 ${
-                isDarkMode ? 'bg-gray-900/50 border-gray-700' : 'bg-white/50 border-gray-200'
-              }`}>
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className={`text-lg font-semibold flex items-center ${
-                    isDarkMode ? 'text-white' : 'text-gray-900'
-                  }`}>
-                    <Users className="w-5 h-5 mr-2" />
-                    Participants ({(createForm.participants && Array.isArray(createForm.participants)) ? createForm.participants.length : 0})
-                  </h4>
-                  <button
-                    onClick={openUserPicker}
-                    className={`px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200 hover:scale-105 ${
-                      isDarkMode ? 'bg-blue-900 text-blue-300 hover:bg-blue-800' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                    }`}
-                  >
-                    Pick
-                  </button>
-                </div>
-                
-                {/* Selected Participants */}
-                {(createForm.participants && Array.isArray(createForm.participants) && createForm.participants.length > 0) ? (
-                  <div className="grid grid-cols-2 gap-3">
-                    {createForm.participants.map((participant) => (
-                      <div
-                        key={participant.id || participant._id}
-                        className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all duration-200 ${
-                          isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'
-                        }`}
-                      >
-                        <div className="flex items-center">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 text-sm font-bold ${
-                            isDarkMode ? 'bg-white text-black' : 'bg-black text-white'
-                          }`}>
-                            {(participant.name || participant.username || 'U').charAt(0)}
-                          </div>
-                          <div>
-                            <div className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                              {participant.name || participant.username}
-                            </div>
-                            <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                              {participant.email || participant.role || 'Team Member'}
-                            </div>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => removeParticipant(participant.id || participant._id)}
-                          className={`p-2 rounded-full hover:scale-110 transition-all duration-200 ${
-                            isDarkMode ? 'hover:bg-red-900 text-red-400' : 'hover:bg-red-100 text-red-600'
-                          }`}
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className={`text-center py-8 ${
-                    isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                  }`}>
-                    <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p>No participants selected</p>
-                    <p className="text-sm mt-1">Click "Pick" to add team members</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Additional Details Section */}
-              <div className={`p-6 rounded-2xl border-2 ${
-                isDarkMode ? 'bg-gray-900/50 border-gray-700' : 'bg-white/50 border-gray-200'
-              }`}>
-                <h4 className={`text-lg font-semibold mb-4 flex items-center ${
-                  isDarkMode ? 'text-white' : 'text-gray-900'
-                }`}>
-                  <CheckCircle className="w-5 h-5 mr-2" />
-                  Additional Details
-                </h4>
-                <div className="grid grid-cols-2 gap-6 mb-6">
-                  <div>
-                    <label className={`block text-sm font-semibold mb-3 ${
-                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                    }`}>Status</label>
-                    <select
-                      value={createForm.status}
-                      onChange={(e) => setCreateForm({ ...createForm, status: e.target.value })}
-                      className={`w-full px-4 py-3 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 cursor-pointer ${
-                        isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
-                      }`}
-                    >
-                      <option value="Scheduled">⏰ Scheduled</option>
-                      <option value="In Progress">▶️ In Progress</option>
-                      <option value="Completed">✅ Completed</option>
-                      <option value="Cancelled">❌ Cancelled</option>
-                      <option value="Postponed">⏸️ Postponed</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className={`block text-sm font-semibold mb-3 ${
-                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                    }`}>Location</label>
-                    <input
-                      type="text"
-                      value={createForm.location}
-                      onChange={(e) => setCreateForm({ ...createForm, location: e.target.value })}
-                      className={`w-full px-4 py-3 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${
-                        isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                      }`}
-                      placeholder="📍 Meeting room, Zoom link, etc."
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className={`block text-sm font-semibold mb-3 ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                  }`}>Description / Agenda</label>
-                  <textarea
-                    value={createForm.description}
-                    onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
-                    className={`w-full px-4 py-3 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 resize-none ${
-                      isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                    }`}
-                    rows={5}
-                    placeholder="📝 Meeting agenda, topics to discuss, objectives, key points to cover..."
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between mt-10 pt-6 border-t-2 ${
-              isDarkMode ? 'border-gray-700' : 'border-gray-200'
-            }">
-              <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                📝 Fill in the details to create your meeting
-              </div>
-              <div className="flex items-center space-x-4">
-                <button
-                  onClick={cancelCreate}
-                  className={`px-8 py-3 text-base font-semibold rounded-2xl transition-all duration-200 hover:scale-105 ${
-                    isDarkMode ? 'text-gray-300 bg-gray-800 hover:bg-gray-700 border-2 border-gray-700' : 'text-gray-700 bg-gray-100 hover:bg-gray-200 border-2 border-gray-300'
-                  }`}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleCreateMeeting}
-                  className="px-8 py-3 text-base font-bold text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 transform"
-                >
-                  🎉 Create Meeting
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      </div>
-      
-      {/* Right Half - Meeting Details */}
-      {selectedMeeting && (
-        <div className={`w-1/2 border-l overflow-y-auto ${
-          isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'
-        }`}>
-          {/* Header */}
-          <div className={`p-6 border-b ${
-            isDarkMode ? 'border-gray-700' : 'border-gray-200'
-          }`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                  isDarkMode ? 'bg-white' : 'bg-black'
-                }`}>
-                  <Calendar className={`w-6 h-6 ${isDarkMode ? 'text-black' : 'text-white'}`} />
-                </div>
-                <div>
-                  <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    {selectedMeeting.title}
-                  </h2>
-                  <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    {selectedMeeting.type} Meeting
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setSelectedMeeting(null)}
-                className={`p-2 rounded-lg transition-colors ${
-                  isDarkMode ? 'hover:bg-gray-800 text-gray-400' : 'hover:bg-gray-100 text-gray-600'
-                }`}
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Content */}
-          <div className="p-6 space-y-6">
-            {/* Status Badge */}
-            <div className="flex items-center gap-3">
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                selectedMeeting.status === 'Completed' 
-                  ? 'bg-green-100 text-green-800'
-                  : selectedMeeting.status === 'Scheduled'
-                  ? 'bg-blue-100 text-blue-800'
-                  : 'bg-gray-100 text-gray-700'
-              }`}>
-                {selectedMeeting.status}
-              </span>
-            </div>
-
-            {/* Schedule Info */}
-            <div className={`p-4 rounded-lg border ${
-              isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
-            }`}>
-              <h3 className={`font-semibold mb-3 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Schedule</h3>
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div>
-                  <div className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    {new Date(selectedMeeting.date).getDate()}
-                  </div>
-                  <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    {new Date(selectedMeeting.date).toLocaleDateString('en-US', { month: 'short' })}
-                  </div>
-                </div>
-                <div>
-                  <div className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    {selectedMeeting.time || '--:--'}
-                  </div>
-                  <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Time</div>
-                </div>
-                <div>
-                  <div className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    {selectedMeeting.duration || 'TBD'}
-                  </div>
-                  <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Duration</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Description */}
-            <div className={`p-4 rounded-lg border ${
-              isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
-            }`}>
-              <h3 className={`font-semibold mb-3 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Agenda</h3>
-              <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                {selectedMeeting.description || selectedMeeting.summary || 'No agenda provided.'}
-              </p>
-            </div>
-
-            {/* Participants */}
-            <div className={`p-4 rounded-lg border ${
-              isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
-            }`}>
-              <h3 className={`font-semibold mb-3 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                Participants ({selectedMeeting.participants?.length || 0})
-              </h3>
-              {(selectedMeeting.participants && selectedMeeting.participants.length > 0) ? (
-                <div className="space-y-2">
-                  {selectedMeeting.participants.map((participant, index) => (
-                    <div key={index} className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                        isDarkMode ? 'bg-white text-black' : 'bg-black text-white'
-                      }`}>
-                        {(participant.name || participant.username || 'U').charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <div className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                          {participant.name || participant.username}
-                        </div>
-                        <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                          {participant.email || participant.role || 'Team Member'}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>No participants added</p>
-              )}
-            </div>
-
-            {/* Details */}
-            <div className={`p-4 rounded-lg border ${
-              isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
-            }`}>
-              <h3 className={`font-semibold mb-3 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Details</h3>
-              <div className="space-y-3">
-                <div>
-                  <label className={`text-xs font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Location</label>
-                  <p className={`text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    {selectedMeeting.location || 'Not specified'}
-                  </p>
-                </div>
-                <div>
-                  <label className={`text-xs font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Organizer</label>
-                  <p className={`text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    {selectedMeeting.createdBy}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div className={`p-6 border-t ${
-            isDarkMode ? 'border-gray-700' : 'border-gray-200'
-          }`}>
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  startEditing(selectedMeeting);
-                  setSelectedMeeting(null);
-                }}
-                className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                  isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'
-                }`}
-              >
-                Edit
-              </button>
-              <button
-                onClick={() => setSelectedMeeting(null)}
-                className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                  isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-                }`}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
