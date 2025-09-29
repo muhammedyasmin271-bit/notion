@@ -60,14 +60,8 @@ router.get('/:id', auth, async (req, res) => {
       return res.status(404).json({ message: 'Meeting note not found' });
     }
     
-    // Temporarily allow all authenticated users to access meetings
-    // TODO: Implement proper authorization based on attendees and creators
-    console.log('Meeting access:', {
-      userId: req.user.id,
-      userName: req.user.name,
-      meetingId: meeting._id,
-      meetingCreator: meeting.createdBy.toString()
-    });
+    // Allow all authenticated users to access meetings
+    console.log('Meeting accessed by user:', req.user.id);
     
     res.json(meeting);
   } catch (error) {

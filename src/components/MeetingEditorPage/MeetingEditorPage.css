@@ -1,0 +1,49 @@
+/* Custom scrollbar styles for Meeting Editor dropdowns */
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+.scrollbar-thumb-gray-600 {
+  scrollbar-color: #4b5563 transparent;
+}
+
+.scrollbar-track-gray-800 {
+  scrollbar-color: #4b5563 #1f2937;
+}
+
+/* Webkit scrollbar styles for better cross-browser support */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #1f2937;
+  border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+/* Smooth scrolling */
+.scrollbar-thin {
+  scroll-behavior: smooth;
+}
+
+/* Hide scrollbar when not needed */
+.scrollbar-thin {
+  overflow-y: auto;
+}
+
+.scrollbar-thin:not(:hover)::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+
+.scrollbar-thin:hover::-webkit-scrollbar-thumb {
+  background: #4b5563;
+}

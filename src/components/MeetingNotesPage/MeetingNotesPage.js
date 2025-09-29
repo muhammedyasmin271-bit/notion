@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
-import { Plus, Search, Calendar, Clock, Users, FileText, Filter, MoreHorizontal, Edit, Trash2, Copy, CheckCircle, Circle, TrendingUp, BarChart2, Tag, Clock as ClockIcon } from 'lucide-react';
+import { Plus, Search, Calendar, Clock, Users, FileText, Filter, MoreHorizontal, Edit, Trash2, Copy, CheckCircle, Circle, TrendingUp, BarChart2, Tag, Clock as ClockIcon, ChevronDown, ChevronRight, GitBranch } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { getMeetings, deleteMeeting, completeMeetingActionItem, addMeetingActionItem } from '../../services/api';
+import { getMeetings, deleteMeeting, completeMeetingActionItem, addMeetingActionItem, updateMeeting } from '../../services/api';
 import ServerStatus from '../ServerStatus/ServerStatus';
 
 const MeetingNotesPage = () => {
@@ -16,6 +16,8 @@ const MeetingNotesPage = () => {
   const [showDropdown, setShowDropdown] = useState(null);
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [expandedMeetings, setExpandedMeetings] = useState(new Set());
+  const [subMeetings, setSubMeetings] = useState({});
 
   // Load meetings from API
   useEffect(() => {
@@ -178,89 +180,231 @@ const MeetingNotesPage = () => {
 
   const stats = getCompletionStats();
 
-  const MeetingListItem = ({ meeting }) => (
-    <div className={`border-b last:border-b-0 transition-all duration-200 hover:bg-gradient-to-r ${isDarkMode ? 'border-gray-700/50 hover:from-gray-800/30 hover:to-gray-800/10' : 'border-gray-200/60 hover:from-blue-50/30 hover:to-purple-50/20'} group`}>
-      <div className="p-5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-6 flex-1">
-            <div className={`w-3 h-3 rounded-full flex-shrink-0 ${getStatusColor(meeting.status).includes('green') ? 'bg-emerald-500' : getStatusColor(meeting.status).includes('blue') ? 'bg-blue-500' : getStatusColor(meeting.status).includes('yellow') ? 'bg-amber-500' : 'bg-gray-500'}`}></div>
-            <div 
-              className="flex-1 min-w-0 cursor-pointer"
-              onClick={() => navigate(`/meeting-editor/${meeting.id}`)}
-            >
-              <div className={`flex items-center text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                <input
-                  type="text"
-                  value={meeting.title}
-                  onChange={(e) => {
-                    e.stopPropagation();
-                    // Handle title change
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                  className={`font-semibold text-lg bg-transparent border-none outline-none mr-3 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'} group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors`}
-                />
-                <span className="mr-3">•</span>
-                <select
-                  value={meeting.type}
-                  onChange={(e) => {
-                    e.stopPropagation();
-                    // Handle type change
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                  className={`px-2 py-0.5 rounded text-xs font-medium bg-transparent border-none outline-none mr-3 ${getTypeColor(meeting.type)}`}
-                >
-                  <option value="Standup">Standup</option>
-                  <option value="Planning">Planning</option>
-                  <option value="Review">Review</option>
-                  <option value="Retro">Retro</option>
-                </select>
-                <span className="mr-3">•</span>
-                <select
-                  value={meeting.status}
-                  onChange={(e) => {
-                    e.stopPropagation();
-                    // Handle status change
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                  className={`px-2 py-0.5 rounded text-xs font-medium bg-transparent border-none outline-none mr-3 ${getStatusColor(meeting.status)}`}
-                >
-                  <option value="scheduled">Scheduled</option>
-                  <option value="in-progress">In Progress</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
-                <span className="mr-3">•</span>
-                <input
-                  type="date"
-                  value={meeting.date}
-                  onChange={(e) => {
-                    e.stopPropagation();
-                    // Handle date change
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                  className="font-medium bg-transparent border-none outline-none mr-3"
-                />
-                <span className="mr-3">•</span>
-                <input
-                  type="time"
-                  value={meeting.time}
-                  onChange={(e) => {
-                    e.stopPropagation();
-                    // Handle time change
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                  className="bg-transparent border-none outline-none mr-3"
-                />
-                <span className="mr-3">•</span>
-                <span>{meeting.attendees ? meeting.attendees.length : 0} people</span>
+  const updateMeetingField = async (meetingId, field, value) => {
+    try {
+      const meetingData = { [field]: value };
+      await updateMeeting(meetingId, meetingData);
+      
+      // Update local state
+      setMeetings(meetings.map(m => 
+        m.id === meetingId ? { ...m, [field]: value } : m
+      ));
+    } catch (error) {
+      console.error('Error updating meeting:', error);
+      // Revert local change on error
+      loadMeetings();
+    }
+  };
+
+  const toggleMeetingExpansion = (meetingId) => {
+    const newExpanded = new Set(expandedMeetings);
+    if (newExpanded.has(meetingId)) {
+      newExpanded.delete(meetingId);
+    } else {
+      newExpanded.add(meetingId);
+    }
+    setExpandedMeetings(newExpanded);
+  };
+
+  const addSubMeeting = (parentMeetingId) => {
+    const newSubMeeting = {
+      id: Date.now(),
+      title: 'New Sub-Meeting',
+      type: 'breakout',
+      duration: '30',
+      agenda: '',
+      participants: []
+    };
+    
+    setSubMeetings(prev => ({
+      ...prev,
+      [parentMeetingId]: [...(prev[parentMeetingId] || []), newSubMeeting]
+    }));
+  };
+
+  const updateSubMeeting = (parentMeetingId, subMeetingId, field, value) => {
+    setSubMeetings(prev => ({
+      ...prev,
+      [parentMeetingId]: prev[parentMeetingId].map(sub =>
+        sub.id === subMeetingId ? { ...sub, [field]: value } : sub
+      )
+    }));
+  };
+
+  const deleteSubMeeting = (parentMeetingId, subMeetingId) => {
+    setSubMeetings(prev => ({
+      ...prev,
+      [parentMeetingId]: prev[parentMeetingId].filter(sub => sub.id !== subMeetingId)
+    }));
+  };
+
+  const MeetingListItem = ({ meeting }) => {
+    const isExpanded = expandedMeetings.has(meeting.id);
+    const meetingSubMeetings = subMeetings[meeting.id] || [];
+
+    return (
+      <div className={`border-b last:border-b-0 transition-all duration-200 ${isDarkMode ? 'border-gray-700/50' : 'border-gray-200/60'}`}>
+        <div className={`p-5 hover:bg-gradient-to-r ${isDarkMode ? 'hover:from-gray-800/30 hover:to-gray-800/10' : 'hover:from-blue-50/30 hover:to-purple-50/20'} group transition-all duration-200`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-6 flex-1">
+              <div className={`w-3 h-3 rounded-full flex-shrink-0 ${getStatusColor(meeting.status).includes('green') ? 'bg-emerald-500' : getStatusColor(meeting.status).includes('blue') ? 'bg-blue-500' : getStatusColor(meeting.status).includes('yellow') ? 'bg-amber-500' : 'bg-gray-500'}`}></div>
+              <div 
+                className="flex-1 min-w-0 cursor-pointer"
+                onClick={() => navigate(`/meeting-editor/${meeting.id}`)}
+              >
+                <div className={`flex items-center text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  <span className={`font-semibold text-lg mr-3 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'} group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors`}>
+                    {meeting.title}
+                  </span>
+                  <span className="mr-3">•</span>
+                  <select
+                    value={meeting.type}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      updateMeetingField(meeting.id, 'type', e.target.value);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className={`px-2 py-0.5 rounded text-xs font-medium bg-transparent border-none outline-none mr-3 ${getTypeColor(meeting.type)}`}
+                  >
+                    <option value="Standup">Standup</option>
+                    <option value="Planning">Planning</option>
+                    <option value="Review">Review</option>
+                    <option value="Retro">Retro</option>
+                    <option value="Presentation">Presentation</option>
+                    <option value="Brainstorming">Brainstorming</option>
+                    <option value="Client Meeting">Client Meeting</option>
+                    <option value="Team Sync">Team Sync</option>
+                  </select>
+                  <span className="mr-3">•</span>
+                  <select
+                    value={meeting.status}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      updateMeetingField(meeting.id, 'status', e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1));
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className={`px-2 py-0.5 rounded text-xs font-medium bg-gray-800 border border-gray-600 outline-none mr-3 ${getStatusColor(meeting.status)}`}
+                  >
+                    <option value="Scheduled">Scheduled</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Cancelled">Cancelled</option>
+                  </select>
+                  <span className="mr-3">•</span>
+                  <input
+                    type="date"
+                    value={meeting.date}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      updateMeetingField(meeting.id, 'date', e.target.value);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="font-medium bg-transparent border-none outline-none mr-3"
+                  />
+                  <span className="mr-3">•</span>
+                  <input
+                    type="time"
+                    value={meeting.time}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      updateMeetingField(meeting.id, 'time', e.target.value);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="bg-transparent border-none outline-none mr-3"
+                  />
+                  <span className="mr-3">•</span>
+                  <span>{meeting.attendees ? meeting.attendees.length : 0} people</span>
+                </div>
               </div>
             </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleMeetingExpansion(meeting.id);
+              }}
+              className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-200' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'}`}
+              title="Toggle sub-meetings"
+            >
+              {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            </button>
           </div>
-
         </div>
+        
+        {isExpanded && (
+          <div className={`px-5 pb-5 ${isDarkMode ? 'bg-gray-800/30' : 'bg-gray-50/50'}`}>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                <GitBranch className="w-4 h-4 inline mr-2" />
+                Sub-Meetings ({meetingSubMeetings.length})
+              </h4>
+              <button
+                onClick={() => addSubMeeting(meeting.id)}
+                className={`flex items-center gap-1 px-3 py-1 rounded text-xs font-medium transition-colors ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
+              >
+                <Plus className="w-3 h-3" />
+                Add Sub-Meeting
+              </button>
+            </div>
+            
+            {meetingSubMeetings.length > 0 ? (
+              <div className="space-y-2">
+                {meetingSubMeetings.map(subMeeting => (
+                  <div key={subMeeting.id} className={`p-3 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                    <div className="flex items-center gap-3 mb-2">
+                      <select
+                        value={subMeeting.type}
+                        onChange={(e) => updateSubMeeting(meeting.id, subMeeting.id, 'type', e.target.value)}
+                        className={`px-2 py-1 rounded text-xs font-medium ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'}`}
+                      >
+                        <option value="breakout">Breakout</option>
+                        <option value="followup">Follow-up</option>
+                        <option value="technical">Technical</option>
+                        <option value="executive">Executive</option>
+                      </select>
+                      <input
+                        type="text"
+                        value={subMeeting.title}
+                        onChange={(e) => updateSubMeeting(meeting.id, subMeeting.id, 'title', e.target.value)}
+                        placeholder="Sub-meeting title..."
+                        className={`flex-1 px-2 py-1 rounded text-sm ${isDarkMode ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'}`}
+                      />
+                      <input
+                        type="number"
+                        value={subMeeting.duration}
+                        onChange={(e) => updateSubMeeting(meeting.id, subMeeting.id, 'duration', e.target.value)}
+                        className={`w-16 px-2 py-1 rounded text-sm ${isDarkMode ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'}`}
+                        min="5"
+                        max="240"
+                      />
+                      <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>min</span>
+                      <button
+                        onClick={() => deleteSubMeeting(meeting.id, subMeeting.id)}
+                        className={`p-1 rounded transition-colors ${isDarkMode ? 'hover:bg-red-900/30 text-red-400' : 'hover:bg-red-100 text-red-500'}`}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                    <textarea
+                      value={subMeeting.agenda}
+                      onChange={(e) => updateSubMeeting(meeting.id, subMeeting.id, 'agenda', e.target.value)}
+                      placeholder="Agenda, objectives, or notes..."
+                      className={`w-full px-2 py-1 rounded text-sm resize-none ${isDarkMode ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-900'}`}
+                      rows="2"
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className={`text-center py-4 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                <GitBranch className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No sub-meetings yet. Add one to organize breakout sessions.</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className={`min-h-screen p-6 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
