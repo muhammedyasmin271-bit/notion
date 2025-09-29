@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Save, ArrowLeft, Calendar, Clock, Users, Plus, X, CheckCircle, Circle, Video, Sparkles, GripVertical, Type, Hash, List, Quote, Code, Image, Trash2, Copy, ArrowUp, ArrowDown, ArrowRight, CheckSquare, Table, Calendar as CalendarIcon, Link2 as Link, Minus as Divider, AlertCircle, Star, Tag, MapPin, Phone, Mail, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, ListOrdered, FileText, Bookmark, Lightbulb, Info, AlertTriangle, Zap, Heart, Smile, Eye, Lock, Globe, Download, Upload, Search, Filter, Settings, MoreHorizontal } from 'lucide-react';
+import './MeetingEditorPage.css';
+import { Save, ArrowLeft, Calendar, Clock, Users, Plus, X, CheckCircle, Circle, Video, Sparkles, GripVertical, Type, Hash, List, Quote, Code, Image, Trash2, Copy, ArrowUp, ArrowDown, ArrowRight, CheckSquare, Table, Calendar as CalendarIcon, Link2 as Link, Minus as Divider, Minus, AlertCircle, Star, Tag, MapPin, Phone, Mail, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, ListOrdered, FileText, Bookmark, Lightbulb, Info, AlertTriangle, Zap, Heart, Smile, Eye, Lock, Globe, Download, Upload, Search, Filter, Settings, MoreHorizontal, BarChart3, GitBranch } from 'lucide-react';
 import { getMeetingById, createMeeting, updateMeeting, addMeetingActionItem, getUsers } from '../../services/api';
 
 const MeetingEditorPage = () => {
@@ -40,6 +41,7 @@ const MeetingEditorPage = () => {
   const [showLineMenu, setShowLineMenu] = useState(null);
   const [aiInputBlock, setAiInputBlock] = useState(null);
   const [aiQuery, setAiQuery] = useState('');
+  const [loadingError, setLoadingError] = useState(null);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -58,8 +60,13 @@ const MeetingEditorPage = () => {
     const loadMeeting = async () => {
       if (!isNewMeeting && meetingId) {
         try {
+          console.log('Loading meeting with ID:', meetingId);
+          setLoadingError(null);
           const meetingData = await getMeetingById(meetingId);
-          setMeeting({
+          console.log('Received meeting data:', meetingData);
+
+          // Transform the meeting data to match our state structure
+          const transformedMeeting = {
             title: meetingData.title || '',
             type: meetingData.type || 'Standup',
             date: meetingData.date ? new Date(meetingData.date).toISOString().split('T')[0] : '',
@@ -72,12 +79,14 @@ const MeetingEditorPage = () => {
             tags: meetingData.tags || [],
             location: meetingData.location || '',
             meetingLink: meetingData.meetingLink || '',
-            status: meetingData.status || 'scheduled',
-            createdAt: meetingData.createdAt
-          });
-          
+            status: meetingData.status || 'scheduled'
+          };
+
+          setMeeting(transformedMeeting);
+
           // Load blocks structure if available
-          if (meetingData.blocks && meetingData.blocks.length > 0) {
+          if (meetingData.blocks && Array.isArray(meetingData.blocks) && meetingData.blocks.length > 0) {
+            console.log('Loading blocks from meeting data:', meetingData.blocks);
             setBlocks(meetingData.blocks);
           } else if (meetingData.notes) {
             const noteLines = meetingData.notes.split('\n').filter(line => line.trim());
@@ -88,32 +97,39 @@ const MeetingEditorPage = () => {
                 content: line,
                 style: {}
               }));
+              console.log('Creating blocks from notes:', noteBlocks);
               setBlocks(noteBlocks);
             }
           }
-          
+
           // Load table data if available
           if (meetingData.tableData) {
+            console.log('Loading table data:', meetingData.tableData);
             setTableData(meetingData.tableData);
           }
         } catch (error) {
           console.error('Error loading meeting:', error);
+          setLoadingError(error.message || 'Failed to load meeting data');
           // Fallback: try to load from localStorage for offline support
-          const savedMeeting = localStorage.getItem(`meeting-${meetingId}`);
-          if (savedMeeting) {
-            const meetingData = JSON.parse(savedMeeting);
-            setMeeting(meetingData);
-            if (meetingData.blocks) {
-              setBlocks(meetingData.blocks);
+          try {
+            const savedMeeting = localStorage.getItem(`meeting-${meetingId}`);
+            if (savedMeeting) {
+              const meetingData = JSON.parse(savedMeeting);
+              setMeeting(meetingData);
+              if (meetingData.blocks) {
+                setBlocks(meetingData.blocks);
+              }
+              if (meetingData.tableData) {
+                setTableData(meetingData.tableData);
+              }
             }
-            if (meetingData.tableData) {
-              setTableData(meetingData.tableData);
-            }
+          } catch (storageError) {
+            console.error('Error loading from localStorage:', storageError);
           }
         }
       }
     };
-    
+
     loadMeeting();
   }, [meetingId, isNewMeeting]);
 
@@ -178,7 +194,7 @@ const MeetingEditorPage = () => {
       alert('Please enter a meeting title');
       return;
     }
-    
+
     setIsSaving(true);
     try {
       const notesContent = blocks.map(block => block.content).join('\n');
@@ -193,7 +209,7 @@ const MeetingEditorPage = () => {
       };
 
       console.log('Saving meeting data:', meetingData);
-      
+
       let result;
       if (isNewMeeting) {
         console.log('Creating new meeting...');
@@ -204,7 +220,7 @@ const MeetingEditorPage = () => {
         result = await updateMeeting(meetingId, meetingData);
         console.log('Meeting updated successfully:', result);
       }
-      
+
       alert(`Meeting ${isNewMeeting ? 'created' : 'updated'} successfully!`);
       navigate('/meeting-notes');
     } catch (error) {
@@ -217,8 +233,8 @@ const MeetingEditorPage = () => {
   };
 
   const updateBlockStyle = (blockId, styleUpdates) => {
-    setBlocks(prev => prev.map(block => 
-      block.id === blockId 
+    setBlocks(prev => prev.map(block =>
+      block.id === blockId
         ? { ...block, style: { ...block.style, ...styleUpdates } }
         : block
     ));
@@ -234,28 +250,38 @@ const MeetingEditorPage = () => {
     const handleKeyDown = (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
+        const input = e.target;
+        const cursorPos = input.selectionStart;
+        const currentContent = block.content;
+        const beforeCursor = currentContent.slice(0, cursorPos);
+        const afterCursor = currentContent.slice(cursorPos);
+        
         const newBlocks = [...blocks];
         let newBlockType = 'text';
-        let newBlockContent = '';
-
+        let newBlockContent = afterCursor;
+        
+        // Update current block with content before cursor
+        newBlocks[index].content = beforeCursor;
+        
         if (block.type === 'bullet') {
           newBlockType = 'bullet';
-          newBlockContent = '• ';
+          newBlockContent = '• ' + afterCursor;
         } else if (block.type === 'numbered') {
           newBlockType = 'numbered';
-          const currentNum = parseInt(block.content.match(/^(\d+)\./)?.[1] || '1');
-          newBlockContent = `${currentNum + 1}. `;
+          const currentNum = parseInt(beforeCursor.match(/^(\d+)\./)?.[1] || '1');
+          newBlockContent = `${currentNum + 1}. ` + afterCursor;
         } else if (block.type === 'todo') {
           newBlockType = 'todo';
-          newBlockContent = '☐ ';
+          newBlockContent = '☐ ' + afterCursor;
         } else if (block.type === 'toggle') {
           newBlockType = 'toggle';
-          newBlockContent = '▶ ';
+          newBlockContent = '▶ ' + afterCursor;
         }
 
         const newBlockId = `block-${Date.now()}`;
-        newBlocks.splice(index + 1, 0, { id: newBlockId, type: newBlockType, content: newBlockContent });
+        newBlocks.splice(index + 1, 0, { id: newBlockId, type: newBlockType, content: newBlockContent, style: {} });
         setBlocks(newBlocks);
+        
         // Focus new block
         setTimeout(() => {
           if (inputRefs.current[newBlockId]) {
@@ -300,7 +326,7 @@ const MeetingEditorPage = () => {
           const newBlocks = [...blocks];
           newBlocks[index] = { ...block, type: 'todo', content: '☐ ' };
           setBlocks(newBlocks);
-        } else if (content === '```' && block.type === 'text') {
+        } else if (content === '``' && block.type === 'text') {
           e.preventDefault();
           const newBlocks = [...blocks];
           newBlocks[index] = { ...block, type: 'code', content: '' };
@@ -365,18 +391,13 @@ const MeetingEditorPage = () => {
 
     const getInputClassName = () => {
       const baseClass = "w-full px-3 py-2 bg-transparent text-white placeholder-gray-400 focus:outline-none border-none leading-tight";
-      const styleClass = `${
-        block.style?.bold ? 'font-bold ' : ''
-      }${
-        block.style?.italic ? 'italic ' : ''
-      }${
-        block.style?.underline ? 'underline ' : ''
-      }${
-        block.style?.strikethrough ? 'line-through ' : ''
-      }${
-        block.style?.align === 'center' ? 'text-center ' : 
-        block.style?.align === 'right' ? 'text-right ' : 'text-left '
-      }`;
+      const styleClass = `${block.style?.bold ? 'font-bold ' : ''
+        }${block.style?.italic ? 'italic ' : ''
+        }${block.style?.underline ? 'underline ' : ''
+        }${block.style?.strikethrough ? 'line-through ' : ''
+        }${block.style?.align === 'center' ? 'text-center ' :
+          block.style?.align === 'right' ? 'text-right ' : 'text-left '
+        }`;
 
       switch (block.type) {
         case 'heading1':
@@ -394,7 +415,7 @@ const MeetingEditorPage = () => {
 
     if (block.type === 'table') {
       const table = tableData[block.id] || { rows: 2, cols: 2, data: [['Header 1', 'Header 2'], ['Row 1', 'Row 2']] };
-      
+
       const updateCell = (rowIndex, colIndex, value) => {
         setTableData(prev => {
           const newTable = { ...prev[block.id] };
@@ -402,7 +423,7 @@ const MeetingEditorPage = () => {
           return { ...prev, [block.id]: newTable };
         });
       };
-      
+
       const addRow = () => {
         setTableData(prev => {
           const newTable = { ...prev[block.id] };
@@ -411,7 +432,7 @@ const MeetingEditorPage = () => {
           return { ...prev, [block.id]: newTable };
         });
       };
-      
+
       const addColumn = () => {
         setTableData(prev => {
           const newTable = { ...prev[block.id] };
@@ -420,7 +441,7 @@ const MeetingEditorPage = () => {
           return { ...prev, [block.id]: newTable };
         });
       };
-      
+
       const deleteRow = () => {
         if (table.rows <= 1) return;
         setTableData(prev => {
@@ -430,7 +451,7 @@ const MeetingEditorPage = () => {
           return { ...prev, [block.id]: newTable };
         });
       };
-      
+
       const deleteColumn = () => {
         if (table.cols <= 1) return;
         setTableData(prev => {
@@ -440,48 +461,93 @@ const MeetingEditorPage = () => {
           return { ...prev, [block.id]: newTable };
         });
       };
-      
+
       return (
-        <div className="border border-gray-600 rounded-lg overflow-hidden bg-gray-800/50 group relative">
-          <div className="flex items-center justify-between p-2 bg-gray-700 border-b border-gray-600">
-            <div className="flex items-center gap-2">
-              <button onClick={addRow} className="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded">
-                + Row
-              </button>
-              <button onClick={addColumn} className="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded">
-                + Column
-              </button>
-            </div>
-            <div className="flex items-center gap-2">
-              <button onClick={deleteRow} className="px-2 py-1 text-xs bg-red-600 hover:bg-red-700 text-white rounded">
-                - Row
-              </button>
-              <button onClick={deleteColumn} className="px-2 py-1 text-xs bg-red-600 hover:bg-red-700 text-white rounded">
-                - Column
-              </button>
-            </div>
-          </div>
-          <table className="w-full">
-            <tbody>
-              {table.data.map((row, rowIndex) => (
-                <tr key={rowIndex} className={rowIndex === 0 ? 'bg-gray-700' : 'hover:bg-gray-800/30'}>
-                  {row.map((cell, colIndex) => (
-                    <td key={colIndex} className="border-r border-gray-600 last:border-r-0">
-                      <textarea
-                        value={cell}
-                        onChange={(e) => updateCell(rowIndex, colIndex, e.target.value)}
-                        className={`w-full px-3 py-2 bg-transparent text-white text-sm resize-none focus:outline-none min-h-[40px] ${
-                          rowIndex === 0 ? 'font-medium' : ''
-                        }`}
-                        placeholder={rowIndex === 0 ? `Header ${colIndex + 1}` : 'Cell data'}
-                        rows={1}
-                      />
-                    </td>
+        <div className="flex items-start group relative" style={{ marginRight: '40px', marginBottom: '40px' }}>
+          <div className="flex-1 relative">
+            <div className={`border rounded-lg overflow-hidden shadow-sm ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-300 bg-white'}`}>
+              <table className="w-full border-collapse">
+                <tbody>
+                  {table.data.map((row, rowIndex) => (
+                    <tr key={rowIndex} className={rowIndex === 0 ? (isDarkMode ? 'bg-gray-700' : 'bg-gray-50') : (isDarkMode ? 'hover:bg-gray-700/50' : 'hover:bg-gray-50/50')}>
+                      {row.map((cell, colIndex) => (
+                        <td key={`${rowIndex}-${colIndex}`} className={`border-r border-b p-0 relative group/cell ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
+                          <input
+                            type="text"
+                            value={cell}
+                            onChange={(e) => updateCell(rowIndex, colIndex, e.target.value)}
+                            placeholder={rowIndex === 0 ? `Column ${colIndex + 1}` : ''}
+                            className={`w-full px-2 py-1 border-none outline-none bg-transparent text-xs leading-tight ${rowIndex === 0 ? (isDarkMode ? 'font-semibold text-gray-200' : 'font-semibold text-gray-800') : (isDarkMode ? 'text-gray-300' : 'text-gray-700')
+                              } ${isDarkMode ? 'focus:bg-blue-900/20 focus:ring-1 focus:ring-blue-700 focus:ring-inset' : 'focus:bg-blue-50/50 focus:ring-1 focus:ring-blue-200 focus:ring-inset'}`}
+                          />
+                        </td>
+                      ))}
+                    </tr>
                   ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                </tbody>
+              </table>
+            </div>
+            <button
+              onClick={() => {
+                setTableData(prev => {
+                  const newTable = { ...prev[block.id] };
+                  newTable.data = newTable.data.map(row => [...row, '']);
+                  newTable.cols += 1;
+                  return { ...prev, [block.id]: newTable };
+                });
+              }}
+              className={`absolute top-1/2 -right-8 transform -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-lg hover:bg-blue-500 hover:text-white hover:border-blue-500 ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'}`}
+              title="Add column"
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+            {table.cols > 1 && (
+              <button
+                onClick={() => {
+                  setTableData(prev => {
+                    const newTable = { ...prev[block.id] };
+                    newTable.data = newTable.data.map(row => row.slice(0, -1));
+                    newTable.cols -= 1;
+                    return { ...prev, [block.id]: newTable };
+                  });
+                }}
+                className={`absolute top-1/2 -right-16 transform -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-lg hover:bg-red-500 hover:text-white hover:border-red-500 ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'}`}
+                title="Delete column"
+              >
+                <Minus className="w-3.5 h-3.5" />
+              </button>
+            )}
+            <button
+              onClick={() => {
+                setTableData(prev => {
+                  const newTable = { ...prev[block.id] };
+                  newTable.data.push(Array(newTable.cols).fill(''));
+                  newTable.rows += 1;
+                  return { ...prev, [block.id]: newTable };
+                });
+              }}
+              className={`absolute left-1/2 -bottom-8 transform -translate-x-1/2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-lg hover:bg-blue-500 hover:text-white hover:border-blue-500 ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'}`}
+              title="Add row"
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+            {table.rows > 1 && (
+              <button
+                onClick={() => {
+                  setTableData(prev => {
+                    const newTable = { ...prev[block.id] };
+                    newTable.data.pop();
+                    newTable.rows -= 1;
+                    return { ...prev, [block.id]: newTable };
+                  });
+                }}
+                className={`absolute left-1/2 -bottom-16 transform -translate-x-1/2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-lg hover:bg-red-500 hover:text-white hover:border-red-500 ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'}`}
+                title="Delete row"
+              >
+                <Minus className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
         </div>
       );
     }
@@ -512,7 +578,7 @@ const MeetingEditorPage = () => {
       };
       const callout = calloutTypes[block.calloutType || 'info'];
       const IconComponent = callout.icon;
-      
+
       return (
         <div className={`${callout.bg} ${callout.border} border rounded-lg p-4 flex items-start gap-3`}>
           <IconComponent className={`w-5 h-5 ${callout.color} mt-0.5 flex-shrink-0`} />
@@ -578,7 +644,7 @@ const MeetingEditorPage = () => {
         <div className="flex items-start gap-2">
           <button
             onClick={() => {
-              const newContent = isChecked 
+              const newContent = isChecked
                 ? block.content.replace('☑', '☐')
                 : block.content.replace('☐', '☑');
               updateBlockContent(newContent);
@@ -645,34 +711,16 @@ const MeetingEditorPage = () => {
       );
     }
 
-    if (block.type === 'code') {
-      return (
-        <div className="bg-gray-900 border border-gray-700 rounded-lg overflow-hidden">
-          <div className="flex items-center justify-between px-3 py-2 bg-gray-800 border-b border-gray-700">
-            <span className="text-xs text-gray-400">Code Block</span>
-            <button className="text-xs text-gray-400 hover:text-white">
-              <Copy className="w-3 h-3" />
-            </button>
-          </div>
-          <textarea
-            ref={(el) => inputRefs.current[block.id] = el}
-            value={block.content}
-            onChange={(e) => updateBlockContent(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Enter your code..."
-            className="w-full p-3 bg-transparent text-green-400 font-mono text-sm placeholder-gray-500 focus:outline-none resize-none min-h-[100px]"
-          />
-        </div>
-      );
-    }
-
     if (block.type === 'date') {
       const formatDate = (dateStr) => {
         if (!dateStr) return 'mm/dd/yyyy';
         const date = new Date(dateStr);
-        return date.toLocaleDateString('en-US');
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${month}/${day}/${year}`;
       };
-      
+
       return (
         <div className="flex items-center gap-2 p-2 bg-blue-900/20 border border-blue-500/30 rounded">
           <Calendar className="w-4 h-4 text-blue-400" />
@@ -699,7 +747,7 @@ const MeetingEditorPage = () => {
         const displayHour = hour % 12 || 12;
         return `${displayHour}:${minutes} ${ampm}`;
       };
-      
+
       return (
         <div className="flex items-center gap-2 p-2 bg-green-900/20 border border-green-500/30 rounded">
           <Clock className="w-4 h-4 text-green-400" />
@@ -724,7 +772,7 @@ const MeetingEditorPage = () => {
         low: { color: 'text-green-400', bg: 'bg-green-900/20', border: 'border-green-500/30', label: 'Low Priority' }
       };
       const priority = priorities[block.priorityLevel || 'medium'];
-      
+
       return (
         <div className={`flex items-center gap-2 p-2 ${priority.bg} border ${priority.border} rounded`}>
           <Star className={`w-4 h-4 ${priority.color}`} />
@@ -750,6 +798,81 @@ const MeetingEditorPage = () => {
             placeholder="Priority item..."
             className="flex-1 bg-transparent text-white placeholder-gray-400 focus:outline-none"
           />
+        </div>
+      );
+    }
+
+    if (block.type === 'submeeting') {
+      const submeetingTypes = {
+        breakout: { color: 'text-indigo-400', bg: 'bg-indigo-900/20', border: 'border-indigo-500/30', icon: GitBranch, label: 'Breakout Session' },
+        followup: { color: 'text-blue-400', bg: 'bg-blue-900/20', border: 'border-blue-500/30', icon: ArrowRight, label: 'Follow-up Meeting' },
+        technical: { color: 'text-purple-400', bg: 'bg-purple-900/20', border: 'border-purple-500/30', icon: Code, label: 'Technical Deep-dive' },
+        executive: { color: 'text-yellow-400', bg: 'bg-yellow-900/20', border: 'border-yellow-500/30', icon: Star, label: 'Executive Briefing' }
+      };
+      const submeeting = submeetingTypes[block.submeetingType || 'breakout'];
+      const IconComponent = submeeting.icon;
+
+      return (
+        <div className={`${submeeting.bg} ${submeeting.border} border rounded-lg p-4`}>
+          <div className="flex items-center gap-3 mb-3">
+            <IconComponent className={`w-5 h-5 ${submeeting.color}`} />
+            <select
+              value={block.submeetingType || 'breakout'}
+              onChange={(e) => {
+                const newBlocks = [...blocks];
+                newBlocks[index].submeetingType = e.target.value;
+                setBlocks(newBlocks);
+              }}
+              className="bg-transparent text-white focus:outline-none font-medium"
+            >
+              <option value="breakout" className="bg-gray-800">Breakout Session</option>
+              <option value="followup" className="bg-gray-800">Follow-up Meeting</option>
+              <option value="technical" className="bg-gray-800">Technical Deep-dive</option>
+              <option value="executive" className="bg-gray-800">Executive Briefing</option>
+            </select>
+          </div>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-300 min-w-[60px]">Title:</label>
+              <input
+                type="text"
+                value={block.title || ''}
+                onChange={(e) => {
+                  const newBlocks = [...blocks];
+                  newBlocks[index].title = e.target.value;
+                  setBlocks(newBlocks);
+                }}
+                placeholder="Sub-meeting title..."
+                className="flex-1 bg-gray-800 text-white px-2 py-1 rounded text-sm focus:outline-none"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-300 min-w-[60px]">Duration:</label>
+              <input
+                type="number"
+                value={block.duration || '30'}
+                onChange={(e) => {
+                  const newBlocks = [...blocks];
+                  newBlocks[index].duration = e.target.value;
+                  setBlocks(newBlocks);
+                }}
+                className="bg-gray-800 text-white px-2 py-1 rounded text-sm focus:outline-none w-20"
+                min="5"
+                max="240"
+              />
+              <span className="text-sm text-gray-400">minutes</span>
+            </div>
+            <div>
+              <label className="text-sm text-gray-300 block mb-1">Agenda/Notes:</label>
+              <textarea
+                value={block.content}
+                onChange={(e) => updateBlockContent(e.target.value)}
+                placeholder="Sub-meeting agenda, objectives, or notes..."
+                className="w-full bg-gray-800 text-white px-2 py-1 rounded text-sm focus:outline-none resize-none"
+                rows="3"
+              />
+            </div>
+          </div>
         </div>
       );
     }
@@ -844,6 +967,12 @@ const MeetingEditorPage = () => {
         </div>
 
         <div className="max-w-7xl mx-auto pt-2 pb-6 overflow-y-auto px-6">
+          {loadingError && (
+            <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+              <strong>Error loading meeting:</strong> {loadingError}
+              <p className="mt-2 text-sm">Please try refreshing the page or contact support if the issue persists.</p>
+            </div>
+          )}
           <div className="w-full">
             <div>
               <div className="rounded-lg pt-0 pb-0 bg-gray-900 px-6">
@@ -881,7 +1010,7 @@ const MeetingEditorPage = () => {
                               {meeting.date ? new Date(meeting.date).toLocaleDateString('en-US') : 'mm/dd/yyyy'}
                             </span>
                           </div>
-                          
+
                           <div className="flex items-center gap-3">
                             <Clock className="w-4 h-4 text-green-400" />
                             <label className="text-sm font-medium text-gray-300 min-w-[70px]">
@@ -904,7 +1033,7 @@ const MeetingEditorPage = () => {
                               })() : '09:32 PM'}
                             </span>
                           </div>
-                          
+
                           <div className="flex items-center gap-3">
                             <Clock className="w-4 h-4 text-purple-400" />
                             <label className="text-sm font-medium text-gray-300 min-w-[70px]">
@@ -920,14 +1049,13 @@ const MeetingEditorPage = () => {
                             />
                             <span className="text-sm text-gray-400">min</span>
                           </div>
-                          
+
                           <div className="flex items-center gap-3">
-                            <Circle className={`w-4 h-4 ${
-                              meeting.status === 'active' ? 'text-green-400' :
-                              meeting.status === 'completed' ? 'text-blue-400' :
-                              meeting.status === 'cancelled' ? 'text-red-400' :
-                              'text-gray-400'
-                            }`} />
+                            <Circle className={`w-4 h-4 ${meeting.status === 'active' ? 'text-green-400' :
+                                meeting.status === 'completed' ? 'text-blue-400' :
+                                  meeting.status === 'cancelled' ? 'text-red-400' :
+                                    'text-gray-400'
+                              }`} />
                             <label className="text-sm font-medium text-gray-300 min-w-[70px]">
                               Status
                             </label>
@@ -942,7 +1070,7 @@ const MeetingEditorPage = () => {
                               <option value="cancelled">Cancelled</option>
                             </select>
                           </div>
-                          
+
                           <div className="flex items-center gap-3">
                             <Tag className="w-4 h-4 text-orange-400" />
                             <label className="text-sm font-medium text-gray-300 min-w-[70px]">
@@ -956,14 +1084,14 @@ const MeetingEditorPage = () => {
                               <option value="Standup">Standup</option>
                               <option value="Planning">Planning</option>
                               <option value="Review">Review</option>
-                              <option value="Retrospective">Retrospective</option>
-                              <option value="One-on-One">One-on-One</option>
-                              <option value="All-Hands">All-Hands</option>
+                              <option value="Retro">Retrospective</option>
+                              <option value="Presentation">Presentation</option>
+                              <option value="Brainstorming">Brainstorming</option>
                               <option value="Client Meeting">Client Meeting</option>
-                              <option value="Interview">Interview</option>
+                              <option value="Team Sync">Team Sync</option>
                             </select>
                           </div>
-                          
+
                           <div className="flex items-center gap-3">
                             <MapPin className="w-4 h-4 text-yellow-400" />
                             <label className="text-sm font-medium text-gray-300 min-w-[70px]">
@@ -994,48 +1122,78 @@ const MeetingEditorPage = () => {
                             <Plus className="w-4 h-4" />
                           </button>
                           {showUserDropdown && (
-                            <div className="absolute right-0 top-8 w-64 max-h-screen overflow-y-auto rounded-lg shadow-xl border z-50 bg-gray-800 border-gray-700">
-                              <div className="p-2">
-                                {users.map((user) => {
-                                  const isSelected = meeting.attendees.includes(user.name);
-                                  return (
-                                    <div
-                                      key={user.id}
-                                      onClick={() => {
-                                        if (isSelected) {
-                                          setMeeting(prev => ({
-                                            ...prev,
-                                            attendees: prev.attendees.filter(a => a !== user.name)
-                                          }));
-                                        } else {
-                                          setMeeting(prev => ({
-                                            ...prev,
-                                            attendees: [...prev.attendees, user.name]
-                                          }));
-                                        }
-                                      }}
-                                      className={`w-full flex items-center px-3 py-2 rounded cursor-pointer transition-colors ${isSelected
-                                        ? 'bg-blue-600/20 border border-blue-500/30 text-blue-300'
-                                        : 'hover:bg-gray-700 text-gray-300'
-                                        }`}
-                                    >
-                                      <div className="mr-3">
-                                        {isSelected ? (
-                                          <CheckCircle className="w-5 h-5 text-blue-400" />
-                                        ) : (
-                                          <Circle className="w-5 h-5 text-gray-500" />
-                                        )}
-                                      </div>
-                                      <div className="flex items-center">
-                                        <Users className="w-4 h-4 mr-2" />
-                                        <div>
-                                          <div className="font-medium">{user.name}</div>
-                                          <div className="text-xs text-gray-400">{user.email} • {user.role}</div>
+                            <div className="absolute right-0 top-8 w-72 max-h-80 overflow-hidden rounded-lg shadow-xl border z-50 bg-gray-800 border-gray-700">
+                              <div className="p-3 border-b border-gray-700">
+                                <div className="flex items-center gap-2 text-sm font-medium text-gray-300">
+                                  <Users className="w-4 h-4" />
+                                  Select Participants
+                                </div>
+                                <div className="text-xs text-gray-400 mt-1">
+                                  {meeting.attendees.length} selected
+                                </div>
+                              </div>
+                              <div className="max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
+                                <div className="p-2 space-y-1">
+                                  {users.map((user) => {
+                                    const isSelected = meeting.attendees.includes(user.name);
+                                    return (
+                                      <div
+                                        key={user.id}
+                                        onClick={() => {
+                                          if (isSelected) {
+                                            setMeeting(prev => ({
+                                              ...prev,
+                                              attendees: prev.attendees.filter(a => a !== user.name)
+                                            }));
+                                          } else {
+                                            setMeeting(prev => ({
+                                              ...prev,
+                                              attendees: [...prev.attendees, user.name]
+                                            }));
+                                          }
+                                        }}
+                                        className={`w-full flex items-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 ${isSelected
+                                          ? 'bg-blue-600/20 border border-blue-500/30 text-blue-300 shadow-sm'
+                                          : 'hover:bg-gray-700 text-gray-300 hover:shadow-sm'
+                                          }`}
+                                      >
+                                        <div className="mr-3">
+                                          {isSelected ? (
+                                            <CheckCircle className="w-5 h-5 text-blue-400" />
+                                          ) : (
+                                            <Circle className="w-5 h-5 text-gray-500" />
+                                          )}
+                                        </div>
+                                        <div className="flex items-center flex-1">
+                                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-medium mr-3">
+                                            {user.name.charAt(0).toUpperCase()}
+                                          </div>
+                                          <div className="flex-1">
+                                            <div className="font-medium text-sm">{user.name}</div>
+                                            <div className="text-xs text-gray-400 flex items-center gap-1">
+                                              <Mail className="w-3 h-3" />
+                                              {user.email}
+                                            </div>
+                                            <div className="text-xs text-gray-500 mt-0.5">
+                                              <span className={`px-1.5 py-0.5 rounded text-xs ${
+                                                user.role === 'manager' ? 'bg-purple-900/30 text-purple-300' :
+                                                user.role === 'admin' ? 'bg-red-900/30 text-red-300' :
+                                                'bg-gray-700/50 text-gray-400'
+                                              }`}>
+                                                {user.role}
+                                              </span>
+                                            </div>
+                                          </div>
                                         </div>
                                       </div>
-                                    </div>
-                                  );
-                                })}
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                              <div className="p-3 border-t border-gray-700 bg-gray-800/50">
+                                <div className="text-xs text-gray-400">
+                                  Click to select/deselect participants
+                                </div>
                               </div>
                             </div>
                           )}
@@ -1068,27 +1226,107 @@ const MeetingEditorPage = () => {
                           <FileText className="w-4 h-4" />
                         </button>
                         {showTemplateDropdown === 'notes-header' && (
-                          <div className="absolute right-0 top-8 w-64 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
-                            <div className="p-2">
-                              <div className="text-xs text-gray-400 px-2 py-1 font-medium">MEETING TEMPLATES</div>
-                              <button onClick={() => { const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: '📋 Meeting Agenda', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'Meeting Objectives:', style: {} }, { id: `block-${Date.now()}-3`, type: 'bullet', content: '• Review project progress and milestones', style: {} }, { id: `block-${Date.now()}-4`, type: 'bullet', content: '• Discuss upcoming deadlines and deliverables', style: {} }, { id: `block-${Date.now()}-5`, type: 'bullet', content: '• Address any blockers or challenges', style: {} }, { id: `block-${Date.now()}-6`, type: 'text', content: 'Discussion Topics:', style: {} }, { id: `block-${Date.now()}-7`, type: 'numbered', content: '1. Sprint review and retrospective', style: {} }, { id: `block-${Date.now()}-8`, type: 'numbered', content: '2. Resource allocation and team capacity', style: {} }, { id: `block-${Date.now()}-9`, type: 'numbered', content: '3. Next sprint planning and priorities', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
-                                <FileText className="w-4 h-4 text-blue-400" /> Meeting Agenda
-                              </button>
-                              <button onClick={() => { const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: '✅ Action Items', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'High Priority:', style: {} }, { id: `block-${Date.now()}-3`, type: 'todo', content: '☐ Complete user authentication module by Friday', style: {} }, { id: `block-${Date.now()}-4`, type: 'todo', content: '☐ Review and approve design mockups', style: {} }, { id: `block-${Date.now()}-5`, type: 'text', content: 'Medium Priority:', style: {} }, { id: `block-${Date.now()}-6`, type: 'todo', content: '☐ Update project documentation', style: {} }, { id: `block-${Date.now()}-7`, type: 'todo', content: '☐ Schedule client feedback session', style: {} }, { id: `block-${Date.now()}-8`, type: 'text', content: 'Follow-up Items:', style: {} }, { id: `block-${Date.now()}-9`, type: 'todo', content: '☐ Send meeting summary to stakeholders', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
-                                <CheckSquare className="w-4 h-4 text-green-400" /> Action Items
-                              </button>
-                              <button onClick={() => { const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: '📝 Meeting Notes', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'Key Discussion Points:', style: {} }, { id: `block-${Date.now()}-3`, type: 'bullet', content: '• Team velocity has improved by 15% this sprint', style: {} }, { id: `block-${Date.now()}-4`, type: 'bullet', content: '• New feature requests from client feedback', style: {} }, { id: `block-${Date.now()}-5`, type: 'bullet', content: '• Technical debt prioritization discussion', style: {} }, { id: `block-${Date.now()}-6`, type: 'text', content: 'Important Announcements:', style: {} }, { id: `block-${Date.now()}-7`, type: 'bullet', content: '• New team member joining next week', style: {} }, { id: `block-${Date.now()}-8`, type: 'bullet', content: '• Office relocation scheduled for next month', style: {} }, { id: `block-${Date.now()}-9`, type: 'text', content: 'Questions & Concerns:', style: {} }, { id: `block-${Date.now()}-10`, type: 'bullet', content: '• Clarification needed on API requirements', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
-                                <FileText className="w-4 h-4 text-purple-400" /> Meeting Notes
-                              </button>
-                              <button onClick={() => { const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: '🎯 Decisions Made', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'Strategic Decisions:', style: {} }, { id: `block-${Date.now()}-3`, type: 'numbered', content: '1. Approved budget increase for Q2 development', style: {} }, { id: `block-${Date.now()}-4`, type: 'numbered', content: '2. Decided to implement new testing framework', style: {} }, { id: `block-${Date.now()}-5`, type: 'text', content: 'Process Changes:', style: {} }, { id: `block-${Date.now()}-6`, type: 'numbered', content: '1. Weekly standup time changed to 9:30 AM', style: {} }, { id: `block-${Date.now()}-7`, type: 'numbered', content: '2. Code review process updated with new guidelines', style: {} }, { id: `block-${Date.now()}-8`, type: 'text', content: 'Next Steps:', style: {} }, { id: `block-${Date.now()}-9`, type: 'bullet', content: '• Document decisions in project wiki', style: {} }, { id: `block-${Date.now()}-10`, type: 'bullet', content: '• Communicate changes to all team members', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
-                                <CheckCircle className="w-4 h-4 text-yellow-400" /> Decisions
-                              </button>
-                              <button onClick={() => { const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: '🚀 Sprint Planning', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'Sprint Goals:', style: {} }, { id: `block-${Date.now()}-3`, type: 'bullet', content: '• Complete user dashboard redesign', style: {} }, { id: `block-${Date.now()}-4`, type: 'bullet', content: '• Implement payment integration', style: {} }, { id: `block-${Date.now()}-5`, type: 'text', content: 'Story Points Estimation:', style: {} }, { id: `block-${Date.now()}-6`, type: 'numbered', content: '1. User authentication (8 points)', style: {} }, { id: `block-${Date.now()}-7`, type: 'numbered', content: '2. Dashboard UI components (13 points)', style: {} }, { id: `block-${Date.now()}-8`, type: 'numbered', content: '3. API integration (5 points)', style: {} }, { id: `block-${Date.now()}-9`, type: 'text', content: 'Team Capacity: 26 points', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
-                                <Calendar className="w-4 h-4 text-indigo-400" /> Sprint Planning
-                              </button>
-                              <button onClick={() => { const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: '🔄 Retrospective', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'What Went Well:', style: {} }, { id: `block-${Date.now()}-3`, type: 'bullet', content: '• Great team collaboration on complex features', style: {} }, { id: `block-${Date.now()}-4`, type: 'bullet', content: '• Improved code quality with new review process', style: {} }, { id: `block-${Date.now()}-5`, type: 'text', content: 'What Could Be Improved:', style: {} }, { id: `block-${Date.now()}-6`, type: 'bullet', content: '• Better estimation accuracy needed', style: {} }, { id: `block-${Date.now()}-7`, type: 'bullet', content: '• More frequent client communication', style: {} }, { id: `block-${Date.now()}-8`, type: 'text', content: 'Action Items for Next Sprint:', style: {} }, { id: `block-${Date.now()}-9`, type: 'todo', content: '☐ Implement story point tracking', style: {} }, { id: `block-${Date.now()}-10`, type: 'todo', content: '☐ Schedule weekly client check-ins', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
-                                <ArrowRight className="w-4 h-4 text-pink-400" /> Retrospective
-                              </button>
+                          <div className="absolute right-0 top-8 w-80 max-h-96 overflow-hidden bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
+                            <div className="p-3 border-b border-gray-700">
+                              <div className="flex items-center gap-2 text-sm font-medium text-gray-300">
+                                <FileText className="w-4 h-4" />
+                                Meeting Templates
+                              </div>
+                              <div className="text-xs text-gray-400 mt-1">
+                                Choose a template to get started quickly
+                              </div>
+                            </div>
+                            <div className="max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
+                              <div className="p-2 space-y-1">
+                                <div className="text-xs text-gray-400 px-2 py-1 font-medium">MEETING TYPES</div>
+                                <button onClick={() => { const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: '📋 Strategic Planning Meeting Agenda', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'Meeting Information:', style: {} }, { id: `block-${Date.now()}-3`, type: 'bullet', content: '• Date: [Meeting Date] | Time: [Start Time] - [End Time] | Duration: [X] hours', style: {} }, { id: `block-${Date.now()}-4`, type: 'bullet', content: '• Location: [Conference Room / Virtual Link] | Facilitator: [Name]', style: {} }, { id: `block-${Date.now()}-5`, type: 'bullet', content: '• Required Attendees: [List] | Optional: [List] | Recording: [Yes/No]', style: {} }, { id: `block-${Date.now()}-6`, type: 'divider', content: '', style: {} }, { id: `block-${Date.now()}-7`, type: 'text', content: 'Meeting Objectives & Success Criteria:', style: {} }, { id: `block-${Date.now()}-8`, type: 'bullet', content: '• Review Q3 performance metrics and KPI achievements (Target: 95% completion)', style: {} }, { id: `block-${Date.now()}-9`, type: 'bullet', content: '• Finalize Q4 strategic initiatives and budget allocation ($X approved)', style: {} }, { id: `block-${Date.now()}-10`, type: 'bullet', content: '• Identify and mitigate top 3 project risks with action plans', style: {} }, { id: `block-${Date.now()}-11`, type: 'bullet', content: '• Align cross-functional teams on delivery timelines and dependencies', style: {} }, { id: `block-${Date.now()}-12`, type: 'text', content: 'Detailed Agenda (Time-boxed):', style: {} }, { id: `block-${Date.now()}-13`, type: 'numbered', content: '1. Opening & Introductions (5 min) - Welcome, agenda review, ground rules', style: {} }, { id: `block-${Date.now()}-14`, type: 'numbered', content: '2. Executive Summary Presentation (15 min) - Q3 performance dashboard review', style: {} }, { id: `block-${Date.now()}-15`, type: 'numbered', content: '3. Financial Performance Analysis (20 min) - Revenue, costs, ROI metrics', style: {} }, { id: `block-${Date.now()}-16`, type: 'numbered', content: '4. Strategic Initiative Deep Dive (30 min) - Priority projects, resource needs', style: {} }, { id: `block-${Date.now()}-17`, type: 'numbered', content: '5. Risk Assessment & Mitigation (20 min) - Risk register review, action plans', style: {} }, { id: `block-${Date.now()}-18`, type: 'numbered', content: '6. Cross-Team Dependencies (15 min) - Integration points, timeline alignment', style: {} }, { id: `block-${Date.now()}-19`, type: 'numbered', content: '7. Decision Points & Next Steps (10 min) - Action items, owners, deadlines', style: {} }, { id: `block-${Date.now()}-20`, type: 'numbered', content: '8. Closing & Follow-up (5 min) - Summary, next meeting, feedback', style: {} }, { id: `block-${Date.now()}-21`, type: 'text', content: 'Pre-Meeting Preparation Required:', style: {} }, { id: `block-${Date.now()}-22`, type: 'todo', content: '☐ Review Q3 performance dashboard and metrics report', style: {} }, { id: `block-${Date.now()}-23`, type: 'todo', content: '☐ Prepare department budget proposals and justifications', style: {} }, { id: `block-${Date.now()}-24`, type: 'todo', content: '☐ Update project status reports and risk assessments', style: {} }, { id: `block-${Date.now()}-25`, type: 'todo', content: '☐ Review cross-team dependency mapping document', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(null); }} className="w-full flex items-start gap-3 px-3 py-2.5 text-left hover:bg-gray-700 rounded-lg text-gray-300 transition-colors">
+                                  <FileText className="w-4 h-4 text-blue-400 mt-0.5" />
+                                  <div>
+                                    <div className="font-medium text-sm">Strategic Meeting Agenda</div>
+                                    <div className="text-xs text-gray-400 mt-0.5">Comprehensive agenda with time-boxing and preparation</div>
+                                  </div>
+                                </button>
+                                <button onClick={() => { const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: '✅ Action Items & Accountability Matrix', style: {} }, { id: `block-${Date.now()}-2`, type: 'callout', calloutType: 'info', content: 'All action items include: Owner, Due Date, Success Criteria, Dependencies, and Status Tracking', style: {} }, { id: `block-${Date.now()}-3`, type: 'text', content: 'CRITICAL PRIORITY (Complete within 48 hours):', style: {} }, { id: `block-${Date.now()}-4`, type: 'todo', content: '☐ [URGENT] Resolve production database performance issue | Owner: DevOps Team | Due: [Date] | Impact: 10K+ users affected', style: {} }, { id: `block-${Date.now()}-5`, type: 'todo', content: '☐ [CRITICAL] Complete security vulnerability patch deployment | Owner: Security Team | Due: [Date] | Compliance: SOC2 requirement', style: {} }, { id: `block-${Date.now()}-6`, type: 'todo', content: '☐ [BLOCKER] Finalize client contract terms for Q4 project | Owner: Legal/Sales | Due: [Date] | Revenue Impact: $500K', style: {} }, { id: `block-${Date.now()}-7`, type: 'text', content: 'HIGH PRIORITY (Complete within 1 week):', style: {} }, { id: `block-${Date.now()}-8`, type: 'todo', content: '☐ Complete user authentication module with OAuth 2.0 integration | Owner: Backend Team | Due: [Date] | Dependencies: API Gateway setup', style: {} }, { id: `block-${Date.now()}-9`, type: 'todo', content: '☐ Conduct comprehensive design review for mobile app UI/UX | Owner: Design Team | Due: [Date] | Stakeholders: Product, Engineering', style: {} }, { id: `block-${Date.now()}-10`, type: 'todo', content: '☐ Finalize API documentation with interactive examples | Owner: Technical Writers | Due: [Date] | Review: Engineering Lead', style: {} }, { id: `block-${Date.now()}-11`, type: 'todo', content: '☐ Set up automated CI/CD pipeline for staging environment | Owner: DevOps | Due: [Date] | Testing: QA Team validation', style: {} }, { id: `block-${Date.now()}-12`, type: 'text', content: 'MEDIUM PRIORITY (Complete within 2 weeks):', style: {} }, { id: `block-${Date.now()}-13`, type: 'todo', content: '☐ Update comprehensive project documentation and architecture diagrams | Owner: Tech Lead | Due: [Date]', style: {} }, { id: `block-${Date.now()}-14`, type: 'todo', content: '☐ Schedule and conduct client feedback session with key stakeholders | Owner: Product Manager | Due: [Date]', style: {} }, { id: `block-${Date.now()}-15`, type: 'todo', content: '☐ Prepare and configure comprehensive testing environment | Owner: QA Team | Due: [Date]', style: {} }, { id: `block-${Date.now()}-16`, type: 'text', content: 'ADMINISTRATIVE & FOLLOW-UP ITEMS:', style: {} }, { id: `block-${Date.now()}-17`, type: 'todo', content: '☐ Distribute detailed meeting summary with decisions and action items | Owner: Meeting Facilitator | Due: 24 hours', style: {} }, { id: `block-${Date.now()}-18`, type: 'todo', content: '☐ Schedule follow-up review meeting with all stakeholders | Owner: Project Manager | Due: [Date]', style: {} }, { id: `block-${Date.now()}-19`, type: 'todo', content: '☐ Update project management tool with new tasks and dependencies | Owner: Scrum Master | Due: [Date]', style: {} }, { id: `block-${Date.now()}-20`, type: 'text', content: 'ESCALATION & RISK ITEMS:', style: {} }, { id: `block-${Date.now()}-21`, type: 'todo', content: '☐ Escalate resource allocation concerns to executive team | Owner: Department Head | Due: [Date]', style: {} }, { id: `block-${Date.now()}-22`, type: 'todo', content: '☐ Review and update risk register with new identified risks | Owner: Risk Manager | Due: [Date]', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(null); }} className="w-full flex items-start gap-3 px-3 py-2.5 text-left hover:bg-gray-700 rounded-lg text-gray-300 transition-colors">
+                                  <CheckSquare className="w-4 h-4 text-green-400 mt-0.5" />
+                                  <div>
+                                    <div className="font-medium text-sm">Professional Action Items</div>
+                                    <div className="text-xs text-gray-400 mt-0.5">Detailed accountability matrix with owners and deadlines</div>
+                                  </div>
+                                </button>
+                                <button onClick={() => { const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: '📝 Executive Meeting Minutes & Strategic Discussion', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'Meeting Context & Participants:', style: {} }, { id: `block-${Date.now()}-3`, type: 'bullet', content: '• Meeting Type: [Strategic Planning / Board Review / Executive Briefing]', style: {} }, { id: `block-${Date.now()}-4`, type: 'bullet', content: '• Attendees: [List with titles] | Absent: [List] | Guests: [List]', style: {} }, { id: `block-${Date.now()}-5`, type: 'bullet', content: '• Meeting Facilitator: [Name] | Note Taker: [Name] | Timekeeper: [Name]', style: {} }, { id: `block-${Date.now()}-6`, type: 'divider', content: '', style: {} }, { id: `block-${Date.now()}-7`, type: 'text', content: 'STRATEGIC DISCUSSION HIGHLIGHTS:', style: {} }, { id: `block-${Date.now()}-8`, type: 'bullet', content: '• Q3 Performance Analysis: Revenue exceeded targets by 12% ($2.4M vs $2.1M target), customer acquisition up 28%', style: {} }, { id: `block-${Date.now()}-9`, type: 'bullet', content: '• Market Expansion Initiative: European market entry approved with $5M budget allocation for Q1 2024', style: {} }, { id: `block-${Date.now()}-10`, type: 'bullet', content: '• Technology Modernization: Cloud migration project 75% complete, expected cost savings of $300K annually', style: {} }, { id: `block-${Date.now()}-11`, type: 'bullet', content: '• Competitive Analysis: New competitor launched similar product, need to accelerate feature development timeline', style: {} }, { id: `block-${Date.now()}-12`, type: 'bullet', content: '• Talent Acquisition: Approved hiring of 15 additional engineers and 5 sales representatives for Q4', style: {} }, { id: `block-${Date.now()}-13`, type: 'text', content: 'CRITICAL BUSINESS DECISIONS MADE:', style: {} }, { id: `block-${Date.now()}-14`, type: 'numbered', content: '1. Approved $8M Series B funding round with lead investor participation confirmed', style: {} }, { id: `block-${Date.now()}-15`, type: 'numbered', content: '2. Authorized acquisition of AI startup TechCorp for $12M to enhance product capabilities', style: {} }, { id: `block-${Date.now()}-16`, type: 'numbered', content: '3. Implemented new remote work policy with hybrid model (3 days office, 2 days remote)', style: {} }, { id: `block-${Date.now()}-17`, type: 'numbered', content: '4. Established new customer success team with dedicated account managers for enterprise clients', style: {} }, { id: `block-${Date.now()}-18`, type: 'text', content: 'OPERATIONAL UPDATES & ANNOUNCEMENTS:', style: {} }, { id: `block-${Date.now()}-19`, type: 'bullet', content: '• Leadership Changes: Sarah Johnson promoted to VP of Engineering, effective [Date]', style: {} }, { id: `block-${Date.now()}-20`, type: 'bullet', content: '• Office Expansion: New 15,000 sq ft facility in Austin opening Q1 2024, capacity for 200 employees', style: {} }, { id: `block-${Date.now()}-21`, type: 'bullet', content: '• Security Compliance: SOC 2 Type II certification completed, GDPR compliance audit scheduled for [Date]', style: {} }, { id: `block-${Date.now()}-22`, type: 'bullet', content: '• Partnership Announcement: Strategic alliance with Microsoft Azure for enterprise cloud solutions', style: {} }, { id: `block-${Date.now()}-23`, type: 'text', content: 'RISK ASSESSMENT & MITIGATION STRATEGIES:', style: {} }, { id: `block-${Date.now()}-24`, type: 'bullet', content: '• Supply Chain Risk: Identified alternative vendors for critical components, diversification plan approved', style: {} }, { id: `block-${Date.now()}-25`, type: 'bullet', content: '• Cybersecurity Concerns: Implemented zero-trust architecture, mandatory security training for all staff', style: {} }, { id: `block-${Date.now()}-26`, type: 'bullet', content: '• Market Volatility: Established contingency budget of $2M for economic uncertainty scenarios', style: {} }, { id: `block-${Date.now()}-27`, type: 'text', content: 'QUESTIONS RAISED & FOLLOW-UP REQUIRED:', style: {} }, { id: `block-${Date.now()}-28`, type: 'bullet', content: '• Regulatory Compliance: Need legal review of new data privacy regulations in EU markets', style: {} }, { id: `block-${Date.now()}-29`, type: 'bullet', content: '• Resource Allocation: Clarification needed on Q4 marketing budget distribution across channels', style: {} }, { id: `block-${Date.now()}-30`, type: 'bullet', content: '• Timeline Concerns: Engineering team capacity constraints may impact Q1 2024 product launch', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(null); }} className="w-full flex items-start gap-3 px-3 py-2.5 text-left hover:bg-gray-700 rounded-lg text-gray-300 transition-colors">
+                                  <FileText className="w-4 h-4 text-purple-400 mt-0.5" />
+                                  <div>
+                                    <div className="font-medium text-sm">Executive Meeting Minutes</div>
+                                    <div className="text-xs text-gray-400 mt-0.5">Detailed strategic discussion with business metrics</div>
+                                  </div>
+                                </button>
+                                <button onClick={() => { const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: '🎯 Strategic Decisions & Business Outcomes', style: {} }, { id: `block-${Date.now()}-2`, type: 'callout', calloutType: 'success', content: 'All decisions include: Rationale, Financial Impact, Implementation Timeline, Success Metrics, and Accountability', style: {} }, { id: `block-${Date.now()}-3`, type: 'text', content: 'MAJOR STRATEGIC DECISIONS (Board/Executive Level):', style: {} }, { id: `block-${Date.now()}-4`, type: 'numbered', content: '1. APPROVED: $15M budget increase for Q4 product development and market expansion | Rationale: Competitive advantage | ROI: 300% projected | Owner: CEO', style: {} }, { id: `block-${Date.now()}-5`, type: 'numbered', content: '2. APPROVED: Implementation of enterprise-grade security framework (SOC 2 Type II) | Investment: $2M | Timeline: 6 months | Compliance: Required for Fortune 500 clients', style: {} }, { id: `block-${Date.now()}-6`, type: 'numbered', content: '3. APPROVED: Acquisition of AI/ML startup for $8M to enhance product capabilities | Due Diligence: Complete | Integration: Q1 2024 | Expected Revenue: $20M annually', style: {} }, { id: `block-${Date.now()}-7`, type: 'numbered', content: '4. APPROVED: International expansion into European markets | Investment: $12M | Timeline: 18 months | Target: 25% revenue growth', style: {} }, { id: `block-${Date.now()}-8`, type: 'text', content: 'OPERATIONAL & PROCESS DECISIONS:', style: {} }, { id: `block-${Date.now()}-9`, type: 'numbered', content: '1. IMPLEMENTED: Agile transformation with Scrum methodology across all development teams | Training: 2 weeks | Coach: External consultant | Metrics: Velocity tracking', style: {} }, { id: `block-${Date.now()}-10`, type: 'numbered', content: '2. UPDATED: Code review process with mandatory security scanning and performance testing | Tools: SonarQube, OWASP | Timeline: Immediate | Training: Required', style: {} }, { id: `block-${Date.now()}-11`, type: 'numbered', content: '3. REVISED: Deployment schedule to include comprehensive staging environment testing | Frequency: Bi-weekly | Rollback: Automated | Monitoring: 24/7', style: {} }, { id: `block-${Date.now()}-12`, type: 'numbered', content: '4. ESTABLISHED: Cross-functional DevOps team with dedicated infrastructure engineers | Headcount: 5 new hires | Budget: $750K annually | Start: [Date]', style: {} }, { id: `block-${Date.now()}-13`, type: 'text', content: 'ORGANIZATIONAL & HR DECISIONS:', style: {} }, { id: `block-${Date.now()}-14`, type: 'numbered', content: '1. APPROVED: Hybrid work model (3 days office, 2 days remote) with flexible hours | Policy: Effective [Date] | Equipment: $2K budget per employee', style: {} }, { id: `block-${Date.now()}-15`, type: 'numbered', content: '2. IMPLEMENTED: Comprehensive diversity and inclusion program with measurable goals | Target: 40% diverse hires | Training: Mandatory | Budget: $500K', style: {} }, { id: `block-${Date.now()}-16`, type: 'numbered', content: '3. ESTABLISHED: Employee stock option program for retention | Eligibility: All full-time | Vesting: 4 years | Pool: 10% of company equity', style: {} }, { id: `block-${Date.now()}-17`, type: 'text', content: 'TECHNOLOGY & INFRASTRUCTURE DECISIONS:', style: {} }, { id: `block-${Date.now()}-18`, type: 'numbered', content: '1. APPROVED: Migration to cloud-native architecture (AWS/Kubernetes) | Timeline: 12 months | Cost Savings: $400K annually | Scalability: 10x improvement', style: {} }, { id: `block-${Date.now()}-19`, type: 'numbered', content: '2. IMPLEMENTED: Zero-trust security model with multi-factor authentication | Rollout: Phased over 3 months | Training: Required | Compliance: SOC 2', style: {} }, { id: `block-${Date.now()}-20`, type: 'numbered', content: '3. SELECTED: Salesforce as CRM platform with custom integrations | Implementation: 4 months | Training: 40 hours per user | ROI: 250%', style: {} }, { id: `block-${Date.now()}-21`, type: 'text', content: 'IMPLEMENTATION ROADMAP & ACCOUNTABILITY:', style: {} }, { id: `block-${Date.now()}-22`, type: 'bullet', content: '• Document all decisions in corporate governance system with version control and audit trail', style: {} }, { id: `block-${Date.now()}-23`, type: 'bullet', content: '• Communicate strategic changes through all-hands meeting and detailed department briefings', style: {} }, { id: `block-${Date.now()}-24`, type: 'bullet', content: '• Update project management systems with new timelines, budgets, and resource allocations', style: {} }, { id: `block-${Date.now()}-25`, type: 'bullet', content: '• Establish monthly review meetings to track implementation progress and adjust as needed', style: {} }, { id: `block-${Date.now()}-26`, type: 'bullet', content: '• Create dashboard for executive team to monitor key performance indicators and decision outcomes', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(null); }} className="w-full flex items-start gap-3 px-3 py-2.5 text-left hover:bg-gray-700 rounded-lg text-gray-300 transition-colors">
+                                  <CheckCircle className="w-4 h-4 text-yellow-400 mt-0.5" />
+                                  <div>
+                                    <div className="font-medium text-sm">Strategic Decisions & Outcomes</div>
+                                    <div className="text-xs text-gray-400 mt-0.5">Executive-level decisions with financial impact and accountability</div>
+                                  </div>
+                                </button>
+
+                                <button onClick={() => { const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: '🚀 Sprint Planning Session - Sprint 24 (Q4 2024)', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'Sprint Overview & Context:', style: {} }, { id: `block-${Date.now()}-3`, type: 'bullet', content: '• Sprint Duration: 2 weeks ([Start Date] - [End Date]) | Sprint Goal: Deliver core user management features', style: {} }, { id: `block-${Date.now()}-4`, type: 'bullet', content: '• Team Velocity: 42 points (average) | Available Capacity: 38 points (holidays/PTO considered)', style: {} }, { id: `block-${Date.now()}-5`, type: 'bullet', content: '• Product Owner: [Name] | Scrum Master: [Name] | Development Team: 7 members', style: {} }, { id: `block-${Date.now()}-6`, type: 'divider', content: '', style: {} }, { id: `block-${Date.now()}-7`, type: 'text', content: 'SPRINT GOALS & SUCCESS CRITERIA:', style: {} }, { id: `block-${Date.now()}-8`, type: 'bullet', content: '• PRIMARY: Complete user dashboard redesign with 95% user satisfaction score in usability testing', style: {} }, { id: `block-${Date.now()}-9`, type: 'bullet', content: '• SECONDARY: Implement secure payment integration with PCI DSS compliance validation', style: {} }, { id: `block-${Date.now()}-10`, type: 'bullet', content: '• TERTIARY: Enhance mobile responsiveness to achieve 100% compatibility across iOS/Android devices', style: {} }, { id: `block-${Date.now()}-11`, type: 'bullet', content: '• QUALITY: Maintain 90%+ code coverage and zero critical security vulnerabilities', style: {} }, { id: `block-${Date.now()}-12`, type: 'text', content: 'USER STORIES & ACCEPTANCE CRITERIA:', style: {} }, { id: `block-${Date.now()}-13`, type: 'numbered', content: '1. [US-101] User Authentication Module (8 pts) | As a user, I can securely log in with OAuth 2.0 | AC: Multi-factor auth, session management, audit logging', style: {} }, { id: `block-${Date.now()}-14`, type: 'numbered', content: '2. [US-102] Dashboard UI Components (13 pts) | As a user, I can view personalized analytics dashboard | AC: Real-time data, responsive design, accessibility compliance', style: {} }, { id: `block-${Date.now()}-15`, type: 'numbered', content: '3. [US-103] Payment Gateway Integration (5 pts) | As a customer, I can make secure payments | AC: Stripe integration, error handling, receipt generation', style: {} }, { id: `block-${Date.now()}-16`, type: 'numbered', content: '4. [US-104] Mobile Optimization (8 pts) | As a mobile user, I can access all features seamlessly | AC: Touch-friendly UI, offline capability, performance optimization', style: {} }, { id: `block-${Date.now()}-17`, type: 'numbered', content: '5. [US-105] API Documentation (3 pts) | As a developer, I can integrate with comprehensive API docs | AC: Interactive examples, versioning, authentication guide', style: {} }, { id: `block-${Date.now()}-18`, type: 'numbered', content: '6. [US-106] Performance Monitoring (3 pts) | As an admin, I can monitor system performance | AC: Real-time metrics, alerting, historical data', style: {} }, { id: `block-${Date.now()}-19`, type: 'text', content: 'TEAM CAPACITY & RESOURCE ALLOCATION:', style: {} }, { id: `block-${Date.now()}-20`, type: 'bullet', content: '• Total Available Points: 38 | Committed Points: 40 | Buffer: -2 points (acceptable risk)', style: {} }, { id: `block-${Date.now()}-21`, type: 'bullet', content: '• Frontend Team: 18 points | Backend Team: 15 points | DevOps: 5 points | QA: 2 points', style: {} }, { id: `block-${Date.now()}-22`, type: 'bullet', content: '• Key Personnel: John (Frontend Lead) - available | Sarah (Backend) - 3 days PTO | Mike (DevOps) - full availability', style: {} }, { id: `block-${Date.now()}-23`, type: 'text', content: 'DEPENDENCIES & EXTERNAL FACTORS:', style: {} }, { id: `block-${Date.now()}-24`, type: 'bullet', content: '• CRITICAL: Third-party API documentation from PaymentCorp (due [Date]) - BLOCKER if delayed', style: {} }, { id: `block-${Date.now()}-25`, type: 'bullet', content: '• MEDIUM: Design system updates from UX team (due [Date]) - affects UI components', style: {} }, { id: `block-${Date.now()}-26`, type: 'bullet', content: '• LOW: Security audit results (due [Date]) - may require minor adjustments', style: {} }, { id: `block-${Date.now()}-27`, type: 'text', content: 'RISK ASSESSMENT & MITIGATION:', style: {} }, { id: `block-${Date.now()}-28`, type: 'bullet', content: '• HIGH RISK: Payment integration complexity | Mitigation: Dedicated pair programming, early prototype', style: {} }, { id: `block-${Date.now()}-29`, type: 'bullet', content: '• MEDIUM RISK: Mobile testing device availability | Mitigation: Cloud testing platform backup', style: {} }, { id: `block-${Date.now()}-30`, type: 'bullet', content: '• LOW RISK: Team member availability | Mitigation: Cross-training completed, knowledge sharing sessions', style: {} }, { id: `block-${Date.now()}-31`, type: 'text', content: 'DEFINITION OF DONE CHECKLIST:', style: {} }, { id: `block-${Date.now()}-32`, type: 'todo', content: '☐ Code review completed by 2+ team members with approval', style: {} }, { id: `block-${Date.now()}-33`, type: 'todo', content: '☐ Unit tests written with 90%+ coverage, integration tests passing', style: {} }, { id: `block-${Date.now()}-34`, type: 'todo', content: '☐ Security scan completed with zero critical/high vulnerabilities', style: {} }, { id: `block-${Date.now()}-35`, type: 'todo', content: '☐ Performance testing meets SLA requirements (< 2s load time)', style: {} }, { id: `block-${Date.now()}-36`, type: 'todo', content: '☐ Documentation updated (API docs, user guides, technical specs)', style: {} }, { id: `block-${Date.now()}-37`, type: 'todo', content: '☐ Accessibility compliance verified (WCAG 2.1 AA standards)', style: {} }, { id: `block-${Date.now()}-38`, type: 'todo', content: '☐ Product Owner acceptance and stakeholder sign-off obtained', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(null); }} className="w-full flex items-start gap-3 px-3 py-2.5 text-left hover:bg-gray-700 rounded-lg text-gray-300 transition-colors">
+                                  <Calendar className="w-4 h-4 text-indigo-400 mt-0.5" />
+                                  <div>
+                                    <div className="font-medium text-sm">Professional Sprint Planning</div>
+                                    <div className="text-xs text-gray-400 mt-0.5">Comprehensive planning with capacity, risks, and DoD</div>
+                                  </div>
+                                </button>
+                                <button onClick={() => { const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: '🔄 Sprint 23 Retrospective - Continuous Improvement Analysis', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'Sprint Metrics & Performance Overview:', style: {} }, { id: `block-${Date.now()}-3`, type: 'bullet', content: '• Sprint Goal Achievement: 95% (19/20 story points completed) | Velocity: 42 points (vs 38 planned)', style: {} }, { id: `block-${Date.now()}-4`, type: 'bullet', content: '• Quality Metrics: 0 production bugs, 94% code coverage, 2.1s avg response time', style: {} }, { id: `block-${Date.now()}-5`, type: 'bullet', content: '• Team Satisfaction: 8.2/10 (survey results) | Stakeholder Satisfaction: 9.1/10', style: {} }, { id: `block-${Date.now()}-6`, type: 'divider', content: '', style: {} }, { id: `block-${Date.now()}-7`, type: 'text', content: '✅ WHAT WENT WELL (Continue Doing):', style: {} }, { id: `block-${Date.now()}-8`, type: 'bullet', content: '• COLLABORATION: Cross-functional pairing between frontend/backend teams reduced integration issues by 60%', style: {} }, { id: `block-${Date.now()}-9`, type: 'bullet', content: '• CODE QUALITY: New automated code review process caught 15 potential issues before production', style: {} }, { id: `block-${Date.now()}-10`, type: 'bullet', content: '• DELIVERY: Successfully delivered all user-facing features 2 days ahead of schedule', style: {} }, { id: `block-${Date.now()}-11`, type: 'bullet', content: '• COMMUNICATION: Daily async updates in Slack improved transparency and reduced meeting time by 30%', style: {} }, { id: `block-${Date.now()}-12`, type: 'bullet', content: '• INNOVATION: Team-initiated performance optimization resulted in 40% faster page load times', style: {} }, { id: `block-${Date.now()}-13`, type: 'bullet', content: '• STAKEHOLDER ENGAGEMENT: Weekly demo sessions increased product owner engagement and feedback quality', style: {} }, { id: `block-${Date.now()}-14`, type: 'text', content: '⚠️ WHAT COULD BE IMPROVED (Stop/Start Doing):', style: {} }, { id: `block-${Date.now()}-15`, type: 'bullet', content: '• ESTIMATION: Story point estimates were 15% off on average, need better historical data analysis', style: {} }, { id: `block-${Date.now()}-16`, type: 'bullet', content: '• TECHNICAL DEBT: Accumulated 8 hours of tech debt, need dedicated time allocation in next sprint', style: {} }, { id: `block-${Date.now()}-17`, type: 'bullet', content: '• TESTING: Manual testing bottleneck caused 1-day delay, need more automated test coverage', style: {} }, { id: `block-${Date.now()}-18`, type: 'bullet', content: '• DOCUMENTATION: API documentation lagged behind development, impacting integration team', style: {} }, { id: `block-${Date.now()}-19`, type: 'bullet', content: '• RISK MANAGEMENT: Late identification of third-party API changes caused scope adjustment', style: {} }, { id: `block-${Date.now()}-20`, type: 'text', content: '📊 TEAM FEEDBACK & INSIGHTS:', style: {} }, { id: `block-${Date.now()}-21`, type: 'bullet', content: '• "Pair programming sessions were highly effective for knowledge transfer" - 6/7 team members', style: {} }, { id: `block-${Date.now()}-22`, type: 'bullet', content: '• "Need better tooling for performance monitoring during development" - DevOps team', style: {} }, { id: `block-${Date.now()}-23`, type: 'bullet', content: '• "Client feedback loop is much faster now, helps with requirement clarity" - Product Owner', style: {} }, { id: `block-${Date.now()}-24`, type: 'bullet', content: '• "Would benefit from dedicated time for learning new technologies" - Development team', style: {} }, { id: `block-${Date.now()}-25`, type: 'text', content: '🎯 SPECIFIC ACTION ITEMS FOR NEXT SPRINT:', style: {} }, { id: `block-${Date.now()}-26`, type: 'todo', content: '☐ Implement historical velocity tracking dashboard for better estimation | Owner: Scrum Master | Due: Sprint 24 Day 3', style: {} }, { id: `block-${Date.now()}-27`, type: 'todo', content: '☐ Allocate 20% sprint capacity for technical debt reduction | Owner: Tech Lead | Due: Sprint Planning', style: {} }, { id: `block-${Date.now()}-28`, type: 'todo', content: '☐ Increase automated test coverage from 70% to 85% | Owner: QA Lead | Due: Sprint 24 End', style: {} }, { id: `block-${Date.now()}-29`, type: 'todo', content: '☐ Establish API-first development with documentation automation | Owner: Backend Team | Due: Sprint 25', style: {} }, { id: `block-${Date.now()}-30`, type: 'todo', content: '☐ Create early warning system for external dependency changes | Owner: DevOps | Due: Sprint 24 Mid', style: {} }, { id: `block-${Date.now()}-31`, type: 'todo', content: '☐ Schedule monthly "Innovation Friday" for learning and experimentation | Owner: Engineering Manager | Due: Next Week', style: {} }, { id: `block-${Date.now()}-32`, type: 'text', content: '📈 PROCESS IMPROVEMENTS & EXPERIMENTS:', style: {} }, { id: `block-${Date.now()}-33`, type: 'bullet', content: '• EXPERIMENT: Try "Definition of Ready" checklist for user stories to improve sprint planning', style: {} }, { id: `block-${Date.now()}-34`, type: 'bullet', content: '• PROCESS: Implement "Three Amigos" sessions (Dev, QA, PO) for acceptance criteria refinement', style: {} }, { id: `block-${Date.now()}-35`, type: 'bullet', content: '• TOOL: Evaluate GitHub Copilot for code completion to increase development velocity', style: {} }, { id: `block-${Date.now()}-36`, type: 'bullet', content: '• METRIC: Track "Time to First Feedback" to optimize review cycles', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(null); }} className="w-full flex items-start gap-3 px-3 py-2.5 text-left hover:bg-gray-700 rounded-lg text-gray-300 transition-colors">
+                                  <ArrowRight className="w-4 h-4 text-pink-400 mt-0.5" />
+                                  <div>
+                                    <div className="font-medium text-sm">Professional Sprint Retrospective</div>
+                                    <div className="text-xs text-gray-400 mt-0.5">Data-driven analysis with metrics and actionable improvements</div>
+                                  </div>
+                                </button>
+                                <button onClick={() => { const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: '⚡ Daily Standup - [Date] | Sprint 24 Day 7', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'Sprint Progress Overview:', style: {} }, { id: `block-${Date.now()}-3`, type: 'bullet', content: '• Sprint Burndown: 18/40 points completed (45%) | Days Remaining: 7 | Velocity: On Track', style: {} }, { id: `block-${Date.now()}-4`, type: 'bullet', content: '• Sprint Goal Status: 🟢 On Track | Critical Path: Payment Integration | Risk Level: Medium', style: {} }, { id: `block-${Date.now()}-5`, type: 'divider', content: '', style: {} }, { id: `block-${Date.now()}-6`, type: 'text', content: '💼 TEAM MEMBER UPDATES (Yesterday → Today → Blockers):', style: {} }, { id: `block-${Date.now()}-7`, type: 'bullet', content: '• 👨‍💻 John (Frontend Lead): Completed OAuth integration & unit tests → Working on dashboard components & responsive design → ⚠️ Waiting for UX approval on mobile layouts', style: {} }, { id: `block-${Date.now()}-8`, type: 'bullet', content: '• 👩‍💻 Sarah (Backend): Fixed payment gateway timeout issue, deployed hotfix → Implementing webhook handlers & error recovery → ✅ No blockers', style: {} }, { id: `block-${Date.now()}-9`, type: 'bullet', content: '• 👨‍🔧 Mike (DevOps): Completed CI/CD pipeline optimization, 40% faster builds → Setting up monitoring dashboards & alerts → ✅ No blockers', style: {} }, { id: `block-${Date.now()}-10`, type: 'bullet', content: '• 👩‍🔬 Lisa (QA): Automated 15 test cases, found 3 minor bugs → Performance testing & accessibility audit → ⚠️ Need staging environment reset', style: {} }, { id: `block-${Date.now()}-11`, type: 'bullet', content: '• 👨‍🎨 Alex (UI/UX): Finalized mobile wireframes, conducted user testing → Creating design system components → ✅ No blockers', style: {} }, { id: `block-${Date.now()}-12`, type: 'bullet', content: '• 👩‍💼 Emma (Product): Reviewed user feedback, updated acceptance criteria → Stakeholder demo prep & backlog refinement → ✅ No blockers', style: {} }, { id: `block-${Date.now()}-13`, type: 'text', content: '🚫 ACTIVE BLOCKERS & IMPEDIMENTS:', style: {} }, { id: `block-${Date.now()}-14`, type: 'bullet', content: '• 🔴 HIGH: UX approval needed for mobile layouts (John blocked) | Owner: Alex | ETA: Today 2 PM | Escalation: Design Director if delayed', style: {} }, { id: `block-${Date.now()}-15`, type: 'bullet', content: '• 🟡 MEDIUM: Staging environment needs reset for QA testing (Lisa blocked) | Owner: Mike | ETA: 30 minutes | Impact: Testing delayed 2 hours', style: {} }, { id: `block-${Date.now()}-16`, type: 'bullet', content: '• 🟢 LOW: Third-party API rate limits affecting development testing | Owner: Sarah | Workaround: Mock service | Impact: Minimal', style: {} }, { id: `block-${Date.now()}-17`, type: 'text', content: '🎯 TODAY\'S SPRINT COMMITMENTS & FOCUS:', style: {} }, { id: `block-${Date.now()}-18`, type: 'bullet', content: '• 🔥 CRITICAL: Complete payment integration testing and security review (Sarah + Lisa)', style: {} }, { id: `block-${Date.now()}-19`, type: 'bullet', content: '• 📱 HIGH: Finalize mobile responsive components for user dashboard (John + Alex)', style: {} }, { id: `block-${Date.now()}-20`, type: 'bullet', content: '• 📈 MEDIUM: Set up production monitoring and alerting system (Mike)', style: {} }, { id: `block-${Date.now()}-21`, type: 'bullet', content: '• 📝 LOW: Update API documentation with new endpoints (Sarah)', style: {} }, { id: `block-${Date.now()}-22`, type: 'text', content: '📅 UPCOMING EVENTS & DEPENDENCIES:', style: {} }, { id: `block-${Date.now()}-23`, type: 'bullet', content: '• 11:00 AM - Architecture review meeting (Sarah, Mike, Tech Lead)', style: {} }, { id: `block-${Date.now()}-24`, type: 'bullet', content: '• 2:00 PM - Client demo preparation session (Emma, John, Alex)', style: {} }, { id: `block-${Date.now()}-25`, type: 'bullet', content: '• 4:00 PM - Security audit results review (All team)', style: {} }, { id: `block-${Date.now()}-26`, type: 'text', content: '📊 SPRINT HEALTH INDICATORS:', style: {} }, { id: `block-${Date.now()}-27`, type: 'bullet', content: '• Velocity Trend: 🟢 On track (18/40 points, 7 days remaining)', style: {} }, { id: `block-${Date.now()}-28`, type: 'bullet', content: '• Quality Metrics: 🟢 Good (0 critical bugs, 92% test coverage)', style: {} }, { id: `block-${Date.now()}-29`, type: 'bullet', content: '• Team Morale: 🟢 High (8.5/10 in daily pulse check)', style: {} }, { id: `block-${Date.now()}-30`, type: 'bullet', content: '• Stakeholder Satisfaction: 🟢 Excellent (9.2/10 from yesterday\'s demo)', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(null); }} className="w-full flex items-start gap-3 px-3 py-2.5 text-left hover:bg-gray-700 rounded-lg text-gray-300 transition-colors">
+                                  <Clock className="w-4 h-4 text-orange-400 mt-0.5" />
+                                  <div>
+                                    <div className="font-medium text-sm">Professional Daily Standup</div>
+                                    <div className="text-xs text-gray-400 mt-0.5">Comprehensive team sync with metrics and health indicators</div>
+                                  </div>
+                                </button>
+
+                                <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-3">SUB-MEETINGS & BREAKOUTS</div>
+                                <button onClick={() => { const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: '🔀 Breakout Session Planning', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'Session Overview:', style: {} }, { id: `block-${Date.now()}-3`, type: 'bullet', content: '• Purpose: Focused discussion on specific topics with smaller groups', style: {} }, { id: `block-${Date.now()}-4`, type: 'bullet', content: '• Format: Parallel sessions with cross-functional teams', style: {} }, { id: `block-${Date.now()}-5`, type: 'submeeting', submeetingType: 'breakout', title: 'Product Strategy Discussion', duration: '45', content: 'Objective: Define Q1 product roadmap priorities\n\nParticipants: Product Manager, Engineering Lead, UX Designer\n\nKey Questions:\n• What are the top 3 features for Q1?\n• Resource allocation and timeline\n• Technical feasibility assessment', style: {} }, { id: `block-${Date.now()}-6`, type: 'submeeting', submeetingType: 'technical', title: 'Architecture Review', duration: '60', content: 'Objective: Technical deep-dive on system architecture\n\nParticipants: Senior Engineers, DevOps, Security Team\n\nTopics:\n• Scalability concerns and solutions\n• Security architecture review\n• Performance optimization strategies', style: {} }, { id: `block-${Date.now()}-7`, type: 'submeeting', submeetingType: 'executive', title: 'Budget & Resource Planning', duration: '30', content: 'Objective: Executive decision on resource allocation\n\nParticipants: Department Heads, CFO, CEO\n\nDecisions Needed:\n• Q1 budget approval\n• Hiring authorization\n• Strategic priority alignment', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(null); }} className="w-full flex items-start gap-3 px-3 py-2.5 text-left hover:bg-gray-700 rounded-lg text-gray-300 transition-colors">
+                                  <GitBranch className="w-4 h-4 text-indigo-400 mt-0.5" />
+                                  <div>
+                                    <div className="font-medium text-sm">Breakout Sessions</div>
+                                    <div className="text-xs text-gray-400 mt-0.5">Multiple parallel sub-meetings with focused agendas</div>
+                                  </div>
+                                </button>
+                                <button onClick={() => { const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: '🔄 Follow-up Meeting Series', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'Follow-up Structure:', style: {} }, { id: `block-${Date.now()}-3`, type: 'bullet', content: '• Purpose: Track action items and ensure accountability', style: {} }, { id: `block-${Date.now()}-4`, type: 'bullet', content: '• Frequency: Weekly check-ins with stakeholders', style: {} }, { id: `block-${Date.now()}-5`, type: 'submeeting', submeetingType: 'followup', title: 'Action Items Review', duration: '30', content: 'Objective: Review progress on assigned action items\n\nParticipants: Project team leads and stakeholders\n\nAgenda:\n• Status update on each action item\n• Identify blockers and solutions\n• Adjust timelines if needed\n• Assign new action items', style: {} }, { id: `block-${Date.now()}-6`, type: 'submeeting', submeetingType: 'followup', title: 'Stakeholder Sync', duration: '20', content: 'Objective: Keep stakeholders informed of progress\n\nParticipants: Project Manager, Key Stakeholders\n\nTopics:\n• Weekly progress summary\n• Upcoming milestones\n• Risk and issue escalation\n• Resource needs', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(null); }} className="w-full flex items-start gap-3 px-3 py-2.5 text-left hover:bg-gray-700 rounded-lg text-gray-300 transition-colors">
+                                  <ArrowRight className="w-4 h-4 text-blue-400 mt-0.5" />
+                                  <div>
+                                    <div className="font-medium text-sm">Follow-up Series</div>
+                                    <div className="text-xs text-gray-400 mt-0.5">Structured follow-up meetings for accountability</div>
+                                  </div>
+                                </button>
+
+                                <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-3">CLIENT & STAKEHOLDER</div>
+                                <button onClick={() => { const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: '🤝 Strategic Client Partnership Meeting - [Client Name]', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'Meeting Context & Relationship Overview:', style: {} }, { id: `block-${Date.now()}-3`, type: 'bullet', content: '• Client: [Company Name] - Fortune 500 Technology Leader | Contract Value: $2.5M annually | Relationship: 3 years', style: {} }, { id: `block-${Date.now()}-4`, type: 'bullet', content: '• Meeting Type: Quarterly Business Review | Duration: 2 hours | Location: Client HQ / Virtual Hybrid', style: {} }, { id: `block-${Date.now()}-5`, type: 'bullet', content: '• Client Attendees: John Smith (CTO), Sarah Johnson (VP Engineering), Mike Chen (Product Director)', style: {} }, { id: `block-${Date.now()}-6`, type: 'bullet', content: '• Our Team: [Account Manager], [Technical Lead], [Project Manager], [Sales Director]', style: {} }, { id: `block-${Date.now()}-7`, type: 'divider', content: '', style: {} }, { id: `block-${Date.now()}-8`, type: 'text', content: '📈 PROJECT STATUS & PERFORMANCE METRICS:', style: {} }, { id: `block-${Date.now()}-9`, type: 'bullet', content: '• Overall Progress: 78% complete (ahead of schedule by 2 weeks) | Budget Utilization: 65% ($1.625M of $2.5M)', style: {} }, { id: `block-${Date.now()}-10`, type: 'bullet', content: '• Key Milestones Achieved: API integration (100%), User dashboard (95%), Mobile app (80%), Security audit (completed)', style: {} }, { id: `block-${Date.now()}-11`, type: 'bullet', content: '• Performance KPIs: 99.9% uptime, 1.2s avg response time, 0 critical security incidents, 4.8/5 user satisfaction', style: {} }, { id: `block-${Date.now()}-12`, type: 'bullet', content: '• Upcoming Deliverables: Advanced analytics module (Dec 15), Third-party integrations (Jan 10), Go-live preparation (Feb 1)', style: {} }, { id: `block-${Date.now()}-13`, type: 'text', content: '🗣️ CLIENT FEEDBACK & STRATEGIC INPUT:', style: {} }, { id: `block-${Date.now()}-14`, type: 'bullet', content: '• 🟢 POSITIVE: "Dashboard redesign exceeded expectations, 40% improvement in user engagement metrics"', style: {} }, { id: `block-${Date.now()}-15`, type: 'bullet', content: '• 🟢 POSITIVE: "API performance is outstanding, handling 10x more traffic than projected"', style: {} }, { id: `block-${Date.now()}-16`, type: 'bullet', content: '• 🟢 POSITIVE: "Team communication and transparency has been exceptional throughout the project"', style: {} }, { id: `block-${Date.now()}-17`, type: 'bullet', content: '• 🟡 REQUEST: Additional advanced reporting features for executive dashboard (estimated 3-week effort)', style: {} }, { id: `block-${Date.now()}-18`, type: 'bullet', content: '• 🟡 REQUEST: Integration with Salesforce and HubSpot for unified customer view (new scope)', style: {} }, { id: `block-${Date.now()}-19`, type: 'bullet', content: '• 🟠 CONCERN: Mobile app performance on older Android devices needs optimization', style: {} }, { id: `block-${Date.now()}-20`, type: 'text', content: '💼 BUSINESS IMPACT & VALUE REALIZATION:', style: {} }, { id: `block-${Date.now()}-21`, type: 'bullet', content: '• Cost Savings: $800K annually through process automation and efficiency gains', style: {} }, { id: `block-${Date.now()}-22`, type: 'bullet', content: '• Revenue Impact: 25% increase in customer conversion rate, $2.1M additional revenue projected', style: {} }, { id: `block-${Date.now()}-23`, type: 'bullet', content: '• Operational Efficiency: 60% reduction in manual processes, 4 FTE hours saved daily', style: {} }, { id: `block-${Date.now()}-24`, type: 'bullet', content: '• User Adoption: 85% active user rate (target was 70%), 4.8/5 satisfaction score', style: {} }, { id: `block-${Date.now()}-25`, type: 'text', content: '🔮 FUTURE ROADMAP & EXPANSION OPPORTUNITIES:', style: {} }, { id: `block-${Date.now()}-26`, type: 'bullet', content: '• Phase 2 Expansion: AI/ML analytics module with predictive capabilities ($1.2M additional scope)', style: {} }, { id: `block-${Date.now()}-27`, type: 'bullet', content: '• International Rollout: European and APAC markets (compliance requirements, localization)', style: {} }, { id: `block-${Date.now()}-28`, type: 'bullet', content: '• Enterprise Features: Advanced security, audit trails, custom workflows ($800K scope)', style: {} }, { id: `block-${Date.now()}-29`, type: 'bullet', content: '• Partnership Opportunities: White-label solution for client\'s customers (revenue sharing model)', style: {} }, { id: `block-${Date.now()}-30`, type: 'text', content: '⚙️ TECHNICAL DISCUSSIONS & ARCHITECTURE:', style: {} }, { id: `block-${Date.now()}-31`, type: 'bullet', content: '• Scalability Planning: Current architecture supports 10x growth, cloud-native design future-proof', style: {} }, { id: `block-${Date.now()}-32`, type: 'bullet', content: '• Security Posture: SOC 2 Type II compliant, penetration testing completed, zero critical vulnerabilities', style: {} }, { id: `block-${Date.now()}-33`, type: 'bullet', content: '• Integration Capabilities: RESTful APIs, webhook support, real-time data synchronization', style: {} }, { id: `block-${Date.now()}-34`, type: 'bullet', content: '• Disaster Recovery: 99.99% availability SLA, automated backups, multi-region deployment', style: {} }, { id: `block-${Date.now()}-35`, type: 'text', content: '🎯 STRATEGIC ACTION ITEMS & COMMITMENTS:', style: {} }, { id: `block-${Date.now()}-36`, type: 'todo', content: '☐ Provide detailed proposal for advanced reporting features with timeline and cost | Owner: Sales Director | Due: [Date + 5 days]', style: {} }, { id: `block-${Date.now()}-37`, type: 'todo', content: '☐ Conduct mobile performance audit and optimization plan | Owner: Technical Lead | Due: [Date + 1 week]', style: {} }, { id: `block-${Date.now()}-38`, type: 'todo', content: '☐ Schedule technical deep-dive session for Salesforce/HubSpot integration | Owner: Solutions Architect | Due: [Date + 3 days]', style: {} }, { id: `block-${Date.now()}-39`, type: 'todo', content: '☐ Prepare Phase 2 business case with ROI analysis and implementation roadmap | Owner: Account Manager | Due: [Date + 2 weeks]', style: {} }, { id: `block-${Date.now()}-40`, type: 'todo', content: '☐ Organize executive stakeholder meeting for contract renewal discussions | Owner: Sales Director | Due: [Date + 1 month]', style: {} }, { id: `block-${Date.now()}-41`, type: 'text', content: '📅 NEXT STEPS & FOLLOW-UP SCHEDULE:', style: {} }, { id: `block-${Date.now()}-42`, type: 'bullet', content: '• Weekly Status Calls: Every Tuesday 10 AM EST with project team', style: {} }, { id: `block-${Date.now()}-43`, type: 'bullet', content: '• Monthly Executive Review: First Friday of each month with C-level stakeholders', style: {} }, { id: `block-${Date.now()}-44`, type: 'bullet', content: '• Next QBR Meeting: [Date + 3 months] - Focus on Phase 2 planning and expansion', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(null); }} className="w-full flex items-start gap-3 px-3 py-2.5 text-left hover:bg-gray-700 rounded-lg text-gray-300 transition-colors">
+                                  <Users className="w-4 h-4 text-cyan-400 mt-0.5" />
+                                  <div>
+                                    <div className="font-medium text-sm">Strategic Client Partnership</div>
+                                    <div className="text-xs text-gray-400 mt-0.5">Comprehensive client review with business metrics and roadmap</div>
+                                  </div>
+                                </button>
+                                <button onClick={() => { const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: '📊 Executive Project Portfolio Review - Q4 2024', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'Portfolio Overview & Strategic Context:', style: {} }, { id: `block-${Date.now()}-3`, type: 'bullet', content: '• Portfolio Value: $15.2M total investment | Active Projects: 12 | Completed: 8 | Pipeline: 5', style: {} }, { id: `block-${Date.now()}-4`, type: 'bullet', content: '• Strategic Alignment: Digital transformation (60%), Market expansion (25%), Operational efficiency (15%)', style: {} }, { id: `block-${Date.now()}-5`, type: 'bullet', content: '• Review Period: Q4 2024 | Stakeholders: Executive Team, PMO, Department Heads', style: {} }, { id: `block-${Date.now()}-6`, type: 'divider', content: '', style: {} }, { id: `block-${Date.now()}-7`, type: 'text', content: '🎯 FLAGSHIP PROJECT: Enterprise Digital Platform', style: {} }, { id: `block-${Date.now()}-8`, type: 'bullet', content: '• Budget: $4.2M allocated | Spent: $2.8M (67%) | Remaining: $1.4M | Forecast: On budget', style: {} }, { id: `block-${Date.now()}-9`, type: 'bullet', content: '• Timeline: Jan 2024 - Mar 2025 (15 months) | Progress: 72% complete | Status: 🟢 On Track', style: {} }, { id: `block-${Date.now()}-10`, type: 'bullet', content: '• Team: 25 FTE (15 internal, 10 contractors) | Key Roles: Tech Lead, Product Manager, UX Director', style: {} }, { id: `block-${Date.now()}-11`, type: 'bullet', content: '• Milestones: 11/15 completed | Current Phase: Integration & Testing | Next: User Acceptance Testing', style: {} }, { id: `block-${Date.now()}-12`, type: 'text', content: '📈 KEY PERFORMANCE INDICATORS & METRICS:', style: {} }, { id: `block-${Date.now()}-13`, type: 'bullet', content: '• Schedule Performance Index (SPI): 1.08 (8% ahead of schedule) | Cost Performance Index (CPI): 1.05 (5% under budget)', style: {} }, { id: `block-${Date.now()}-14`, type: 'bullet', content: '• Quality Metrics: 0 critical defects, 94% test coverage, 2 minor security findings (resolved)', style: {} }, { id: `block-${Date.now()}-15`, type: 'bullet', content: '• Stakeholder Satisfaction: 9.2/10 (executive survey) | Team Morale: 8.7/10 (monthly pulse)', style: {} }, { id: `block-${Date.now()}-16`, type: 'bullet', content: '• Business Value: $2.1M annual cost savings projected, 40% process efficiency improvement', style: {} }, { id: `block-${Date.now()}-17`, type: 'text', content: '🏆 MAJOR ACHIEVEMENTS & DELIVERABLES:', style: {} }, { id: `block-${Date.now()}-18`, type: 'bullet', content: '• ✅ Successfully launched beta platform with 500+ active users, 4.6/5 satisfaction rating', style: {} }, { id: `block-${Date.now()}-19`, type: 'bullet', content: '• ✅ Completed SOC 2 Type II audit with zero findings, achieved enterprise security compliance', style: {} }, { id: `block-${Date.now()}-20`, type: 'bullet', content: '• ✅ Integrated with 8 critical business systems, achieved 99.9% uptime SLA', style: {} }, { id: `block-${Date.now()}-21`, type: 'bullet', content: '• ✅ Delivered mobile application ahead of schedule, supporting iOS and Android platforms', style: {} }, { id: `block-${Date.now()}-22`, type: 'bullet', content: '• ✅ Established automated CI/CD pipeline, reduced deployment time from 4 hours to 15 minutes', style: {} }, { id: `block-${Date.now()}-23`, type: 'text', content: '⚠️ RISK ASSESSMENT & MITIGATION STRATEGIES:', style: {} }, { id: `block-${Date.now()}-24`, type: 'bullet', content: '• 🔴 HIGH RISK: Third-party API vendor stability concerns | Mitigation: Alternative vendor identified, POC completed', style: {} }, { id: `block-${Date.now()}-25`, type: 'bullet', content: '• 🟡 MEDIUM RISK: Key developer departure (2 team members) | Mitigation: Knowledge transfer completed, contractors onboarded', style: {} }, { id: `block-${Date.now()}-26`, type: 'bullet', content: '• 🟢 LOW RISK: Regulatory compliance changes | Mitigation: Legal review scheduled, compliance officer engaged', style: {} }, { id: `block-${Date.now()}-27`, type: 'bullet', content: '• 🟢 LOW RISK: Hardware procurement delays | Mitigation: Cloud-first strategy, vendor diversification', style: {} }, { id: `block-${Date.now()}-28`, type: 'text', content: '💰 FINANCIAL PERFORMANCE & ROI ANALYSIS:', style: {} }, { id: `block-${Date.now()}-29`, type: 'bullet', content: '• Total Investment: $4.2M | Projected 3-year ROI: 285% | Break-even: Month 18 post-launch', style: {} }, { id: `block-${Date.now()}-30`, type: 'bullet', content: '• Cost Avoidance: $800K annually through automation | Revenue Generation: $1.2M new business opportunities', style: {} }, { id: `block-${Date.now()}-31`, type: 'bullet', content: '• Operational Savings: 15 FTE hours daily, $450K annual labor cost reduction', style: {} }, { id: `block-${Date.now()}-32`, type: 'bullet', content: '• Market Impact: 25% faster time-to-market for new products, competitive advantage established', style: {} }, { id: `block-${Date.now()}-33`, type: 'text', content: '🔮 STRATEGIC RECOMMENDATIONS & NEXT PHASE:', style: {} }, { id: `block-${Date.now()}-34`, type: 'bullet', content: '• APPROVED: Proceed with Phase 2 - AI/ML integration ($2.5M additional investment)', style: {} }, { id: `block-${Date.now()}-35`, type: 'bullet', content: '• RECOMMENDED: Accelerate international rollout timeline by 3 months (market opportunity)', style: {} }, { id: `block-${Date.now()}-36`, type: 'bullet', content: '• PROPOSED: Establish Center of Excellence for digital transformation (5 FTE team)', style: {} }, { id: `block-${Date.now()}-37`, type: 'bullet', content: '• CONSIDERATION: Strategic partnership with technology vendor for co-innovation', style: {} }, { id: `block-${Date.now()}-38`, type: 'text', content: '🎯 EXECUTIVE ACTION ITEMS & GOVERNANCE:', style: {} }, { id: `block-${Date.now()}-39`, type: 'todo', content: '☐ Approve Phase 2 budget allocation and resource planning | Owner: CFO | Due: [Date + 1 week] | Impact: $2.5M investment', style: {} }, { id: `block-${Date.now()}-40`, type: 'todo', content: '☐ Finalize vendor contract renegotiation for API stability | Owner: Procurement | Due: [Date + 2 weeks] | Risk: High', style: {} }, { id: `block-${Date.now()}-41`, type: 'todo', content: '☐ Establish project governance board for Phase 2 oversight | Owner: PMO Director | Due: [Date + 10 days]', style: {} }, { id: `block-${Date.now()}-42`, type: 'todo', content: '☐ Conduct comprehensive security audit for production readiness | Owner: CISO | Due: [Date + 3 weeks]', style: {} }, { id: `block-${Date.now()}-43`, type: 'todo', content: '☐ Develop change management strategy for organization-wide rollout | Owner: HR Director | Due: [Date + 1 month]', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(null); }} className="w-full flex items-start gap-3 px-3 py-2.5 text-left hover:bg-gray-700 rounded-lg text-gray-300 transition-colors">
+                                  <BarChart3 className="w-4 h-4 text-emerald-400 mt-0.5" />
+                                  <div>
+                                    <div className="font-medium text-sm">Executive Portfolio Review</div>
+                                    <div className="text-xs text-gray-400 mt-0.5">Comprehensive project analysis with financial metrics and ROI</div>
+                                  </div>
+                                </button>
+                              </div>
+                            </div>
+                            <div className="p-3 border-t border-gray-700 bg-gray-800/50">
+                              <div className="text-xs text-gray-400">
+                                Templates will be added to your current notes
+                              </div>
                             </div>
                           </div>
                         )}
@@ -1109,12 +1347,22 @@ const MeetingEditorPage = () => {
                                 <Plus className="w-4 h-4" />
                               </button>
                               {showBlockMenu === block.id && (
-                                <div className="absolute left-0 top-8 w-64 max-h-96 overflow-y-auto bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
-                                  <div className="p-2">
-                                    <div className="text-xs text-gray-400 px-2 py-1 font-medium">BASIC BLOCKS</div>
-                                    <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'text', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
-                                      <Type className="w-4 h-4" /> Text
-                                    </button>
+                                <div className="absolute left-0 top-8 w-72 max-h-96 overflow-hidden bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
+                                  <div className="p-3 border-b border-gray-700">
+                                    <div className="flex items-center gap-2 text-sm font-medium text-gray-300">
+                                      <Plus className="w-4 h-4" />
+                                      Add Block
+                                    </div>
+                                    <div className="text-xs text-gray-400 mt-1">
+                                      Choose a block type to add content
+                                    </div>
+                                  </div>
+                                  <div className="max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
+                                    <div className="p-2 space-y-1">
+                                      <div className="text-xs text-gray-400 px-2 py-1 font-medium">BASIC BLOCKS</div>
+                                      <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'text', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-gray-700 rounded-lg text-gray-300 transition-colors">
+                                        <Type className="w-4 h-4" /> Text
+                                      </button>
                                     <button onClick={() => { const newBlocks = [...blocks]; newBlocks[index] = { ...block, type: 'heading1' }; setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
                                       <Hash className="w-4 h-4" /> Heading 1
                                     </button>
@@ -1124,7 +1372,7 @@ const MeetingEditorPage = () => {
                                     <button onClick={() => { const newBlocks = [...blocks]; newBlocks[index] = { ...block, type: 'heading3' }; setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
                                       <Hash className="w-4 h-4" /> Heading 3
                                     </button>
-                                    
+
                                     <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-2">LISTS</div>
                                     <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'bullet', content: '• ', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
                                       <List className="w-4 h-4" /> Bullet List
@@ -1138,7 +1386,7 @@ const MeetingEditorPage = () => {
                                     <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'toggle', content: '▶ ', style: {}, expanded: false }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
                                       <ArrowRight className="w-4 h-4" /> Toggle List
                                     </button>
-                                    
+
                                     <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-2">MEDIA</div>
                                     <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'quote', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
                                       <Quote className="w-4 h-4" /> Quote
@@ -1149,7 +1397,7 @@ const MeetingEditorPage = () => {
                                     <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'divider', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
                                       <Divider className="w-4 h-4" /> Divider
                                     </button>
-                                    
+
                                     <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-2">FUNCTIONAL</div>
                                     <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'date', content: new Date().toISOString().split('T')[0], style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
                                       <Calendar className="w-4 h-4 text-blue-400" /> Date
@@ -1160,7 +1408,7 @@ const MeetingEditorPage = () => {
                                     <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'priority', content: '', priorityLevel: 'medium', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
                                       <Star className="w-4 h-4 text-yellow-400" /> Priority
                                     </button>
-                                    
+
                                     <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-2">ADVANCED</div>
                                     <button onClick={() => {
                                       const tableId = `block-${Date.now()}`;
@@ -1175,7 +1423,10 @@ const MeetingEditorPage = () => {
                                     }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
                                       <Table className="w-4 h-4" /> Table
                                     </button>
-                                    
+                                    <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'submeeting', content: '', submeetingType: 'breakout', title: 'Breakout Session', participants: [], duration: '30', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                      <GitBranch className="w-4 h-4 text-indigo-400" /> Sub-Meeting
+                                    </button>
+
                                     <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-2">CALLOUTS</div>
                                     <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'callout', calloutType: 'info', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
                                       <Info className="w-4 h-4 text-blue-400" /> Info Callout
@@ -1189,16 +1440,26 @@ const MeetingEditorPage = () => {
                                     <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'callout', calloutType: 'success', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
                                       <CheckCircle className="w-4 h-4 text-green-400" /> Success Callout
                                     </button>
-                                    <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'callout', calloutType: 'tip', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
-                                      <Lightbulb className="w-4 h-4 text-purple-400" /> Tip Callout
-                                    </button>
+                                      <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'callout', calloutType: 'tip', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                        <Lightbulb className="w-4 h-4 text-purple-400" /> Tip Callout
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <div className="p-3 border-t border-gray-700 bg-gray-800/50">
+                                    <div className="text-xs text-gray-400">
+                                      Use keyboard shortcuts for faster editing
+                                    </div>
                                   </div>
                                 </div>
                               )}
                             </div>
                             <div className="relative">
                               <button
-                                onClick={() => setShowLineMenu(showLineMenu === block.id ? null : block.id)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  console.log('GripVertical clicked for block:', block.id);
+                                  setShowLineMenu(showLineMenu === block.id ? null : block.id);
+                                }}
                                 className="p-1 rounded hover:bg-gray-700 transition-colors text-gray-400 hover:text-gray-200"
                                 title="Line options"
                               >
@@ -1207,6 +1468,19 @@ const MeetingEditorPage = () => {
                               {showLineMenu === block.id && (
                                 <div className="absolute left-0 top-8 w-40 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
                                   <div className="p-2">
+                                    <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'text', content: '', style: {} }); setBlocks(newBlocks); setShowLineMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                      <Plus className="w-4 h-4" /> Add Line
+                                    </button>
+                                    {index > 0 && (
+                                      <button onClick={() => { const newBlocks = [...blocks]; [newBlocks[index], newBlocks[index - 1]] = [newBlocks[index - 1], newBlocks[index]]; setBlocks(newBlocks); setShowLineMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                        <ArrowUp className="w-4 h-4" /> Move Up
+                                      </button>
+                                    )}
+                                    {index < blocks.length - 1 && (
+                                      <button onClick={() => { const newBlocks = [...blocks]; [newBlocks[index], newBlocks[index + 1]] = [newBlocks[index + 1], newBlocks[index]]; setBlocks(newBlocks); setShowLineMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                        <ArrowDown className="w-4 h-4" /> Move Down
+                                      </button>
+                                    )}
                                     <button onClick={() => { const newBlocks = [...blocks]; const duplicated = { ...block, id: `block-${Date.now()}` }; newBlocks.splice(index + 1, 0, duplicated); setBlocks(newBlocks); setShowLineMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
                                       <Copy className="w-4 h-4" /> Duplicate
                                     </button>
