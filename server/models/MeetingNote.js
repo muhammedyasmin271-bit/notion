@@ -14,15 +14,15 @@ const meetingNoteSchema = new mongoose.Schema({
   },
   date: {
     type: Date,
-    required: [true, 'Meeting date is required']
+    default: Date.now
   },
   time: {
     type: String,
-    required: [true, 'Meeting time is required']
+    default: '09:00'
   },
   duration: {
     type: String,
-    required: [true, 'Meeting duration is required']
+    default: '30'
   },
   attendees: [{
     type: String,
@@ -119,28 +119,7 @@ const meetingNoteSchema = new mongoose.Schema({
     interval: Number,
     endDate: Date
   },
-  subMeetings: [{
-    id: String,
-    title: String,
-    type: {
-      type: String,
-      enum: ['breakout', 'followup', 'technical', 'executive', 'planning', 'review'],
-      default: 'breakout'
-    },
-    duration: String,
-    startTime: String,
-    endTime: String,
-    agenda: String,
-    participants: [String],
-    facilitator: String,
-    status: {
-      type: String,
-      enum: ['scheduled', 'in-progress', 'completed'],
-      default: 'scheduled'
-    },
-    expectedOutcomes: [String],
-    actionItems: [String]
-  }],
+
   blocks: [{
     id: String,
     type: String,

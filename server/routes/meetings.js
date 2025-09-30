@@ -81,22 +81,27 @@ router.post('/', auth, async (req, res) => {
     const { 
       title, type, date, time, duration, attendees, notes, 
       actionItems, summary, location, meetingLink, agenda,
-      subMeetings, blocks, tableData
+      blocks, tableData
     } = req.body;
     
     // Validate required fields
-    if (!title || !date || !time || !duration) {
+    if (!title) {
       return res.status(400).json({ 
-        message: 'Title, date, time, and duration are required' 
+        message: 'Title is required' 
       });
     }
+    
+    // Set defaults for missing fields
+    const meetingDate = date || new Date().toISOString();
+    const meetingTime = time || '09:00';
+    const meetingDuration = duration || '30';
     
     const newMeeting = new MeetingNote({
       title,
       type: type || 'Team Sync',
-      date,
-      time,
-      duration,
+      date: meetingDate,
+      time: meetingTime,
+      duration: meetingDuration,
       attendees: attendees || [],
       notes: notes || '',
       actionItems: actionItems || [],
@@ -104,7 +109,6 @@ router.post('/', auth, async (req, res) => {
       location: location || '',
       meetingLink: meetingLink || '',
       agenda: agenda || [],
-      subMeetings: subMeetings || [],
       blocks: blocks || [],
       tableData: tableData || {},
       createdBy: req.user.id
@@ -148,57 +152,39 @@ router.post('/', auth, async (req, res) => {
 // @access  Private
 router.put('/:id', auth, async (req, res) => {
   try {
-    const { 
-      title, type, date, time, duration, attendees, notes, 
-      actionItems, summary, location, meetingLink, agenda, status,
-      subMeetings, blocks, tableData
-    } = req.body;
+    console.log('Updating meeting:', req.params.id);
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
     
-    let meeting = await MeetingNote.findOne({ _id: req.params.id, deleted: false });
+    const meeting = await MeetingNote.findById(req.params.id);
     
     if (!meeting) {
       return res.status(404).json({ message: 'Meeting note not found' });
     }
     
-    // Check if user created the meeting
-    if (meeting.createdBy.toString() !== req.user.id) {
-      return res.status(403).json({ message: 'Not authorized' });
-    }
+    console.log('Found meeting:', meeting.title);
     
     // Update fields
-    const updateFields = {};
-    if (title !== undefined) updateFields.title = title;
-    if (type !== undefined) updateFields.type = type;
-    if (date !== undefined) updateFields.date = date;
-    if (time !== undefined) updateFields.time = time;
-    if (duration !== undefined) updateFields.duration = duration;
-    if (attendees !== undefined) updateFields.attendees = attendees;
-    if (notes !== undefined) updateFields.notes = notes;
-    if (actionItems !== undefined) updateFields.actionItems = actionItems;
-    if (summary !== undefined) updateFields.summary = summary;
-    if (location !== undefined) updateFields.location = location;
-    if (meetingLink !== undefined) updateFields.meetingLink = meetingLink;
-    if (agenda !== undefined) updateFields.agenda = agenda;
-    if (status !== undefined) updateFields.status = status;
-    if (subMeetings !== undefined) updateFields.subMeetings = subMeetings;
-    if (blocks !== undefined) updateFields.blocks = blocks;
-    if (tableData !== undefined) updateFields.tableData = tableData;
+    if (req.body.title !== undefined) meeting.title = req.body.title;
+    if (req.body.type !== undefined) meeting.type = req.body.type;
+    if (req.body.date !== undefined) meeting.date = req.body.date;
+    if (req.body.time !== undefined) meeting.time = req.body.time;
+    if (req.body.duration !== undefined) meeting.duration = req.body.duration;
+    if (req.body.attendees !== undefined) meeting.attendees = req.body.attendees;
+    if (req.body.notes !== undefined) meeting.notes = req.body.notes;
+    if (req.body.status !== undefined) meeting.status = req.body.status;
+    if (req.body.location !== undefined) meeting.location = req.body.location;
+    if (req.body.blocks !== undefined) meeting.blocks = req.body.blocks;
     
-    meeting = await MeetingNote.findByIdAndUpdate(
-      req.params.id,
-      { $set: updateFields },
-      { new: true, runValidators: true }
-    ).populate('createdBy', 'name email');
+    console.log('Saving meeting with blocks:', meeting.blocks?.length || 0);
     
-    res.json(meeting);
+    const savedMeeting = await meeting.save();
+    console.log('Meeting saved successfully');
+    
+    await savedMeeting.populate('createdBy', 'name email');
+    
+    res.json(savedMeeting);
   } catch (error) {
     console.error('Error updating meeting:', error);
-    if (error.name === 'ValidationError') {
-      return res.status(400).json({ message: error.message });
-    }
-    if (error.kind === 'ObjectId') {
-      return res.status(404).json({ message: 'Meeting note not found' });
-    }
     res.status(500).json({ message: 'Server error' });
   }
 });
