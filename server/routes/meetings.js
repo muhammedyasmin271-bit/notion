@@ -80,7 +80,8 @@ router.post('/', auth, async (req, res) => {
   try {
     const { 
       title, type, date, time, duration, attendees, notes, 
-      actionItems, summary, location, meetingLink, agenda 
+      actionItems, summary, location, meetingLink, agenda,
+      subMeetings, blocks, tableData
     } = req.body;
     
     // Validate required fields
@@ -103,6 +104,9 @@ router.post('/', auth, async (req, res) => {
       location: location || '',
       meetingLink: meetingLink || '',
       agenda: agenda || [],
+      subMeetings: subMeetings || [],
+      blocks: blocks || [],
+      tableData: tableData || {},
       createdBy: req.user.id
     });
     
@@ -146,7 +150,8 @@ router.put('/:id', auth, async (req, res) => {
   try {
     const { 
       title, type, date, time, duration, attendees, notes, 
-      actionItems, summary, location, meetingLink, agenda, status 
+      actionItems, summary, location, meetingLink, agenda, status,
+      subMeetings, blocks, tableData
     } = req.body;
     
     let meeting = await MeetingNote.findOne({ _id: req.params.id, deleted: false });
@@ -175,6 +180,9 @@ router.put('/:id', auth, async (req, res) => {
     if (meetingLink !== undefined) updateFields.meetingLink = meetingLink;
     if (agenda !== undefined) updateFields.agenda = agenda;
     if (status !== undefined) updateFields.status = status;
+    if (subMeetings !== undefined) updateFields.subMeetings = subMeetings;
+    if (blocks !== undefined) updateFields.blocks = blocks;
+    if (tableData !== undefined) updateFields.tableData = tableData;
     
     meeting = await MeetingNote.findByIdAndUpdate(
       req.params.id,

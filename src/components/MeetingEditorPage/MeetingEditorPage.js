@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { useParams, useNavigate } from 'react-router-dom';
 import './MeetingEditorPage.css';
-import { Save, ArrowLeft, Calendar, Clock, Users, Plus, X, CheckCircle, Circle, Video, Sparkles, GripVertical, Type, Hash, List, Quote, Code, Image, Trash2, Copy, ArrowUp, ArrowDown, ArrowRight, CheckSquare, Table, Calendar as CalendarIcon, Link2 as Link, Minus as Divider, Minus, AlertCircle, Star, Tag, MapPin, Phone, Mail, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, ListOrdered, FileText, Bookmark, Lightbulb, Info, AlertTriangle, Zap, Heart, Smile, Eye, Lock, Globe, Download, Upload, Search, Filter, Settings, MoreHorizontal, BarChart3, GitBranch } from 'lucide-react';
+import { Save, ArrowLeft, Calendar, Clock, Users, Plus, X, CheckCircle, Circle, Video, Sparkles, GripVertical, Type, Hash, List, Quote, Code, Image, Trash2, Copy, ArrowUp, ArrowDown, ArrowRight, CheckSquare, Table, Calendar as CalendarIcon, Link2 as Link, Minus as Divider, Minus, AlertCircle, Star, Tag, MapPin, Phone, Mail, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, ListOrdered, FileText, Bookmark, Lightbulb, Info, AlertTriangle, Zap, Heart, Smile, Eye, Lock, Globe, Download, Upload, Search, Filter, Settings, MoreHorizontal, BarChart3, GitBranch, UserPlus, Target, PlayCircle, PauseCircle, CheckCircle2, ChevronDown, ChevronRight } from 'lucide-react';
 import { getMeetingById, createMeeting, updateMeeting, addMeetingActionItem, getUsers } from '../../services/api';
 
 const MeetingEditorPage = () => {
@@ -42,6 +42,53 @@ const MeetingEditorPage = () => {
   const [aiInputBlock, setAiInputBlock] = useState(null);
   const [aiQuery, setAiQuery] = useState('');
   const [loadingError, setLoadingError] = useState(null);
+  const [subMeetings, setSubMeetings] = useState([]);
+  const [showSubMeetings, setShowSubMeetings] = useState(false);
+
+  // Sub-meeting management functions
+  const addSubMeeting = () => {
+    const now = new Date();
+    const startTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    const endTime = `${(now.getHours()).toString().padStart(2, '0')}:${(now.getMinutes() + 30).toString().padStart(2, '0')}`;
+    
+    const newSubMeeting = {
+      id: Date.now(),
+      title: 'New Sub-Meeting',
+      type: 'breakout',
+      duration: '30',
+      startTime,
+      endTime,
+      agenda: '',
+      participants: [],
+      facilitator: null,
+      status: 'scheduled',
+      expectedOutcomes: [],
+      actionItems: []
+    };
+    setSubMeetings([...subMeetings, newSubMeeting]);
+  };
+
+  const updateSubMeeting = (subMeetingId, field, value) => {
+    setSubMeetings(subMeetings.map(sub => {
+      if (sub.id === subMeetingId) {
+        const updated = { ...sub, [field]: value };
+        // Auto-calculate end time when duration changes
+        if (field === 'duration' && sub.startTime) {
+          const [hours, minutes] = sub.startTime.split(':').map(Number);
+          const totalMinutes = hours * 60 + minutes + parseInt(value);
+          const endHours = Math.floor(totalMinutes / 60) % 24;
+          const endMins = totalMinutes % 60;
+          updated.endTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
+        }
+        return updated;
+      }
+      return sub;
+    }));
+  };
+
+  const deleteSubMeeting = (subMeetingId) => {
+    setSubMeetings(subMeetings.filter(sub => sub.id !== subMeetingId));
+  };
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -64,6 +111,8 @@ const MeetingEditorPage = () => {
           setLoadingError(null);
           const meetingData = await getMeetingById(meetingId);
           console.log('Received meeting data:', meetingData);
+          console.log('Meeting data subMeetings field:', meetingData.subMeetings);
+          console.log('Meeting data keys:', Object.keys(meetingData));
 
           // Transform the meeting data to match our state structure
           const transformedMeeting = {
@@ -106,6 +155,15 @@ const MeetingEditorPage = () => {
           if (meetingData.tableData) {
             console.log('Loading table data:', meetingData.tableData);
             setTableData(meetingData.tableData);
+          }
+          
+          // Load sub-meetings if available
+          if (meetingData.subMeetings && Array.isArray(meetingData.subMeetings)) {
+            console.log('Loading sub-meetings:', meetingData.subMeetings);
+            setSubMeetings(meetingData.subMeetings);
+          } else {
+            console.log('No sub-meetings found in meeting data');
+            setSubMeetings([]);
           }
         } catch (error) {
           console.error('Error loading meeting:', error);
@@ -203,12 +261,17 @@ const MeetingEditorPage = () => {
         notes: notesContent,
         blocks: blocks,
         tableData: tableData,
+        subMeetings: subMeetings,
         date: meeting.date ? new Date(meeting.date).toISOString() : new Date().toISOString(),
         createdAt: isNewMeeting ? new Date().toISOString() : meeting.createdAt,
         updatedAt: new Date().toISOString()
       };
-
+      
       console.log('Saving meeting data:', meetingData);
+      console.log('Total blocks being saved:', blocks.length);
+      console.log('Sub-meetings being saved:', subMeetings.length);
+      console.log('Sub-meetings data:', subMeetings);
+      console.log('All blocks:', blocks);
 
       let result;
       if (isNewMeeting) {
@@ -804,73 +867,161 @@ const MeetingEditorPage = () => {
 
     if (block.type === 'submeeting') {
       const submeetingTypes = {
-        breakout: { color: 'text-indigo-400', bg: 'bg-indigo-900/20', border: 'border-indigo-500/30', icon: GitBranch, label: 'Breakout Session' },
-        followup: { color: 'text-blue-400', bg: 'bg-blue-900/20', border: 'border-blue-500/30', icon: ArrowRight, label: 'Follow-up Meeting' },
-        technical: { color: 'text-purple-400', bg: 'bg-purple-900/20', border: 'border-purple-500/30', icon: Code, label: 'Technical Deep-dive' },
-        executive: { color: 'text-yellow-400', bg: 'bg-yellow-900/20', border: 'border-yellow-500/30', icon: Star, label: 'Executive Briefing' }
+        breakout: { color: 'text-indigo-400', bg: 'bg-indigo-900/20', border: 'border-indigo-500/30', icon: GitBranch },
+        followup: { color: 'text-blue-400', bg: 'bg-blue-900/20', border: 'border-blue-500/30', icon: ArrowRight },
+        technical: { color: 'text-purple-400', bg: 'bg-purple-900/20', border: 'border-purple-500/30', icon: Code },
+        executive: { color: 'text-yellow-400', bg: 'bg-yellow-900/20', border: 'border-yellow-500/30', icon: Star },
+        planning: { color: 'text-green-400', bg: 'bg-green-900/20', border: 'border-green-500/30', icon: Target },
+        review: { color: 'text-pink-400', bg: 'bg-pink-900/20', border: 'border-pink-500/30', icon: Eye }
       };
       const submeeting = submeetingTypes[block.submeetingType || 'breakout'];
       const IconComponent = submeeting.icon;
 
       return (
         <div className={`${submeeting.bg} ${submeeting.border} border rounded-lg p-4`}>
-          <div className="flex items-center gap-3 mb-3">
-            <IconComponent className={`w-5 h-5 ${submeeting.color}`} />
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <IconComponent className={`w-5 h-5 ${submeeting.color}`} />
+              <select
+                value={block.submeetingType || 'breakout'}
+                onChange={(e) => {
+                  const newBlocks = [...blocks];
+                  newBlocks[index].submeetingType = e.target.value;
+                  setBlocks(newBlocks);
+                }}
+                className="bg-gray-800 text-white px-2 py-1 rounded text-sm focus:outline-none font-medium"
+              >
+                <option value="breakout">Breakout</option>
+                <option value="followup">Follow-up</option>
+                <option value="technical">Technical</option>
+                <option value="executive">Executive</option>
+                <option value="planning">Planning</option>
+                <option value="review">Review</option>
+              </select>
+            </div>
             <select
-              value={block.submeetingType || 'breakout'}
+              value={block.status || 'scheduled'}
               onChange={(e) => {
                 const newBlocks = [...blocks];
-                newBlocks[index].submeetingType = e.target.value;
+                newBlocks[index].status = e.target.value;
                 setBlocks(newBlocks);
               }}
-              className="bg-transparent text-white focus:outline-none font-medium"
+              className={`px-2 py-1 rounded text-xs font-medium ${
+                block.status === 'completed' ? 'bg-green-900/30 text-green-300' :
+                block.status === 'in-progress' ? 'bg-yellow-900/30 text-yellow-300' :
+                'bg-blue-900/30 text-blue-300'
+              }`}
             >
-              <option value="breakout" className="bg-gray-800">Breakout Session</option>
-              <option value="followup" className="bg-gray-800">Follow-up Meeting</option>
-              <option value="technical" className="bg-gray-800">Technical Deep-dive</option>
-              <option value="executive" className="bg-gray-800">Executive Briefing</option>
+              <option value="scheduled">Scheduled</option>
+              <option value="in-progress">In Progress</option>
+              <option value="completed">Completed</option>
             </select>
           </div>
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-300 min-w-[60px]">Title:</label>
-              <input
-                type="text"
-                value={block.title || ''}
-                onChange={(e) => {
-                  const newBlocks = [...blocks];
-                  newBlocks[index].title = e.target.value;
-                  setBlocks(newBlocks);
-                }}
-                placeholder="Sub-meeting title..."
-                className="flex-1 bg-gray-800 text-white px-2 py-1 rounded text-sm focus:outline-none"
-              />
+
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-gray-300 block mb-1">Title:</label>
+                <input
+                  type="text"
+                  value={block.title || ''}
+                  onChange={(e) => {
+                    const newBlocks = [...blocks];
+                    newBlocks[index].title = e.target.value;
+                    setBlocks(newBlocks);
+                  }}
+                  placeholder="Sub-meeting title..."
+                  className="w-full bg-gray-800 text-white px-2 py-1 rounded text-sm focus:outline-none"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-medium text-gray-300 block mb-1">Start:</label>
+                  <input
+                    type="time"
+                    value={block.startTime || ''}
+                    onChange={(e) => {
+                      const newBlocks = [...blocks];
+                      newBlocks[index].startTime = e.target.value;
+                      setBlocks(newBlocks);
+                    }}
+                    className="w-full bg-gray-800 text-white px-2 py-1 rounded text-sm focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-300 block mb-1">Duration:</label>
+                  <input
+                    type="number"
+                    value={block.duration || '30'}
+                    onChange={(e) => {
+                      const newBlocks = [...blocks];
+                      newBlocks[index].duration = e.target.value;
+                      setBlocks(newBlocks);
+                    }}
+                    className="w-full bg-gray-800 text-white px-2 py-1 rounded text-sm focus:outline-none"
+                    min="5"
+                    max="480"
+                  />
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-300 min-w-[60px]">Duration:</label>
-              <input
-                type="number"
-                value={block.duration || '30'}
-                onChange={(e) => {
-                  const newBlocks = [...blocks];
-                  newBlocks[index].duration = e.target.value;
-                  setBlocks(newBlocks);
-                }}
-                className="bg-gray-800 text-white px-2 py-1 rounded text-sm focus:outline-none w-20"
-                min="5"
-                max="240"
-              />
-              <span className="text-sm text-gray-400">minutes</span>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-gray-300 block mb-1">Facilitator:</label>
+                <input
+                  type="text"
+                  value={block.facilitator || ''}
+                  onChange={(e) => {
+                    const newBlocks = [...blocks];
+                    newBlocks[index].facilitator = e.target.value;
+                    setBlocks(newBlocks);
+                  }}
+                  placeholder="Facilitator name..."
+                  className="w-full bg-gray-800 text-white px-2 py-1 rounded text-sm focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-300 block mb-1">Participants:</label>
+                <input
+                  type="text"
+                  value={block.participants || ''}
+                  onChange={(e) => {
+                    const newBlocks = [...blocks];
+                    newBlocks[index].participants = e.target.value;
+                    setBlocks(newBlocks);
+                  }}
+                  placeholder="Names (comma separated)..."
+                  className="w-full bg-gray-800 text-white px-2 py-1 rounded text-sm focus:outline-none"
+                />
+              </div>
             </div>
-            <div>
-              <label className="text-sm text-gray-300 block mb-1">Agenda/Notes:</label>
-              <textarea
-                value={block.content}
-                onChange={(e) => updateBlockContent(e.target.value)}
-                placeholder="Sub-meeting agenda, objectives, or notes..."
-                className="w-full bg-gray-800 text-white px-2 py-1 rounded text-sm focus:outline-none resize-none"
-                rows="3"
-              />
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-gray-300 block mb-1">Agenda & Notes:</label>
+            <textarea
+              value={block.content}
+              onChange={(e) => {
+                updateBlockContent(e.target.value);
+                e.target.style.height = 'auto';
+                e.target.style.height = e.target.scrollHeight + 'px';
+              }}
+              placeholder="Meeting agenda, objectives, and notes..."
+              className="w-full bg-gray-800 text-white px-2 py-1 rounded text-sm focus:outline-none resize-none overflow-hidden"
+              style={{ minHeight: '60px', height: 'auto' }}
+            />
+          </div>
+
+          <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-700">
+            <div className="flex items-center gap-4 text-xs text-gray-400">
+              <span className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {block.startTime ? `${block.startTime} (${block.duration || 30}min)` : 'Time not set'}
+              </span>
+              <span className="flex items-center gap-1">
+                <Users className="w-3 h-3" />
+                {block.participants && typeof block.participants === 'string' ? block.participants.split(',').length : 0} people
+              </span>
             </div>
           </div>
         </div>
@@ -1214,6 +1365,213 @@ const MeetingEditorPage = () => {
 
                   <hr className="border-gray-700 my-2" />
 
+                  {/* Sub-Meetings Section */}
+                  <div className="mt-4 mb-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <button
+                        onClick={() => setShowSubMeetings(!showSubMeetings)}
+                        className="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white transition-colors"
+                      >
+                        {showSubMeetings ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                        <GitBranch className="w-4 h-4" />
+                        Sub-Meetings ({subMeetings.length})
+                      </button>
+                      {showSubMeetings && (
+                        <div className="flex items-center gap-2">
+                          {subMeetings.length > 0 && (
+                            <div className="flex items-center gap-2 text-xs">
+                              <span className="px-2 py-1 rounded bg-blue-900/30 text-blue-300">
+                                📅 {subMeetings.filter(s => s.status === 'scheduled').length} Scheduled
+                              </span>
+                              <span className="px-2 py-1 rounded bg-yellow-900/30 text-yellow-300">
+                                ▶️ {subMeetings.filter(s => s.status === 'in-progress').length} Active
+                              </span>
+                              <span className="px-2 py-1 rounded bg-green-900/30 text-green-300">
+                                ✅ {subMeetings.filter(s => s.status === 'completed').length} Done
+                              </span>
+                              <span className="px-2 py-1 rounded bg-red-900/30 text-red-300">
+                                ⚠️ {subMeetings.filter(s => {
+                                  return subMeetings.some(other => 
+                                    other.id !== s.id && 
+                                    other.startTime && other.endTime && s.startTime && s.endTime &&
+                                    ((s.startTime >= other.startTime && s.startTime < other.endTime) ||
+                                     (s.endTime > other.startTime && s.endTime <= other.endTime) ||
+                                     (s.startTime <= other.startTime && s.endTime >= other.endTime))
+                                  );
+                                }).length} Conflicts
+                              </span>
+                            </div>
+                          )}
+                          <button
+                            onClick={addSubMeeting}
+                            className="flex items-center gap-1 px-3 py-1 rounded text-xs font-medium transition-colors bg-blue-600 hover:bg-blue-700 text-white"
+                          >
+                            <Plus className="w-3 h-3" />
+                            Add Sub-Meeting
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {showSubMeetings && (
+                      <div className="space-y-3">
+                        {subMeetings.length > 0 ? (
+                          subMeetings.map(subMeeting => {
+                            const statusColors = {
+                              scheduled: 'text-blue-400 bg-blue-900/20',
+                              'in-progress': 'text-yellow-400 bg-yellow-900/20',
+                              completed: 'text-green-400 bg-green-900/20'
+                            };
+                            
+                            return (
+                              <div key={subMeeting.id} className="p-4 rounded-lg border bg-gray-800 border-gray-700">
+                                {/* Header Row */}
+                                <div className="flex items-center gap-3 mb-3">
+                                  <select
+                                    value={subMeeting.type}
+                                    onChange={(e) => updateSubMeeting(subMeeting.id, 'type', e.target.value)}
+                                    className="px-2 py-1 rounded text-xs font-medium bg-gray-700 text-gray-300"
+                                  >
+                                    <option value="breakout">Breakout</option>
+                                    <option value="followup">Follow-up</option>
+                                    <option value="technical">Technical</option>
+                                    <option value="executive">Executive</option>
+                                  </select>
+                                  <input
+                                    type="text"
+                                    value={subMeeting.title}
+                                    onChange={(e) => updateSubMeeting(subMeeting.id, 'title', e.target.value)}
+                                    placeholder="Sub-meeting title..."
+                                    className="flex-1 px-2 py-1 rounded text-sm font-medium bg-gray-700 text-white"
+                                  />
+                                  <select
+                                    value={subMeeting.status}
+                                    onChange={(e) => updateSubMeeting(subMeeting.id, 'status', e.target.value)}
+                                    className={`px-2 py-1 rounded text-xs font-medium ${statusColors[subMeeting.status || 'scheduled']}`}
+                                  >
+                                    <option value="scheduled">Scheduled</option>
+                                    <option value="in-progress">In Progress</option>
+                                    <option value="completed">Completed</option>
+                                  </select>
+                                  <button
+                                    onClick={() => deleteSubMeeting(subMeeting.id)}
+                                    className="p-1 rounded transition-colors hover:bg-red-900/30 text-red-400"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                </div>
+                                
+                                {/* Time & Duration Row */}
+                                <div className="flex items-center gap-3 mb-3">
+                                  <Clock className="w-4 h-4 text-gray-400" />
+                                  <input
+                                    type="time"
+                                    value={subMeeting.startTime}
+                                    onChange={(e) => updateSubMeeting(subMeeting.id, 'startTime', e.target.value)}
+                                    className="px-2 py-1 rounded text-sm bg-gray-700 text-white"
+                                  />
+                                  <span className="text-gray-400">-</span>
+                                  <input
+                                    type="time"
+                                    value={subMeeting.endTime}
+                                    onChange={(e) => updateSubMeeting(subMeeting.id, 'endTime', e.target.value)}
+                                    className="px-2 py-1 rounded text-sm bg-gray-700 text-white"
+                                  />
+                                  <span className="text-gray-400">|</span>
+                                  <input
+                                    type="number"
+                                    value={subMeeting.duration}
+                                    onChange={(e) => updateSubMeeting(subMeeting.id, 'duration', e.target.value)}
+                                    className="w-16 px-2 py-1 rounded text-sm bg-gray-700 text-white"
+                                    min="5"
+                                    max="240"
+                                  />
+                                  <span className="text-xs text-gray-400">min</span>
+                                </div>
+                                
+                                {/* Participants Row */}
+                                <div className="flex items-center gap-3 mb-3">
+                                  <Users className="w-4 h-4 text-gray-400" />
+                                  <select
+                                    value={subMeeting.facilitator || ''}
+                                    onChange={(e) => updateSubMeeting(subMeeting.id, 'facilitator', e.target.value)}
+                                    className="px-2 py-1 rounded text-sm bg-gray-700 text-gray-300"
+                                  >
+                                    <option value="">Select Facilitator</option>
+                                    {meeting.attendees?.map(attendee => (
+                                      <option key={attendee} value={attendee}>{attendee}</option>
+                                    ))}
+                                  </select>
+                                  <div className="flex-1 flex flex-wrap gap-1">
+                                    {subMeeting.participants?.map(participant => (
+                                      <span key={participant} className="px-2 py-1 rounded text-xs bg-blue-900/30 text-blue-300">
+                                        {participant}
+                                        <button
+                                          onClick={() => {
+                                            const newParticipants = subMeeting.participants.filter(p => p !== participant);
+                                            updateSubMeeting(subMeeting.id, 'participants', newParticipants);
+                                          }}
+                                          className="ml-1 text-red-400 hover:text-red-300"
+                                        >
+                                          ×
+                                        </button>
+                                      </span>
+                                    ))}
+                                    <select
+                                      value=""
+                                      onChange={(e) => {
+                                        if (e.target.value && !subMeeting.participants?.includes(e.target.value)) {
+                                          const newParticipants = [...(subMeeting.participants || []), e.target.value];
+                                          updateSubMeeting(subMeeting.id, 'participants', newParticipants);
+                                        }
+                                      }}
+                                      className="px-2 py-1 rounded text-xs bg-gray-700 text-gray-300"
+                                    >
+                                      <option value="">+ Add Participant</option>
+                                      {meeting.attendees?.filter(attendee => !subMeeting.participants?.includes(attendee)).map(attendee => (
+                                        <option key={attendee} value={attendee}>{attendee}</option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                </div>
+                                
+                                {/* Agenda */}
+                                <div className="mb-3">
+                                  <label className="text-xs font-medium text-gray-300 block mb-1">Agenda & Objectives:</label>
+                                  <textarea
+                                    value={subMeeting.agenda}
+                                    onChange={(e) => updateSubMeeting(subMeeting.id, 'agenda', e.target.value)}
+                                    placeholder="Meeting agenda, objectives, and expected outcomes..."
+                                    className="w-full px-2 py-1 rounded text-sm resize-none bg-gray-700 text-white"
+                                    rows="2"
+                                  />
+                                </div>
+                                
+                                {/* Expected Outcomes */}
+                                <div className="flex items-center gap-2">
+                                  <Target className="w-4 h-4 text-gray-400" />
+                                  <span className="text-xs text-gray-400">
+                                    Expected: {subMeeting.expectedOutcomes?.length || 0} outcomes | 
+                                    Participants: {subMeeting.participants?.length || 0} people
+                                    {subMeeting.facilitator && ` | Facilitator: ${subMeeting.facilitator}`}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <div className="text-center py-6 text-gray-500">
+                            <GitBranch className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                            <p className="text-sm font-medium mb-1">No sub-meetings yet</p>
+                            <p className="text-xs">Add breakout sessions, follow-ups, or technical deep-dives to organize your meeting better.</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <hr className="border-gray-700 my-2" />
+
                   <div className="mt-2 relative">
                     <div className="flex items-center justify-between mb-2">
                       <div className="text-sm font-medium text-gray-300">Notes</div>
@@ -1291,20 +1649,7 @@ const MeetingEditorPage = () => {
                                 </button>
 
                                 <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-3">SUB-MEETINGS & BREAKOUTS</div>
-                                <button onClick={() => { const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: '🔀 Breakout Session Planning', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'Session Overview:', style: {} }, { id: `block-${Date.now()}-3`, type: 'bullet', content: '• Purpose: Focused discussion on specific topics with smaller groups', style: {} }, { id: `block-${Date.now()}-4`, type: 'bullet', content: '• Format: Parallel sessions with cross-functional teams', style: {} }, { id: `block-${Date.now()}-5`, type: 'submeeting', submeetingType: 'breakout', title: 'Product Strategy Discussion', duration: '45', content: 'Objective: Define Q1 product roadmap priorities\n\nParticipants: Product Manager, Engineering Lead, UX Designer\n\nKey Questions:\n• What are the top 3 features for Q1?\n• Resource allocation and timeline\n• Technical feasibility assessment', style: {} }, { id: `block-${Date.now()}-6`, type: 'submeeting', submeetingType: 'technical', title: 'Architecture Review', duration: '60', content: 'Objective: Technical deep-dive on system architecture\n\nParticipants: Senior Engineers, DevOps, Security Team\n\nTopics:\n• Scalability concerns and solutions\n• Security architecture review\n• Performance optimization strategies', style: {} }, { id: `block-${Date.now()}-7`, type: 'submeeting', submeetingType: 'executive', title: 'Budget & Resource Planning', duration: '30', content: 'Objective: Executive decision on resource allocation\n\nParticipants: Department Heads, CFO, CEO\n\nDecisions Needed:\n• Q1 budget approval\n• Hiring authorization\n• Strategic priority alignment', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(null); }} className="w-full flex items-start gap-3 px-3 py-2.5 text-left hover:bg-gray-700 rounded-lg text-gray-300 transition-colors">
-                                  <GitBranch className="w-4 h-4 text-indigo-400 mt-0.5" />
-                                  <div>
-                                    <div className="font-medium text-sm">Breakout Sessions</div>
-                                    <div className="text-xs text-gray-400 mt-0.5">Multiple parallel sub-meetings with focused agendas</div>
-                                  </div>
-                                </button>
-                                <button onClick={() => { const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: '🔄 Follow-up Meeting Series', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'Follow-up Structure:', style: {} }, { id: `block-${Date.now()}-3`, type: 'bullet', content: '• Purpose: Track action items and ensure accountability', style: {} }, { id: `block-${Date.now()}-4`, type: 'bullet', content: '• Frequency: Weekly check-ins with stakeholders', style: {} }, { id: `block-${Date.now()}-5`, type: 'submeeting', submeetingType: 'followup', title: 'Action Items Review', duration: '30', content: 'Objective: Review progress on assigned action items\n\nParticipants: Project team leads and stakeholders\n\nAgenda:\n• Status update on each action item\n• Identify blockers and solutions\n• Adjust timelines if needed\n• Assign new action items', style: {} }, { id: `block-${Date.now()}-6`, type: 'submeeting', submeetingType: 'followup', title: 'Stakeholder Sync', duration: '20', content: 'Objective: Keep stakeholders informed of progress\n\nParticipants: Project Manager, Key Stakeholders\n\nTopics:\n• Weekly progress summary\n• Upcoming milestones\n• Risk and issue escalation\n• Resource needs', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(null); }} className="w-full flex items-start gap-3 px-3 py-2.5 text-left hover:bg-gray-700 rounded-lg text-gray-300 transition-colors">
-                                  <ArrowRight className="w-4 h-4 text-blue-400 mt-0.5" />
-                                  <div>
-                                    <div className="font-medium text-sm">Follow-up Series</div>
-                                    <div className="text-xs text-gray-400 mt-0.5">Structured follow-up meetings for accountability</div>
-                                  </div>
-                                </button>
+
 
                                 <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-3">CLIENT & STAKEHOLDER</div>
                                 <button onClick={() => { const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: '🤝 Strategic Client Partnership Meeting - [Client Name]', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'Meeting Context & Relationship Overview:', style: {} }, { id: `block-${Date.now()}-3`, type: 'bullet', content: '• Client: [Company Name] - Fortune 500 Technology Leader | Contract Value: $2.5M annually | Relationship: 3 years', style: {} }, { id: `block-${Date.now()}-4`, type: 'bullet', content: '• Meeting Type: Quarterly Business Review | Duration: 2 hours | Location: Client HQ / Virtual Hybrid', style: {} }, { id: `block-${Date.now()}-5`, type: 'bullet', content: '• Client Attendees: John Smith (CTO), Sarah Johnson (VP Engineering), Mike Chen (Product Director)', style: {} }, { id: `block-${Date.now()}-6`, type: 'bullet', content: '• Our Team: [Account Manager], [Technical Lead], [Project Manager], [Sales Director]', style: {} }, { id: `block-${Date.now()}-7`, type: 'divider', content: '', style: {} }, { id: `block-${Date.now()}-8`, type: 'text', content: '📈 PROJECT STATUS & PERFORMANCE METRICS:', style: {} }, { id: `block-${Date.now()}-9`, type: 'bullet', content: '• Overall Progress: 78% complete (ahead of schedule by 2 weeks) | Budget Utilization: 65% ($1.625M of $2.5M)', style: {} }, { id: `block-${Date.now()}-10`, type: 'bullet', content: '• Key Milestones Achieved: API integration (100%), User dashboard (95%), Mobile app (80%), Security audit (completed)', style: {} }, { id: `block-${Date.now()}-11`, type: 'bullet', content: '• Performance KPIs: 99.9% uptime, 1.2s avg response time, 0 critical security incidents, 4.8/5 user satisfaction', style: {} }, { id: `block-${Date.now()}-12`, type: 'bullet', content: '• Upcoming Deliverables: Advanced analytics module (Dec 15), Third-party integrations (Jan 10), Go-live preparation (Feb 1)', style: {} }, { id: `block-${Date.now()}-13`, type: 'text', content: '🗣️ CLIENT FEEDBACK & STRATEGIC INPUT:', style: {} }, { id: `block-${Date.now()}-14`, type: 'bullet', content: '• 🟢 POSITIVE: "Dashboard redesign exceeded expectations, 40% improvement in user engagement metrics"', style: {} }, { id: `block-${Date.now()}-15`, type: 'bullet', content: '• 🟢 POSITIVE: "API performance is outstanding, handling 10x more traffic than projected"', style: {} }, { id: `block-${Date.now()}-16`, type: 'bullet', content: '• 🟢 POSITIVE: "Team communication and transparency has been exceptional throughout the project"', style: {} }, { id: `block-${Date.now()}-17`, type: 'bullet', content: '• 🟡 REQUEST: Additional advanced reporting features for executive dashboard (estimated 3-week effort)', style: {} }, { id: `block-${Date.now()}-18`, type: 'bullet', content: '• 🟡 REQUEST: Integration with Salesforce and HubSpot for unified customer view (new scope)', style: {} }, { id: `block-${Date.now()}-19`, type: 'bullet', content: '• 🟠 CONCERN: Mobile app performance on older Android devices needs optimization', style: {} }, { id: `block-${Date.now()}-20`, type: 'text', content: '💼 BUSINESS IMPACT & VALUE REALIZATION:', style: {} }, { id: `block-${Date.now()}-21`, type: 'bullet', content: '• Cost Savings: $800K annually through process automation and efficiency gains', style: {} }, { id: `block-${Date.now()}-22`, type: 'bullet', content: '• Revenue Impact: 25% increase in customer conversion rate, $2.1M additional revenue projected', style: {} }, { id: `block-${Date.now()}-23`, type: 'bullet', content: '• Operational Efficiency: 60% reduction in manual processes, 4 FTE hours saved daily', style: {} }, { id: `block-${Date.now()}-24`, type: 'bullet', content: '• User Adoption: 85% active user rate (target was 70%), 4.8/5 satisfaction score', style: {} }, { id: `block-${Date.now()}-25`, type: 'text', content: '🔮 FUTURE ROADMAP & EXPANSION OPPORTUNITIES:', style: {} }, { id: `block-${Date.now()}-26`, type: 'bullet', content: '• Phase 2 Expansion: AI/ML analytics module with predictive capabilities ($1.2M additional scope)', style: {} }, { id: `block-${Date.now()}-27`, type: 'bullet', content: '• International Rollout: European and APAC markets (compliance requirements, localization)', style: {} }, { id: `block-${Date.now()}-28`, type: 'bullet', content: '• Enterprise Features: Advanced security, audit trails, custom workflows ($800K scope)', style: {} }, { id: `block-${Date.now()}-29`, type: 'bullet', content: '• Partnership Opportunities: White-label solution for client\'s customers (revenue sharing model)', style: {} }, { id: `block-${Date.now()}-30`, type: 'text', content: '⚙️ TECHNICAL DISCUSSIONS & ARCHITECTURE:', style: {} }, { id: `block-${Date.now()}-31`, type: 'bullet', content: '• Scalability Planning: Current architecture supports 10x growth, cloud-native design future-proof', style: {} }, { id: `block-${Date.now()}-32`, type: 'bullet', content: '• Security Posture: SOC 2 Type II compliant, penetration testing completed, zero critical vulnerabilities', style: {} }, { id: `block-${Date.now()}-33`, type: 'bullet', content: '• Integration Capabilities: RESTful APIs, webhook support, real-time data synchronization', style: {} }, { id: `block-${Date.now()}-34`, type: 'bullet', content: '• Disaster Recovery: 99.99% availability SLA, automated backups, multi-region deployment', style: {} }, { id: `block-${Date.now()}-35`, type: 'text', content: '🎯 STRATEGIC ACTION ITEMS & COMMITMENTS:', style: {} }, { id: `block-${Date.now()}-36`, type: 'todo', content: '☐ Provide detailed proposal for advanced reporting features with timeline and cost | Owner: Sales Director | Due: [Date + 5 days]', style: {} }, { id: `block-${Date.now()}-37`, type: 'todo', content: '☐ Conduct mobile performance audit and optimization plan | Owner: Technical Lead | Due: [Date + 1 week]', style: {} }, { id: `block-${Date.now()}-38`, type: 'todo', content: '☐ Schedule technical deep-dive session for Salesforce/HubSpot integration | Owner: Solutions Architect | Due: [Date + 3 days]', style: {} }, { id: `block-${Date.now()}-39`, type: 'todo', content: '☐ Prepare Phase 2 business case with ROI analysis and implementation roadmap | Owner: Account Manager | Due: [Date + 2 weeks]', style: {} }, { id: `block-${Date.now()}-40`, type: 'todo', content: '☐ Organize executive stakeholder meeting for contract renewal discussions | Owner: Sales Director | Due: [Date + 1 month]', style: {} }, { id: `block-${Date.now()}-41`, type: 'text', content: '📅 NEXT STEPS & FOLLOW-UP SCHEDULE:', style: {} }, { id: `block-${Date.now()}-42`, type: 'bullet', content: '• Weekly Status Calls: Every Tuesday 10 AM EST with project team', style: {} }, { id: `block-${Date.now()}-43`, type: 'bullet', content: '• Monthly Executive Review: First Friday of each month with C-level stakeholders', style: {} }, { id: `block-${Date.now()}-44`, type: 'bullet', content: '• Next QBR Meeting: [Date + 3 months] - Focus on Phase 2 planning and expansion', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(null); }} className="w-full flex items-start gap-3 px-3 py-2.5 text-left hover:bg-gray-700 rounded-lg text-gray-300 transition-colors">
@@ -1423,9 +1768,7 @@ const MeetingEditorPage = () => {
                                     }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
                                       <Table className="w-4 h-4" /> Table
                                     </button>
-                                    <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'submeeting', content: '', submeetingType: 'breakout', title: 'Breakout Session', participants: [], duration: '30', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
-                                      <GitBranch className="w-4 h-4 text-indigo-400" /> Sub-Meeting
-                                    </button>
+
 
                                     <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-2">CALLOUTS</div>
                                     <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'callout', calloutType: 'info', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">

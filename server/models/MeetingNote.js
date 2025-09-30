@@ -119,6 +119,35 @@ const meetingNoteSchema = new mongoose.Schema({
     interval: Number,
     endDate: Date
   },
+  subMeetings: [{
+    id: String,
+    title: String,
+    type: {
+      type: String,
+      enum: ['breakout', 'followup', 'technical', 'executive', 'planning', 'review'],
+      default: 'breakout'
+    },
+    duration: String,
+    startTime: String,
+    endTime: String,
+    agenda: String,
+    participants: [String],
+    facilitator: String,
+    status: {
+      type: String,
+      enum: ['scheduled', 'in-progress', 'completed'],
+      default: 'scheduled'
+    },
+    expectedOutcomes: [String],
+    actionItems: [String]
+  }],
+  blocks: [{
+    id: String,
+    type: String,
+    content: String,
+    style: mongoose.Schema.Types.Mixed
+  }],
+  tableData: mongoose.Schema.Types.Mixed,
   deleted: {
     type: Boolean,
     default: false
