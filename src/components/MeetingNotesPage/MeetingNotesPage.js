@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
-import { Plus, Search, Calendar, Clock, Users, FileText, Filter, MoreHorizontal, Edit, Trash2, Copy, CheckCircle, Circle, TrendingUp, BarChart2, Tag, Clock as ClockIcon, ChevronDown, ChevronRight, GitBranch, UserPlus, Target, PlayCircle, PauseCircle, CheckCircle2 } from 'lucide-react';
+import { Plus, Search, Calendar, Clock, Users, FileText, Filter, Edit, CheckCircle, Circle, TrendingUp, BarChart2, Tag, Clock as ClockIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getMeetings, deleteMeeting, completeMeetingActionItem, addMeetingActionItem, updateMeeting } from '../../services/api';
 import ServerStatus from '../ServerStatus/ServerStatus';
@@ -16,7 +16,7 @@ const MeetingNotesPage = () => {
   const [showDropdown, setShowDropdown] = useState(null);
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [expandedMeetings, setExpandedMeetings] = useState(new Set());
+
 
   // Load meetings from API
   useEffect(() => {
@@ -45,12 +45,12 @@ const MeetingNotesPage = () => {
         time: meeting.time,
         duration: meeting.duration,
         attendees: meeting.attendees || [],
-        status: meeting.status.toLowerCase(),
+        status: meeting.status,
         type: meeting.type,
         notes: meeting.notes || '',
         actionItems: meeting.actionItems || [],
         tags: meeting.tags || [],
-        subMeetings: meeting.subMeetings || [],
+        location: meeting.location || '',
         createdAt: meeting.createdAt
       }));
       
@@ -196,22 +196,11 @@ const MeetingNotesPage = () => {
     }
   };
 
-  const toggleMeetingExpansion = (meetingId) => {
-    const newExpanded = new Set(expandedMeetings);
-    if (newExpanded.has(meetingId)) {
-      newExpanded.delete(meetingId);
-    } else {
-      newExpanded.add(meetingId);
-    }
-    setExpandedMeetings(newExpanded);
-  };
+
 
 
 
   const MeetingListItem = ({ meeting }) => {
-    const isExpanded = expandedMeetings.has(meeting.id);
-    const meetingSubMeetings = meeting.subMeetings || [];
-
     return (
       <div className={`border-b last:border-b-0 transition-all duration-200 ${isDarkMode ? 'border-gray-700/50' : 'border-gray-200/60'}`}>
         <div className={`p-5 hover:bg-gradient-to-r ${isDarkMode ? 'hover:from-gray-800/30 hover:to-gray-800/10' : 'hover:from-blue-50/30 hover:to-purple-50/20'} group transition-all duration-200`}>
@@ -223,9 +212,16 @@ const MeetingNotesPage = () => {
                 onClick={() => navigate(`/meeting-editor/${meeting.id}`)}
               >
                 <div className={`flex items-center text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  <span className={`font-semibold text-lg mr-3 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'} group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors`}>
-                    {meeting.title}
-                  </span>
+                  <input
+                    type="text"
+                    value={meeting.title}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      updateMeetingField(meeting.id, 'title', e.target.value);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className={`font-semibold text-lg mr-3 bg-transparent border-none outline-none ${isDarkMode ? 'text-gray-100' : 'text-gray-900'} group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors`}
+                  />
                   <span className="mr-3">•</span>
                   <select
                     value={meeting.type}
@@ -250,7 +246,7 @@ const MeetingNotesPage = () => {
                     value={meeting.status}
                     onChange={(e) => {
                       e.stopPropagation();
-                      updateMeetingField(meeting.id, 'status', e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1));
+                      updateMeetingField(meeting.id, 'status', e.target.value);
                     }}
                     onClick={(e) => e.stopPropagation()}
                     className={`px-2 py-0.5 rounded text-xs font-medium bg-gray-800 border border-gray-600 outline-none mr-3 ${getStatusColor(meeting.status)}`}
@@ -283,144 +279,31 @@ const MeetingNotesPage = () => {
                     className="bg-transparent border-none outline-none mr-3"
                   />
                   <span className="mr-3">•</span>
+                  <input
+                    type="text"
+                    value={meeting.location || ''}
+                    placeholder="Location"
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      updateMeetingField(meeting.id, 'location', e.target.value);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="bg-transparent border-none outline-none mr-3 w-24"
+                  />
+                  <span className="mr-3">•</span>
                   <span>{meeting.attendees ? meeting.attendees.length : 0} people</span>
                 </div>
               </div>
             </div>
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleMeetingExpansion(meeting.id);
-              }}
-              className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-200' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'}`}
-              title="Toggle sub-meetings"
+              onClick={() => navigate(`/meeting-editor/${meeting.id}`)}
+              className={`flex items-center gap-1 px-3 py-1 rounded text-xs font-medium transition-colors ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
             >
-              {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+              <Edit className="w-3 h-3" />
+              Edit
             </button>
           </div>
         </div>
-        
-        {isExpanded && (
-          <div className={`px-5 pb-5 ${isDarkMode ? 'bg-gray-800/30' : 'bg-gray-50/50'}`}>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-4">
-                <h4 className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  <GitBranch className="w-4 h-4 inline mr-2" />
-                  Sub-Meetings ({meetingSubMeetings.length})
-                </h4>
-                {meetingSubMeetings.length > 0 && (
-                  <div className="flex items-center gap-2 text-xs">
-                    <span className={`px-2 py-1 rounded ${isDarkMode ? 'bg-blue-900/30 text-blue-300' : 'bg-blue-100 text-blue-700'}`}>
-                      {meetingSubMeetings.filter(s => s.status === 'scheduled').length} Scheduled
-                    </span>
-                    <span className={`px-2 py-1 rounded ${isDarkMode ? 'bg-yellow-900/30 text-yellow-300' : 'bg-yellow-100 text-yellow-700'}`}>
-                      {meetingSubMeetings.filter(s => s.status === 'in-progress').length} Active
-                    </span>
-                    <span className={`px-2 py-1 rounded ${isDarkMode ? 'bg-green-900/30 text-green-300' : 'bg-green-100 text-green-700'}`}>
-                      {meetingSubMeetings.filter(s => s.status === 'completed').length} Done
-                    </span>
-                  </div>
-                )}
-              </div>
-              <button
-                onClick={() => navigate(`/meeting-editor/${meeting.id}`)}
-                className={`flex items-center gap-1 px-3 py-1 rounded text-xs font-medium transition-colors ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
-              >
-                <Plus className="w-3 h-3" />
-                Edit in Meeting Editor
-              </button>
-            </div>
-            
-            {meetingSubMeetings.length > 0 ? (
-              <div className="space-y-2">
-                {meetingSubMeetings.map(subMeeting => {
-                  const statusColors = {
-                    scheduled: 'text-blue-400 bg-blue-900/20',
-                    'in-progress': 'text-yellow-400 bg-yellow-900/20',
-                    completed: 'text-green-400 bg-green-900/20'
-                  };
-                  
-                  return (
-                    <div key={subMeeting.id} className={`p-4 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-                      {/* Header Row - Read Only */}
-                      <div className="flex items-center gap-3 mb-3">
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'}`}>
-                          {subMeeting.type || 'breakout'}
-                        </span>
-                        <span className={`flex-1 px-2 py-1 rounded text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                          {subMeeting.title || 'Untitled Sub-Meeting'}
-                        </span>
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${statusColors[subMeeting.status || 'scheduled']}`}>
-                          {subMeeting.status || 'scheduled'}
-                        </span>
-                      </div>
-                      
-                      {/* Time & Duration Row - Read Only */}
-                      <div className="flex items-center gap-3 mb-3">
-                        <Clock className="w-4 h-4 text-gray-400" />
-                        <span className={`px-2 py-1 rounded text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                          {subMeeting.startTime || '--:--'}
-                        </span>
-                        <span className="text-gray-400">-</span>
-                        <span className={`px-2 py-1 rounded text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                          {subMeeting.endTime || '--:--'}
-                        </span>
-                        <span className="text-gray-400">|</span>
-                        <span className={`px-2 py-1 rounded text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                          {subMeeting.duration || '30'} min
-                        </span>
-                      </div>
-                      
-                      {/* Participants Row - Read Only */}
-                      <div className="flex items-center gap-3 mb-3">
-                        <Users className="w-4 h-4 text-gray-400" />
-                        <span className={`px-2 py-1 rounded text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                          Facilitator: {subMeeting.facilitator || 'Not assigned'}
-                        </span>
-                        <div className="flex-1 flex flex-wrap gap-1">
-                          {subMeeting.participants?.map(participant => (
-                            <span key={participant} className={`px-2 py-1 rounded text-xs ${isDarkMode ? 'bg-blue-900/30 text-blue-300' : 'bg-blue-100 text-blue-700'}`}>
-                              {participant}
-                            </span>
-                          ))}
-                          {(!subMeeting.participants || subMeeting.participants.length === 0) && (
-                            <span className={`px-2 py-1 rounded text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                              No participants assigned
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      
-                      {/* Agenda - Read Only */}
-                      <div className="mb-3">
-                        <label className={`text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} block mb-1`}>Agenda & Objectives:</label>
-                        <div className={`w-full px-2 py-1 rounded text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} min-h-[2rem]`}>
-                          {subMeeting.agenda || 'No agenda specified'}
-                        </div>
-                      </div>
-                      
-                      {/* Expected Outcomes */}
-                      <div className="flex items-center gap-2">
-                        <Target className="w-4 h-4 text-gray-400" />
-                        <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                          Expected: {subMeeting.expectedOutcomes?.length || 0} outcomes | 
-                          Participants: {subMeeting.participants?.length || 0} people
-                          {subMeeting.facilitator && ` | Facilitator: ${subMeeting.facilitator}`}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className={`text-center py-6 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                <GitBranch className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm font-medium mb-1">No sub-meetings yet</p>
-                <p className="text-xs">Add breakout sessions, follow-ups, or technical deep-dives to organize your meeting better.</p>
-              </div>
-            )}
-          </div>
-        )}
       </div>
     );
   };

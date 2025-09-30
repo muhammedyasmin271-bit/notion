@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { useParams, useNavigate } from 'react-router-dom';
 import './MeetingEditorPage.css';
-import { Save, ArrowLeft, Calendar, Clock, Users, Plus, X, CheckCircle, Circle, Video, Sparkles, GripVertical, Type, Hash, List, Quote, Code, Image, Trash2, Copy, ArrowUp, ArrowDown, ArrowRight, CheckSquare, Table, Calendar as CalendarIcon, Link2 as Link, Minus as Divider, Minus, AlertCircle, Star, Tag, MapPin, Phone, Mail, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, ListOrdered, FileText, Bookmark, Lightbulb, Info, AlertTriangle, Zap, Heart, Smile, Eye, Lock, Globe, Download, Upload, Search, Filter, Settings, MoreHorizontal, BarChart3, GitBranch, UserPlus, Target, PlayCircle, PauseCircle, CheckCircle2, ChevronDown, ChevronRight } from 'lucide-react';
-import { getMeetingById, createMeeting, updateMeeting, addMeetingActionItem, getUsers } from '../../services/api';
+import { Save, ArrowLeft, Calendar, Clock, Users, Plus, X, CheckCircle, Circle, Sparkles, GripVertical, Type, Hash, List, Quote, Code, Trash2, Copy, ArrowUp, ArrowDown, ArrowRight, CheckSquare, Table, Minus, AlertCircle, Star, Tag, MapPin, Mail, ListOrdered, FileText, Lightbulb, Info, AlertTriangle, Target, BarChart3 } from 'lucide-react';
+import { getMeetingById, createMeeting, updateMeeting, addMeetingActionItem, getUsers, deleteMeeting } from '../../services/api';
 
 const MeetingEditorPage = () => {
   const { isDarkMode } = useTheme();
@@ -14,8 +14,8 @@ const MeetingEditorPage = () => {
   const [meeting, setMeeting] = useState({
     title: '',
     type: 'Standup',
-    date: '',
-    time: '',
+    date: new Date().toISOString().split('T')[0],
+    time: '09:00',
     duration: '30',
     attendees: [],
     agenda: '',
@@ -24,7 +24,7 @@ const MeetingEditorPage = () => {
     tags: [],
     location: '',
     meetingLink: '',
-    status: 'scheduled'
+    status: 'Scheduled'
   });
 
   const [blocks, setBlocks] = useState([{ id: 'block-1', type: 'text', content: '', style: {} }]);
@@ -42,53 +42,6 @@ const MeetingEditorPage = () => {
   const [aiInputBlock, setAiInputBlock] = useState(null);
   const [aiQuery, setAiQuery] = useState('');
   const [loadingError, setLoadingError] = useState(null);
-  const [subMeetings, setSubMeetings] = useState([]);
-  const [showSubMeetings, setShowSubMeetings] = useState(false);
-
-  // Sub-meeting management functions
-  const addSubMeeting = () => {
-    const now = new Date();
-    const startTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-    const endTime = `${(now.getHours()).toString().padStart(2, '0')}:${(now.getMinutes() + 30).toString().padStart(2, '0')}`;
-    
-    const newSubMeeting = {
-      id: Date.now(),
-      title: 'New Sub-Meeting',
-      type: 'breakout',
-      duration: '30',
-      startTime,
-      endTime,
-      agenda: '',
-      participants: [],
-      facilitator: null,
-      status: 'scheduled',
-      expectedOutcomes: [],
-      actionItems: []
-    };
-    setSubMeetings([...subMeetings, newSubMeeting]);
-  };
-
-  const updateSubMeeting = (subMeetingId, field, value) => {
-    setSubMeetings(subMeetings.map(sub => {
-      if (sub.id === subMeetingId) {
-        const updated = { ...sub, [field]: value };
-        // Auto-calculate end time when duration changes
-        if (field === 'duration' && sub.startTime) {
-          const [hours, minutes] = sub.startTime.split(':').map(Number);
-          const totalMinutes = hours * 60 + minutes + parseInt(value);
-          const endHours = Math.floor(totalMinutes / 60) % 24;
-          const endMins = totalMinutes % 60;
-          updated.endTime = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
-        }
-        return updated;
-      }
-      return sub;
-    }));
-  };
-
-  const deleteSubMeeting = (subMeetingId) => {
-    setSubMeetings(subMeetings.filter(sub => sub.id !== subMeetingId));
-  };
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -157,14 +110,7 @@ const MeetingEditorPage = () => {
             setTableData(meetingData.tableData);
           }
           
-          // Load sub-meetings if available
-          if (meetingData.subMeetings && Array.isArray(meetingData.subMeetings)) {
-            console.log('Loading sub-meetings:', meetingData.subMeetings);
-            setSubMeetings(meetingData.subMeetings);
-          } else {
-            console.log('No sub-meetings found in meeting data');
-            setSubMeetings([]);
-          }
+
         } catch (error) {
           console.error('Error loading meeting:', error);
           setLoadingError(error.message || 'Failed to load meeting data');
@@ -255,43 +201,50 @@ const MeetingEditorPage = () => {
 
     setIsSaving(true);
     try {
-      const notesContent = blocks.map(block => block.content).join('\n');
       const meetingData = {
-        ...meeting,
-        notes: notesContent,
-        blocks: blocks,
-        tableData: tableData,
-        subMeetings: subMeetings,
+        title: meeting.title,
+        type: meeting.type || 'Team Sync',
         date: meeting.date ? new Date(meeting.date).toISOString() : new Date().toISOString(),
-        createdAt: isNewMeeting ? new Date().toISOString() : meeting.createdAt,
-        updatedAt: new Date().toISOString()
+        time: meeting.time || '09:00',
+        duration: meeting.duration || '30',
+        attendees: meeting.attendees || [],
+        notes: blocks.map(block => block.content || '').join('\n'),
+        status: meeting.status || 'Scheduled',
+        location: meeting.location || ''
       };
       
-      console.log('Saving meeting data:', meetingData);
-      console.log('Total blocks being saved:', blocks.length);
-      console.log('Sub-meetings being saved:', subMeetings.length);
-      console.log('Sub-meetings data:', subMeetings);
-      console.log('All blocks:', blocks);
-
       let result;
       if (isNewMeeting) {
-        console.log('Creating new meeting...');
         result = await createMeeting(meetingData);
-        console.log('Meeting created successfully:', result);
       } else {
-        console.log('Updating existing meeting...');
         result = await updateMeeting(meetingId, meetingData);
-        console.log('Meeting updated successfully:', result);
       }
 
       alert(`Meeting ${isNewMeeting ? 'created' : 'updated'} successfully!`);
       navigate('/meeting-notes');
     } catch (error) {
       console.error('Error saving meeting:', error);
-      console.error('Error details:', error.message);
       alert(`Failed to save meeting: ${error.message}`);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (isNewMeeting) {
+      navigate('/meeting-notes');
+      return;
+    }
+
+    if (window.confirm('Are you sure you want to delete this meeting? This action cannot be undone.')) {
+      try {
+        await deleteMeeting(meetingId);
+        alert('Meeting deleted successfully!');
+        navigate('/meeting-notes');
+      } catch (error) {
+        console.error('Error deleting meeting:', error);
+        alert(`Failed to delete meeting: ${error.message}`);
+      }
     }
   };
 
@@ -865,168 +818,7 @@ const MeetingEditorPage = () => {
       );
     }
 
-    if (block.type === 'submeeting') {
-      const submeetingTypes = {
-        breakout: { color: 'text-indigo-400', bg: 'bg-indigo-900/20', border: 'border-indigo-500/30', icon: GitBranch },
-        followup: { color: 'text-blue-400', bg: 'bg-blue-900/20', border: 'border-blue-500/30', icon: ArrowRight },
-        technical: { color: 'text-purple-400', bg: 'bg-purple-900/20', border: 'border-purple-500/30', icon: Code },
-        executive: { color: 'text-yellow-400', bg: 'bg-yellow-900/20', border: 'border-yellow-500/30', icon: Star },
-        planning: { color: 'text-green-400', bg: 'bg-green-900/20', border: 'border-green-500/30', icon: Target },
-        review: { color: 'text-pink-400', bg: 'bg-pink-900/20', border: 'border-pink-500/30', icon: Eye }
-      };
-      const submeeting = submeetingTypes[block.submeetingType || 'breakout'];
-      const IconComponent = submeeting.icon;
 
-      return (
-        <div className={`${submeeting.bg} ${submeeting.border} border rounded-lg p-4`}>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <IconComponent className={`w-5 h-5 ${submeeting.color}`} />
-              <select
-                value={block.submeetingType || 'breakout'}
-                onChange={(e) => {
-                  const newBlocks = [...blocks];
-                  newBlocks[index].submeetingType = e.target.value;
-                  setBlocks(newBlocks);
-                }}
-                className="bg-gray-800 text-white px-2 py-1 rounded text-sm focus:outline-none font-medium"
-              >
-                <option value="breakout">Breakout</option>
-                <option value="followup">Follow-up</option>
-                <option value="technical">Technical</option>
-                <option value="executive">Executive</option>
-                <option value="planning">Planning</option>
-                <option value="review">Review</option>
-              </select>
-            </div>
-            <select
-              value={block.status || 'scheduled'}
-              onChange={(e) => {
-                const newBlocks = [...blocks];
-                newBlocks[index].status = e.target.value;
-                setBlocks(newBlocks);
-              }}
-              className={`px-2 py-1 rounded text-xs font-medium ${
-                block.status === 'completed' ? 'bg-green-900/30 text-green-300' :
-                block.status === 'in-progress' ? 'bg-yellow-900/30 text-yellow-300' :
-                'bg-blue-900/30 text-blue-300'
-              }`}
-            >
-              <option value="scheduled">Scheduled</option>
-              <option value="in-progress">In Progress</option>
-              <option value="completed">Completed</option>
-            </select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-medium text-gray-300 block mb-1">Title:</label>
-                <input
-                  type="text"
-                  value={block.title || ''}
-                  onChange={(e) => {
-                    const newBlocks = [...blocks];
-                    newBlocks[index].title = e.target.value;
-                    setBlocks(newBlocks);
-                  }}
-                  placeholder="Sub-meeting title..."
-                  className="w-full bg-gray-800 text-white px-2 py-1 rounded text-sm focus:outline-none"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-xs font-medium text-gray-300 block mb-1">Start:</label>
-                  <input
-                    type="time"
-                    value={block.startTime || ''}
-                    onChange={(e) => {
-                      const newBlocks = [...blocks];
-                      newBlocks[index].startTime = e.target.value;
-                      setBlocks(newBlocks);
-                    }}
-                    className="w-full bg-gray-800 text-white px-2 py-1 rounded text-sm focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-300 block mb-1">Duration:</label>
-                  <input
-                    type="number"
-                    value={block.duration || '30'}
-                    onChange={(e) => {
-                      const newBlocks = [...blocks];
-                      newBlocks[index].duration = e.target.value;
-                      setBlocks(newBlocks);
-                    }}
-                    className="w-full bg-gray-800 text-white px-2 py-1 rounded text-sm focus:outline-none"
-                    min="5"
-                    max="480"
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-medium text-gray-300 block mb-1">Facilitator:</label>
-                <input
-                  type="text"
-                  value={block.facilitator || ''}
-                  onChange={(e) => {
-                    const newBlocks = [...blocks];
-                    newBlocks[index].facilitator = e.target.value;
-                    setBlocks(newBlocks);
-                  }}
-                  placeholder="Facilitator name..."
-                  className="w-full bg-gray-800 text-white px-2 py-1 rounded text-sm focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-gray-300 block mb-1">Participants:</label>
-                <input
-                  type="text"
-                  value={block.participants || ''}
-                  onChange={(e) => {
-                    const newBlocks = [...blocks];
-                    newBlocks[index].participants = e.target.value;
-                    setBlocks(newBlocks);
-                  }}
-                  placeholder="Names (comma separated)..."
-                  className="w-full bg-gray-800 text-white px-2 py-1 rounded text-sm focus:outline-none"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label className="text-xs font-medium text-gray-300 block mb-1">Agenda & Notes:</label>
-            <textarea
-              value={block.content}
-              onChange={(e) => {
-                updateBlockContent(e.target.value);
-                e.target.style.height = 'auto';
-                e.target.style.height = e.target.scrollHeight + 'px';
-              }}
-              placeholder="Meeting agenda, objectives, and notes..."
-              className="w-full bg-gray-800 text-white px-2 py-1 rounded text-sm focus:outline-none resize-none overflow-hidden"
-              style={{ minHeight: '60px', height: 'auto' }}
-            />
-          </div>
-
-          <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-700">
-            <div className="flex items-center gap-4 text-xs text-gray-400">
-              <span className="flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                {block.startTime ? `${block.startTime} (${block.duration || 30}min)` : 'Time not set'}
-              </span>
-              <span className="flex items-center gap-1">
-                <Users className="w-3 h-3" />
-                {block.participants && typeof block.participants === 'string' ? block.participants.split(',').length : 0} people
-              </span>
-            </div>
-          </div>
-        </div>
-      );
-    }
 
     return (
       <div className="relative">
@@ -1100,6 +892,15 @@ const MeetingEditorPage = () => {
                 </button>
               </div>
               <div className="flex items-center gap-3">
+                {!isNewMeeting && (
+                  <button
+                    onClick={handleDelete}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all bg-red-600 hover:bg-red-700 text-white"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete
+                  </button>
+                )}
                 <button
                   onClick={handleSave}
                   disabled={isSaving || !meeting.title.trim()}
@@ -1250,7 +1051,7 @@ const MeetingEditorPage = () => {
                             </label>
                             <input
                               type="text"
-                              value={meeting.location}
+                              value={meeting.location || ''}
                               onChange={(e) => setMeeting(prev => ({ ...prev, location: e.target.value }))}
                               placeholder="Conference Room A"
                               className="px-3 py-2 rounded-lg bg-gray-800 text-white text-sm focus:outline-none flex-1"
@@ -1361,213 +1162,6 @@ const MeetingEditorPage = () => {
                         </div>
                       </div>
                     </div>
-                  </div>
-
-                  <hr className="border-gray-700 my-2" />
-
-                  {/* Sub-Meetings Section */}
-                  <div className="mt-4 mb-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <button
-                        onClick={() => setShowSubMeetings(!showSubMeetings)}
-                        className="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white transition-colors"
-                      >
-                        {showSubMeetings ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                        <GitBranch className="w-4 h-4" />
-                        Sub-Meetings ({subMeetings.length})
-                      </button>
-                      {showSubMeetings && (
-                        <div className="flex items-center gap-2">
-                          {subMeetings.length > 0 && (
-                            <div className="flex items-center gap-2 text-xs">
-                              <span className="px-2 py-1 rounded bg-blue-900/30 text-blue-300">
-                                📅 {subMeetings.filter(s => s.status === 'scheduled').length} Scheduled
-                              </span>
-                              <span className="px-2 py-1 rounded bg-yellow-900/30 text-yellow-300">
-                                ▶️ {subMeetings.filter(s => s.status === 'in-progress').length} Active
-                              </span>
-                              <span className="px-2 py-1 rounded bg-green-900/30 text-green-300">
-                                ✅ {subMeetings.filter(s => s.status === 'completed').length} Done
-                              </span>
-                              <span className="px-2 py-1 rounded bg-red-900/30 text-red-300">
-                                ⚠️ {subMeetings.filter(s => {
-                                  return subMeetings.some(other => 
-                                    other.id !== s.id && 
-                                    other.startTime && other.endTime && s.startTime && s.endTime &&
-                                    ((s.startTime >= other.startTime && s.startTime < other.endTime) ||
-                                     (s.endTime > other.startTime && s.endTime <= other.endTime) ||
-                                     (s.startTime <= other.startTime && s.endTime >= other.endTime))
-                                  );
-                                }).length} Conflicts
-                              </span>
-                            </div>
-                          )}
-                          <button
-                            onClick={addSubMeeting}
-                            className="flex items-center gap-1 px-3 py-1 rounded text-xs font-medium transition-colors bg-blue-600 hover:bg-blue-700 text-white"
-                          >
-                            <Plus className="w-3 h-3" />
-                            Add Sub-Meeting
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {showSubMeetings && (
-                      <div className="space-y-3">
-                        {subMeetings.length > 0 ? (
-                          subMeetings.map(subMeeting => {
-                            const statusColors = {
-                              scheduled: 'text-blue-400 bg-blue-900/20',
-                              'in-progress': 'text-yellow-400 bg-yellow-900/20',
-                              completed: 'text-green-400 bg-green-900/20'
-                            };
-                            
-                            return (
-                              <div key={subMeeting.id} className="p-4 rounded-lg border bg-gray-800 border-gray-700">
-                                {/* Header Row */}
-                                <div className="flex items-center gap-3 mb-3">
-                                  <select
-                                    value={subMeeting.type}
-                                    onChange={(e) => updateSubMeeting(subMeeting.id, 'type', e.target.value)}
-                                    className="px-2 py-1 rounded text-xs font-medium bg-gray-700 text-gray-300"
-                                  >
-                                    <option value="breakout">Breakout</option>
-                                    <option value="followup">Follow-up</option>
-                                    <option value="technical">Technical</option>
-                                    <option value="executive">Executive</option>
-                                  </select>
-                                  <input
-                                    type="text"
-                                    value={subMeeting.title}
-                                    onChange={(e) => updateSubMeeting(subMeeting.id, 'title', e.target.value)}
-                                    placeholder="Sub-meeting title..."
-                                    className="flex-1 px-2 py-1 rounded text-sm font-medium bg-gray-700 text-white"
-                                  />
-                                  <select
-                                    value={subMeeting.status}
-                                    onChange={(e) => updateSubMeeting(subMeeting.id, 'status', e.target.value)}
-                                    className={`px-2 py-1 rounded text-xs font-medium ${statusColors[subMeeting.status || 'scheduled']}`}
-                                  >
-                                    <option value="scheduled">Scheduled</option>
-                                    <option value="in-progress">In Progress</option>
-                                    <option value="completed">Completed</option>
-                                  </select>
-                                  <button
-                                    onClick={() => deleteSubMeeting(subMeeting.id)}
-                                    className="p-1 rounded transition-colors hover:bg-red-900/30 text-red-400"
-                                  >
-                                    <Trash2 className="w-3 h-3" />
-                                  </button>
-                                </div>
-                                
-                                {/* Time & Duration Row */}
-                                <div className="flex items-center gap-3 mb-3">
-                                  <Clock className="w-4 h-4 text-gray-400" />
-                                  <input
-                                    type="time"
-                                    value={subMeeting.startTime}
-                                    onChange={(e) => updateSubMeeting(subMeeting.id, 'startTime', e.target.value)}
-                                    className="px-2 py-1 rounded text-sm bg-gray-700 text-white"
-                                  />
-                                  <span className="text-gray-400">-</span>
-                                  <input
-                                    type="time"
-                                    value={subMeeting.endTime}
-                                    onChange={(e) => updateSubMeeting(subMeeting.id, 'endTime', e.target.value)}
-                                    className="px-2 py-1 rounded text-sm bg-gray-700 text-white"
-                                  />
-                                  <span className="text-gray-400">|</span>
-                                  <input
-                                    type="number"
-                                    value={subMeeting.duration}
-                                    onChange={(e) => updateSubMeeting(subMeeting.id, 'duration', e.target.value)}
-                                    className="w-16 px-2 py-1 rounded text-sm bg-gray-700 text-white"
-                                    min="5"
-                                    max="240"
-                                  />
-                                  <span className="text-xs text-gray-400">min</span>
-                                </div>
-                                
-                                {/* Participants Row */}
-                                <div className="flex items-center gap-3 mb-3">
-                                  <Users className="w-4 h-4 text-gray-400" />
-                                  <select
-                                    value={subMeeting.facilitator || ''}
-                                    onChange={(e) => updateSubMeeting(subMeeting.id, 'facilitator', e.target.value)}
-                                    className="px-2 py-1 rounded text-sm bg-gray-700 text-gray-300"
-                                  >
-                                    <option value="">Select Facilitator</option>
-                                    {meeting.attendees?.map(attendee => (
-                                      <option key={attendee} value={attendee}>{attendee}</option>
-                                    ))}
-                                  </select>
-                                  <div className="flex-1 flex flex-wrap gap-1">
-                                    {subMeeting.participants?.map(participant => (
-                                      <span key={participant} className="px-2 py-1 rounded text-xs bg-blue-900/30 text-blue-300">
-                                        {participant}
-                                        <button
-                                          onClick={() => {
-                                            const newParticipants = subMeeting.participants.filter(p => p !== participant);
-                                            updateSubMeeting(subMeeting.id, 'participants', newParticipants);
-                                          }}
-                                          className="ml-1 text-red-400 hover:text-red-300"
-                                        >
-                                          ×
-                                        </button>
-                                      </span>
-                                    ))}
-                                    <select
-                                      value=""
-                                      onChange={(e) => {
-                                        if (e.target.value && !subMeeting.participants?.includes(e.target.value)) {
-                                          const newParticipants = [...(subMeeting.participants || []), e.target.value];
-                                          updateSubMeeting(subMeeting.id, 'participants', newParticipants);
-                                        }
-                                      }}
-                                      className="px-2 py-1 rounded text-xs bg-gray-700 text-gray-300"
-                                    >
-                                      <option value="">+ Add Participant</option>
-                                      {meeting.attendees?.filter(attendee => !subMeeting.participants?.includes(attendee)).map(attendee => (
-                                        <option key={attendee} value={attendee}>{attendee}</option>
-                                      ))}
-                                    </select>
-                                  </div>
-                                </div>
-                                
-                                {/* Agenda */}
-                                <div className="mb-3">
-                                  <label className="text-xs font-medium text-gray-300 block mb-1">Agenda & Objectives:</label>
-                                  <textarea
-                                    value={subMeeting.agenda}
-                                    onChange={(e) => updateSubMeeting(subMeeting.id, 'agenda', e.target.value)}
-                                    placeholder="Meeting agenda, objectives, and expected outcomes..."
-                                    className="w-full px-2 py-1 rounded text-sm resize-none bg-gray-700 text-white"
-                                    rows="2"
-                                  />
-                                </div>
-                                
-                                {/* Expected Outcomes */}
-                                <div className="flex items-center gap-2">
-                                  <Target className="w-4 h-4 text-gray-400" />
-                                  <span className="text-xs text-gray-400">
-                                    Expected: {subMeeting.expectedOutcomes?.length || 0} outcomes | 
-                                    Participants: {subMeeting.participants?.length || 0} people
-                                    {subMeeting.facilitator && ` | Facilitator: ${subMeeting.facilitator}`}
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          })
-                        ) : (
-                          <div className="text-center py-6 text-gray-500">
-                            <GitBranch className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                            <p className="text-sm font-medium mb-1">No sub-meetings yet</p>
-                            <p className="text-xs">Add breakout sessions, follow-ups, or technical deep-dives to organize your meeting better.</p>
-                          </div>
-                        )}
-                      </div>
-                    )}
                   </div>
 
                   <hr className="border-gray-700 my-2" />
@@ -1740,7 +1334,7 @@ const MeetingEditorPage = () => {
                                       <Code className="w-4 h-4" /> Code Block
                                     </button>
                                     <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'divider', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
-                                      <Divider className="w-4 h-4" /> Divider
+                                      <Minus className="w-4 h-4" /> Divider
                                     </button>
 
                                     <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-2">FUNCTIONAL</div>
