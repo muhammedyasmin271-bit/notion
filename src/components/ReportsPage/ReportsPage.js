@@ -28,7 +28,9 @@ import {
   Database,
   Network,
   Globe,
-  Smartphone
+  Smartphone,
+  Plus,
+  GripVertical
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAppContext } from '../../context/AppContext';
@@ -43,6 +45,7 @@ const ReportsPage = () => {
   const [workerReport, setWorkerReport] = useState('');
   const [reportTitle, setReportTitle] = useState('');
   const [workerReports, setWorkerReports] = useState([]);
+  const [showLineButtons, setShowLineButtons] = useState(false);
   const [reportData, setReportData] = useState({
     projects: [],
     goals: [],
@@ -443,11 +446,11 @@ const ReportsPage = () => {
                 { id: 'submit-report', label: '📝 Submit Report', icon: Upload, shortLabel: '📝 Submit' }
               ]),
               ...(user?.role === 'admin' || user?.role === 'ceo' ? [
-                { id: 'worker-reports', label: '📊 All Reports', icon: FileText, shortLabel: '📊 All Reports' }
+                { id: 'worker-reports', label: '📊 Reports', icon: FileText, shortLabel: '📊 Reports' }
               ] : user?.role === 'manager' ? [
-                { id: 'worker-reports', label: 'Team Reports', icon: FileText, shortLabel: 'Team Reports' }
+                { id: 'worker-reports', label: 'Reports', icon: FileText, shortLabel: 'Reports' }
               ] : [
-                { id: 'worker-reports', label: 'Submit Report', icon: FileText, shortLabel: 'Submit Report' }
+                { id: 'worker-reports', label: 'Reports', icon: FileText, shortLabel: 'Reports' }
               ])
             ].map(tab => {
             const Icon = tab.icon;
@@ -927,39 +930,108 @@ const ReportsPage = () => {
                   <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                     {user?.role === 'manager' ? 'Management Report Details' : 'Project Report Details'}
                   </label>
-                  <textarea
-                    value={workerReport}
-                    onChange={(e) => setWorkerReport(e.target.value)}
-                    placeholder={user?.role === 'manager' 
-                      ? "Write your detailed management report here...\n\nInclude:\n• Team performance overview and KPIs\n• Project status and milestone achievements\n• Budget utilization and resource allocation\n• Challenges encountered and solutions implemented\n• Strategic initiatives and their progress\n• Team development and training updates\n• Upcoming priorities and resource needs\n• Recommendations for process improvements\n• Risk assessment and mitigation strategies"
-                      : "Write your detailed project report here...\n\nInclude:\n• Project progress and milestones achieved\n• Current status and completion percentage\n• Challenges encountered and solutions\n• Team collaboration and performance\n• Budget and resource utilization\n• Next steps and upcoming deliverables\n• Recommendations for improvement"
-                    }
-                    rows={16}
-                    className={`w-full p-6 rounded-lg border resize-none leading-relaxed ${isDarkMode 
-                      ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400' 
-                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                    }`}
-                    style={{ fontFamily: 'Inter, system-ui, sans-serif', fontSize: '16px', lineHeight: '1.6' }}
-                  />
+                  <div 
+                    className="relative group"
+                    onMouseEnter={() => setShowLineButtons(true)}
+                    onMouseLeave={() => setShowLineButtons(false)}
+                  >
+                    {/* Line numbers and buttons */}
+                    <div className="absolute left-0 top-0 z-10">
+                      {workerReport.split('\n').map((line, index) => (
+                        <div key={index} className="flex items-center h-6">
+                          <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity gap-0.5 mr-1">
+                            <button
+                              className="p-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:scale-110 transition-all duration-200 flex items-center justify-center w-5 h-5"
+                              onClick={() => {
+                                const lines = workerReport.split('\n');
+                                const newLines = [...lines];
+                                newLines.splice(index + 1, 0, '');
+                                setWorkerReport(newLines.join('\n'));
+                              }}
+                            >
+                              <Plus className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                            </button>
+                            <button
+                              className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 hover:scale-110 transition-all duration-200 flex items-center justify-center w-5 h-5"
+                              onClick={() => {
+                                // Menu functionality for this line
+                                console.log(`Menu clicked for line ${index + 1}`);
+                              }}
+                            >
+                              <GripVertical className="w-3 h-3 text-gray-600 dark:text-gray-400" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <div className={`w-full rounded-lg p-6 font-mono text-sm border transition-all duration-200 ${isDarkMode ? 'bg-gray-800/80 text-gray-100 border-gray-700 hover:border-gray-600' : 'bg-gray-50 text-gray-800 border-gray-200 hover:border-gray-300'}`}>
+                      <textarea
+                        name="report-content"
+                        value={workerReport}
+                        onChange={(e) => setWorkerReport(e.target.value)}
+                        placeholder={user?.role === 'manager' 
+                          ? "Write your detailed management report here...\n\nInclude:\n• Strategic initiatives and progress\n• Team performance metrics\n• Budget and resource allocation\n• Challenges and solutions\n• Future planning and recommendations\n• Stakeholder communications"
+                          : "Write your detailed project report here...\n\nInclude:\n• Project progress and milestones achieved\n• Current status and completion percentage\n• Challenges encountered and solutions\n• Team collaboration and performance\n• Budget and resource utilization\n• Next steps and upcoming deliverables\n• Recommendations for improvement"
+                        }
+                        rows={16}
+                        className="w-full bg-transparent outline-none resize-none font-mono leading-relaxed pl-12 pr-6"
+                        style={{ lineHeight: '1.6' }}
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    {workerReport.trim().split(/\s+/).filter(w => w.length > 0).length} words • {workerReport.length} characters
+                {/* Bottom Action Bar */}
+                <div className={`border-t backdrop-blur-sm ${isDarkMode ? 'bg-gray-900/95 border-gray-700' : 'bg-white/95 border-gray-200'} p-4 rounded-lg shadow-lg`}>
+                  <div className="flex items-center justify-between">
+                    {/* Report Metadata */}
+                    <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} space-y-1`}>
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-3 h-3" />
+                        <span>{workerReport.trim().split(/\s+/).filter(w => w.length > 0).length} words • {workerReport.length} characters</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-3 h-3" />
+                        <span>Report will be saved automatically</span>
+                      </div>
+                    </div>
+                    
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-4">
+                      <button
+                        onClick={() => {
+                          setWorkerReport('');
+                          setReportTitle('');
+                        }}
+                        disabled={!workerReport.trim() && !reportTitle.trim()}
+                        className={`flex items-center px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                          !workerReport.trim() && !reportTitle.trim()
+                            ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                            : isDarkMode 
+                              ? 'bg-gray-700 hover:bg-gray-600 text-white' 
+                              : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                        }`}
+                      >
+                        Clear
+                      </button>
+                      
+                      <button
+                        onClick={submitWorkerReport}
+                        disabled={!workerReport.trim() || !reportTitle.trim()}
+                        className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all duration-200 hover:scale-105 ${
+                          !workerReport.trim() || !reportTitle.trim()
+                            ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                            : isDarkMode 
+                              ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                              : 'bg-blue-500 hover:bg-blue-600 text-white'
+                        } shadow-lg`}
+                      >
+                        <Upload className="w-4 h-4" />
+                        {user?.role === 'manager' ? 'Submit Management Report' : 'Submit Project Report'}
+                      </button>
+                    </div>
                   </div>
-                  
-                  <button
-                    onClick={submitWorkerReport}
-                    disabled={!workerReport.trim() || !reportTitle.trim()}
-                    className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all ${
-                      !workerReport.trim() || !reportTitle.trim()
-                        ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-                        : 'bg-blue-600 hover:bg-blue-700 text-white hover:scale-105'
-                    }`}
-                  >
-                    <Upload className="w-4 h-4" />
-                    {user?.role === 'manager' ? 'Submit Management Report' : 'Submit Project Report'}
-                  </button>
                 </div>
               </div>
             </div>
@@ -1002,7 +1074,7 @@ const ReportsPage = () => {
               <div>
                 <div className="flex items-center justify-between mb-6">
                   <h3 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    All Reports ({workerReports.length})
+                    Reports ({workerReports.length})
                   </h3>
                   <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                     All reports submitted by managers and team members
@@ -1057,7 +1129,7 @@ const ReportsPage = () => {
               <div>
                 <div className="flex items-center justify-between mb-6">
                   <h3 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    Team Reports ({workerReports.filter(r => r.role === 'user').length})
+                    Reports ({workerReports.filter(r => r.role === 'user').length})
                   </h3>
                   <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                     All project reports submitted by team members
@@ -1136,36 +1208,105 @@ const ReportsPage = () => {
                       <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                         Project Report Details
                       </label>
-                      <textarea
-                        value={workerReport}
-                        onChange={(e) => setWorkerReport(e.target.value)}
-                        placeholder="Write your detailed project report here...\n\nInclude:\n• Project progress and milestones achieved\n• Current status and completion percentage\n• Challenges encountered and solutions\n• Team collaboration and performance\n• Budget and resource utilization\n• Next steps and upcoming deliverables\n• Recommendations for improvement"
-                        rows={16}
-                        className={`w-full p-6 rounded-lg border resize-none leading-relaxed ${isDarkMode 
-                          ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400' 
-                          : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                        }`}
-                        style={{ fontFamily: 'Inter, system-ui, sans-serif', fontSize: '16px', lineHeight: '1.6' }}
-                      />
+                      <div 
+                        className="relative group"
+                        onMouseEnter={() => setShowLineButtons(true)}
+                        onMouseLeave={() => setShowLineButtons(false)}
+                      >
+                        {/* Line numbers and buttons */}
+                        <div className="absolute left-0 top-0 z-10">
+                          {workerReport.split('\n').map((line, index) => (
+                            <div key={index} className="flex items-center h-6">
+                              <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity gap-0.5 mr-1">
+                                <button
+                                  className="p-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:scale-110 transition-all duration-200 flex items-center justify-center w-5 h-5"
+                                  onClick={() => {
+                                    const lines = workerReport.split('\n');
+                                    const newLines = [...lines];
+                                    newLines.splice(index + 1, 0, '');
+                                    setWorkerReport(newLines.join('\n'));
+                                  }}
+                                >
+                                  <Plus className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                                </button>
+                                <button
+                                  className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 hover:scale-110 transition-all duration-200 flex items-center justify-center w-5 h-5"
+                                  onClick={() => {
+                                    // Menu functionality for this line
+                                    console.log(`Menu clicked for line ${index + 1}`);
+                                  }}
+                                >
+                                  <GripVertical className="w-3 h-3 text-gray-600 dark:text-gray-400" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        
+                        <div className={`w-full rounded-lg p-6 font-mono text-sm border transition-all duration-200 ${isDarkMode ? 'bg-gray-800/80 text-gray-100 border-gray-700 hover:border-gray-600' : 'bg-gray-50 text-gray-800 border-gray-200 hover:border-gray-300'}`}>
+                          <textarea
+                            name="worker-report-content"
+                            value={workerReport}
+                            onChange={(e) => setWorkerReport(e.target.value)}
+                            placeholder="Write your detailed project report here...\n\nInclude:\n• Project progress and milestones achieved\n• Current status and completion percentage\n• Challenges encountered and solutions\n• Team collaboration and performance\n• Budget and resource utilization\n• Next steps and upcoming deliverables\n• Recommendations for improvement"
+                            rows={16}
+                            className="w-full bg-transparent outline-none resize-none font-mono leading-relaxed pl-12 pr-6"
+                            style={{ lineHeight: '1.6' }}
+                          />
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="flex items-center justify-between">
-                      <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                        {workerReport.trim().split(/\s+/).filter(w => w.length > 0).length} words • {workerReport.length} characters
+                    {/* Bottom Action Bar */}
+                    <div className={`border-t backdrop-blur-sm ${isDarkMode ? 'bg-gray-900/95 border-gray-700' : 'bg-white/95 border-gray-200'} p-4 rounded-lg shadow-lg`}>
+                      <div className="flex items-center justify-between">
+                        {/* Report Metadata */}
+                        <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} space-y-1`}>
+                          <div className="flex items-center gap-2">
+                            <FileText className="w-3 h-3" />
+                            <span>{workerReport.trim().split(/\s+/).filter(w => w.length > 0).length} words • {workerReport.length} characters</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="w-3 h-3" />
+                            <span>Report will be saved automatically</span>
+                          </div>
+                        </div>
+                        
+                        {/* Action Buttons */}
+                        <div className="flex items-center gap-4">
+                          <button
+                            onClick={() => {
+                              setWorkerReport('');
+                              setReportTitle('');
+                            }}
+                            disabled={!workerReport.trim() && !reportTitle.trim()}
+                            className={`flex items-center px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                              !workerReport.trim() && !reportTitle.trim()
+                                ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                                : isDarkMode 
+                                  ? 'bg-gray-700 hover:bg-gray-600 text-white' 
+                                  : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                            }`}
+                          >
+                            Clear
+                          </button>
+                          
+                          <button
+                            onClick={submitWorkerReport}
+                            disabled={!workerReport.trim() || !reportTitle.trim()}
+                            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all duration-200 hover:scale-105 ${
+                              !workerReport.trim() || !reportTitle.trim()
+                                ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                                : isDarkMode 
+                                  ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                                  : 'bg-blue-500 hover:bg-blue-600 text-white'
+                            } shadow-lg`}
+                          >
+                            <Upload className="w-4 h-4" />
+                            Submit Project Report
+                          </button>
+                        </div>
                       </div>
-                      
-                      <button
-                        onClick={submitWorkerReport}
-                        disabled={!workerReport.trim() || !reportTitle.trim()}
-                        className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all ${
-                          !workerReport.trim() || !reportTitle.trim()
-                            ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-                            : 'bg-blue-600 hover:bg-blue-700 text-white hover:scale-105'
-                        }`}
-                      >
-                        <Upload className="w-4 h-4" />
-                        Submit Project Report
-                      </button>
                     </div>
                   </div>
                 </div>
