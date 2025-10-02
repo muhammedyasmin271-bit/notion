@@ -445,6 +445,7 @@ const ReportPage = () => {
             {blockMenu}
           </div>
         );
+
       default:
         return (
           <div className="flex items-start group relative py-1">

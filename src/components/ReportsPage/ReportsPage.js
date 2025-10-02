@@ -30,7 +30,8 @@ import {
   Globe,
   Smartphone,
   Plus,
-  GripVertical
+  GripVertical,
+  Minus
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAppContext } from '../../context/AppContext';
@@ -46,6 +47,9 @@ const ReportsPage = () => {
   const [reportTitle, setReportTitle] = useState('');
   const [workerReports, setWorkerReports] = useState([]);
   const [showLineButtons, setShowLineButtons] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState(null);
+  const [tableData, setTableData] = useState({});
+  const [selectedImages, setSelectedImages] = useState({});
   const [reportData, setReportData] = useState({
     projects: [],
     goals: [],
@@ -55,6 +59,17 @@ const ReportsPage = () => {
   });
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (activeDropdown && !event.target.closest('.dropdown-container')) {
+        setActiveDropdown(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [activeDropdown]);
 
   useEffect(() => {
     loadReportData();
@@ -927,58 +942,447 @@ const ReportsPage = () => {
                 </div>
 
                 <div>
-                  <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                    {user?.role === 'manager' ? 'Management Report Details' : 'Project Report Details'}
-                  </label>
-                  <div 
-                    className="relative group"
-                    onMouseEnter={() => setShowLineButtons(true)}
-                    onMouseLeave={() => setShowLineButtons(false)}
-                  >
-                    {/* Line numbers and buttons */}
-                    <div className="absolute left-0 top-0 z-10">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className={`block text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      {user?.role === 'manager' ? 'Management Report Details' : 'Project Report Details'}
+                    </label>
+                    <div className="relative dropdown-container">
+                      <button
+                        onClick={() => setActiveDropdown(activeDropdown === 'templates' ? null : 'templates')}
+                        className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg border transition-all duration-200 ${isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200'}`}
+                      >
+                        📋 Templates
+                        <svg className={`w-4 h-4 transition-transform ${activeDropdown === 'templates' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      {activeDropdown === 'templates' && (
+                        <div className={`absolute right-0 top-12 z-50 w-80 rounded-xl shadow-2xl border backdrop-blur-sm overflow-hidden ${isDarkMode ? 'bg-gray-800/95 border-gray-700' : 'bg-white/95 border-gray-200'}`}>
+                          <div className="py-2">
+                            <div className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider border-b ${isDarkMode ? 'text-gray-400 border-gray-700' : 'text-gray-500 border-gray-200'}`}>
+                              Report Templates
+                            </div>
+                            <div className="py-1 max-h-80 overflow-y-auto">
+                              {[
+                                {
+                                  name: 'Weekly Status Report',
+                                  icon: '📅',
+                                  category: user?.role === 'manager' ? 'Management' : 'Status',
+                                  description: 'Regular progress updates and planning',
+                                  color: 'bg-blue-500',
+                                  template: '# Weekly Status Report\n\n**Date:** {currentDate}\n**Author:** \n**Department:** \n**Week:** Week of {currentDate}\n**Status:** Draft/Review/Final\n\n---\n\n## 📊 Executive Summary\n\n\n## 🏆 Key Accomplishments\n• **Achievement 1:** Description | Impact: High/Med/Low | Status: Complete\n• **Achievement 2:** Description | Impact: High/Med/Low | Status: Complete\n• **Achievement 3:** Description | Impact: High/Med/Low | Status: Complete\n• **Achievement 4:** Description | Impact: High/Med/Low | Status: Complete\n\n## 📈 Current Progress\n• **Project/Task 1:** Progress: 85% | Timeline: On Track/Delayed | Notes: \n• **Project/Task 2:** Progress: 70% | Timeline: On Track/Delayed | Notes: \n• **Project/Task 3:** Progress: 95% | Timeline: On Track/Delayed | Notes: \n• **Project/Task 4:** Progress: 60% | Timeline: On Track/Delayed | Notes: \n\n## 🚨 Challenges & Issues\n• **Issue 1:** Severity: High/Med/Low | Impact: | Resolution Plan: | Owner: \n• **Issue 2:** Severity: High/Med/Low | Impact: | Resolution Plan: | Owner: \n• **Issue 3:** Severity: High/Med/Low | Impact: | Resolution Plan: | Owner: \n\n## 📅 Metrics & KPIs\n• **Productivity:** Target: 85% | Actual: % | Variance: % | Trend: 📈/📉\n• **Quality Score:** Target: 90% | Actual: % | Variance: % | Trend: 📈/📉\n• **Timeline Adherence:** Target: 95% | Actual: % | Variance: % | Trend: 📈/📉\n• **Budget Utilization:** Target: 80% | Actual: % | Variance: % | Trend: 📈/📉\n\n## 📋 Action Items\n- [ ] **Priority High:** Task description | Owner: | Due Date: | Status: Not Started\n- [ ] **Priority High:** Task description | Owner: | Due Date: | Status: Not Started\n- [ ] **Priority Medium:** Task description | Owner: | Due Date: | Status: Not Started\n- [ ] **Priority Medium:** Task description | Owner: | Due Date: | Status: Not Started\n- [ ] **Priority Low:** Task description | Owner: | Due Date: | Status: Not Started\n\n## 🎯 Next Week Goals\n### Primary Objectives\n1. **Goal 1:** Success Criteria: | Resources Needed: | Timeline: \n2. **Goal 2:** Success Criteria: | Resources Needed: | Timeline: \n3. **Goal 3:** Success Criteria: | Resources Needed: | Timeline: \n\n### Secondary Objectives\n1. **Goal 1:** Success Criteria: | Resources Needed: | Timeline: \n2. **Goal 2:** Success Criteria: | Resources Needed: | Timeline: \n\n## 🔮 Risks & Dependencies\n• **Risk 1:** Probability: High/Med/Low | Impact: High/Med/Low | Mitigation: | Owner: \n• **Risk 2:** Probability: High/Med/Low | Impact: High/Med/Low | Mitigation: | Owner: \n• **Dependency 1:** Type: Internal/External | Status: | Impact if delayed: | Contingency: \n\n---\n\n**Report Status:** Draft/Review/Approved\n**Next Review:** \n**Distribution:** \n\n*Report created on {currentDate}*'
+                                },
+                                {
+                                  name: user?.role === 'manager' ? 'Performance Review' : 'Project Milestone Report',
+                                  icon: '🏆',
+                                  category: user?.role === 'manager' ? 'Management' : 'Project',
+                                  description: user?.role === 'manager' ? 'Team performance evaluation' : 'Project milestone tracking and status',
+                                  color: 'bg-green-500',
+                                  template: user?.role === 'manager' ? '# Performance Review Report\n\n**Date:** {currentDate}\n**Manager:** \n**Review Period:** \n**Team/Individual:** \n**Review Type:** Quarterly/Annual/Mid-Year\n\n---\n\n## 📊 Performance Summary\n**Overall Rating:** Exceeds/Meets/Below Expectations\n**Previous Rating:** \n**Improvement:** +/-% from last review\n\n## 🏆 Key Achievements\n• **Achievement 1:** Impact: High/Med/Low | Recognition: | Value Added: $\n• **Achievement 2:** Impact: High/Med/Low | Recognition: | Value Added: $\n• **Achievement 3:** Impact: High/Med/Low | Recognition: | Value Added: $\n• **Achievement 4:** Impact: High/Med/Low | Recognition: | Value Added: $\n\n## 📈 Performance Metrics\n• **Goal Achievement:** Target: 90% | Actual: % | Rating: 1-5 | Comments: \n• **Quality of Work:** Target: 85% | Actual: % | Rating: 1-5 | Comments: \n• **Collaboration:** Target: 80% | Actual: % | Rating: 1-5 | Comments: \n• **Innovation:** Target: 75% | Actual: % | Rating: 1-5 | Comments: \n• **Leadership:** Target: 70% | Actual: % | Rating: 1-5 | Comments: \n\n## 📉 Areas for Improvement\n• **Area 1:** Current Level: | Target Level: | Development Plan: | Timeline: \n• **Area 2:** Current Level: | Target Level: | Development Plan: | Timeline: \n• **Area 3:** Current Level: | Target Level: | Development Plan: | Timeline: \n\n## 📋 Action Items\n- [ ] **Development:** Action: | Owner: | Due Date: | Success Measure: \n- [ ] **Training:** Action: | Owner: | Due Date: | Success Measure: \n- [ ] **Process:** Action: | Owner: | Due Date: | Success Measure: \n- [ ] **Goals:** Action: | Owner: | Due Date: | Success Measure: \n\n## 🎯 Development Goals\n### Short-term (3 months)\n1. **Goal 1:** Objective: | Success Criteria: | Resources: | Support Needed: \n2. **Goal 2:** Objective: | Success Criteria: | Resources: | Support Needed: \n\n### Long-term (6-12 months)\n1. **Goal 1:** Objective: | Success Criteria: | Resources: | Support Needed: \n2. **Goal 2:** Objective: | Success Criteria: | Resources: | Support Needed: \n\n## 💼 Career Development\n**Current Role:** \n**Career Aspirations:** \n**Recommended Path:** \n**Skills to Develop:** \n**Timeline:** \n\n---\n\n**Review Status:** Draft/Complete\n**Employee Acknowledgment:** \n**Next Review Date:** \n\n*Review completed on {currentDate}*' : '# Project Milestone Report\n\n**Date:** {currentDate}\n**Author:** \n**Project:** \n**Milestone:** \n**Due Date:** \n**Status:** On Track/At Risk/Delayed\n\n---\n\n## 🎯 Milestone Summary\n**Completion:** %\n**Timeline:** On Schedule/Ahead/Behind\n**Budget:** On Budget/Under/Over\n**Quality:** Excellent/Good/Fair/Poor\n\n## ✅ Completed Tasks\n• **Task 1:** Completion Date: | Quality: Excellent/Good/Fair | Effort: hours | Notes: \n• **Task 2:** Completion Date: | Quality: Excellent/Good/Fair | Effort: hours | Notes: \n• **Task 3:** Completion Date: | Quality: Excellent/Good/Fair | Effort: hours | Notes: \n• **Task 4:** Completion Date: | Quality: Excellent/Good/Fair | Effort: hours | Notes: \n\n## 🔄 Current Status\n• **In Progress 1:** Progress: % | Expected Completion: | Blockers: | Owner: \n• **In Progress 2:** Progress: % | Expected Completion: | Blockers: | Owner: \n• **In Progress 3:** Progress: % | Expected Completion: | Blockers: | Owner: \n\n## 📋 Remaining Work\n• **Task 1:** Priority: High/Med/Low | Effort: hours | Dependencies: | Owner: \n• **Task 2:** Priority: High/Med/Low | Effort: hours | Dependencies: | Owner: \n• **Task 3:** Priority: High/Med/Low | Effort: hours | Dependencies: | Owner: \n• **Task 4:** Priority: High/Med/Low | Effort: hours | Dependencies: | Owner: \n\n## 📈 Progress Metrics\n• **Tasks Completed:** Target: | Actual: | Variance: | Percentage: %\n• **Budget Spent:** Target: $ | Actual: $ | Variance: $ | Percentage: %\n• **Time Elapsed:** Target: days | Actual: days | Variance: days | Percentage: %\n• **Quality Score:** Target: % | Actual: % | Variance: % | Rating: /10\n\n## 📋 Action Items\n- [ ] **Critical:** Action: | Owner: | Due Date: | Impact: High\n- [ ] **High:** Action: | Owner: | Due Date: | Impact: High\n- [ ] **Medium:** Action: | Owner: | Due Date: | Impact: Medium\n- [ ] **Low:** Action: | Owner: | Due Date: | Impact: Low\n\n## 🎯 Next Milestone\n**Milestone Name:** \n**Target Date:** \n**Key Deliverables:** \n**Success Criteria:** \n**Resources Required:** \n**Potential Risks:** \n\n## 🚨 Risks & Issues\n• **Risk 1:** Probability: % | Impact: High/Med/Low | Mitigation: | Owner: \n• **Issue 1:** Severity: High/Med/Low | Impact: | Resolution: | ETA: \n\n---\n\n**Milestone Status:** Complete/In Progress/At Risk\n**Stakeholder Approval:** \n**Next Review:** \n\n*Report created on {currentDate}*'
+                                },
+                                {
+                                  name: user?.role === 'manager' ? 'Budget Analysis' : 'Bug Report & Testing',
+                                  icon: user?.role === 'manager' ? '💰' : '🐛',
+                                  category: user?.role === 'manager' ? 'Financial' : 'Technical',
+                                  description: user?.role === 'manager' ? 'Financial performance analysis' : 'Quality assurance and issue tracking',
+                                  color: user?.role === 'manager' ? 'bg-purple-500' : 'bg-red-500',
+                                  template: user?.role === 'manager' ? '# Budget Analysis Report\n\n**Date:** {currentDate}\n**Manager:** \n**Department:** \n**Period:** \n**Fiscal Year:** \n**Report Type:** Monthly/Quarterly/Annual\n\n---\n\n## 💰 Financial Summary\n**Total Budget:** $\n**Spent to Date:** $\n**Remaining:** $\n**Utilization:** %\n**Variance:** +/-$\n**Status:** On Track/Over/Under\n\n## 📈 Budget Performance\n• **Revenue:** Budgeted: $ | Actual: $ | Variance: $ | %: | Status: ✅/❌\n• **Personnel:** Budgeted: $ | Actual: $ | Variance: $ | %: | Status: ✅/❌\n• **Operations:** Budgeted: $ | Actual: $ | Variance: $ | %: | Status: ✅/❌\n• **Technology:** Budgeted: $ | Actual: $ | Variance: $ | %: | Status: ✅/❌\n• **Marketing:** Budgeted: $ | Actual: $ | Variance: $ | %: | Status: ✅/❌\n\n## 📉 Expense Analysis\n• **Fixed Costs:** Amount: $ | % of Budget: | Trend: 📈/📉 | Notes: \n• **Variable Costs:** Amount: $ | % of Budget: | Trend: 📈/📉 | Notes: \n• **One-time Costs:** Amount: $ | % of Budget: | Trend: 📈/📉 | Notes: \n• **Unexpected Costs:** Amount: $ | % of Budget: | Trend: 📈/📉 | Notes: \n\n## 🚨 Variances & Issues\n• **Variance 1:** Amount: $ | Reason: | Impact: High/Med/Low | Action: | Owner: \n• **Variance 2:** Amount: $ | Reason: | Impact: High/Med/Low | Action: | Owner: \n• **Variance 3:** Amount: $ | Reason: | Impact: High/Med/Low | Action: | Owner: \n\n## 📈 Financial KPIs\n• **ROI:** Target: % | Actual: % | Variance: % | Trend: 📈/📉\n• **Cost per Unit:** Target: $ | Actual: $ | Variance: $ | Trend: 📈/📉\n• **Profit Margin:** Target: % | Actual: % | Variance: % | Trend: 📈/📉\n• **Cash Flow:** Target: $ | Actual: $ | Variance: $ | Trend: 📈/📉\n\n## 📋 Action Items\n- [ ] **Cost Control:** Action: | Owner: | Due Date: | Expected Savings: $\n- [ ] **Revenue:** Action: | Owner: | Due Date: | Expected Revenue: $\n- [ ] **Process:** Action: | Owner: | Due Date: | Expected Impact: \n- [ ] **Review:** Action: | Owner: | Due Date: | Expected Outcome: \n\n## 💡 Recommendations\n### Cost Optimization\n1. **Recommendation 1:** Potential Savings: $ | Implementation Cost: $ | Timeline: | ROI: \n2. **Recommendation 2:** Potential Savings: $ | Implementation Cost: $ | Timeline: | ROI: \n\n### Revenue Enhancement\n1. **Opportunity 1:** Potential Revenue: $ | Investment Required: $ | Timeline: | ROI: \n2. **Opportunity 2:** Potential Revenue: $ | Investment Required: $ | Timeline: | ROI: \n\n## 🔮 Forecast\n**Next Quarter:** Budget: $ | Projected Spend: $ | Variance: $ | Confidence: %\n**Year End:** Budget: $ | Projected Spend: $ | Variance: $ | Confidence: %\n\n---\n\n**Report Status:** Draft/Review/Approved\n**Finance Review:** \n**Management Approval:** \n\n*Analysis completed on {currentDate}*' : '# Bug Report & Testing\n\n**Date:** {currentDate}\n**Reporter:** \n**Project:** \n**Priority:** Critical/High/Medium/Low\n**Severity:** Blocker/Major/Minor/Trivial\n**Status:** Open/In Progress/Resolved/Closed\n**Assigned To:** \n\n---\n\n## 🐛 Issue Summary\n**Bug ID:** BUG-{currentDate}-\n**Title:** \n**Environment:** Production/Staging/Development\n**Browser/Platform:** \n**Version:** \n**Reproducible:** Always/Sometimes/Rarely\n\n## 📝 Bug Details\n• **Description:** What happened: \n• **Expected Result:** What should happen: \n• **Actual Result:** What actually happened: \n• **Impact:** User experience impact: High/Med/Low\n• **Frequency:** How often it occurs: \n• **Workaround:** Temporary solution: \n\n## 🔍 Steps to Reproduce\n1. **Step 1:** Action: | Expected: | Actual: \n2. **Step 2:** Action: | Expected: | Actual: \n3. **Step 3:** Action: | Expected: | Actual: \n4. **Step 4:** Action: | Expected: | Actual: \n\n## 🧪 Testing Results\n• **Test Case 1:** Status: Pass/Fail | Notes: | Tester: \n• **Test Case 2:** Status: Pass/Fail | Notes: | Tester: \n• **Test Case 3:** Status: Pass/Fail | Notes: | Tester: \n• **Regression Test:** Status: Pass/Fail | Notes: | Tester: \n\n## 🔧 Resolution Status\n• **Root Cause:** Technical reason: \n• **Fix Applied:** Code changes: \n• **Testing Done:** Verification steps: \n• **Deployment:** Release version: | Date: \n• **Verification:** Confirmed by: | Date: \n\n## 📈 Quality Metrics\n• **Time to Detect:** hours from introduction\n• **Time to Report:** hours from detection\n• **Time to Fix:** hours from report\n• **Time to Deploy:** hours from fix\n• **Customer Impact:** Number of users affected: \n\n## 📋 Action Items\n- [ ] **Fix:** Implement solution | Owner: | Due Date: | Priority: High\n- [ ] **Test:** Verify fix works | Owner: | Due Date: | Priority: High\n- [ ] **Deploy:** Release to production | Owner: | Due Date: | Priority: High\n- [ ] **Monitor:** Watch for recurrence | Owner: | Due Date: | Priority: Medium\n- [ ] **Document:** Update knowledge base | Owner: | Due Date: | Priority: Low\n\n## 🔄 Next Steps\n### Immediate (24 hours)\n1. **Action 1:** Description: | Owner: | Status: \n2. **Action 2:** Description: | Owner: | Status: \n\n### Short-term (1 week)\n1. **Action 1:** Description: | Owner: | Status: \n2. **Action 2:** Description: | Owner: | Status: \n\n## 📊 Related Information\n**Related Bugs:** \n**Related Features:** \n**Dependencies:** \n**Documentation:** \n**Screenshots:** Attached/Not Available\n**Logs:** Attached/Not Available\n\n---\n\n**Bug Status:** Open/Fixed/Verified/Closed\n**QA Approval:** \n**Release Notes:** \n\n*Report created on {currentDate}*'
+                                },
+                                {
+                                  name: user?.role === 'manager' ? 'Strategic Planning' : 'Feature Development',
+                                  icon: user?.role === 'manager' ? '🎯' : '⚡',
+                                  category: user?.role === 'manager' ? 'Strategic' : 'Development',
+                                  description: user?.role === 'manager' ? 'Strategic initiatives and planning' : 'Feature development and technical progress',
+                                  color: user?.role === 'manager' ? 'bg-indigo-500' : 'bg-yellow-500',
+                                  template: user?.role === 'manager' ? '# Strategic Planning Report\n\n**Date:** {currentDate}\n**Manager:** \n**Department:** \n**Planning Period:** \n**Review Cycle:** Quarterly/Annual\n**Stakeholders:** \n\n---\n\n## 🎯 Strategic Overview\n**Vision:** \n**Mission:** \n**Core Values:** \n**Strategic Theme:** \n**Planning Horizon:** 1 Year/3 Years/5 Years\n\n## 🚀 Key Initiatives\n• **Initiative 1:** Objective: | Budget: $ | Timeline: | Owner: | Status: \n• **Initiative 2:** Objective: | Budget: $ | Timeline: | Owner: | Status: \n• **Initiative 3:** Objective: | Budget: $ | Timeline: | Owner: | Status: \n• **Initiative 4:** Objective: | Budget: $ | Timeline: | Owner: | Status: \n\n## 📈 Progress Update\n• **Goal 1:** Target: | Actual: | Progress: % | Status: On Track/At Risk/Behind\n• **Goal 2:** Target: | Actual: | Progress: % | Status: On Track/At Risk/Behind\n• **Goal 3:** Target: | Actual: | Progress: % | Status: On Track/At Risk/Behind\n• **Goal 4:** Target: | Actual: | Progress: % | Status: On Track/At Risk/Behind\n\n## 🚨 Challenges & Risks\n• **Challenge 1:** Impact: High/Med/Low | Probability: % | Mitigation: | Owner: \n• **Challenge 2:** Impact: High/Med/Low | Probability: % | Mitigation: | Owner: \n• **Risk 1:** Impact: High/Med/Low | Probability: % | Mitigation: | Owner: \n• **Risk 2:** Impact: High/Med/Low | Probability: % | Mitigation: | Owner: \n\n## 📉 Market Analysis\n**Market Size:** $\n**Growth Rate:** %\n**Competition:** \n**Opportunities:** \n**Threats:** \n**Market Position:** Leader/Challenger/Follower/Niche\n\n## 💼 Resource Planning\n**Budget Required:** $\n**Personnel Needed:** FTE\n**Technology Investment:** $\n**Training Budget:** $\n**External Resources:** $\n\n## 📋 Action Items\n- [ ] **Strategic:** Action: | Owner: | Due Date: | Impact: High/Med/Low\n- [ ] **Operational:** Action: | Owner: | Due Date: | Impact: High/Med/Low\n- [ ] **Financial:** Action: | Owner: | Due Date: | Impact: High/Med/Low\n- [ ] **HR:** Action: | Owner: | Due Date: | Impact: High/Med/Low\n\n## 🔮 Future Planning\n### Next Quarter\n**Priority 1:** Objective: | Success Metrics: | Resources: \n**Priority 2:** Objective: | Success Metrics: | Resources: \n**Priority 3:** Objective: | Success Metrics: | Resources: \n\n### Next Year\n**Strategic Goal 1:** Vision: | Milestones: | Investment: $\n**Strategic Goal 2:** Vision: | Milestones: | Investment: $\n\n## 📈 Success Metrics\n**KPI 1:** Current: | Target: | Timeline: | Owner: \n**KPI 2:** Current: | Target: | Timeline: | Owner: \n**KPI 3:** Current: | Target: | Timeline: | Owner: \n**KPI 4:** Current: | Target: | Timeline: | Owner: \n\n---\n\n**Plan Status:** Draft/Review/Approved\n**Board Approval:** \n**Next Review:** \n\n*Strategic plan updated on {currentDate}*' : '# Feature Development Report\n\n**Date:** {currentDate}\n**Developer:** \n**Feature:** \n**Sprint:** \n**Epic:** \n**Release Version:** \n**Status:** Planning/Development/Testing/Complete\n\n---\n\n## ⚡ Development Summary\n**Feature Type:** New/Enhancement/Bug Fix\n**Complexity:** Low/Medium/High/Epic\n**Effort Estimate:** Story Points/Hours\n**Actual Effort:** Story Points/Hours\n**Completion:** %\n\n## ✅ Completed Features\n• **Feature 1:** Description: | Effort: hours | Quality: Excellent/Good/Fair | Status: Complete\n• **Feature 2:** Description: | Effort: hours | Quality: Excellent/Good/Fair | Status: Complete\n• **Feature 3:** Description: | Effort: hours | Quality: Excellent/Good/Fair | Status: Complete\n• **Feature 4:** Description: | Effort: hours | Quality: Excellent/Good/Fair | Status: Complete\n\n## 🔧 Technical Progress\n• **Backend API:** Progress: % | Endpoints: /total | Tests: Pass/Fail | Performance: ms\n• **Frontend UI:** Progress: % | Components: /total | Tests: Pass/Fail | Responsive: Yes/No\n• **Database:** Progress: % | Tables: /total | Migrations: Complete/Pending | Performance: Good/Fair\n• **Integration:** Progress: % | Services: /total | Tests: Pass/Fail | Status: Working/Issues\n\n## 🚧 Challenges & Blockers\n• **Technical Blocker 1:** Issue: | Impact: High/Med/Low | Resolution: | ETA: | Owner: \n• **Technical Blocker 2:** Issue: | Impact: High/Med/Low | Resolution: | ETA: | Owner: \n• **Dependency 1:** Waiting for: | Impact: High/Med/Low | ETA: | Workaround: \n• **Resource Issue:** Need: | Impact: High/Med/Low | Request Status: | Alternative: \n\n## 🧪 Testing Status\n• **Unit Tests:** Written: /total | Passing: /total | Coverage: % | Status: ✅/❌\n• **Integration Tests:** Written: /total | Passing: /total | Coverage: % | Status: ✅/❌\n• **E2E Tests:** Written: /total | Passing: /total | Coverage: % | Status: ✅/❌\n• **Performance Tests:** Load: ms | Stress: users | Memory: MB | Status: ✅/❌\n\n## 📈 Code Quality\n**Code Review:** Completed/Pending | Reviewer: | Issues: | Status: Approved/Changes Requested\n**Static Analysis:** Bugs: | Vulnerabilities: | Code Smells: | Coverage: %\n**Documentation:** API Docs: Complete/Partial | Code Comments: % | README: Updated/Needs Update\n\n## 📋 Action Items\n- [ ] **Development:** Task: | Owner: | Due Date: | Priority: High/Med/Low\n- [ ] **Testing:** Task: | Owner: | Due Date: | Priority: High/Med/Low\n- [ ] **Review:** Task: | Owner: | Due Date: | Priority: High/Med/Low\n- [ ] **Documentation:** Task: | Owner: | Due Date: | Priority: High/Med/Low\n- [ ] **Deployment:** Task: | Owner: | Due Date: | Priority: High/Med/Low\n\n## 🎯 Next Sprint Goals\n### Primary Objectives\n1. **Feature 1:** Description: | Effort: points | Priority: High | Dependencies: \n2. **Feature 2:** Description: | Effort: points | Priority: High | Dependencies: \n3. **Feature 3:** Description: | Effort: points | Priority: Medium | Dependencies: \n\n### Technical Debt\n1. **Refactor 1:** Description: | Effort: points | Impact: High/Med/Low | Priority: \n2. **Optimization 1:** Description: | Effort: points | Impact: High/Med/Low | Priority: \n\n## 🚀 Release Planning\n**Target Release:** Version | Date: | Features: \n**Dependencies:** External: | Internal: | Blockers: \n**Risk Assessment:** High/Medium/Low | Mitigation: \n**Rollback Plan:** Strategy: | Effort: | Timeline: \n\n---\n\n**Development Status:** On Track/At Risk/Delayed\n**Code Review:** Approved/Pending\n**Ready for Release:** Yes/No\n\n*Report created on {currentDate}*'
+                                },
+                                {
+                                  name: 'Meeting Notes',
+                                  icon: '📝',
+                                  category: 'Communication',
+                                  description: 'Structured meeting documentation',
+                                  color: 'bg-teal-500',
+                                  template: '# Meeting Notes\n\n**Date:** {currentDate}\n**Meeting Type:** Team/Project/Review/Planning\n**Duration:** minutes\n**Location:** Office/Remote/Hybrid\n**Facilitator:** \n**Note Taker:** \n\n---\n\n## 👥 Attendees\n**Present:**\n• Name 1 - Role\n• Name 2 - Role\n• Name 3 - Role\n\n**Absent:**\n• Name 1 - Role (Reason)\n• Name 2 - Role (Reason)\n\n## 🎯 Agenda & Discussion\n### Topic 1: \n**Presenter:** \n**Duration:** minutes\n**Key Points:**\n• Point 1\n• Point 2\n• Point 3\n**Decisions:** \n**Action Items:** \n\n### Topic 2: \n**Presenter:** \n**Duration:** minutes\n**Key Points:**\n• Point 1\n• Point 2\n• Point 3\n**Decisions:** \n**Action Items:** \n\n## 📋 Action Items\n- [ ] **Action 1:** Owner: | Due Date: | Priority: High/Med/Low | Status: Not Started\n- [ ] **Action 2:** Owner: | Due Date: | Priority: High/Med/Low | Status: Not Started\n- [ ] **Action 3:** Owner: | Due Date: | Priority: High/Med/Low | Status: Not Started\n\n## 📈 Decisions Made\n1. **Decision 1:** Impact: High/Med/Low | Owner: | Implementation: \n2. **Decision 2:** Impact: High/Med/Low | Owner: | Implementation: \n\n## 🔄 Follow-up\n**Next Meeting:** Date: | Time: | Location: \n**Preparation Required:** \n**Materials Needed:** \n\n---\n\n**Meeting Status:** Complete\n**Notes Distribution:** \n**Next Review:** \n\n*Notes recorded on {currentDate}*'
+                                },
+                                {
+                                  name: 'Incident Report',
+                                  icon: '🚨',
+                                  category: 'Operations',
+                                  description: 'System incident documentation and analysis',
+                                  color: 'bg-orange-500',
+                                  template: '# Incident Report\n\n**Date:** {currentDate}\n**Incident ID:** INC-{currentDate}-\n**Reporter:** \n**Severity:** Critical/High/Medium/Low\n**Status:** Open/Investigating/Resolved/Closed\n**Assigned To:** \n\n---\n\n## 🚨 Incident Summary\n**Title:** \n**Start Time:** \n**End Time:** \n**Duration:** hours/minutes\n**Impact:** High/Medium/Low\n**Affected Systems:** \n**Users Affected:** \n\n## 📝 Incident Details\n**Description:** What happened:\n**Root Cause:** Technical reason:\n**Trigger:** What caused it:\n**Detection:** How was it discovered:\n**Escalation:** Who was notified:\n\n## 🔧 Resolution Steps\n1. **Step 1:** Action taken: | Time: | Result: | Owner: \n2. **Step 2:** Action taken: | Time: | Result: | Owner: \n3. **Step 3:** Action taken: | Time: | Result: | Owner: \n4. **Step 4:** Action taken: | Time: | Result: | Owner: \n\n## 📈 Impact Analysis\n**Business Impact:** Revenue/Operations/Reputation\n**Customer Impact:** Number affected: | Complaints: | Compensation: $\n**System Impact:** Downtime: minutes | Performance: % degradation\n**Data Impact:** Loss: Yes/No | Corruption: Yes/No | Recovery: Complete/Partial\n\n## 📋 Action Items\n- [ ] **Immediate:** Fix applied | Owner: | Due Date: | Status: Complete\n- [ ] **Short-term:** Monitoring | Owner: | Due Date: | Status: In Progress\n- [ ] **Long-term:** Prevention | Owner: | Due Date: | Status: Planned\n\n## 🔍 Lessons Learned\n**What Went Well:** \n**What Could Be Improved:** \n**Prevention Measures:** \n**Process Changes:** \n\n---\n\n**Incident Status:** Resolved/Closed\n**Post-Mortem:** Scheduled/Complete\n**Documentation:** Updated/Pending\n\n*Report created on {currentDate}*'
+                                }
+                              ].map((template, idx) => (
+                                <button
+                                  key={idx}
+                                  onClick={() => {
+                                    const currentDate = new Date().toLocaleDateString();
+                                    const populatedTemplate = template.template
+                                      .replace(/\{currentDate\}/g, currentDate);
+                                    
+                                    setWorkerReport(populatedTemplate);
+                                    setActiveDropdown(null);
+                                  }}
+                                  className={`w-full flex items-start px-3 py-2 text-sm transition-all duration-200 ${isDarkMode ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-blue-50 text-gray-900'}`}
+                                >
+                                  <div className={`w-8 h-8 mr-3 flex items-center justify-center rounded-lg text-lg ${template.color} text-white`}>
+                                    {template.icon}
+                                  </div>
+                                  <div className="text-left flex-1">
+                                    <div className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{template.name}</div>
+                                    <div className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                      {template.category} • {template.description}
+                                    </div>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className={`border rounded-lg ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-300 bg-white'}`}>
+                    <div className="p-6 space-y-1 min-h-[600px]">
                       {workerReport.split('\n').map((line, index) => (
-                        <div key={index} className="flex items-center h-6">
-                          <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity gap-0.5 mr-1">
-                            <button
-                              className="p-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:scale-110 transition-all duration-200 flex items-center justify-center w-5 h-5"
-                              onClick={() => {
-                                const lines = workerReport.split('\n');
-                                const newLines = [...lines];
-                                newLines.splice(index + 1, 0, '');
-                                setWorkerReport(newLines.join('\n'));
+                        <div key={index} className="group flex items-start hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded transition-colors duration-150">
+                          <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1 py-1">
+                            <div className="relative">
+                              <button 
+                                className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center w-6 h-6" 
+                                onClick={() => setActiveDropdown(activeDropdown === `plus-${index}` ? null : `plus-${index}`)}
+                              >
+                                <Plus className="w-3 h-3" />
+                              </button>
+                              {activeDropdown === `plus-${index}` && (
+                                <div className={`absolute left-8 top-0 z-50 w-72 max-h-80 rounded-xl shadow-2xl border backdrop-blur-sm overflow-hidden ${isDarkMode ? 'bg-gray-800/95 border-gray-700' : 'bg-white/95 border-gray-200'}`}>
+                                  <div className="py-3">
+                                    <div className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider border-b ${isDarkMode ? 'text-gray-400 border-gray-700' : 'text-gray-500 border-gray-200'}`}>
+                                      Basic Blocks
+                                    </div>
+                                    <div className="py-1 max-h-64 overflow-y-auto">
+                                      <button onClick={() => { const lines = workerReport.split('\n'); lines.splice(index, 0, ''); setWorkerReport(lines.join('\n')); setActiveDropdown(null); }} className={`w-full flex items-center px-4 py-3 text-sm transition-all duration-200 ${isDarkMode ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-blue-50 text-gray-900'}`}>
+                                        <div className={`w-8 h-8 mr-3 flex items-center justify-center rounded-lg ${isDarkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-600'}`}>📝</div>
+                                        <span className="font-medium">Text</span>
+                                      </button>
+                                      <button onClick={() => { const lines = workerReport.split('\n'); lines.splice(index, 0, '# '); setWorkerReport(lines.join('\n')); setActiveDropdown(null); }} className={`w-full flex items-center px-4 py-3 text-sm transition-all duration-200 ${isDarkMode ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-blue-50 text-gray-900'}`}>
+                                        <div className={`w-8 h-8 mr-3 flex items-center justify-center rounded-lg ${isDarkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-600'}`}>#</div>
+                                        <span className="font-medium">Heading 1</span>
+                                      </button>
+                                      <button onClick={() => { const lines = workerReport.split('\n'); lines.splice(index, 0, '## '); setWorkerReport(lines.join('\n')); setActiveDropdown(null); }} className={`w-full flex items-center px-4 py-3 text-sm transition-all duration-200 ${isDarkMode ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-blue-50 text-gray-900'}`}>
+                                        <div className={`w-8 h-8 mr-3 flex items-center justify-center rounded-lg ${isDarkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-600'}`}>#</div>
+                                        <span className="font-medium">Heading 2</span>
+                                      </button>
+                                      <button onClick={() => { const lines = workerReport.split('\n'); lines.splice(index, 0, '### '); setWorkerReport(lines.join('\n')); setActiveDropdown(null); }} className={`w-full flex items-center px-4 py-3 text-sm transition-all duration-200 ${isDarkMode ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-blue-50 text-gray-900'}`}>
+                                        <div className={`w-8 h-8 mr-3 flex items-center justify-center rounded-lg ${isDarkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-600'}`}>#</div>
+                                        <span className="font-medium">Heading 3</span>
+                                      </button>
+                                      <div className={`border-t my-2 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}></div>
+                                      <button onClick={() => { const lines = workerReport.split('\n'); lines.splice(index, 0, '• '); setWorkerReport(lines.join('\n')); setActiveDropdown(null); }} className={`w-full flex items-center px-4 py-3 text-sm transition-all duration-200 ${isDarkMode ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-blue-50 text-gray-900'}`}>
+                                        <div className={`w-8 h-8 mr-3 flex items-center justify-center rounded-lg ${isDarkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-600'}`}>•</div>
+                                        <span className="font-medium">Bullet List</span>
+                                      </button>
+                                      <button onClick={() => { const lines = workerReport.split('\n'); lines.splice(index, 0, '1. '); setWorkerReport(lines.join('\n')); setActiveDropdown(null); }} className={`w-full flex items-center px-4 py-3 text-sm transition-all duration-200 ${isDarkMode ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-blue-50 text-gray-900'}`}>
+                                        <div className={`w-8 h-8 mr-3 flex items-center justify-center rounded-lg ${isDarkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-600'}`}>1.</div>
+                                        <span className="font-medium">Numbered List</span>
+                                      </button>
+                                      <button onClick={() => { const lines = workerReport.split('\n'); lines.splice(index, 0, '☐ '); setWorkerReport(lines.join('\n')); setActiveDropdown(null); }} className={`w-full flex items-center px-4 py-3 text-sm transition-all duration-200 ${isDarkMode ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-blue-50 text-gray-900'}`}>
+                                        <div className={`w-8 h-8 mr-3 flex items-center justify-center rounded-lg ${isDarkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-600'}`}>☐</div>
+                                        <span className="font-medium">To-Do List</span>
+                                      </button>
+                                      <button onClick={() => { const lines = workerReport.split('\n'); lines.splice(index, 0, '> '); setWorkerReport(lines.join('\n')); setActiveDropdown(null); }} className={`w-full flex items-center px-4 py-3 text-sm transition-all duration-200 ${isDarkMode ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-blue-50 text-gray-900'}`}>
+                                        <div className={`w-8 h-8 mr-3 flex items-center justify-center rounded-lg ${isDarkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-600'}`}>"</div>
+                                        <span className="font-medium">Quote</span>
+                                      </button>
+                                      <div className={`border-t my-2 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}></div>
+                                      <button onClick={() => { const lines = workerReport.split('\n'); lines.splice(index, 0, '---'); setWorkerReport(lines.join('\n')); setActiveDropdown(null); }} className={`w-full flex items-center px-4 py-3 text-sm transition-all duration-200 ${isDarkMode ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-blue-50 text-gray-900'}`}>
+                                        <div className={`w-8 h-8 mr-3 flex items-center justify-center rounded-lg ${isDarkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-600'}`}>—</div>
+                                        <span className="font-medium">Divider</span>
+                                      </button>
+                                      <button onClick={() => { const lines = workerReport.split('\n'); lines.splice(index, 0, '| Header | Column |'); setWorkerReport(lines.join('\n')); setActiveDropdown(null); }} className={`w-full flex items-center px-4 py-3 text-sm transition-all duration-200 ${isDarkMode ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-blue-50 text-gray-900'}`}>
+                                        <div className={`w-8 h-8 mr-3 flex items-center justify-center rounded-lg ${isDarkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-600'}`}>⊞</div>
+                                        <span className="font-medium">Table</span>
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                            <div className="relative">
+                              <button 
+                                className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center w-6 h-6" 
+                                onClick={() => setActiveDropdown(activeDropdown === `grip-${index}` ? null : `grip-${index}`)}
+                              >
+                                <GripVertical className="w-3 h-3" />
+                              </button>
+                              {activeDropdown === `grip-${index}` && (
+                                <div className={`absolute z-50 mt-1 w-40 rounded-md shadow-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                                  <div className="py-1">
+                                    <button onClick={() => { const lines = workerReport.split('\n'); lines.splice(index + 1, 0, ''); setWorkerReport(lines.join('\n')); setActiveDropdown(null); }} className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>➕ Add Line Below</button>
+                                    <button onClick={() => { const lines = workerReport.split('\n'); lines.splice(index, 0, ''); setWorkerReport(lines.join('\n')); setActiveDropdown(null); }} className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>⬆️ Add Line Above</button>
+                                    <button onClick={() => { const lines = workerReport.split('\n'); if (index > 0) { const line = lines[index]; lines.splice(index, 1); lines.splice(index - 1, 0, line); setWorkerReport(lines.join('\n')); } setActiveDropdown(null); }} className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>⬆️ Move Up</button>
+                                    <button onClick={() => { const lines = workerReport.split('\n'); if (index < lines.length - 1) { const line = lines[index]; lines.splice(index, 1); lines.splice(index + 1, 0, line); setWorkerReport(lines.join('\n')); } setActiveDropdown(null); }} className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>⬇️ Move Down</button>
+                                    <button onClick={() => { const lines = workerReport.split('\n'); if (lines.length > 1) { lines.splice(index, 1); setWorkerReport(lines.join('\n')); } setActiveDropdown(null); }} className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-red-500`}>🗑️ Delete Line</button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex-1 py-1">
+                            {line === '---' ? (
+                              <div className={`w-full h-px my-4 ${isDarkMode ? 'bg-gray-600' : 'bg-gray-300'}`} />
+                            ) : line.startsWith('|') && line.endsWith('|') ? (
+                              (() => {
+                                const tableId = `table-${index}`;
+                                const table = tableData[tableId] || { rows: 2, cols: 1, data: [['Header'], ['Cell']] };
+                                return (
+                                  <div className="flex-1 relative group" style={{ marginRight: '40px', marginBottom: '40px' }}>
+                                    <div className={`border rounded-lg overflow-hidden shadow-sm ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-300 bg-white'}`}>
+                                      <table className="w-full border-collapse">
+                                        <tbody>
+                                          {table.data.map((row, rowIndex) => (
+                                            <tr key={rowIndex} className={rowIndex === 0 ? (isDarkMode ? 'bg-gray-700' : 'bg-gray-50') : (isDarkMode ? 'hover:bg-gray-700/50' : 'hover:bg-gray-50/50')}>
+                                              {row.map((cell, colIndex) => (
+                                                <td key={colIndex} className={`border-r border-b p-0 relative ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
+                                                  <textarea
+                                                    value={cell}
+                                                    onChange={(e) => {
+                                                      const newData = [...table.data];
+                                                      newData[rowIndex][colIndex] = e.target.value;
+                                                      setTableData(prev => ({ ...prev, [tableId]: { ...table, data: newData } }));
+                                                    }}
+                                                    placeholder={rowIndex === 0 ? `Column ${colIndex + 1}` : ''}
+                                                    className={`w-full min-h-[24px] px-2 py-1 border-none outline-none resize-none bg-transparent text-xs leading-tight ${rowIndex === 0 ? (isDarkMode ? 'font-semibold text-gray-200' : 'font-semibold text-gray-800') : (isDarkMode ? 'text-gray-300' : 'text-gray-700')} ${isDarkMode ? 'focus:bg-blue-900/20 focus:ring-1 focus:ring-blue-700 focus:ring-inset' : 'focus:bg-blue-50/50 focus:ring-1 focus:ring-blue-200 focus:ring-inset'}`}
+                                                    rows={1}
+                                                    onInput={(e) => {
+                                                      e.target.style.height = 'auto';
+                                                      e.target.style.height = Math.max(24, e.target.scrollHeight) + 'px';
+                                                    }}
+                                                  />
+                                                </td>
+                                              ))}
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                    <button onClick={() => {
+                                      const newData = table.data.map(row => [...row, '']);
+                                      setTableData(prev => ({ ...prev, [tableId]: { ...table, cols: table.cols + 1, data: newData } }));
+                                    }} className={`absolute top-1/2 -right-8 transform -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-lg hover:bg-blue-500 hover:text-white hover:border-blue-500 ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'}`} title="Add column"><Plus className="w-3.5 h-3.5" /></button>
+                                    {table.cols > 1 && <button onClick={() => {
+                                      const newData = table.data.map(row => row.slice(0, -1));
+                                      setTableData(prev => ({ ...prev, [tableId]: { ...table, cols: table.cols - 1, data: newData } }));
+                                    }} className={`absolute top-1/2 -right-16 transform -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-lg hover:bg-red-500 hover:text-white hover:border-red-500 ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'}`} title="Delete column"><Minus className="w-3.5 h-3.5" /></button>}
+                                    <button onClick={() => {
+                                      const newRow = Array(table.cols).fill('');
+                                      setTableData(prev => ({ ...prev, [tableId]: { ...table, rows: table.rows + 1, data: [...table.data, newRow] } }));
+                                    }} className={`absolute left-1/2 -bottom-8 transform -translate-x-1/2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-lg hover:bg-blue-500 hover:text-white hover:border-blue-500 ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'}`} title="Add row"><Plus className="w-3.5 h-3.5" /></button>
+                                    {table.rows > 1 && <button onClick={() => {
+                                      const newData = table.data.slice(0, -1);
+                                      setTableData(prev => ({ ...prev, [tableId]: { ...table, rows: table.rows - 1, data: newData } }));
+                                    }} className={`absolute left-1/2 -bottom-16 transform -translate-x-1/2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-lg hover:bg-red-500 hover:text-white hover:border-red-500 ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'}`} title="Delete row"><Minus className="w-3.5 h-3.5" /></button>}
+                                  </div>
+                                );
+                              })()
+
+                            ) : line.match(/!\[.*?\]\(img-\d+\)/) ? (
+                              (() => {
+                                const match = line.match(/!\[(.*?)\]\((img-\d+)\)/);
+                                const imageId = match[2];
+                                const image = selectedImages[imageId];
+                                return image ? (
+                                  <div className="my-4">
+                                    <div className={`relative inline-block rounded-lg overflow-hidden border-2 ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}>
+                                      <img 
+                                        src={image.url} 
+                                        alt={image.name}
+                                        className="max-w-full h-auto max-h-64 object-contain"
+                                      />
+                                      <div className="absolute top-2 right-2 flex gap-1">
+                                        <button
+                                          onClick={() => {
+                                            const input = document.createElement('input');
+                                            input.type = 'file';
+                                            input.accept = 'image/*';
+                                            input.onchange = (e) => {
+                                              const file = e.target.files[0];
+                                              if (file) {
+                                                const reader = new FileReader();
+                                                reader.onload = (event) => {
+                                                  setSelectedImages(prev => ({ ...prev, [imageId]: { file, url: event.target.result, name: file.name } }));
+                                                  const lines = workerReport.split('\n');
+                                                  lines[index] = `![${file.name}](${imageId})`;
+                                                  setWorkerReport(lines.join('\n'));
+                                                };
+                                                reader.readAsDataURL(file);
+                                              }
+                                            };
+                                            input.click();
+                                          }}
+                                          className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+                                        >
+                                          Replace
+                                        </button>
+                                        <button
+                                          onClick={() => {
+                                            const lines = workerReport.split('\n');
+                                            lines.splice(index, 1);
+                                            setWorkerReport(lines.join('\n'));
+                                            setSelectedImages(prev => {
+                                              const newImages = { ...prev };
+                                              delete newImages[imageId];
+                                              return newImages;
+                                            });
+                                          }}
+                                          className="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
+                                        >
+                                          Remove
+                                        </button>
+                                      </div>
+                                    </div>
+                                    <div className={`text-xs mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                      {image.name}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="text-red-500 text-sm">Image not found</div>
+                                );
+                              })()
+                            ) : line.startsWith('> ') ? (
+                              <div className={`border-l-4 pl-4 py-2 my-2 ${isDarkMode ? 'border-blue-500 bg-blue-900/20' : 'border-blue-500 bg-blue-50'}`}>
+                                <input
+                                  type="text"
+                                  value={line.slice(2)}
+                                  onChange={(e) => {
+                                    const lines = workerReport.split('\n');
+                                    lines[index] = '> ' + e.target.value;
+                                    setWorkerReport(lines.join('\n'));
+                                  }}
+                                  placeholder="Quote text"
+                                  className={`w-full outline-none border-none bg-transparent font-inter leading-relaxed italic ${isDarkMode ? 'text-gray-100 placeholder-gray-500' : 'text-gray-800 placeholder-gray-400'}`}
+                                  style={{ lineHeight: '1.6' }}
+                                />
+                              </div>
+                            ) : (
+                              <input
+                                type="text"
+                                value={line.startsWith('# ') ? line.slice(2) : line.startsWith('## ') ? line.slice(3) : line.startsWith('### ') ? line.slice(4) : line}
+                                onChange={(e) => {
+                                  const lines = workerReport.split('\n');
+                                  const originalLine = lines[index];
+                                  if (originalLine.startsWith('# ')) {
+                                    lines[index] = '# ' + e.target.value;
+                                  } else if (originalLine.startsWith('## ')) {
+                                    lines[index] = '## ' + e.target.value;
+                                  } else if (originalLine.startsWith('### ')) {
+                                    lines[index] = '### ' + e.target.value;
+                                  } else {
+                                    lines[index] = e.target.value;
+                                  }
+                                  setWorkerReport(lines.join('\n'));
+                                }}
+                                onClick={(e) => {
+                                  const cursorPos = e.target.selectionStart;
+                                  if ((line.startsWith('☐ ') || line.startsWith('☑ ')) && cursorPos === 0) {
+                                    const lines = workerReport.split('\n');
+                                    if (line.startsWith('☐ ')) {
+                                      lines[index] = line.replace('☐ ', '☑ ');
+                                    } else {
+                                      lines[index] = line.replace('☑ ', '☐ ');
+                                    }
+                                    setWorkerReport(lines.join('\n'));
+                                  }
+                                }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  const lines = workerReport.split('\n');
+                                  let newLine = '';
+                                  
+                                  if (line.startsWith('• ')) {
+                                    newLine = '• ';
+                                  } else if (line.match(/^\d+\. /)) {
+                                    const num = parseInt(line.match(/^(\d+)\./)[1]) + 1;
+                                    newLine = num + '. ';
+                                  } else if (line.startsWith('☐ ') || line.startsWith('☑ ')) {
+                                    newLine = '☐ ';
+                                  }
+                                  
+                                  lines.splice(index + 1, 0, newLine);
+                                  setWorkerReport(lines.join('\n'));
+                                  setTimeout(() => {
+                                    const nextInput = e.target.parentElement.parentElement.nextElementSibling?.querySelector('input');
+                                    if (nextInput) nextInput.focus();
+                                  }, 0);
+                                }
+                                if (e.key === 'Backspace' && (line === '' || line === '• ' || line === '☐ ' || line.match(/^\d+\. $/)) && workerReport.split('\n').length > 1) {
+                                  e.preventDefault();
+                                  const lines = workerReport.split('\n');
+                                  lines.splice(index, 1);
+                                  setWorkerReport(lines.join('\n'));
+                                  setTimeout(() => {
+                                    const prevInput = e.target.parentElement.parentElement.previousElementSibling?.querySelector('input');
+                                    if (prevInput) prevInput.focus();
+                                  }, 0);
+                                }
                               }}
-                            >
-                              <Plus className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-                            </button>
-                            <button
-                              className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 hover:scale-110 transition-all duration-200 flex items-center justify-center w-5 h-5"
-                              onClick={() => {
-                                // Menu functionality for this line
-                                console.log(`Menu clicked for line ${index + 1}`);
-                              }}
-                            >
-                              <GripVertical className="w-3 h-3 text-gray-600 dark:text-gray-400" />
-                            </button>
+                              placeholder={
+                                line.startsWith('# ') ? 'Heading 1' :
+                                line.startsWith('## ') ? 'Heading 2' :
+                                line.startsWith('### ') ? 'Heading 3' :
+                                index === 0 && line === '' ? (user?.role === 'manager' 
+                                  ? "Write your detailed management report here..."
+                                  : "Write your detailed project report here...") : ''
+                              }
+                                className={`w-full outline-none border-none bg-transparent font-inter leading-relaxed ${isDarkMode ? 'text-gray-100 placeholder-gray-500' : 'text-gray-800 placeholder-gray-400'} ${
+                                  line.startsWith('# ') ? 'text-2xl font-bold' :
+                                  line.startsWith('## ') ? 'text-xl font-semibold' :
+                                  line.startsWith('### ') ? 'text-lg font-medium' : ''
+                                }`}
+                                style={{ lineHeight: '1.6' }}
+                              />
+                            )}
                           </div>
                         </div>
                       ))}
+                      {workerReport === '' && (
+                        <div className="group flex items-start hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded transition-colors duration-150">
+                          <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1 py-1">
+                            <button 
+                              className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center w-6 h-6" 
+                              onClick={() => setWorkerReport('\n')}
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                            <button 
+                              className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center w-6 h-6" 
+                            >
+                              <GripVertical className="w-3 h-3" />
+                            </button>
+                          </div>
+                          <div className="flex-1 py-1">
+                            <input
+                              type="text"
+                              value=""
+                              onChange={(e) => setWorkerReport(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  setWorkerReport(e.target.value + '\n');
+                                }
+                              }}
+                              placeholder={user?.role === 'manager' 
+                                ? "Write your detailed management report here..."
+                                : "Write your detailed project report here..."}
+                              className={`w-full outline-none border-none bg-transparent font-inter leading-relaxed ${isDarkMode ? 'text-gray-100 placeholder-gray-500' : 'text-gray-800 placeholder-gray-400'}`}
+                              style={{ lineHeight: '1.6' }}
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    
-                    <div className={`w-full rounded-lg p-6 font-mono text-sm border transition-all duration-200 ${isDarkMode ? 'bg-gray-800/80 text-gray-100 border-gray-700 hover:border-gray-600' : 'bg-gray-50 text-gray-800 border-gray-200 hover:border-gray-300'}`}>
-                      <textarea
-                        name="report-content"
-                        value={workerReport}
-                        onChange={(e) => setWorkerReport(e.target.value)}
-                        placeholder={user?.role === 'manager' 
-                          ? "Write your detailed management report here...\n\nInclude:\n• Strategic initiatives and progress\n• Team performance metrics\n• Budget and resource allocation\n• Challenges and solutions\n• Future planning and recommendations\n• Stakeholder communications"
-                          : "Write your detailed project report here...\n\nInclude:\n• Project progress and milestones achieved\n• Current status and completion percentage\n• Challenges encountered and solutions\n• Team collaboration and performance\n• Budget and resource utilization\n• Next steps and upcoming deliverables\n• Recommendations for improvement"
-                        }
-                        rows={16}
-                        className="w-full bg-transparent outline-none resize-none font-mono leading-relaxed pl-12 pr-6"
-                        style={{ lineHeight: '1.6' }}
-                      />
-                    </div>
+
                   </div>
                 </div>
 
@@ -1114,10 +1518,31 @@ const ReportsPage = () => {
                             {report.status}
                           </span>
                         </div>
-                        <div className={`prose max-w-none ${isDarkMode ? 'prose-invert' : ''}`}>
-                          <div className={`whitespace-pre-wrap ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                            {report.content}
-                          </div>
+                        <div className={`${isDarkMode ? 'text-gray-300' : 'text-gray-700'} leading-relaxed`}>
+                          {report.content.split('\n').map((line, lineIndex) => {
+                            if (line.startsWith('# ')) {
+                              return <h1 key={lineIndex} className={`text-2xl font-bold mb-4 mt-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{line.slice(2)}</h1>;
+                            } else if (line.startsWith('## ')) {
+                              return <h2 key={lineIndex} className={`text-xl font-semibold mb-3 mt-5 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{line.slice(3)}</h2>;
+                            } else if (line.startsWith('### ')) {
+                              return <h3 key={lineIndex} className={`text-lg font-medium mb-2 mt-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{line.slice(4)}</h3>;
+                            } else if (line.startsWith('• ')) {
+                              return <div key={lineIndex} className="flex items-start gap-2 mb-1"><span className="text-blue-500 mt-2">•</span><span>{line.slice(2)}</span></div>;
+                            } else if (line.match(/^\d+\. /)) {
+                              const match = line.match(/^(\d+)\. (.*)/);
+                              return <div key={lineIndex} className="flex items-start gap-2 mb-1"><span className="text-blue-500 font-medium">{match[1]}.</span><span>{match[2]}</span></div>;
+                            } else if (line.startsWith('☐ ')) {
+                              return <div key={lineIndex} className="flex items-start gap-2 mb-1"><span className="text-gray-400">☐</span><span>{line.slice(2)}</span></div>;
+                            } else if (line.startsWith('☑ ')) {
+                              return <div key={lineIndex} className="flex items-start gap-2 mb-1"><span className="text-green-500">☑</span><span className="line-through opacity-75">{line.slice(2)}</span></div>;
+                            } else if (line === '---') {
+                              return <hr key={lineIndex} className={`my-4 ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`} />;
+                            } else if (line.trim() === '') {
+                              return <div key={lineIndex} className="mb-2"></div>;
+                            } else {
+                              return <p key={lineIndex} className="mb-2">{line}</p>;
+                            }
+                          })}
                         </div>
                       </div>
                     ))
@@ -1164,10 +1589,31 @@ const ReportsPage = () => {
                             {report.status}
                           </span>
                         </div>
-                        <div className={`prose max-w-none ${isDarkMode ? 'prose-invert' : ''}`}>
-                          <div className={`whitespace-pre-wrap ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                            {report.content}
-                          </div>
+                        <div className={`${isDarkMode ? 'text-gray-300' : 'text-gray-700'} leading-relaxed`}>
+                          {report.content.split('\n').map((line, lineIndex) => {
+                            if (line.startsWith('# ')) {
+                              return <h1 key={lineIndex} className={`text-2xl font-bold mb-4 mt-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{line.slice(2)}</h1>;
+                            } else if (line.startsWith('## ')) {
+                              return <h2 key={lineIndex} className={`text-xl font-semibold mb-3 mt-5 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{line.slice(3)}</h2>;
+                            } else if (line.startsWith('### ')) {
+                              return <h3 key={lineIndex} className={`text-lg font-medium mb-2 mt-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{line.slice(4)}</h3>;
+                            } else if (line.startsWith('• ')) {
+                              return <div key={lineIndex} className="flex items-start gap-2 mb-1"><span className="text-blue-500 mt-2">•</span><span>{line.slice(2)}</span></div>;
+                            } else if (line.match(/^\d+\. /)) {
+                              const match = line.match(/^(\d+)\. (.*)/);
+                              return <div key={lineIndex} className="flex items-start gap-2 mb-1"><span className="text-blue-500 font-medium">{match[1]}.</span><span>{match[2]}</span></div>;
+                            } else if (line.startsWith('☐ ')) {
+                              return <div key={lineIndex} className="flex items-start gap-2 mb-1"><span className="text-gray-400">☐</span><span>{line.slice(2)}</span></div>;
+                            } else if (line.startsWith('☑ ')) {
+                              return <div key={lineIndex} className="flex items-start gap-2 mb-1"><span className="text-green-500">☑</span><span className="line-through opacity-75">{line.slice(2)}</span></div>;
+                            } else if (line === '---') {
+                              return <hr key={lineIndex} className={`my-4 ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`} />;
+                            } else if (line.trim() === '') {
+                              return <div key={lineIndex} className="mb-2"></div>;
+                            } else {
+                              return <p key={lineIndex} className="mb-2">{line}</p>;
+                            }
+                          })}
                         </div>
                       </div>
                     ))
@@ -1208,52 +1654,73 @@ const ReportsPage = () => {
                       <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                         Project Report Details
                       </label>
-                      <div 
-                        className="relative group"
-                        onMouseEnter={() => setShowLineButtons(true)}
-                        onMouseLeave={() => setShowLineButtons(false)}
-                      >
-                        {/* Line numbers and buttons */}
-                        <div className="absolute left-0 top-0 z-10">
-                          {workerReport.split('\n').map((line, index) => (
-                            <div key={index} className="flex items-center h-6">
-                              <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity gap-0.5 mr-1">
-                                <button
-                                  className="p-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:scale-110 transition-all duration-200 flex items-center justify-center w-5 h-5"
-                                  onClick={() => {
-                                    const lines = workerReport.split('\n');
-                                    const newLines = [...lines];
-                                    newLines.splice(index + 1, 0, '');
-                                    setWorkerReport(newLines.join('\n'));
-                                  }}
-                                >
-                                  <Plus className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-                                </button>
-                                <button
-                                  className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 hover:scale-110 transition-all duration-200 flex items-center justify-center w-5 h-5"
-                                  onClick={() => {
-                                    // Menu functionality for this line
-                                    console.log(`Menu clicked for line ${index + 1}`);
-                                  }}
-                                >
-                                  <GripVertical className="w-3 h-3 text-gray-600 dark:text-gray-400" />
-                                </button>
-                              </div>
-                            </div>
-                          ))}
+                      
+                      {/* Formatting Toolbar */}
+                      <div className={`border-b p-3 ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-300 bg-gray-50'}`}>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            onClick={() => setWorkerReport(prev => prev + '\n# ')}
+                            className={`px-3 py-1 text-xs rounded border transition-colors ${isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-100'}`}
+                            title="Add Heading 1"
+                          >
+                            H1
+                          </button>
+                          <button
+                            onClick={() => setWorkerReport(prev => prev + '\n## ')}
+                            className={`px-3 py-1 text-xs rounded border transition-colors ${isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-100'}`}
+                            title="Add Heading 2"
+                          >
+                            H2
+                          </button>
+                          <button
+                            onClick={() => setWorkerReport(prev => prev + '\n### ')}
+                            className={`px-3 py-1 text-xs rounded border transition-colors ${isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-100'}`}
+                            title="Add Heading 3"
+                          >
+                            H3
+                          </button>
+                          <div className={`w-px h-4 ${isDarkMode ? 'bg-gray-600' : 'bg-gray-300'}`} />
+                          <button
+                            onClick={() => setWorkerReport(prev => prev + '\n• ')}
+                            className={`px-3 py-1 text-xs rounded border transition-colors ${isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-100'}`}
+                            title="Add Bullet List"
+                          >
+                            • List
+                          </button>
+                          <button
+                            onClick={() => setWorkerReport(prev => prev + '\n1. ')}
+                            className={`px-3 py-1 text-xs rounded border transition-colors ${isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-100'}`}
+                            title="Add Numbered List"
+                          >
+                            1. List
+                          </button>
+                          <button
+                            onClick={() => setWorkerReport(prev => prev + '\n☐ ')}
+                            className={`px-3 py-1 text-xs rounded border transition-colors ${isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-100'}`}
+                            title="Add Checkbox"
+                          >
+                            ☐ Todo
+                          </button>
+                          <div className={`w-px h-4 ${isDarkMode ? 'bg-gray-600' : 'bg-gray-300'}`} />
+                          <button
+                            onClick={() => setWorkerReport(prev => prev + '\n---\n')}
+                            className={`px-3 py-1 text-xs rounded border transition-colors ${isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-100'}`}
+                            title="Add Divider"
+                          >
+                            ➖ Divider
+                          </button>
                         </div>
-                        
-                        <div className={`w-full rounded-lg p-6 font-mono text-sm border transition-all duration-200 ${isDarkMode ? 'bg-gray-800/80 text-gray-100 border-gray-700 hover:border-gray-600' : 'bg-gray-50 text-gray-800 border-gray-200 hover:border-gray-300'}`}>
-                          <textarea
-                            name="worker-report-content"
-                            value={workerReport}
-                            onChange={(e) => setWorkerReport(e.target.value)}
-                            placeholder="Write your detailed project report here...\n\nInclude:\n• Project progress and milestones achieved\n• Current status and completion percentage\n• Challenges encountered and solutions\n• Team collaboration and performance\n• Budget and resource utilization\n• Next steps and upcoming deliverables\n• Recommendations for improvement"
-                            rows={16}
-                            className="w-full bg-transparent outline-none resize-none font-mono leading-relaxed pl-12 pr-6"
-                            style={{ lineHeight: '1.6' }}
-                          />
-                        </div>
+                      </div>
+                      
+                      <div className={`border rounded-b-lg ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-300 bg-white'}`}>
+                        <textarea
+                          value={workerReport}
+                          onChange={(e) => setWorkerReport(e.target.value)}
+                          placeholder="Write your detailed project report here...\n\nUse the toolbar above to add formatting like:\n• Headings (H1, H2, H3)\n• Bullet points\n• Numbered lists\n• Checkboxes\n• Dividers\n\nExample:\n# Project Status Report\nThis week we completed...\n\n## Milestones Achieved\n• Feature development: 85%\n• Testing: 60%\n• Documentation: 40%"
+                          rows={20}
+                          className={`w-full p-6 border-none outline-none resize-none bg-transparent font-inter leading-relaxed ${isDarkMode ? 'text-gray-100 placeholder-gray-500' : 'text-gray-800 placeholder-gray-400'}`}
+                          style={{ lineHeight: '1.6', minHeight: '500px' }}
+                        />
                       </div>
                     </div>
 
