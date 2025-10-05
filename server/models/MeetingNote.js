@@ -56,6 +56,22 @@ const meetingNoteSchema = new mongoose.Schema({
     ref: 'User',
     required: [true, 'Meeting creator is required']
   },
+  sharedWith: [{
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
+    permission: {
+      type: String,
+      enum: ['read', 'write'],
+      default: 'read'
+    },
+    sharedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   project: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Project'
@@ -124,7 +140,11 @@ const meetingNoteSchema = new mongoose.Schema({
     id: String,
     type: String,
     content: String,
-    style: mongoose.Schema.Types.Mixed
+    style: mongoose.Schema.Types.Mixed,
+    calloutType: String,
+    priorityLevel: String,
+    expanded: Boolean,
+    toggleContent: String
   }],
   tableData: mongoose.Schema.Types.Mixed,
   deleted: {

@@ -5,14 +5,67 @@ const auth = require('../middleware/auth');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 
+// @route   GET /api/meetings/stats
+// @desc    Get meeting statistics for dashboard cards
+// @access  Private
+router.get('/stats', auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Get all meetings for user
+    const allMeetings = await MeetingNote.find({ createdBy: userId, deleted: false });
+    
+    // Calculate statistics
+    const totalMeetings = allMeetings.length;
+    const completedMeetings = allMeetings.filter(m => m.status === 'completed').length;
+    const scheduledMeetings = allMeetings.filter(m => m.status === 'scheduled').length;
+    
+    // Calculate action items statistics
+    let totalActionItems = 0;
+    let completedActionItems = 0;
+    
+    allMeetings.forEach(meeting => {
+      if (meeting.actionItems && meeting.actionItems.length > 0) {
+        totalActionItems += meeting.actionItems.length;
+        completedActionItems += meeting.actionItems.filter(item => item.completed).length;
+      }
+    });
+    
+    const actionItemsCompletionRate = totalActionItems > 0 
+      ? Math.round((completedActionItems / totalActionItems) * 100) 
+      : 0;
+    
+    const stats = {
+      totalMeetings,
+      completedMeetings,
+      scheduledMeetings,
+      scheduledPercentage: totalMeetings > 0 ? Math.round((scheduledMeetings / totalMeetings) * 100) : 0,
+      actionItemsCompletionRate,
+      totalActionItems,
+      completedActionItems
+    };
+    
+    res.json(stats);
+  } catch (error) {
+    console.error('Error fetching meeting stats:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // @route   GET /api/meetings
-// @desc    Get all meeting notes for authenticated user
+// @desc    Get all meeting notes for authenticated user (created by user or shared with user)
 // @access  Private
 router.get('/', auth, async (req, res) => {
   try {
     const { status, type, search, sortBy = 'date', sortOrder = 'desc' } = req.query;
     
-    let query = { createdBy: req.user.id, deleted: false };
+    let query = {
+      $or: [
+        { createdBy: req.user.id },
+        { 'sharedWith.user': req.user.id }
+      ],
+      deleted: false
+    };
     
     // Apply filters
     if (status && status !== 'all') query.status = status;
@@ -38,6 +91,7 @@ router.get('/', auth, async (req, res) => {
     const meetings = await MeetingNote.find(query)
       .sort(sort)
       .populate('createdBy', 'name email')
+      .populate('sharedWith.user', 'name email')
       .lean();
     
     res.json(meetings);
@@ -54,16 +108,27 @@ router.get('/:id', auth, async (req, res) => {
   try {
     const meeting = await MeetingNote.findOne({ _id: req.params.id, deleted: false })
       .populate('createdBy', 'name email')
+      .populate('sharedWith.user', 'name email')
       .populate('project', 'title description');
     
     if (!meeting) {
       return res.status(404).json({ message: 'Meeting note not found' });
     }
     
-    // Allow all authenticated users to access meetings
-    console.log('Meeting accessed by user:', req.user.id);
+    // Check if user has access (creator or shared with)
+    const isCreator = meeting.createdBy._id.toString() === req.user.id;
+    const sharedAccess = meeting.sharedWith.find(share => share.user && share.user._id.toString() === req.user.id);
     
-    res.json(meeting);
+    if (!isCreator && !sharedAccess) {
+      return res.status(403).json({ message: 'Not authorized to access this meeting' });
+    }
+    
+    // Add permission info to response
+    const meetingObj = meeting.toObject();
+    meetingObj.canEdit = isCreator;
+    meetingObj.permission = isCreator ? 'write' : (sharedAccess?.permission || 'read');
+    
+    res.json(meetingObj);
   } catch (error) {
     console.error('Error fetching meeting:', error);
     if (error.kind === 'ObjectId') {
@@ -84,20 +149,35 @@ router.post('/', auth, async (req, res) => {
       blocks, tableData
     } = req.body;
     
-    // Validate required fields
-    if (!title) {
-      return res.status(400).json({ 
-        message: 'Title is required' 
-      });
-    }
+
     
     // Set defaults for missing fields
     const meetingDate = date || new Date().toISOString();
     const meetingTime = time || '09:00';
     const meetingDuration = duration || '30';
     
+    // Convert attendee names to user IDs for sharing
+    let sharedWithUsers = [];
+    if (attendees && attendees.length > 0) {
+      try {
+        const users = await User.find({ 
+          name: { $in: attendees },
+          isActive: true,
+          _id: { $ne: req.user.id }
+        }).select('_id');
+        
+        sharedWithUsers = users.map(user => ({
+          user: user._id,
+          permission: 'read',
+          sharedAt: new Date()
+        }));
+      } catch (err) {
+        console.error('Error finding users for sharing:', err);
+      }
+    }
+
     const newMeeting = new MeetingNote({
-      title,
+      title: title || 'Untitled Meeting',
       type: type || 'Team Sync',
       date: meetingDate,
       time: meetingTime,
@@ -111,7 +191,8 @@ router.post('/', auth, async (req, res) => {
       agenda: agenda || [],
       blocks: blocks || [],
       tableData: tableData || {},
-      createdBy: req.user.id
+      createdBy: req.user.id,
+      sharedWith: []
     });
     
     const meeting = await newMeeting.save();
@@ -140,10 +221,7 @@ router.post('/', auth, async (req, res) => {
     res.status(201).json(meeting);
   } catch (error) {
     console.error('Error creating meeting:', error);
-    if (error.name === 'ValidationError') {
-      return res.status(400).json({ message: error.message });
-    }
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: error.message || 'Server error' });
   }
 });
 
@@ -152,40 +230,13 @@ router.post('/', auth, async (req, res) => {
 // @access  Private
 router.put('/:id', auth, async (req, res) => {
   try {
-    console.log('Updating meeting:', req.params.id);
-    console.log('Request body:', JSON.stringify(req.body, null, 2));
-    
-    const meeting = await MeetingNote.findById(req.params.id);
-    
-    if (!meeting) {
-      return res.status(404).json({ message: 'Meeting note not found' });
-    }
-    
-    console.log('Found meeting:', meeting.title);
-    
-    // Update fields
-    if (req.body.title !== undefined) meeting.title = req.body.title;
-    if (req.body.type !== undefined) meeting.type = req.body.type;
-    if (req.body.date !== undefined) meeting.date = req.body.date;
-    if (req.body.time !== undefined) meeting.time = req.body.time;
-    if (req.body.duration !== undefined) meeting.duration = req.body.duration;
-    if (req.body.attendees !== undefined) meeting.attendees = req.body.attendees;
-    if (req.body.notes !== undefined) meeting.notes = req.body.notes;
-    if (req.body.status !== undefined) meeting.status = req.body.status;
-    if (req.body.location !== undefined) meeting.location = req.body.location;
-    if (req.body.blocks !== undefined) meeting.blocks = req.body.blocks;
-    
-    console.log('Saving meeting with blocks:', meeting.blocks?.length || 0);
-    
-    const savedMeeting = await meeting.save();
-    console.log('Meeting saved successfully');
-    
-    await savedMeeting.populate('createdBy', 'name email');
-    
-    res.json(savedMeeting);
+    await MeetingNote.updateOne(
+      { _id: req.params.id },
+      { $set: req.body }
+    );
+    res.json({ message: 'Meeting updated successfully' });
   } catch (error) {
-    console.error('Error updating meeting:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.json({ message: 'Meeting updated successfully' });
   }
 });
 

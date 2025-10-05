@@ -249,12 +249,12 @@ const MeetingNotesPage = () => {
                       updateMeetingField(meeting.id, 'status', e.target.value);
                     }}
                     onClick={(e) => e.stopPropagation()}
-                    className={`px-2 py-0.5 rounded text-xs font-medium bg-gray-800 border border-gray-600 outline-none mr-3 ${getStatusColor(meeting.status)}`}
+                    className={`px-2 py-0.5 rounded text-xs font-medium bg-transparent border-none outline-none mr-3 ${getStatusColor(meeting.status)}`}
                   >
-                    <option value="Scheduled">Scheduled</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Completed">Completed</option>
-                    <option value="Cancelled">Cancelled</option>
+                    <option value="scheduled">Scheduled</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
                   </select>
                   <span className="mr-3">•</span>
                   <input
@@ -320,7 +320,7 @@ const MeetingNotesPage = () => {
             </p>
           </div>
           <button
-            onClick={() => navigate('/meeting-new')}
+            onClick={() => navigate('/meeting-editor/new')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
           >
             <Plus className="w-4 h-4" />
@@ -429,7 +429,7 @@ const MeetingNotesPage = () => {
             </p>
             {!searchTerm && filterStatus === 'all' && filterType === 'all' && (
               <button
-                onClick={() => navigate('/meeting-new')}
+                onClick={() => navigate('/meeting-editor/new')}
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
               >
                 Create Meeting

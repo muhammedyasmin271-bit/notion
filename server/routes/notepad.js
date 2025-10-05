@@ -58,6 +58,7 @@ router.get('/', auth, async (req, res) => {
       ...note,
       createdBy: note.author._id,
       createdByName: note.author.name || note.author.username || 'Unknown',
+      canShare: req.user.role === 'manager' || req.user.role === 'admin',
       sharedWith: note.sharedWith.map(share => ({
         ...share,
         user: {
@@ -75,10 +76,15 @@ router.get('/', auth, async (req, res) => {
 });
 
 // @route   GET /api/notepad/users
-// @desc    Get all users for sharing (moved up to avoid route conflicts)
+// @desc    Get all users for sharing (managers and admins only)
 // @access  Private
 router.get('/users', auth, async (req, res) => {
   try {
+    // Check if user is manager or admin
+    if (req.user.role !== 'manager' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Only managers and admins can access user list for sharing' });
+    }
+
     const users = await User.find({ 
       isActive: true, 
       _id: { $ne: req.user.id } 
@@ -92,6 +98,82 @@ router.get('/users', auth, async (req, res) => {
     res.json(usersWithFallback);
   } catch (error) {
     console.error('Error fetching users:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST /api/notepad/:id/share
+// @desc    Share a note with users (managers and admins only)
+// @access  Private
+router.post('/:id/share', auth, async (req, res) => {
+  try {
+    // Check if user is manager or admin
+    if (req.user.role !== 'manager' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Only managers and admins can share notes' });
+    }
+
+    const { userIds } = req.body;
+
+    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({ message: 'Please select users to share with' });
+    }
+
+    const note = await Note.findOne({ _id: req.params.id, deleted: false });
+    if (!note) {
+      return res.status(404).json({ message: 'Note not found' });
+    }
+
+    if (note.author.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Only the note author can share this note' });
+    }
+
+    // Handle both userIds and usernames
+    let validUserIds = [];
+    
+    for (const identifier of userIds) {
+      // Check if it's already a valid ObjectId
+      if (identifier.match(/^[0-9a-fA-F]{24}$/)) {
+        validUserIds.push(identifier);
+      } else {
+        // Try to find user by username, name, or email
+        const user = await User.findOne({
+          $or: [
+            { username: identifier },
+            { name: identifier },
+            { email: identifier }
+          ],
+          isActive: true
+        }).select('_id');
+        
+        if (user) {
+          validUserIds.push(user._id.toString());
+        }
+      }
+    }
+
+    if (validUserIds.length === 0) {
+      return res.status(400).json({ message: 'No valid users found to share with' });
+    }
+
+    // Add new shares
+    const existingUserIds = note.sharedWith.map(share => share.user.toString());
+    const newUserIds = validUserIds.filter(id => !existingUserIds.includes(id));
+    
+    const newShares = newUserIds.map(userId => ({
+      user: userId,
+      permission: 'read',
+      sharedAt: new Date()
+    }));
+
+    note.sharedWith.push(...newShares);
+    await note.save();
+    
+    res.json({ 
+      success: true,
+      message: `Note shared with ${newShares.length} user(s)`
+    });
+  } catch (error) {
+    console.error('Error sharing note:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -118,6 +200,7 @@ router.get('/:id', auth, async (req, res) => {
     const noteObj = note.toObject();
     noteObj.createdBy = note.author._id;
     noteObj.createdByName = note.author.name || note.author.username || 'Unknown';
+    noteObj.canShare = req.user.role === 'manager' || req.user.role === 'admin';
     noteObj.sharedWith = noteObj.sharedWith.map(share => ({
       ...share,
       user: {
@@ -167,7 +250,8 @@ router.post('/', auth, async (req, res) => {
     const noteWithCreatedBy = {
       ...note.toObject(),
       createdBy: note.author._id,
-      createdByName: note.author.name || note.author.username || 'Unknown'
+      createdByName: note.author.name || note.author.username || 'Unknown',
+      canShare: req.user.role === 'manager' || req.user.role === 'admin'
     };
 
     res.status(201).json(noteWithCreatedBy);
@@ -205,7 +289,6 @@ router.put('/:id', auth, async (req, res) => {
     if (tags !== undefined) updateFields.tags = tags;
     if (isPublic !== undefined) updateFields.isPublic = isPublic;
     if (sharedWith !== undefined) {
-      // Validate shared users exist
       if (sharedWith.length > 0) {
         const userIds = sharedWith.map(share => share.user);
         const validUsers = await User.find({ _id: { $in: userIds }, isActive: true }).select('_id');
@@ -227,6 +310,7 @@ router.put('/:id', auth, async (req, res) => {
      .populate('sharedWith.user', 'name email username');
 
     const noteObj = note.toObject();
+    noteObj.canShare = req.user.role === 'manager' || req.user.role === 'admin';
     noteObj.sharedWith = noteObj.sharedWith.map(share => ({
       ...share,
       user: {
@@ -248,7 +332,7 @@ router.put('/:id', auth, async (req, res) => {
 router.delete('/:id', auth, async (req, res) => {
   try {
     const note = await Note.findOne({ _id: req.params.id, deleted: false });
-
+    
     if (!note) {
       return res.status(404).json({ message: 'Note not found' });
     }
@@ -261,112 +345,11 @@ router.delete('/:id', auth, async (req, res) => {
     note.deletedAt = new Date();
     await note.save();
 
-    res.json({ message: 'Note moved to trash' });
+    res.json({ message: 'Note deleted successfully' });
   } catch (error) {
     console.error('Error deleting note:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
-
-// @route   PATCH /api/notepad/:id/restore
-// @desc    Restore a deleted note
-// @access  Private
-router.patch('/:id/restore', auth, async (req, res) => {
-  try {
-    const note = await Note.findOne({ _id: req.params.id, deleted: true });
-    if (!note) {
-      return res.status(404).json({ message: 'Note not found in trash' });
-    }
-    if (note.author.toString() !== req.user.id) {
-      return res.status(403).json({ message: 'Not authorized' });
-    }
-    note.deleted = false;
-    note.deletedAt = null;
-    await note.save();
-    res.json({ message: 'Note restored successfully' });
-  } catch (error) {
-    console.error('Error restoring note:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// @route   POST /api/notepad/:id/share
-// @desc    Share a note with selected users
-// @access  Private
-router.post('/:id/share', auth, async (req, res) => {
-  try {
-    console.log('=== SHARE ENDPOINT HIT ===');
-    console.log('Note ID:', req.params.id);
-    console.log('Request body:', req.body);
-    console.log('User ID:', req.user.id);
-    console.log('User role:', req.user.role);
-    
-    const { userIds } = req.body;
-
-    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
-      console.log('No userIds provided or invalid format');
-      return res.status(400).json({ message: 'Please select users to share with' });
-    }
-    
-    console.log('UserIds to share with:', userIds);
-
-    const note = await Note.findOne({ _id: req.params.id, deleted: false });
-    if (!note) {
-      console.log('Note not found in database');
-      return res.status(404).json({ message: 'Note not found' });
-    }
-
-    console.log('Note found. Author:', note.author.toString());
-    console.log('Current user:', req.user.id);
-    console.log('Author match:', note.author.toString() === req.user.id);
-
-    if (note.author.toString() !== req.user.id) {
-      console.log('Authorization failed - user is not the author');
-      return res.status(403).json({ message: 'Only the note author can share this note' });
-    }
-
-    // Validate users exist
-    const validUsers = await User.find({ 
-      _id: { $in: userIds }, 
-      isActive: true 
-    }).select('_id');
-
-    if (validUsers.length === 0) {
-      return res.status(400).json({ message: 'No valid users found' });
-    }
-
-    // Add new shares
-    const existingUserIds = note.sharedWith.map(share => share.user.toString());
-    const newUserIds = validUsers
-      .map(u => u._id.toString())
-      .filter(id => !existingUserIds.includes(id));
-    
-    const newShares = newUserIds.map(userId => ({
-      user: userId,
-      permission: 'read',
-      sharedAt: new Date()
-    }));
-
-    note.sharedWith.push(...newShares);
-    await note.save();
-
-    console.log('Share successful! Shared with', newShares.length, 'users');
-    console.log('Total shares now:', note.sharedWith.length);
-    
-    res.json({ 
-      success: true,
-      message: `Note shared with ${newShares.length} user(s)`,
-      totalShares: note.sharedWith.length
-    });
-  } catch (error) {
-    console.error('=== SHARE ERROR ===');
-    console.error('Full error:', error);
-    console.error('Error message:', error.message);
-    console.error('Stack trace:', error.stack);
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-});
-
-
 
 module.exports = router;

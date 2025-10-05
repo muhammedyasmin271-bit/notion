@@ -2592,28 +2592,31 @@ const NotepadPage = () => {
 										Save
 									</button>
 
+									{/* Share button - Only visible to Managers and Admins */}
+									{(user?.role === 'manager' || user?.role === 'admin') && (
 										<div className="relative">
 											<button
 												onClick={async () => {
-													if (!showShareModal && availableUsers.length === 0) {
+													// Always try to fetch users when opening share modal
+													if (!showShareModal) {
 														try {
-															const apiService = (await import('../../services/api')).default;
-															const response = await apiService.getUsers();
-															console.log('Fetched users response:', response);
-															const users = response.users || [];
-															console.log('Current user:', user);
-															console.log('All users from API:', users);
-															// Only filter if we have more than 1 user and can identify current user
-															if (users.length > 1 && user?._id) {
-																const filteredUsers = users.filter(u => u._id !== user._id);
-																console.log('Filtered users (excluding creator):', filteredUsers);
-																setAvailableUsers(filteredUsers);
-															} else {
-																console.log('Showing all users (no filtering applied)');
-																setAvailableUsers(users);
-															}
+															// Try the notepad users endpoint first
+															const usersData = await get('/notepad/users');
+															console.log('Fetched users from notepad endpoint:', usersData);
+															setAvailableUsers(Array.isArray(usersData) ? usersData : []);
 														} catch (err) {
-															console.error('Failed to fetch users:', err);
+															console.error('Failed to fetch users from notepad endpoint:', err);
+															// Fallback: try alternative endpoints
+															try {
+																const altUsersData = await get('/users');
+																console.log('Fetched users from users endpoint:', altUsersData);
+																const users = altUsersData.users || altUsersData || [];
+																setAvailableUsers(Array.isArray(users) ? users.filter(u => u._id !== user?.id) : []);
+															} catch (altErr) {
+																console.error('Failed to fetch users from alternative endpoint:', altErr);
+																// Set empty array so modal still works
+																setAvailableUsers([]);
+															}
 														}
 													}
 													setShowShareModal(!showShareModal);
@@ -2629,99 +2632,88 @@ const NotepadPage = () => {
 													<div className="p-4">
 														<h3 className="text-lg font-semibold mb-3">Share Note</h3>
 														<div className="space-y-2 max-h-48 overflow-y-auto">
-															{availableUsers.length > 0 ? availableUsers.filter(userItem => userItem && typeof userItem === 'object' && userItem._id).map(userItem => {
-																// Check if user is already shared with
-																const isAlreadyShared = currentNote?.sharedWith?.some(share => 
-																	(typeof share === 'object' ? share.user : share) === userItem._id
-																);
-																const isSelected = shareSettings.sharedWith.includes(userItem._id);
-																
-																// Ensure userItem has required properties
-																if (!userItem || !userItem._id) return null;
-																
-																return (
-																	<button
-																		key={userItem._id}
-																		onClick={() => selectUserForSharing(userItem._id)}
-																		disabled={isAlreadyShared}
-																		className={`w-full p-3 text-left rounded-lg transition-colors ${
-																			isAlreadyShared
-																				? 'bg-green-500/20 border border-green-500 cursor-not-allowed opacity-75'
-																				: isSelected
-																					? 'bg-blue-500/20 border border-blue-500'
-																					: isDarkMode
-																						? 'hover:bg-gray-700'
-																						: 'hover:bg-gray-100'
-																		}`}
-																	>
-																		<div className="flex items-center justify-between">
-																			<div className="flex items-center">
-																				<div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-semibold mr-3">
-																					{(userItem?.name && typeof userItem.name === 'string' ? userItem.name.charAt(0).toUpperCase() : null) || (userItem?.username && typeof userItem.username === 'string' ? userItem.username.charAt(0).toUpperCase() : null) || 'U'}
-																				</div>
-																				<div>
-																					<div className="font-medium">{userItem?.name || userItem?.username || 'Unknown User'}</div>
-																					<div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{userItem?.email || 'No email'} • {userItem?.role || 'User'}</div>
-																				</div>
-																			</div>
-																			{isAlreadyShared ? (
-																				<div className="flex items-center text-green-500">
-																					<CheckCircle className="w-4 h-4 mr-1" />
-																					<span className="text-xs">Already shared</span>
-																				</div>
-																			) : isSelected ? (
-																				<div className="text-blue-500">
-																					<Users className="w-4 h-4" />
-																				</div>
-																			) : null}
-																		</div>
-																	</button>
-																);
-															}) : (
-																<div className={`p-4 ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg`}>
-																	{user?.role === 'manager' ? (
-																		<>
-																			<div className={`text-sm font-medium mb-3 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-																				Select users to share with:
-																			</div>
-																			<select 
-																				multiple
-																				className={`w-full px-4 py-3 rounded-lg border h-32 ${isDarkMode ? 'bg-gray-600 border-gray-500 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+															{availableUsers.length > 0 ? (
+																<>
+																	<div className={`text-sm font-medium mb-3 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+																		Select users to share with:
+																	</div>
+																	{availableUsers.filter(userItem => userItem && typeof userItem === 'object' && userItem._id).map(userItem => {
+																		// Check if user is already shared with
+																		const isAlreadyShared = currentNote?.sharedWith?.some(share => 
+																			(typeof share === 'object' ? share.user : share) === userItem._id
+																		);
+																		const isSelected = shareSettings.sharedWith.includes(userItem._id);
+																		
+																		// Ensure userItem has required properties
+																		if (!userItem || !userItem._id) return null;
+																		
+																		return (
+																			<button
+																				key={userItem._id}
+																				onClick={() => selectUserForSharing(userItem._id)}
+																				disabled={isAlreadyShared}
+																				className={`w-full p-3 text-left rounded-lg transition-colors ${
+																					isAlreadyShared
+																						? 'bg-green-500/20 border border-green-500 cursor-not-allowed opacity-75'
+																						: isSelected
+																							? 'bg-blue-500/20 border border-blue-500'
+																							: isDarkMode
+																								? 'hover:bg-gray-700'
+																								: 'hover:bg-gray-100'
+																				}`}
 																			>
-																				<option value="john">john</option>
-																				<option value="mary">mary</option>
-																				<option value="alex">alex</option>
-																			</select>
-																		</>
-																	) : (
-																		<>
-																			<div className={`text-sm font-medium mb-3 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-																				Type usernames to share with:
-																			</div>
-																			<div className={`border rounded-lg overflow-hidden ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}>
-																				<table className="w-full">
-																					<thead className={`${isDarkMode ? 'bg-gray-600' : 'bg-gray-100'}`}>
-																						<tr>
-																							<th className={`px-4 py-2 text-left text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>Usernames (separated by commas)</th>
-																						</tr>
-																					</thead>
-																					<tbody>
-																						<tr className={`${isDarkMode ? 'bg-gray-700/30' : 'bg-white'}`}>
-																							<td className={`px-4 py-3 border-b ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
-																								<input
-																									type="text"
-																									value={shareInput}
-																									onChange={(e) => setShareInput(e.target.value)}
-																									placeholder="john, mary, alex"
-																									className={`w-full px-3 py-2 text-sm rounded border ${isDarkMode ? 'bg-gray-600 border-gray-500 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
-																								/>
-																							</td>
-																						</tr>
-																					</tbody>
-																				</table>
-																			</div>
-																		</>
-																	)}
+																				<div className="flex items-center justify-between">
+																					<div className="flex items-center">
+																						<div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-semibold mr-3">
+																							{(userItem?.name && typeof userItem.name === 'string' ? userItem.name.charAt(0).toUpperCase() : null) || (userItem?.username && typeof userItem.username === 'string' ? userItem.username.charAt(0).toUpperCase() : null) || 'U'}
+																						</div>
+																						<div>
+																							<div className="font-medium">{userItem?.name || userItem?.username || 'Unknown User'}</div>
+																							<div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{userItem?.email || 'No email'} • {userItem?.role || 'User'}</div>
+																						</div>
+																					</div>
+																					{isAlreadyShared ? (
+																						<div className="flex items-center text-green-500">
+																							<CheckCircle className="w-4 h-4 mr-1" />
+																							<span className="text-xs">Already shared</span>
+																						</div>
+																					) : isSelected ? (
+																						<div className="text-blue-500">
+																							<Users className="w-4 h-4" />
+																						</div>
+																					) : null}
+																				</div>
+																			</button>
+																		);
+																	})}
+																</>
+															) : (
+																<div className={`p-4 ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg`}>
+																	<div className={`text-sm font-medium mb-3 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+																		Type usernames to share with:
+																	</div>
+																	<div className={`border rounded-lg overflow-hidden ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}>
+																		<table className="w-full">
+																			<thead className={`${isDarkMode ? 'bg-gray-600' : 'bg-gray-100'}`}>
+																				<tr>
+																					<th className={`px-4 py-2 text-left text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>Usernames (separated by commas)</th>
+																				</tr>
+																			</thead>
+																			<tbody>
+																				<tr className={`${isDarkMode ? 'bg-gray-700/30' : 'bg-white'}`}>
+																					<td className={`px-4 py-3 border-b ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
+																						<input
+																							type="text"
+																							value={shareInput}
+																							onChange={(e) => setShareInput(e.target.value)}
+																							placeholder="john, mary, alex"
+																							className={`w-full px-3 py-2 text-sm rounded border ${isDarkMode ? 'bg-gray-600 border-gray-500 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+																						/>
+																					</td>
+																				</tr>
+																			</tbody>
+																		</table>
+																	</div>
 																</div>
 															)}
 														</div>
@@ -2745,26 +2737,35 @@ const NotepadPage = () => {
 															</div>
 														)}
 														
-														{(shareSettings.sharedWith.length > 0 || shareInput.trim()) && (
-															<div className="mt-3 p-2 bg-green-500/20 rounded-lg">
-																<div className="text-sm text-green-600 font-medium">
-																	{user?.role === 'manager' 
-																		? `Share with ${shareSettings.sharedWith.length} selected user${shareSettings.sharedWith.length === 1 ? '' : 's'}`
-																		: 'Share with entered usernames'
-																	}
-																</div>
-																<button
-																	onClick={shareNote}
-																	className="mt-2 w-full bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
-																>
-																	Share Note
-																</button>
+														{/* Share button - always show for all users */}
+														<div className="mt-3 p-2 bg-green-500/20 rounded-lg">
+															<div className="text-sm text-green-600 font-medium">
+																{shareSettings.sharedWith.length > 0
+																	? `Share with ${shareSettings.sharedWith.length} selected user${shareSettings.sharedWith.length === 1 ? '' : 's'}`
+																	: shareInput.trim()
+																		? 'Share with entered usernames'
+																		: availableUsers.length > 0
+																			? 'Select users to share with'
+																			: 'Enter usernames to share with'
+																}
 															</div>
-														)}
+															<button
+																onClick={shareNote}
+																disabled={!shareInput.trim() && shareSettings.sharedWith.length === 0}
+																className={`mt-2 w-full px-4 py-2 rounded-lg transition-colors ${
+																	(!shareInput.trim() && shareSettings.sharedWith.length === 0)
+																		? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+																		: 'bg-green-500 text-white hover:bg-green-600'
+																}`}
+															>
+																Share Note
+															</button>
+														</div>
 													</div>
 												</div>
 											)}
 										</div>
+									)}
 
 									<div className="relative">
 										<button
