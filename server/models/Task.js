@@ -32,7 +32,23 @@ const TaskSchema = new mongoose.Schema({
       message: 'Due date must be in the future'
     }
   },
-
+  comments: [{
+    text: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: [1000, 'Comment cannot exceed 1000 characters']
+    },
+    author: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

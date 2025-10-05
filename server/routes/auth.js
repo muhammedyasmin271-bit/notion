@@ -137,7 +137,9 @@ router.post('/register', upload.array('files'), [
     const payload = {
       user: {
         id: user.id,
-        role: user.role
+        role: user.role,
+        username: user.username,
+
       }
     };
 
@@ -152,6 +154,7 @@ router.post('/register', upload.array('files'), [
           user: {
             id: user.id,
             name: user.name,
+            username: user.username,
             email: user.email,
             role: user.role
           }
@@ -218,7 +221,9 @@ router.post('/login', [
     const payload = {
       user: {
         id: user.id,
-        role: user.role
+        role: user.role,
+        username: user.username,
+
       }
     };
 
@@ -233,6 +238,8 @@ router.post('/login', [
           user: {
             id: user.id,
             name: user.name,
+            username: user.username,
+
             email: user.email,
             role: user.role,
             preferences: user.preferences
@@ -269,7 +276,8 @@ router.post('/refresh', auth, async (req, res) => {
     const payload = {
       user: {
         id: user.id,
-        role: user.role
+        role: user.role,
+        username: user.username
       }
     };
 

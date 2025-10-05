@@ -220,32 +220,126 @@ router.get('/:id', auth, async (req, res) => {
 });
 
 // @route   POST /api/documents
-// @desc    Create a new document
+// @desc    Create a new document with file upload and sharing
 // @access  Private
-router.post('/', auth, async (req, res) => {
+router.post('/', auth, upload.single('file'), async (req, res) => {
   try {
-    const { title, content, type, category, tags, isPublic, isTemplate } = req.body;
+    const { title, content, type, category, tags, isPublic, isTemplate, sendTo, forGroup } = req.body;
 
     // Validate required fields
-    if (!title || !content) {
-      return res.status(400).json({ message: 'Title and content are required' });
+    if (!title) {
+      return res.status(400).json({ message: 'Title is required' });
+    }
+
+    // Handle file attachment if uploaded
+    let attachments = [];
+    if (req.file) {
+      const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+      attachments = [{
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        mimeType: req.file.mimetype,
+        size: req.file.size,
+        url: fileUrl,
+        uploadedBy: req.user.id,
+        uploadedAt: new Date()
+      }];
     }
 
     const newDocument = new Document({
       title,
-      content,
+      content: content || 'Document uploaded',
       type: type || 'Document',
       category: category || 'General',
       tags: tags || [],
       isPublic: isPublic || false,
       isTemplate: isTemplate || false,
-      author: req.user.id
+      author: req.user.id,
+      attachments
     });
 
     const document = await newDocument.save();
     await document.populate('author', 'name email');
 
-    res.status(201).json(document);
+    // Handle sharing
+    if (sendTo && sendTo !== '') {
+      let usersToShareWith = [];
+      
+      // Only managers/admins can share with groups
+      if (req.user.role === 'manager' || req.user.role === 'admin') {
+        if (sendTo === 'all') {
+          usersToShareWith = await User.find({ isActive: true, _id: { $ne: req.user.id } });
+        } else if (sendTo === 'managers') {
+          usersToShareWith = await User.find({ role: 'manager', isActive: true, _id: { $ne: req.user.id } });
+        } else if (sendTo === 'users') {
+          usersToShareWith = await User.find({ role: 'user', isActive: true, _id: { $ne: req.user.id } });
+        } else if (sendTo === 'specific' && forGroup) {
+          const userNames = forGroup.split(',').map(name => name.trim()).filter(name => name);
+          usersToShareWith = await User.find({
+            $or: [
+              { name: { $in: userNames } },
+              { username: { $in: userNames } }
+            ],
+            isActive: true,
+            _id: { $ne: req.user.id }
+          });
+        }
+      } else {
+        // Regular users can only share with specific users
+        if (forGroup) {
+          const userNames = forGroup.split(',').map(name => name.trim()).filter(name => name);
+          usersToShareWith = await User.find({
+            $or: [
+              { name: { $in: userNames } },
+              { username: { $in: userNames } }
+            ],
+            isActive: true,
+            _id: { $ne: req.user.id }
+          });
+        }
+      }
+
+      // Add users to sharedWith and collaborators
+      if (usersToShareWith.length > 0) {
+        usersToShareWith.forEach(user => {
+          document.sharedWith.push({
+            user: user._id,
+            permission: 'read',
+            sharedAt: new Date()
+          });
+          document.collaborators.push({
+            user: user._id,
+            role: 'Viewer',
+            addedAt: new Date()
+          });
+        });
+
+        await document.save();
+
+        // Create notifications
+        const notifications = usersToShareWith.map(user => ({
+          recipient: user._id,
+          sender: req.user.id,
+          type: 'document',
+          title: 'New document shared with you',
+          message: `${req.user.name} shared a document: ${document.title}`,
+          entityType: 'Document',
+          entityId: document._id
+        }));
+
+        if (notifications.length > 0) {
+          await Notification.insertMany(notifications);
+        }
+      }
+    }
+
+    // Populate the final document
+    const finalDocument = await Document.findById(document._id)
+      .populate('author', 'name email')
+      .populate('sharedWith.user', 'name email role')
+      .populate('collaborators.user', 'name email role');
+
+    res.status(201).json(finalDocument);
   } catch (error) {
     console.error('Error creating document:', error);
     if (error.name === 'ValidationError') {

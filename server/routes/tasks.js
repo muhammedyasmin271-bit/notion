@@ -139,44 +139,28 @@ router.post('/:id/comments', auth, async (req, res) => {
     const { id } = req.params;
     const { text } = req.body;
     
-    if (!id) {
-      return res.status(400).json({ message: 'Task ID is required' });
-    }
-
     if (!text || !text.trim()) {
       return res.status(400).json({ message: 'Comment text is required' });
     }
 
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({ message: 'User not authenticated' });
-    }
-
-    const task = await Task.findOne({ _id: id, createdBy: req.user.id });
-    
+    const task = await Task.findById(id);
     if (!task) {
-      return res.status(404).json({ message: 'Task not found or access denied' });
+      return res.status(404).json({ message: 'Task not found' });
     }
 
     const comment = {
       text: text.trim(),
-      timestamp: new Date(),
-      author: req.user.id
+      author: req.user.id,
+      createdAt: new Date()
     };
-
-    if (!task.comments) {
-      task.comments = [];
-    }
 
     task.comments.push(comment);
     await task.save();
-    await task.populate('createdBy', 'name email');
+    await task.populate('comments.author', 'name email');
     
     res.json(task);
   } catch (error) {
     console.error('Error adding comment:', error);
-    if (error.name === 'CastError') {
-      return res.status(400).json({ message: 'Invalid task ID format' });
-    }
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });

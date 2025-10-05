@@ -11,7 +11,7 @@ const projectSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Project description is required'],
     trim: true,
-    maxlength: [10000, 'Description cannot exceed 10000 characters']
+    maxlength: [5000000, 'Description cannot exceed 5000000 characters']
   },
   status: {
     type: String,
@@ -32,6 +32,14 @@ const projectSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   }],
+  assignedTo: [{
+    type: String,
+    trim: true
+  }],
+  viewers: [{
+    type: String,
+    trim: true
+  }],
   startDate: {
     type: Date,
     default: Date.now
@@ -51,7 +59,7 @@ const projectSchema = new mongoose.Schema({
   goal: {
     type: String,
     trim: true,
-    maxlength: [10000, 'Goal cannot exceed 10000 characters'],
+    maxlength: [5000000, 'Goal cannot exceed 5000000 characters'],
     default: ''
   },
   tags: [{
@@ -151,6 +159,47 @@ const projectSchema = new mongoose.Schema({
   goal: {
     type: String,
     default: ''
+  },
+
+  // Project blocks/content for rich text editing
+  blocks: {
+    type: String,
+    default: ''
+  },
+
+  content: {
+    type: String,
+    default: ''
+  },
+
+  // Structured block data
+  blockData: {
+    type: mongoose.Schema.Types.Mixed,
+    default: []
+  },
+
+  // Table data for table blocks
+  tableData: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
+  },
+
+  // Toggle states for toggle blocks
+  toggleStates: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
+  },
+
+  // Toggle content for toggle blocks
+  toggleContent: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
+  },
+
+  // Track changes made by non-managers
+  changeCount: {
+    type: Number,
+    default: 0
   }
 }, {
   timestamps: true

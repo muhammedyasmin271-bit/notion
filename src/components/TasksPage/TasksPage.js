@@ -507,33 +507,14 @@ const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'P
 
       console.log(`Adding comment to task ${taskId} in project ${projectId}`);
 
-      // Find the task to ensure it exists
-      const task = tasks.find(t => t.id === taskId);
-      if (!task) {
-        console.error('Task not found:', taskId);
-        alert('Task not found');
-        return;
-      }
-
-      const commentData = {
-        text: commentText,
-        createdBy: localStorage.getItem('userId'),
-        timestamp: new Date().toISOString()
-      };
-
-      const updatedComments = [...(task.comments || []), commentData];
-
-      const response = await fetch(`http://localhost:5000/api/projects/${projectId}/tasks/${taskId}`, {
-        method: 'PUT',
+      const response = await fetch(`http://localhost:5000/api/projects/${projectId}/tasks/${taskId}/comments`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-auth-token': token
         },
         body: JSON.stringify({
-          text: task.text,
-          priority: task.priority || 'medium',
-          completed: task.completed || false,
-          comments: updatedComments
+          text: commentText
         })
       });
 

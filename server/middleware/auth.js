@@ -15,7 +15,7 @@ module.exports = async function (req, res, next) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
 
     // Load user from DB to enforce current status
-    const dbUser = await User.findById(decoded.user && decoded.user.id).select('role isActive');
+    const dbUser = await User.findById(decoded.user && decoded.user.id).select('role isActive username');
     if (!dbUser) {
       return res.status(401).json({ message: 'User not found or no longer exists' });
     }
@@ -26,7 +26,7 @@ module.exports = async function (req, res, next) {
     }
 
     // Attach minimal user context
-    req.user = { id: String(dbUser._id), role: dbUser.role };
+    req.user = { id: String(dbUser._id), role: dbUser.role, username: dbUser.username };
     next();
   } catch (err) {
     res.status(401).json({ message: 'Token is not valid' });
@@ -40,9 +40,9 @@ module.exports.optional = async function (req, res, next) {
   if (token) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-      const dbUser = await User.findById(decoded.user && decoded.user.id).select('role isActive');
+      const dbUser = await User.findById(decoded.user && decoded.user.id).select('role isActive username');
       if (dbUser && dbUser.isActive) {
-        req.user = { id: String(dbUser._id), role: dbUser.role };
+        req.user = { id: String(dbUser._id), role: dbUser.role, username: dbUser.username };
       } else {
         req.user = null;
       }

@@ -67,7 +67,8 @@ import {
 	Loader,
 	Sparkles,
 	Wand2,
-	RefreshCw
+	RefreshCw,
+	CheckCircle
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -204,7 +205,7 @@ const NotepadPage = () => {
 			const convertedBlocks = (response.blocks || []).map(block => ({
 				id: block.id,
 				type: block.type || 'text',
-				content: block.text || '',
+				content: block.text || block.content || '', // Backend uses 'text', frontend uses 'content'
 				checked: block.checked || false,
 				indent: block.indent || 0,
 				focus: block.focus || false,
@@ -247,7 +248,12 @@ const NotepadPage = () => {
 					checked: block.type === 'todo' ? (block.checked || false) : undefined, // Only for todo blocks
 					indent: 0, // Default indent
 					focus: false, // Default focus
-					metadata: block.type === 'table' ? { tableData: tableData[block.id] } : {}, // Include table data
+					metadata: block.type === 'table' ? { 
+						tableData: tableData[block.id] || {},
+						colWidths: tableData[block.id]?.colWidths || [],
+						rowHeights: tableData[block.id]?.rowHeights || [],
+						cellHeights: tableData[block.id]?.cellHeights || {}
+					} : {}, // Include table data with cell sizes
 					lines: lines,
 					lineCount: lines.length,
 					wordCount: blockContent.split(/\s+/).filter(word => word.length > 0).length,
@@ -354,18 +360,41 @@ const NotepadPage = () => {
 		const convertedBlocks = (note.blocks || []).map(block => ({
 			id: block.id,
 			type: block.type || 'text',
-			content: block.text || '', // Convert 'text' to 'content' for frontend
+			content: block.text || block.content || '', // Backend uses 'text', frontend uses 'content'
 			checked: block.checked || false,
 			indent: block.indent || 0,
 			focus: block.focus || false,
 			metadata: block.metadata || {}
 		}));
-		setBlocks(convertedBlocks.length > 0 ? convertedBlocks : [{ id: 'block-1', type: 'text', content: '' }]);
-		// Restore table data if available
-		if (note.tableData) {
-			setTableData(note.tableData);
-		}
+		// Ensure we have at least one block
+		const finalBlocks = convertedBlocks.length > 0 ? convertedBlocks : [{ id: 'block-1', type: 'text', content: '' }];
+		setBlocks(finalBlocks);
+		// Restore table data from block metadata including cell sizes
+		const restoredTableData = {};
+		convertedBlocks.forEach(block => {
+			if (block.type === 'table' && block.metadata) {
+				if (block.metadata.tableData) {
+					// Restore complete table data with sizes
+					restoredTableData[block.id] = {
+						...block.metadata.tableData,
+						colWidths: block.metadata.colWidths || block.metadata.tableData.colWidths || Array(block.metadata.tableData.cols || 2).fill(120),
+						rowHeights: block.metadata.rowHeights || block.metadata.tableData.rowHeights || Array(block.metadata.tableData.rows || 2).fill(32)
+					};
+				} else {
+					// Create default table data if metadata exists but no tableData
+					restoredTableData[block.id] = {
+						rows: 2,
+						cols: 2,
+						data: Array(2).fill().map(() => Array(2).fill('')),
+						colWidths: block.metadata.colWidths || Array(2).fill(120),
+						rowHeights: block.metadata.rowHeights || Array(2).fill(32)
+					};
+				}
+			}
+		});
+		setTableData(restoredTableData);
 		setSelectedNote(note._id);
+		console.log('Selected note:', note.title, 'with blocks:', finalBlocks);
 	};
 
 	// Add new block
@@ -568,7 +597,16 @@ const NotepadPage = () => {
 			case 'table':
 				const tableId = activeBlockId;
 				changeBlockType(tableId, 'table');
-				setTableData(prev => ({ ...prev, [tableId]: { rows: 2, cols: 2, data: Array(2).fill().map(() => Array(2).fill('')) } }));
+				setTableData(prev => ({ 
+					...prev, 
+					[tableId]: { 
+						rows: 2, 
+						cols: 2, 
+						data: Array(2).fill().map(() => Array(2).fill('')),
+						colWidths: Array(2).fill(120),
+						rowHeights: Array(2).fill(32)
+					} 
+				}));
 				break;
 			case 'image':
 				addBlock(blockIndex, 'image');
@@ -975,37 +1013,28 @@ const NotepadPage = () => {
 			// First save the current note content
 			await saveNote();
 
-			
-			// Convert user IDs to proper sharedWith format
-			const sharedWithFormatted = sharedWithUsers.map(userId => ({
-				user: userId,
-				permission: 'read',
-				sharedAt: new Date()
-			}));
-			
-			// Then update with sharing info
-			const updatedNote = {
-				...currentNote,
-				title,
-				blocks,
-				content: blocks.map(block => block.content).join('\n'),
-				sharedWith: sharedWithFormatted
-			};
+			// Use the dedicated share endpoint
+			const response = await post(`/notepad/${currentNote._id}/share`, {
+				userIds: sharedWithUsers
+			});
 
-			const response = await put(`/notepad/${currentNote._id}`, updatedNote);
+			// Refresh the current note to get updated sharing info
+			const updatedNote = await get(`/notepad/${currentNote._id}`);
 			
 			// Update local state
-			setCurrentNote(response);
+			setCurrentNote(updatedNote);
 			setNotes(prev => prev.map(note =>
-				note._id === currentNote._id ? response : note
+				note._id === currentNote._id ? updatedNote : note
 			));
 
 			console.log('Note shared successfully:', response);
-			console.log('Updated note sharedWith:', response.sharedWith);
-			console.log('Current user ID:', user?.id);
-			console.log('Note createdBy:', response.createdBy);
-			console.log('sharedWith length:', response.sharedWith?.length);
-			console.log('All notes after sharing:', notes.map(n => ({ id: n._id, title: n.title, createdBy: n.createdBy, sharedWith: n.sharedWith })));
+
+			// Show success message
+			addNotification({
+				type: 'success',
+				title: 'Shared Successfully',
+				message: response.message || 'Note shared successfully'
+			});
 
 			// Automatically switch to "Share Note" filter after sharing
 			setSelectedTag('shared');
@@ -1015,6 +1044,11 @@ const NotepadPage = () => {
 			setShareInput('');
 		} catch (err) {
 			console.error('Error sharing note:', err);
+			addNotification({
+				type: 'error',
+				title: 'Share Error',
+				message: 'Failed to share note'
+			});
 		}
 	};
 
@@ -1040,17 +1074,31 @@ const NotepadPage = () => {
 	// Table functions
 	const addTableRow = (blockId) => {
 		setTableData(prev => {
-			const table = prev[blockId] || { rows: 2, cols: 2, data: Array(2).fill().map(() => Array(2).fill('')) };
+			const table = prev[blockId] || { 
+				rows: 2, 
+				cols: 2, 
+				data: Array(2).fill().map(() => Array(2).fill('')),
+				colWidths: Array(2).fill(120),
+				rowHeights: Array(2).fill(32)
+			};
 			const newData = [...table.data, Array(table.cols).fill('')];
-			return { ...prev, [blockId]: { ...table, rows: table.rows + 1, data: newData } };
+			const newRowHeights = [...(table.rowHeights || Array(table.rows).fill(32)), 32];
+			return { ...prev, [blockId]: { ...table, rows: table.rows + 1, data: newData, rowHeights: newRowHeights } };
 		});
 	};
 
 	const addTableCol = (blockId) => {
 		setTableData(prev => {
-			const table = prev[blockId] || { rows: 2, cols: 2, data: Array(2).fill().map(() => Array(2).fill('')) };
+			const table = prev[blockId] || { 
+				rows: 2, 
+				cols: 2, 
+				data: Array(2).fill().map(() => Array(2).fill('')),
+				colWidths: Array(2).fill(120),
+				rowHeights: Array(2).fill(32)
+			};
 			const newData = table.data.map(row => [...row, '']);
-			return { ...prev, [blockId]: { ...table, cols: table.cols + 1, data: newData } };
+			const newColWidths = [...(table.colWidths || Array(table.cols).fill(120)), 120];
+			return { ...prev, [blockId]: { ...table, cols: table.cols + 1, data: newData, colWidths: newColWidths } };
 		});
 	};
 
@@ -1065,21 +1113,55 @@ const NotepadPage = () => {
 		});
 	};
 
+	const updateTableColWidth = (blockId, colIndex, width) => {
+		setTableData(prev => {
+			const table = prev[blockId];
+			if (!table) return prev;
+			const newColWidths = [...(table.colWidths || Array(table.cols).fill(120))];
+			newColWidths[colIndex] = Math.max(60, width); // Minimum width of 60px
+			return { ...prev, [blockId]: { ...table, colWidths: newColWidths } };
+		});
+	};
+
+	const updateTableRowHeight = (blockId, rowIndex, height) => {
+		setTableData(prev => {
+			const table = prev[blockId];
+			if (!table) return prev;
+			const newRowHeights = [...(table.rowHeights || Array(table.rows).fill(32))];
+			newRowHeights[rowIndex] = Math.max(24, height); // Minimum height of 24px
+			return { ...prev, [blockId]: { ...table, rowHeights: newRowHeights } };
+		});
+	};
+
 	const deleteTableRow = (blockId) => {
 		setTableData(prev => {
-			const table = prev[blockId] || { rows: 2, cols: 2, data: Array(2).fill().map(() => Array(2).fill('')) };
+			const table = prev[blockId] || { 
+				rows: 2, 
+				cols: 2, 
+				data: Array(2).fill().map(() => Array(2).fill('')),
+				colWidths: Array(2).fill(120),
+				rowHeights: Array(2).fill(32)
+			};
 			if (table.rows <= 1) return prev; // Don't delete if only one row
 			const newData = table.data.slice(0, -1);
-			return { ...prev, [blockId]: { ...table, rows: table.rows - 1, data: newData } };
+			const newRowHeights = (table.rowHeights || Array(table.rows).fill(32)).slice(0, -1);
+			return { ...prev, [blockId]: { ...table, rows: table.rows - 1, data: newData, rowHeights: newRowHeights } };
 		});
 	};
 
 	const deleteTableCol = (blockId) => {
 		setTableData(prev => {
-			const table = prev[blockId] || { rows: 2, cols: 2, data: Array(2).fill().map(() => Array(2).fill('')) };
+			const table = prev[blockId] || { 
+				rows: 2, 
+				cols: 2, 
+				data: Array(2).fill().map(() => Array(2).fill('')),
+				colWidths: Array(2).fill(120),
+				rowHeights: Array(2).fill(32)
+			};
 			if (table.cols <= 1) return prev; // Don't delete if only one column
 			const newData = table.data.map(row => row.slice(0, -1));
-			return { ...prev, [blockId]: { ...table, cols: table.cols - 1, data: newData } };
+			const newColWidths = (table.colWidths || Array(table.cols).fill(120)).slice(0, -1);
+			return { ...prev, [blockId]: { ...table, cols: table.cols - 1, data: newData, colWidths: newColWidths } };
 		});
 	};
 
@@ -1184,7 +1266,6 @@ const NotepadPage = () => {
 	const renderBlock = (block, index) => {
 		const commonProps = {
 			ref: (el) => blockRefs.current[block.id] = el,
-			key: block.id,
 			className: `w-full outline-none resize-none border-none bg-transparent py-1 px-2 rounded transition-all duration-200 font-inter leading-relaxed ${isDarkMode ? 'text-gray-100 placeholder-gray-500 focus:bg-gray-800/20' : 'text-gray-800 placeholder-gray-400 focus:bg-gray-50/30'} hover:bg-opacity-30`,
 			value: block.content,
 			onChange: (e) => updateBlock(block.id, e.target.value),
@@ -1860,9 +1941,20 @@ const NotepadPage = () => {
 					</div>
 				);
 			case 'table':
-				const table = tableData[block.id] || { rows: 2, cols: 2, data: Array(2).fill().map(() => Array(2).fill('')) };
+				const table = tableData[block.id] || { rows: 2, cols: 2, data: Array(2).fill().map(() => Array(2).fill('')), colWidths: Array(2).fill(120), rowHeights: Array(2).fill(32) };
+				// Ensure table.data exists and is an array
+				if (!table.data || !Array.isArray(table.data)) {
+					table.data = Array(table.rows || 2).fill().map(() => Array(table.cols || 2).fill(''));
+				}
+				// Ensure colWidths and rowHeights exist
+				if (!table.colWidths || table.colWidths.length !== table.cols) {
+					table.colWidths = Array(table.cols).fill(120);
+				}
+				if (!table.rowHeights || table.rowHeights.length !== table.rows) {
+					table.rowHeights = Array(table.rows).fill(32);
+				}
 				return (
-					<div className="flex items-start group relative" style={{ marginRight: '40px', marginBottom: '40px' }}>
+					<div className="flex items-start group relative mb-8 mr-8">
 						<div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
 							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
 								<Plus className="w-4 h-4" />
@@ -1873,67 +1965,79 @@ const NotepadPage = () => {
 						</div>
 						<div className="flex-1 relative">
 							<div className={`border rounded-lg overflow-hidden shadow-sm ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-300 bg-white'}`}>
-								<table className="w-full border-collapse">
+								<table className="border-collapse w-full table-auto">
 									<tbody>
-										{table.data.map((row, rowIndex) => (
-											<tr key={rowIndex} className={rowIndex === 0 ? (isDarkMode ? 'bg-gray-700' : 'bg-gray-50') : (isDarkMode ? 'hover:bg-gray-700/50' : 'hover:bg-gray-50/50')}>
-												{row.map((cell, colIndex) => (
-													<td key={`${rowIndex}-${colIndex}`} className={`border-r border-b p-0 relative group/cell ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
-														<textarea
-															value={cell}
-															onChange={(e) => updateTableCell(block.id, rowIndex, colIndex, e.target.value)}
-															placeholder={rowIndex === 0 ? `Column ${colIndex + 1}` : ''}
-															className={`w-full min-h-[24px] px-2 py-1 border-none outline-none resize-none bg-transparent text-xs leading-tight ${rowIndex === 0 ? (isDarkMode ? 'font-semibold text-gray-200' : 'font-semibold text-gray-800') : (isDarkMode ? 'text-gray-300' : 'text-gray-700')
-																} ${isDarkMode ? 'focus:bg-blue-900/20 focus:ring-1 focus:ring-blue-700 focus:ring-inset' : 'focus:bg-blue-50/50 focus:ring-1 focus:ring-blue-200 focus:ring-inset'}`}
-															rows={1}
-															onInput={(e) => {
-																e.target.style.height = 'auto';
-																e.target.style.height = Math.max(24, e.target.scrollHeight) + 'px';
-															}}
-														/>
-													</td>
-												))}
-											</tr>
-										))}
+										{table.data.map((row, rowIndex) => {
+											const rowHeight = table.cellHeights?.[rowIndex] || {};
+											return (
+												<tr key={rowIndex} className={rowIndex === 0 ? (isDarkMode ? 'bg-gray-700' : 'bg-gray-50') : (isDarkMode ? 'hover:bg-gray-700/50' : 'hover:bg-gray-50/50')}>
+													{row.map((cell, colIndex) => {
+														const savedHeight = rowHeight[colIndex] || Math.max(32, cell.split('\n').length * 20 + 12);
+														return (
+															<td key={`${rowIndex}-${colIndex}`} className={`border-r border-b p-0 align-top ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
+																<textarea
+																	value={cell}
+																	onChange={(e) => updateTableCell(block.id, rowIndex, colIndex, e.target.value)}
+																	placeholder={rowIndex === 0 ? `Column ${colIndex + 1}` : ''}
+																	rows={Math.max(1, cell.split('\n').length)}
+																	className={`w-full h-full min-h-[32px] border-none outline-none bg-transparent text-sm resize-none overflow-hidden p-2 ${rowIndex === 0 ? (isDarkMode ? 'font-semibold text-gray-200' : 'font-semibold text-gray-800') : (isDarkMode ? 'text-gray-300' : 'text-gray-700')
+																		} ${isDarkMode ? 'focus:bg-blue-900/20' : 'focus:bg-blue-50/50'}`}
+																	style={{
+																		height: savedHeight + 'px',
+																		minHeight: '32px',
+																		lineHeight: '1.4'
+																	}}
+																	onInput={(e) => {
+																		e.target.style.height = 'auto';
+																		const newHeight = Math.max(32, e.target.scrollHeight);
+																		e.target.style.height = newHeight + 'px';
+																		// Save cell height
+																		setTableData(prev => ({
+																			...prev,
+																			[block.id]: {
+																				...prev[block.id],
+																				cellHeights: {
+																					...prev[block.id]?.cellHeights,
+																					[rowIndex]: {
+																						...prev[block.id]?.cellHeights?.[rowIndex],
+																						[colIndex]: newHeight
+																					}
+																				}
+																			}
+																		}));
+																	}}
+																/>
+															</td>
+														);
+													})}
+												</tr>
+											);
+										})}
 									</tbody>
 								</table>
 							</div>
-							{/* Add column button */}
-							<button
-								onClick={() => addTableCol(block.id)}
-								className={`absolute top-1/2 -right-8 transform -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-lg hover:bg-blue-500 hover:text-white hover:border-blue-500 ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'}`}
-								title="Add column"
-							>
-								<Plus className="w-3.5 h-3.5" />
-							</button>
-							{/* Delete column button */}
-							{table.cols > 1 && (
-								<button
-									onClick={() => deleteTableCol(block.id)}
-									className={`absolute top-1/2 -right-16 transform -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-lg hover:bg-red-500 hover:text-white hover:border-red-500 ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'}`}
-									title="Delete column"
-								>
-									<Minus className="w-3.5 h-3.5" />
+							{/* Column controls - Right side */}
+							<div className="absolute top-1/2 -right-6 transform -translate-y-1/2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+								<button onClick={() => addTableCol(block.id)} className={`w-5 h-5 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`} title="Add column">
+									<Plus className="w-3 h-3" />
 								</button>
-							)}
-							{/* Add row button */}
-							<button
-								onClick={() => addTableRow(block.id)}
-								className={`absolute left-1/2 -bottom-8 transform -translate-x-1/2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-lg hover:bg-blue-500 hover:text-white hover:border-blue-500 ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'}`}
-								title="Add row"
-							>
-								<Plus className="w-3.5 h-3.5" />
-							</button>
-							{/* Delete row button */}
-							{table.rows > 1 && (
-								<button
-									onClick={() => deleteTableRow(block.id)}
-									className={`absolute left-1/2 -bottom-16 transform -translate-x-1/2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-lg hover:bg-red-500 hover:text-white hover:border-red-500 ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'}`}
-									title="Delete row"
-								>
-									<Minus className="w-3.5 h-3.5" />
+								{table.cols > 1 && (
+									<button onClick={() => deleteTableCol(block.id)} className={`w-5 h-5 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all ${isDarkMode ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-red-500 hover:bg-red-600 text-white'}`} title="Remove column">
+										<Minus className="w-3 h-3" />
+									</button>
+								)}
+							</div>
+							{/* Row controls - Bottom */}
+							<div className="absolute left-1/2 -bottom-6 transform -translate-x-1/2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+								<button onClick={() => addTableRow(block.id)} className={`w-5 h-5 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`} title="Add row">
+									<Plus className="w-3 h-3" />
 								</button>
-							)}
+								{table.rows > 1 && (
+									<button onClick={() => deleteTableRow(block.id)} className={`w-5 h-5 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all ${isDarkMode ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-red-500 hover:bg-red-600 text-white'}`} title="Remove row">
+										<Minus className="w-3 h-3" />
+									</button>
+								)}
+							</div>
 						</div>
 						{showBlockMenu === block.id && (
 							<div ref={blockMenuRef} className={`absolute left-0 top-0 mt-8 w-52 rounded-xl shadow-lg border z-10 overflow-hidden ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
@@ -2323,15 +2427,20 @@ const NotepadPage = () => {
 			note.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
 			note.content?.toLowerCase().includes(searchQuery.toLowerCase());
 
-		// Fix the filtering logic - use note.author._id instead of note.createdBy
-		const noteAuthorId = note.author?._id || note.author;
+		// Fix the filtering logic
+		const noteAuthorId = note.author?._id || note.createdBy;
 		const currentUserId = user?.id || user?._id;
+		
+		// Check if note is shared with current user
+		const isSharedWithMe = note.sharedWith && note.sharedWith.some(share => 
+			(typeof share === 'object' ? share.user : share) === currentUserId
+		);
 		
 		const matchesTag = selectedTag === 'all' ||
 			(selectedTag === 'favorites' && favorites.includes(note._id)) ||
-			(selectedTag === 'saved' && noteAuthorId === currentUserId && (!note.sharedWith || note.sharedWith.length === 0)) ||
+			(selectedTag === 'saved' && noteAuthorId === currentUserId && !isSharedWithMe) ||
 			(selectedTag === 'shared' && noteAuthorId === currentUserId && note.sharedWith && note.sharedWith.length > 0) ||
-			(selectedTag === 'received' && noteAuthorId !== currentUserId) ||
+			(selectedTag === 'received' && (noteAuthorId !== currentUserId || isSharedWithMe)) ||
 			(note.tags && note.tags.includes(selectedTag));
 
 		return matchesSearch && matchesTag;
@@ -2418,7 +2527,11 @@ const NotepadPage = () => {
 							<div className={`flex-1 overflow-y-auto p-8 pb-32 ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
 								<div className="max-w-3xl mx-auto">
 									<div className="space-y-0.5 min-h-96">
-										{blocks.map((block, index) => renderBlock(block, index))}
+										{blocks.map((block, index) => (
+											<div key={block.id}>
+												{renderBlock(block, index)}
+											</div>
+										))}
 									</div>
 
 									{/* Add block button */}
@@ -2459,7 +2572,7 @@ const NotepadPage = () => {
 										{currentNote?.sharedWith && currentNote.sharedWith.length > 0 ? (
 											<div className="flex items-center gap-2">
 												<Share2 className="w-3 h-3" />
-												<span>you share with {currentNote.sharedWith.length === 1 ? currentNote.sharedWith[0] : `${currentNote.sharedWith.length} users`}</span>
+												<span>shared with {currentNote.sharedWith.length} user{currentNote.sharedWith.length > 1 ? 's' : ''}</span>
 											</div>
 										) : currentNote?.createdBy !== user?.id ? (
 											<div className="flex items-center gap-2">
@@ -2516,36 +2629,55 @@ const NotepadPage = () => {
 													<div className="p-4">
 														<h3 className="text-lg font-semibold mb-3">Share Note</h3>
 														<div className="space-y-2 max-h-48 overflow-y-auto">
-															{availableUsers.length > 0 ? availableUsers.map(userItem => (
-																<button
-																	key={userItem._id}
-																	onClick={() => selectUserForSharing(userItem._id)}
-																	className={`w-full p-3 text-left rounded-lg transition-colors ${
-																		shareSettings.sharedWith.includes(userItem._id)
-																			? 'bg-blue-500/20 border border-blue-500'
-																			: isDarkMode
-																				? 'hover:bg-gray-700'
-																				: 'hover:bg-gray-100'
+															{availableUsers.length > 0 ? availableUsers.filter(userItem => userItem && typeof userItem === 'object' && userItem._id).map(userItem => {
+																// Check if user is already shared with
+																const isAlreadyShared = currentNote?.sharedWith?.some(share => 
+																	(typeof share === 'object' ? share.user : share) === userItem._id
+																);
+																const isSelected = shareSettings.sharedWith.includes(userItem._id);
+																
+																// Ensure userItem has required properties
+																if (!userItem || !userItem._id) return null;
+																
+																return (
+																	<button
+																		key={userItem._id}
+																		onClick={() => selectUserForSharing(userItem._id)}
+																		disabled={isAlreadyShared}
+																		className={`w-full p-3 text-left rounded-lg transition-colors ${
+																			isAlreadyShared
+																				? 'bg-green-500/20 border border-green-500 cursor-not-allowed opacity-75'
+																				: isSelected
+																					? 'bg-blue-500/20 border border-blue-500'
+																					: isDarkMode
+																						? 'hover:bg-gray-700'
+																						: 'hover:bg-gray-100'
 																		}`}
-																>
-																	<div className="flex items-center justify-between">
-																		<div className="flex items-center">
-																			<div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-semibold mr-3">
-																				{userItem.name?.charAt(0).toUpperCase() || userItem.username?.charAt(0).toUpperCase() || 'U'}
+																	>
+																		<div className="flex items-center justify-between">
+																			<div className="flex items-center">
+																				<div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-semibold mr-3">
+																					{(userItem?.name && typeof userItem.name === 'string' ? userItem.name.charAt(0).toUpperCase() : null) || (userItem?.username && typeof userItem.username === 'string' ? userItem.username.charAt(0).toUpperCase() : null) || 'U'}
+																				</div>
+																				<div>
+																					<div className="font-medium">{userItem?.name || userItem?.username || 'Unknown User'}</div>
+																					<div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{userItem?.email || 'No email'} • {userItem?.role || 'User'}</div>
+																				</div>
 																			</div>
-																			<div>
-																				<div className="font-medium">{userItem.name || userItem.username}</div>
-																				<div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{userItem.email} • {userItem.role}</div>
-																			</div>
+																			{isAlreadyShared ? (
+																				<div className="flex items-center text-green-500">
+																					<CheckCircle className="w-4 h-4 mr-1" />
+																					<span className="text-xs">Already shared</span>
+																				</div>
+																			) : isSelected ? (
+																				<div className="text-blue-500">
+																					<Users className="w-4 h-4" />
+																				</div>
+																			) : null}
 																		</div>
-																		{shareSettings.sharedWith.includes(userItem._id) && (
-																			<div className="text-blue-500">
-																				<Users className="w-4 h-4" />
-																			</div>
-																		)}
-																	</div>
-																</button>
-															)) : (
+																	</button>
+																);
+															}) : (
 																<div className={`p-4 ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg`}>
 																	{user?.role === 'manager' ? (
 																		<>
@@ -2575,7 +2707,7 @@ const NotepadPage = () => {
 																					</thead>
 																					<tbody>
 																						<tr className={`${isDarkMode ? 'bg-gray-700/30' : 'bg-white'}`}>
-																							<td className={`px-4 py-3 ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
+																							<td className={`px-4 py-3 border-b ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
 																								<input
 																									type="text"
 																									value={shareInput}
@@ -2593,16 +2725,36 @@ const NotepadPage = () => {
 																</div>
 															)}
 														</div>
-														{shareSettings.sharedWith.length > 0 && (
+														{/* Show current sharing status */}
+														{currentNote?.sharedWith && currentNote.sharedWith.length > 0 && (
+															<div className="mt-3 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
+																<div className="text-sm text-blue-600 font-medium mb-2">
+																	📤 Currently shared with {currentNote.sharedWith.length} user{currentNote.sharedWith.length === 1 ? '' : 's'}
+																</div>
+																<div className="flex flex-wrap gap-1">
+																	{currentNote.sharedWith.map((share, index) => {
+																		const userId = typeof share === 'object' ? share.user : share;
+																		const sharedUser = availableUsers.find(u => u._id === userId);
+																		return (
+																			<span key={index} className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+																				{sharedUser?.name || sharedUser?.username || (typeof userId === 'string' ? userId : 'Unknown')}
+																			</span>
+																		);
+																	})}
+																</div>
+															</div>
+														)}
+														
+														{(shareSettings.sharedWith.length > 0 || shareInput.trim()) && (
 															<div className="mt-3 p-2 bg-green-500/20 rounded-lg">
 																<div className="text-sm text-green-600 font-medium">
-																	Share with usernames
+																	{user?.role === 'manager' 
+																		? `Share with ${shareSettings.sharedWith.length} selected user${shareSettings.sharedWith.length === 1 ? '' : 's'}`
+																		: 'Share with entered usernames'
+																	}
 																</div>
 																<button
-																	onClick={() => {
-																		shareNote();
-																		setShowShareModal(false);
-																	}}
+																	onClick={shareNote}
 																	className="mt-2 w-full bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
 																>
 																	Share Note

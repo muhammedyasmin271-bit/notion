@@ -21,6 +21,8 @@ import LoginPage from './components/auth/LoginPage';
 import RegisterPage from './components/auth/RegisterPage';
 import PendingApprovalPage from './components/auth/PendingApprovalPage';
 import SettingsPage from './components/SettingsPage/SettingsPage';
+import HowItWorksPage from './components/HowItWorksPage/HowItWorksPage';
+import AIAssistantPage from './components/AIAssistantPage/AIAssistantPage';
 import UserManagementPage from './components/UserManagementPage/UserManagementPage';
 import UserProfilePage from './components/UserProfilePage/UserProfilePage';
 import WelcomePage from './components/WelcomePage/WelcomePage';
@@ -245,6 +247,22 @@ const AppContent = () => {
           <ProtectedRoute>
             <Layout>
               <SettingsPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/how-it-works" element={
+          <ProtectedRoute>
+            <Layout>
+              <HowItWorksPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/ai-assistant" element={
+          <ProtectedRoute>
+            <Layout>
+              <AIAssistantPage />
             </Layout>
           </ProtectedRoute>
         } />

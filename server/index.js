@@ -40,9 +40,9 @@ const connectDB = async () => {
     const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/notion-app', {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 30000,
-      connectTimeoutMS: 30000,
-      socketTimeoutMS: 30000,
+      serverSelectionTimeoutMS: 5000,
+      connectTimeoutMS: 5000,
+      socketTimeoutMS: 5000,
     });
 
     console.log(`MongoDB connected: ${conn.connection.host}`);
@@ -52,11 +52,12 @@ const connectDB = async () => {
     await ensureEmailIndexIsSparse();
   } catch (error) {
     console.error('MongoDB connection failed:', error.message);
-    console.log('Retrying connection in 5 seconds...');
-    setTimeout(connectDB, 5000);
+    console.log('Server will continue without database connection');
+    console.log('Please start MongoDB or update MONGODB_URI in .env file');
   }
 };
 
+// Start MongoDB connection (non-blocking)
 connectDB();
 
 // Ensure an initial admin exists so you can sign in without manual creation
@@ -141,11 +142,23 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/tasks', taskRoutes);
 
+// Database status middleware
+app.use('/api', (req, res, next) => {
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({
+      message: 'Database unavailable',
+      error: 'Please start MongoDB or check database connection'
+    });
+  }
+  next();
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'OK',
     message: 'Notion App Backend is running',
+    database: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
     timestamp: new Date().toISOString()
   });
 });
@@ -167,6 +180,7 @@ app.use('*', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`API available at: http://localhost:${PORT}/api`);
 });
 
 // Ensure the email index is unique and sparse to allow multiple null/undefined emails

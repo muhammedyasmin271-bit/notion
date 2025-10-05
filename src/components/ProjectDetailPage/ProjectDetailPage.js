@@ -146,11 +146,123 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
   const [aiPopupQuery, setAiPopupQuery] = useState('');
   const [showQuickNav, setShowQuickNav] = useState(false);
   const [toggleStates, setToggleStates] = useState({});
+  const [toggleContent, setToggleContent] = useState({});
   const [tableData, setTableData] = useState({});
   const [deleting, setDeleting] = useState(false);
   const [autoSaving, setAutoSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
   const autoSaveTimeoutRef = useRef(null);
+  const templatesRef = useRef(null);
+
+  // Project-focused templates
+  const projectTemplates = [
+    {
+      id: 'project-overview',
+      name: '🎯 Project Overview',
+      description: 'Essential project information and goals',
+      blocks: [
+        { id: 'overview', type: 'h1', content: 'Project Overview' },
+        { id: 'description', type: 'text', content: 'Brief description of what this project aims to achieve' },
+        { id: 'objectives', type: 'h2', content: 'Key Objectives' },
+        { id: 'obj1', type: 'bullet', content: 'Primary objective of the project' },
+        { id: 'obj2', type: 'bullet', content: 'Secondary objective of the project' },
+        { id: 'deliverables', type: 'h2', content: 'Expected Deliverables' },
+        { id: 'deliverable1', type: 'todo', content: 'Main deliverable or outcome' },
+        { id: 'success-criteria', type: 'h2', content: 'Success Criteria' },
+        { id: 'criteria', type: 'callout', content: 'How we will measure project success' }
+      ]
+    },
+    {
+      id: 'task-breakdown',
+      name: '✅ Task Breakdown',
+      description: 'Organize project tasks and milestones',
+      blocks: [
+        { id: 'tasks-title', type: 'h1', content: 'Project Tasks' },
+        { id: 'phase1', type: 'h2', content: 'Phase 1: Planning' },
+        { id: 'task1', type: 'todo', content: 'Define project requirements' },
+        { id: 'task2', type: 'todo', content: 'Create project timeline' },
+        { id: 'phase2', type: 'h2', content: 'Phase 2: Execution' },
+        { id: 'task3', type: 'todo', content: 'Begin development/implementation' },
+        { id: 'task4', type: 'todo', content: 'Regular progress reviews' },
+        { id: 'phase3', type: 'h2', content: 'Phase 3: Completion' },
+        { id: 'task5', type: 'todo', content: 'Final testing and review' },
+        { id: 'task6', type: 'todo', content: 'Project delivery and handover' }
+      ]
+    },
+    {
+      id: 'team-collaboration',
+      name: '👥 Team Collaboration',
+      description: 'Team roles, responsibilities, and communication',
+      blocks: [
+        { id: 'team-title', type: 'h1', content: 'Team & Collaboration' },
+        { id: 'team-members', type: 'h2', content: 'Team Members' },
+        { id: 'member1', type: 'bullet', content: 'Team Member - Role and responsibilities' },
+        { id: 'communication', type: 'h2', content: 'Communication Plan' },
+        { id: 'meetings', type: 'bullet', content: 'Weekly team meetings - [Day/Time]' },
+        { id: 'updates', type: 'bullet', content: 'Progress updates - [Frequency]' },
+        { id: 'tools', type: 'h2', content: 'Collaboration Tools' },
+        { id: 'tool1', type: 'bullet', content: 'Primary communication tool' },
+        { id: 'guidelines', type: 'h2', content: 'Working Guidelines' },
+        { id: 'guideline1', type: 'callout', content: 'Important team working agreement' }
+      ]
+    },
+    {
+      id: 'progress-tracking',
+      name: '📈 Progress Tracking',
+      description: 'Monitor project progress and milestones',
+      blocks: [
+        { id: 'progress-title', type: 'h1', content: 'Progress Tracking' },
+        { id: 'current-status', type: 'h2', content: 'Current Status' },
+        { id: 'status-update', type: 'callout', content: 'Overall project status and progress percentage' },
+        { id: 'completed', type: 'h2', content: 'Completed Items' },
+        { id: 'done1', type: 'todo', content: 'Completed task', checked: true },
+        { id: 'in-progress', type: 'h2', content: 'In Progress' },
+        { id: 'current1', type: 'todo', content: 'Currently working on this task' },
+        { id: 'upcoming', type: 'h2', content: 'Upcoming Tasks' },
+        { id: 'next1', type: 'todo', content: 'Next priority task' },
+        { id: 'blockers', type: 'h2', content: 'Issues & Blockers' },
+        { id: 'blocker1', type: 'callout', content: 'Any issues preventing progress' }
+      ]
+    },
+    {
+      id: 'project-notes',
+      name: '📝 Project Notes',
+      description: 'General notes, ideas, and documentation',
+      blocks: [
+        { id: 'notes-title', type: 'h1', content: 'Project Notes' },
+        { id: 'key-decisions', type: 'h2', content: 'Key Decisions' },
+        { id: 'decision1', type: 'bullet', content: 'Important decision made and rationale' },
+        { id: 'lessons-learned', type: 'h2', content: 'Lessons Learned' },
+        { id: 'lesson1', type: 'bullet', content: 'What we learned during the project' },
+        { id: 'ideas', type: 'h2', content: 'Ideas & Improvements' },
+        { id: 'idea1', type: 'bullet', content: 'Future improvement or enhancement idea' },
+        { id: 'resources', type: 'h2', content: 'Useful Resources' },
+        { id: 'resource1', type: 'bullet', content: 'Link or reference to helpful resource' },
+        { id: 'notes', type: 'h2', content: 'Additional Notes' },
+        { id: 'note1', type: 'text', content: 'Any additional notes or observations' }
+      ]
+    },
+    {
+      id: 'simple-checklist',
+      name: '📋 Simple Checklist',
+      description: 'Basic checklist for project tasks',
+      blocks: [
+        { id: 'checklist-title', type: 'h1', content: 'Project Checklist' },
+        { id: 'setup', type: 'h2', content: 'Project Setup' },
+        { id: 'setup1', type: 'todo', content: 'Initialize project structure' },
+        { id: 'setup2', type: 'todo', content: 'Set up development environment' },
+        { id: 'development', type: 'h2', content: 'Development Tasks' },
+        { id: 'dev1', type: 'todo', content: 'Core functionality implementation' },
+        { id: 'dev2', type: 'todo', content: 'User interface development' },
+        { id: 'testing', type: 'h2', content: 'Testing & Quality' },
+        { id: 'test1', type: 'todo', content: 'Unit testing' },
+        { id: 'test2', type: 'todo', content: 'User acceptance testing' },
+        { id: 'deployment', type: 'h2', content: 'Deployment' },
+        { id: 'deploy1', type: 'todo', content: 'Production deployment' },
+        { id: 'deploy2', type: 'todo', content: 'Post-deployment verification' }
+      ]
+    }
+  ];
 
   const formattingMenuRef = useRef(null);
   const userPickerRef = useRef(null);
@@ -174,9 +286,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
     { id: 'columns', label: 'Columns', icon: <GripVertical className="w-5 h-5" />, prefix: '' },
     { id: 'image', label: 'Image', icon: <FileText className="w-5 h-5" />, prefix: '' },
     { id: 'bookmark', label: 'Bookmark', icon: <Star className="w-5 h-5" />, prefix: '' },
-    { id: 'embed', label: 'Embed', icon: <Share2 className="w-5 h-5" />, prefix: '' },
-    { id: 'math', label: 'Math', icon: <Hash className="w-5 h-5" />, prefix: '' },
-    { id: 'template', label: 'Template', icon: <Copy className="w-5 h-5" />, prefix: '' }
+    { id: 'math', label: 'Math', icon: <Hash className="w-5 h-5" />, prefix: '' }
   ];
 
   useEffect(() => {
@@ -217,6 +327,9 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       }
       if (userPickerRef.current && !userPickerRef.current.contains(event.target)) {
         setShowUserPicker(false);
+      }
+      if (templatesRef.current && !templatesRef.current.contains(event.target)) {
+        setShowTemplates(false);
       }
     };
 
@@ -345,37 +458,51 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
         setProject(projectData);
         setTitle(projectData.name || projectData.title || '');
         
+        // Load structured block data if available
+        if (projectData.blockData && Array.isArray(projectData.blockData) && projectData.blockData.length > 0) {
+          console.log('Loading structured block data:', projectData.blockData);
+          setBlocks(projectData.blockData);
+        } else if (!projectData.blockData || projectData.blockData.length === 0) {
+          // Fallback to parsing from notes if no structured data
+          const content = projectData.notes || projectData.description || '';
+          if (content) {
+            const noteBlocks = content.split('\n').map((line, index) => {
+              const blockType = getBlockTypeFromLine(line);
+              const blockContent = getContentFromLine(line);
+              const block = {
+                id: `block-${index + 1}`,
+                type: blockType,
+                content: blockContent
+              };
+              // Preserve todo checked state from markdown
+              if (blockType === 'todo') {
+                block.checked = /^\s*- \[x\]\s/i.test(line);
+              }
+              return block;
+            });
+            setBlocks(noteBlocks.length > 0 ? noteBlocks : [{ id: 'block-1', type: 'text', content: '' }]);
+          }
+        }
+        if (projectData.tableData) {
+          setTableData(projectData.tableData);
+        }
+        if (projectData.toggleStates) {
+          setToggleStates(projectData.toggleStates);
+        }
+        if (projectData.toggleContent) {
+          setToggleContent(projectData.toggleContent);
+        }
+        
         // Fetch the project's tasks and other data
         const dataResponse = await fetch(`http://localhost:5000/api/projects/${projectId}/data`, {
           headers: { 'x-auth-token': localStorage.getItem('token') }
         });
         
         if (dataResponse.ok) {
-          // Don't convert tasks to blocks - keep tasks separate from notes
-          const content = projectData.notes || projectData.description || '';
-          if (content) {
-            const noteBlocks = content.split('\n').map((line, index) => ({
-              id: `block-${index + 1}`,
-              type: getBlockTypeFromLine(line),
-              content: getContentFromLine(line)
-            }));
-            setBlocks(noteBlocks.length > 0 ? noteBlocks : [{ id: 'block-1', type: 'text', content: '' }]);
-          } else {
-            setBlocks([{ id: 'block-1', type: 'text', content: '' }]);
-          }
+          // Data response is OK, structured block data already loaded above
+          console.log('Project data loaded successfully');
         } else {
           console.error('Failed to fetch project data:', dataResponse.status);
-          const content = projectData.notes || projectData.description || '';
-          if (content) {
-            const noteBlocks = content.split('\n').map((line, index) => ({
-              id: `block-${index + 1}`,
-              type: getBlockTypeFromLine(line),
-              content: getContentFromLine(line)
-            }));
-            setBlocks(noteBlocks.length > 0 ? noteBlocks : [{ id: 'block-1', type: 'text', content: '' }]);
-          } else {
-            setBlocks([{ id: 'block-1', type: 'text', content: '' }]);
-          }
         }
         
         // Set initial last saved time
@@ -612,10 +739,17 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       startDate: project.startDate,
       endDate: project.endDate,
       forPerson: project.forPerson || '',
-      viewers: project.viewers || ''
+      viewers: project.viewers || '',
+      blockData: blocks,
+      tableData: tableData,
+      toggleStates: toggleStates,
+      toggleContent: toggleContent
     };
     
     console.log('Sending project data:', projectData);
+    console.log('Table data being sent:', tableData);
+    console.log('Toggle states being sent:', toggleStates);
+    console.log('Blocks with todo states:', blocks.filter(b => b.type === 'todo'));
 
     try {
       const token = localStorage.getItem('token');
@@ -794,7 +928,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
   };
 
   const selectUser = (selectedUser) => {
-    const userName = selectedUser.name || selectedUser.username;
+    const userName = selectedUser.username;
     
     if (pickerType === 'assign') {
       // Multi-selection for assign
@@ -933,7 +1067,13 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
           'Content-Type': 'application/json',
           'x-auth-token': token
         },
-        body: JSON.stringify({ notes: notesContent })
+        body: JSON.stringify({ 
+          notes: notesContent,
+          blockData: blocksToSave,
+          tableData: tableData,
+          toggleStates: toggleStates,
+          toggleContent: toggleContent
+        })
       });
 
       if (response.ok) {
@@ -1109,17 +1249,39 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
   // Table functions
   const addTableRow = (blockId) => {
     setTableData(prev => {
-      const table = prev[blockId] || { rows: 3, cols: 3, data: Array(3).fill().map(() => Array(3).fill('')) };
+      const table = prev[blockId] || { rows: 3, cols: 3, data: Array(3).fill().map(() => Array(3).fill('')), colWidths: Array(3).fill(120), rowHeights: Array(3).fill(32), cellHeights: {} };
       const newData = [...table.data, Array(table.cols).fill('')];
-      return { ...prev, [blockId]: { ...table, rows: table.rows + 1, data: newData } };
+      const newRowHeights = [...(table.rowHeights || Array(table.rows).fill(32)), 32];
+      const newTableData = { ...prev, [blockId]: { ...table, rows: table.rows + 1, data: newData, rowHeights: newRowHeights } };
+      
+      // Trigger auto-save
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+      autoSaveTimeoutRef.current = setTimeout(() => {
+        autoSaveNotes(blocks);
+      }, 1000);
+      
+      return newTableData;
     });
   };
 
   const addTableCol = (blockId) => {
     setTableData(prev => {
-      const table = prev[blockId] || { rows: 3, cols: 3, data: Array(3).fill().map(() => Array(3).fill('')) };
+      const table = prev[blockId] || { rows: 3, cols: 3, data: Array(3).fill().map(() => Array(3).fill('')), colWidths: Array(3).fill(120), rowHeights: Array(3).fill(32), cellHeights: {} };
       const newData = table.data.map(row => [...row, '']);
-      return { ...prev, [blockId]: { ...table, cols: table.cols + 1, data: newData } };
+      const newColWidths = [...(table.colWidths || Array(table.cols).fill(120)), 120];
+      const newTableData = { ...prev, [blockId]: { ...table, cols: table.cols + 1, data: newData, colWidths: newColWidths } };
+      
+      // Trigger auto-save
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+      autoSaveTimeoutRef.current = setTimeout(() => {
+        autoSaveNotes(blocks);
+      }, 1000);
+      
+      return newTableData;
     });
   };
 
@@ -1130,25 +1292,37 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       const newData = table.data.map((r, i) =>
         i === row ? r.map((c, j) => j === col ? value : c) : r
       );
-      return { ...prev, [blockId]: { ...table, data: newData } };
+      const newTableData = { ...prev, [blockId]: { ...table, data: newData } };
+      
+      // Trigger auto-save with debounce
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+      autoSaveTimeoutRef.current = setTimeout(() => {
+        autoSaveNotes(blocks);
+      }, 1000);
+      
+      return newTableData;
     });
   };
 
   const deleteTableRow = (blockId) => {
     setTableData(prev => {
-      const table = prev[blockId] || { rows: 3, cols: 3, data: Array(3).fill().map(() => Array(3).fill('')) };
+      const table = prev[blockId] || { rows: 3, cols: 3, data: Array(3).fill().map(() => Array(3).fill('')), colWidths: Array(3).fill(120), rowHeights: Array(3).fill(32), cellHeights: {} };
       if (table.rows <= 1) return prev;
       const newData = table.data.slice(0, -1);
-      return { ...prev, [blockId]: { ...table, rows: table.rows - 1, data: newData } };
+      const newRowHeights = (table.rowHeights || Array(table.rows).fill(32)).slice(0, -1);
+      return { ...prev, [blockId]: { ...table, rows: table.rows - 1, data: newData, rowHeights: newRowHeights } };
     });
   };
 
   const deleteTableCol = (blockId) => {
     setTableData(prev => {
-      const table = prev[blockId] || { rows: 3, cols: 3, data: Array(3).fill().map(() => Array(3).fill('')) };
+      const table = prev[blockId] || { rows: 3, cols: 3, data: Array(3).fill().map(() => Array(3).fill('')), colWidths: Array(3).fill(120), rowHeights: Array(3).fill(32), cellHeights: {} };
       if (table.cols <= 1) return prev;
       const newData = table.data.map(row => row.slice(0, -1));
-      return { ...prev, [blockId]: { ...table, cols: table.cols - 1, data: newData } };
+      const newColWidths = (table.colWidths || Array(table.cols).fill(120)).slice(0, -1);
+      return { ...prev, [blockId]: { ...table, cols: table.cols - 1, data: newData, colWidths: newColWidths } };
     });
   };
 
@@ -1214,7 +1388,17 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       case 'table':
         const tableId = activeBlockId;
         changeBlockType(tableId, 'table');
-        setTableData(prev => ({ ...prev, [tableId]: { rows: 3, cols: 3, data: Array(3).fill().map(() => Array(3).fill('')) } }));
+        setTableData(prev => ({ 
+          ...prev, 
+          [tableId]: { 
+            rows: 3, 
+            cols: 3, 
+            data: Array(3).fill().map(() => Array(3).fill('')),
+            colWidths: Array(3).fill(120),
+            rowHeights: Array(3).fill(32),
+            cellHeights: {}
+          } 
+        }));
         break;
       case 'columns':
         changeBlockType(activeBlockId, 'columns');
@@ -1226,14 +1410,8 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       case 'bookmark':
         changeBlockType(activeBlockId, 'bookmark');
         break;
-      case 'embed':
-        changeBlockType(activeBlockId, 'embed');
-        break;
       case 'math':
         changeBlockType(activeBlockId, 'math');
-        break;
-      case 'template':
-        changeBlockType(activeBlockId, 'template');
         break;
       case 'divider':
         addBlock(blocks.findIndex(b => b.id === activeBlockId), 'divider');
@@ -1377,30 +1555,30 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                 <div className="py-1">
                   <button
                     onClick={() => duplicateBlock(block.id)}
-                    className={`flex items-center w-full px-4 py-2 text-left ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                    className={`flex items-center w-full px-4 py-2 text-left text-black ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
                   >
-                    <Copy className="w-4 h-4 mr-2" />
+                    <Copy className="w-4 h-4 mr-2 text-black" />
                     Duplicate
                   </button>
                   <button
                     onClick={() => { const newBlocks = [...blocks]; newBlocks.push({ id: `block-${Date.now()}`, type: 'text', content: '' }); setBlocks(newBlocks); setShowBlockMenu(null); }}
-                    className={`flex items-center w-full px-4 py-2 text-left ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                    className={`flex items-center w-full px-4 py-2 text-left text-black ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
                   >
-                    <Plus className="w-4 h-4 mr-2" />
+                    <Plus className="w-4 h-4 mr-2 text-black" />
                     Add Line
                   </button>
                   <button
                     onClick={() => moveBlockUp(block.id)}
-                    className={`flex items-center w-full px-4 py-2 text-left ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                    className={`flex items-center w-full px-4 py-2 text-left text-black ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
                   >
-                    <ChevronUp className="w-4 h-4 mr-2" />
+                    <ChevronUp className="w-4 h-4 mr-2 text-black" />
                     Move up
                   </button>
                   <button
                     onClick={() => moveBlockDown(block.id)}
-                    className={`flex items-center w-full px-4 py-2 text-left ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                    className={`flex items-center w-full px-4 py-2 text-left text-black ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
                   >
-                    <ChevronDown className="w-4 h-4 mr-2" />
+                    <ChevronDown className="w-4 h-4 mr-2 text-black" />
                     Move down
                   </button>
                   <hr className={`my-1 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`} />
@@ -1703,7 +1881,18 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
               <input 
                 type="checkbox" 
                 checked={block.checked || false}
-                onChange={(e) => updateBlock(block.id, { checked: e.target.checked })}
+                onChange={(e) => {
+                  updateBlock(block.id, { checked: e.target.checked });
+                  // Trigger auto-save for checkbox changes
+                  if (autoSaveTimeoutRef.current) {
+                    clearTimeout(autoSaveTimeoutRef.current);
+                  }
+                  autoSaveTimeoutRef.current = setTimeout(() => {
+                    autoSaveNotes(blocks.map(b => 
+                      b.id === block.id ? { ...b, checked: e.target.checked } : b
+                    ));
+                  }, 500); // Shorter delay for checkbox changes
+                }}
                 className="mr-2 mt-1" 
               />
               <input {...commonProps} />
@@ -1784,6 +1973,17 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
             {isToggleOpen && (
               <div className={`ml-8 mt-2 p-3 border-l-2 rounded ${isDarkMode ? 'border-gray-600 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
                 <textarea
+                  value={toggleContent[block.id] || ''}
+                  onChange={(e) => {
+                    setToggleContent(prev => ({ ...prev, [block.id]: e.target.value }));
+                    // Trigger auto-save
+                    if (autoSaveTimeoutRef.current) {
+                      clearTimeout(autoSaveTimeoutRef.current);
+                    }
+                    autoSaveTimeoutRef.current = setTimeout(() => {
+                      autoSaveNotes(blocks);
+                    }, 1000);
+                  }}
                   placeholder="Toggle content..."
                   className={`w-full p-2 border-none outline-none bg-transparent resize-none ${isDarkMode ? 'text-gray-200 placeholder-gray-400' : 'text-gray-800 placeholder-gray-500'}`}
                   rows="3"
@@ -1859,7 +2059,18 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
           </div>
         );
       case 'table':
-        const table = tableData[block.id] || { rows: 3, cols: 3, data: Array(3).fill().map(() => Array(3).fill('')) };
+        const table = tableData[block.id] || { rows: 3, cols: 3, data: Array(3).fill().map(() => Array(3).fill('')), colWidths: Array(3).fill(120), rowHeights: Array(3).fill(32), cellHeights: {} };
+        // Ensure table.data exists and is an array
+        if (!table.data || !Array.isArray(table.data)) {
+          table.data = Array(table.rows || 3).fill().map(() => Array(table.cols || 3).fill(''));
+        }
+        // Ensure colWidths and rowHeights exist
+        if (!table.colWidths || table.colWidths.length !== table.cols) {
+          table.colWidths = Array(table.cols).fill(120);
+        }
+        if (!table.rowHeights || table.rowHeights.length !== table.rows) {
+          table.rowHeights = Array(table.rows).fill(32);
+        }
         return (
           <div className="flex items-start group relative">
             <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
@@ -1883,26 +2094,52 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
               <div className={`border rounded-lg overflow-hidden shadow-sm ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-300 bg-white'}`}>
                 <table className="w-full border-collapse">
                   <tbody>
-                    {table.data.map((row, rowIndex) => (
-                      <tr key={rowIndex} className={rowIndex === 0 ? (isDarkMode ? 'bg-gray-700' : 'bg-gray-50') : (isDarkMode ? 'hover:bg-gray-700/50' : 'hover:bg-gray-50/50')}>
-                        {row.map((cell, colIndex) => (
-                          <td key={`${rowIndex}-${colIndex}`} className={`border-r border-b p-0 relative group/cell ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
-                            <textarea
-                              value={cell}
-                              onChange={(e) => updateTableCell(block.id, rowIndex, colIndex, e.target.value)}
-                              className={`w-full min-h-[24px] px-2 py-1 border-none outline-none resize-none bg-transparent text-xs leading-tight ${rowIndex === 0 ? (isDarkMode ? 'font-semibold text-gray-200' : 'font-semibold text-gray-800') : (isDarkMode ? 'text-gray-300' : 'text-gray-700')
-                                } ${isDarkMode ? 'focus:bg-blue-900/20 focus:ring-1 focus:ring-blue-700 focus:ring-inset' : 'focus:bg-blue-50/50 focus:ring-1 focus:ring-blue-200 focus:ring-inset'}`}
-                              placeholder={rowIndex === 0 ? `Column ${colIndex + 1}` : ''}
-                              rows={1}
-                              onInput={(e) => {
-                                e.target.style.height = 'auto';
-                                e.target.style.height = Math.max(24, e.target.scrollHeight) + 'px';
-                              }}
-                            />
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
+                    {table.data.map((row, rowIndex) => {
+                      const rowHeight = table.cellHeights?.[rowIndex] || {};
+                      return (
+                        <tr key={rowIndex} className={rowIndex === 0 ? (isDarkMode ? 'bg-gray-700' : 'bg-gray-50') : (isDarkMode ? 'hover:bg-gray-700/50' : 'hover:bg-gray-50/50')}>
+                          {row.map((cell, colIndex) => {
+                            const savedHeight = rowHeight[colIndex] || Math.max(32, cell.split('\n').length * 20 + 12);
+                            return (
+                              <td key={`${rowIndex}-${colIndex}`} className={`border-r border-b p-0 align-top ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
+                                <textarea
+                                  value={cell}
+                                  onChange={(e) => updateTableCell(block.id, rowIndex, colIndex, e.target.value)}
+                                  placeholder={rowIndex === 0 ? `Column ${colIndex + 1}` : ''}
+                                  rows={Math.max(1, cell.split('\n').length)}
+                                  className={`w-full h-full min-h-[32px] border-none outline-none bg-transparent text-sm resize-none overflow-hidden p-2 ${rowIndex === 0 ? (isDarkMode ? 'font-semibold text-gray-200' : 'font-semibold text-gray-800') : (isDarkMode ? 'text-gray-300' : 'text-gray-700')
+                                    } ${isDarkMode ? 'focus:bg-blue-900/20' : 'focus:bg-blue-50/50'}`}
+                                  style={{
+                                    height: savedHeight + 'px',
+                                    minHeight: '32px',
+                                    lineHeight: '1.4'
+                                  }}
+                                  onInput={(e) => {
+                                    e.target.style.height = 'auto';
+                                    const newHeight = Math.max(32, e.target.scrollHeight);
+                                    e.target.style.height = newHeight + 'px';
+                                    // Save cell height
+                                    setTableData(prev => ({
+                                      ...prev,
+                                      [block.id]: {
+                                        ...prev[block.id],
+                                        cellHeights: {
+                                          ...prev[block.id]?.cellHeights,
+                                          [rowIndex]: {
+                                            ...prev[block.id]?.cellHeights?.[rowIndex],
+                                            [colIndex]: newHeight
+                                          }
+                                        }
+                                      }
+                                    }));
+                                  }}
+                                />
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -2037,7 +2274,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                       const file = e.target.files[0];
                       if (file) {
                         const reader = new FileReader();
-                        reader.onload = (e) => updateBlock(block.id, e.target.result);
+                        reader.onload = (event) => updateBlock(block.id, { content: event.target.result });
                         reader.readAsDataURL(file);
                       }
                     }}
@@ -2110,7 +2347,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                       const file = e.target.files[0];
                       if (file) {
                         const reader = new FileReader();
-                        reader.onload = (e) => updateBlock(block.id, e.target.result);
+                        reader.onload = (event) => updateBlock(block.id, { content: event.target.result });
                         reader.readAsDataURL(file);
                       }
                     }}
@@ -2402,10 +2639,19 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                     value={aiQuery}
                     onChange={(e) => setAiQuery(e.target.value)}
                     onKeyDown={handleAiQuerySubmit}
-                    placeholder="Ask AI anything... (Press Enter to submit, Esc to cancel)"
+                    placeholder="Ask AI anything... (Press Enter to submit)"
                     className={`flex-1 outline-none bg-transparent text-sm font-medium ${isDarkMode ? 'text-purple-200 placeholder-purple-400' : 'text-purple-700 placeholder-purple-500'}`}
                     autoFocus
                   />
+                  <button
+                    onClick={() => {
+                      setAiInputBlock(null);
+                      setAiQuery('');
+                    }}
+                    className={`p-1 rounded hover:bg-gray-200 transition-colors ${isDarkMode ? 'text-purple-400 hover:bg-purple-800/30' : 'text-purple-600 hover:bg-purple-100'}`}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
               ) : (
                 <input {...commonProps} />
@@ -2484,7 +2730,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
         </div>
       )}
 
-      <div className={`${isDarkMode ? 'bg-gradient-to-br from-slate-950 via-gray-950 to-black text-gray-100 border-l border-gray-800/80' : isFullscreen ? 'bg-gradient-to-br from-white via-gray-50 to-blue-50/30 text-black border-l border-gray-200/50' : 'bg-white text-black border-l border-gray-200/50'} font-sans antialiased fixed top-0 z-10 transition-all duration-300 h-screen overflow-y-auto shadow-2xl ${isFullscreen ? 'left-0 w-full' : 'right-0 w-full md:w-1/2'
+      <div className={`bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-gray-100 border-l border-gray-700/50 font-sans antialiased fixed top-0 z-10 transition-all duration-300 h-screen overflow-y-auto shadow-2xl ${isFullscreen ? 'left-0 w-full' : 'right-0 w-full md:w-1/2'
         }`}>
         <div className={`sticky top-0 z-40 backdrop-blur-sm transition-all duration-300 border-b ${isDarkMode ? 'bg-gray-900/95 border-gray-800' : 'bg-white/95 border-gray-200'} ${isFullscreen ? 'px-4 sm:px-10 md:px-64' : 'px-4 sm:px-6'
           }`}>
@@ -2788,8 +3034,53 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
 
             {/* Notes Section */}
             <div className={`${isFullscreen ? 'mb-20 ml-16 mr-16' : 'mb-4 ml-4 mr-4'}`}>
-              <div className={`border-t ${isDarkMode ? 'border-gray-600' : 'border-gray-300'} mb-2`}></div>
-              <h3 className={`${isFullscreen ? 'text-lg' : 'text-base'} font-semibold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Project Notes</h3>
+              {/* Top horizontal line */}
+              <div className={`border-t-2 ${isDarkMode ? 'border-gray-600' : 'border-gray-300'} mb-4`}></div>
+              
+              <div className="flex items-center justify-between mb-4">
+                <h3 className={`${isFullscreen ? 'text-lg' : 'text-base'} font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Project Notes</h3>
+                <div className="relative" ref={templatesRef}>
+                  <button
+                    onClick={() => setShowTemplates(!showTemplates)}
+                    className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${isDarkMode ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'bg-purple-500 hover:bg-purple-600 text-white'}`}
+                  >
+                    Templates
+                  </button>
+                  {showTemplates && (
+                    <div className={`absolute right-0 top-full mt-2 w-80 rounded-xl shadow-xl border z-50 ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'} max-h-96 overflow-y-auto`}>
+                      <div className="p-3">
+                        <h4 className={`text-sm font-semibold mb-3 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Project Templates</h4>
+                        <div className="space-y-2">
+                          {projectTemplates.map(template => (
+                            <button
+                              key={template.id}
+                              onClick={() => {
+                                const templateBlocks = template.blocks.map((block, index) => ({
+                                  ...block,
+                                  id: `template-${Date.now()}-${index}`
+                                }));
+                                setBlocks(prev => [...prev, ...templateBlocks]);
+                                setShowTemplates(false);
+                              }}
+                              className={`w-full text-left p-3 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-50'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}
+                            >
+                              <div className={`font-medium text-sm ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
+                                {template.name}
+                              </div>
+                              <div className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                {template.description}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Bottom horizontal line */}
+              <div className={`border-t-2 ${isDarkMode ? 'border-gray-600' : 'border-gray-300'} mb-4`}></div>
               <div className={`${isFullscreen ? 'p-6' : 'p-2'}`}>
                 <div className={`space-y-0 ${isFullscreen ? 'min-h-96' : 'min-h-32'}`}>
                   {blocks.map((block, index) => (
@@ -2900,7 +3191,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
           ) : availableUsers.length > 0 ? (
             <div className="py-1.5">
               {availableUsers.map((user) => {
-                const userName = user.name || user.username;
+                const userName = user.username;
                 const isSelected = pickerType === 'viewer' 
                   ? (project.viewers && project.viewers.split(', ').includes(userName))
                   : (project.forPerson && project.forPerson.split(', ').includes(userName));

@@ -248,9 +248,17 @@ class ApiService {
                 }
             });
 
-            const url = `/auth/users${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-            const response = await this.request(url);
-            return { users: response };
+            // Try the main users endpoint first
+            try {
+                const url = `/users${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+                const response = await this.request(url);
+                return response; // This returns { users: [...], pagination: {...} }
+            } catch (mainError) {
+                // Fallback to auth endpoint
+                const url = `/auth/users${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+                const response = await this.request(url);
+                return { users: response };
+            }
         } catch (error) {
             console.error('Error fetching users:', error);
             return { users: [] };
@@ -845,6 +853,7 @@ export const createUser = (userData) => apiService.createUser(userData);
 export const updateUser = (userId, userData) => apiService.updateUser(userId, userData);
 export const getUserById = (userId) => apiService.getUserById(userId);
 export const getUsers = (filters) => apiService.getUsers(filters);
+export const getAllUsers = () => apiService.getUsers({ limit: 100 }); // Get all users for sharing
 export const toggleUserStatus = (userId) => apiService.toggleUserStatus(userId);
 export const deleteUser = (userId) => apiService.deleteUser(userId);
 export const approveUser = (userId) => apiService.approveUser(userId);

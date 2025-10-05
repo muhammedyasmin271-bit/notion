@@ -29,7 +29,7 @@ import { notifyProjectAssignment, notifyProjectUpdate } from '../../utils/notifi
 import ProjectDetailsPage from '../ProjectDetailPage/ProjectDetailPage';
 
 const ProjectsPage = () => {
-  const { user, users } = useAppContext();
+  const { user, users, setUsers } = useAppContext();
   const { isDarkMode } = useTheme();
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
@@ -44,7 +44,26 @@ const ProjectsPage = () => {
 
   useEffect(() => {
     fetchProjects();
+    fetchUsers();
   }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/users?limit=100', {
+        headers: { 'x-auth-token': localStorage.getItem('token') }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Fetched users for assignment:', data.users?.length || 0);
+        // Update the users in context if available
+        if (data.users) {
+          setUsers(data.users);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
 
   // Check if returning from user selection
   useEffect(() => {
@@ -135,7 +154,7 @@ const ProjectsPage = () => {
   };
 
   const handleUpdateField = async (projectId, field, value) => {
-    console.log('handleUpdateField called:', { projectId, field, value, userRole: user?.role });
+    console.log('handleUpdateField called:', { projectId, field, value, userRole: user?.role, availableUsers: users?.length || 0, users: users?.map(u => u.name) });
 
     // Only managers can update any field except status - all users can update status
     if (user?.role !== 'manager' && field !== 'status') {
@@ -163,44 +182,74 @@ const ProjectsPage = () => {
 
     // Check if assigning to a user (forPerson field)
     if (field === 'forPerson' && value && value !== project.forPerson) {
-      // Find the user being assigned
-      const assignedUser = users.find(u =>
-        u.name.toLowerCase().includes(value.toLowerCase()) ||
-        u.email?.toLowerCase().includes(value.toLowerCase())
-      );
+      // Find the user being assigned - check for exact name match or partial match
+      const assignedUsers = value.split(',').map(name => name.trim());
+      
+      assignedUsers.forEach(assignedUserName => {
+        const assignedUser = users.find(u => {
+          // Try exact name match first
+          if (u.name.toLowerCase() === assignedUserName.toLowerCase()) return true;
+          // Try username match
+          if (u.username && u.username.toLowerCase() === assignedUserName.toLowerCase()) return true;
+          // Try partial name match
+          if (u.name.toLowerCase().includes(assignedUserName.toLowerCase())) return true;
+          // Try email match if available
+          if (u.email && u.email.toLowerCase().includes(assignedUserName.toLowerCase())) return true;
+          return false;
+        });
 
-      if (assignedUser && user) {
-        // Send notification to assigned user
-        notifyProjectAssignment(
-          assignedUser.id,
-          assignedUser.name,
-          project.name,
-          user.id,
-          user.name
-        );
-      }
+        if (assignedUser && user) {
+          console.log('Sending notification to assigned user:', assignedUser.name, 'for project:', project.name);
+          // Send notification to assigned user
+          notifyProjectAssignment(
+            assignedUser._id || assignedUser.id,
+            assignedUser.name,
+            project.name,
+            user._id || user.id,
+            user.name
+          ).catch(error => {
+            console.error('Failed to send assignment notification:', error);
+          });
+        } else {
+          console.warn('Could not find user for assignment:', assignedUserName, 'Available users:', users.map(u => u.name));
+        }
+      });
     }
 
     // Check if updating project status
     if (field === 'status' && value !== project.status) {
       // Find the assigned user if exists
       if (project.forPerson) {
-        const assignedUser = users.find(u =>
-          u.name.toLowerCase().includes(project.forPerson.toLowerCase()) ||
-          u.email?.toLowerCase().includes(project.forPerson.toLowerCase())
-        );
+        const assignedUsers = project.forPerson.split(',').map(name => name.trim());
+        
+        assignedUsers.forEach(assignedUserName => {
+          const assignedUser = users.find(u => {
+            // Try exact name match first
+            if (u.name.toLowerCase() === assignedUserName.toLowerCase()) return true;
+            // Try username match
+            if (u.username && u.username.toLowerCase() === assignedUserName.toLowerCase()) return true;
+            // Try partial name match
+            if (u.name.toLowerCase().includes(assignedUserName.toLowerCase())) return true;
+            // Try email match if available
+            if (u.email && u.email.toLowerCase().includes(assignedUserName.toLowerCase())) return true;
+            return false;
+          });
 
-        if (assignedUser && user) {
-          // Send notification about status update
-          notifyProjectUpdate(
-            assignedUser.id,
-            assignedUser.name,
-            project.name,
-            `updated to ${value}`,
-            user.id,
-            user.name
-          );
-        }
+          if (assignedUser && user) {
+            console.log('Sending status update notification to:', assignedUser.name, 'for project:', project.name);
+            // Send notification about status update
+            notifyProjectUpdate(
+              assignedUser._id || assignedUser.id,
+              assignedUser.name,
+              project.name,
+              `status updated to ${value}`,
+              user._id || user.id,
+              user.name
+            ).catch(error => {
+              console.error('Failed to send status update notification:', error);
+            });
+          }
+        });
       }
     }
 
@@ -218,7 +267,11 @@ const ProjectsPage = () => {
           'Content-Type': 'application/json',
           'x-auth-token': localStorage.getItem('token')
         },
-        body: JSON.stringify({ [field]: value })
+        body: JSON.stringify({ 
+          [field]: value,
+          // Include additional context for assignment tracking
+          ...(field === 'forPerson' && { assignedBy: user?.name, assignedById: user?._id || user?.id })
+        })
       });
 
       console.log('API response status:', response.status);
@@ -403,16 +456,7 @@ const ProjectsPage = () => {
     const forValue = (project.forPerson || project.category || '').toLowerCase();
     const matchesFor = !filterFor || forValue.includes(filterFor.toLowerCase());
 
-    // Access control logic
-    const isAssignedToUser = project.forPerson && project.forPerson.toLowerCase().includes(user?.name?.toLowerCase() || '');
-    const isOwner = project.ownerUid === user?.id || project.ownerName === user?.name;
-    const isAssigned = project.forPerson && project.forPerson.trim() !== '';
-
-    const hasAccess = isAssigned ?
-      (user?.role === 'manager' || isAssignedToUser) :
-      isOwner;
-
-    return matchesSearch && matchesPriority && matchesOwner && matchesFor && hasAccess;
+    return matchesSearch && matchesPriority && matchesOwner && matchesFor;
   });
 
   const getProjectStats = () => {
@@ -506,7 +550,7 @@ const ProjectsPage = () => {
 
       {/* Enhanced Statistics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12">
-        <div className={`p-6 rounded-2xl border ${cardBg} hover:shadow-xl hover:scale-105 transition-all duration-300 group`}>
+        <div className={`p-6 rounded-2xl border ${cardBg} hover:shadow-xl transition-all duration-300 group`}>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-3xl font-bold bg-gradient-to-r from-black to-gray-700 bg-clip-text text-transparent mb-2">{stats.total}</p>
@@ -517,7 +561,7 @@ const ProjectsPage = () => {
             </div>
           </div>
         </div>
-        <div className={`p-6 rounded-2xl border ${cardBg} hover:shadow-xl hover:scale-105 transition-all duration-300 group`}>
+        <div className={`p-6 rounded-2xl border ${cardBg} hover:shadow-xl transition-all duration-300 group`}>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-2">{stats.completed}</p>
@@ -528,7 +572,7 @@ const ProjectsPage = () => {
             </div>
           </div>
         </div>
-        <div className={`p-6 rounded-2xl border ${cardBg} hover:shadow-xl hover:scale-105 transition-all duration-300 group`}>
+        <div className={`p-6 rounded-2xl border ${cardBg} hover:shadow-xl transition-all duration-300 group`}>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-3xl font-bold bg-gradient-to-r from-yellow-600 to-orange-600 bg-clip-text text-transparent mb-2">{stats.inProgress}</p>
@@ -539,7 +583,7 @@ const ProjectsPage = () => {
             </div>
           </div>
         </div>
-        <div className={`p-6 rounded-2xl border ${cardBg} hover:shadow-xl hover:scale-105 transition-all duration-300 group`}>
+        <div className={`p-6 rounded-2xl border ${cardBg} hover:shadow-xl transition-all duration-300 group`}>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-3xl font-bold bg-gradient-to-r from-gray-600 to-slate-600 bg-clip-text text-transparent mb-2">{stats.notStarted}</p>
@@ -598,7 +642,7 @@ const ProjectsPage = () => {
             >
               <option value="all">All Owners</option>
               {users.map(u => (
-                <option key={u.id} value={u.id}>{u.name}</option>
+                <option key={u._id || u.id} value={u._id || u.id}>{u.name}</option>
               ))}
             </select>
           </div>
@@ -646,9 +690,9 @@ const ProjectsPage = () => {
       {view === 'By Status' && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
           {statuses.map(status => (
-            <div key={status} className={`p-6 rounded-3xl border min-h-[480px] ${cardBg} transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] backdrop-blur-lg`}>
+            <div key={status} className={`p-6 rounded-3xl border min-h-[480px] ${cardBg} transition-all duration-300 hover:shadow-2xl backdrop-blur-lg`}>
               <div className="flex items-center justify-between mb-6 pb-3 border-b border-gray-200/50">
-                <h2 className="text-xl font-bold bg-gradient-to-r from-black to-gray-700 bg-clip-text text-transparent">
+                <h2 className="text-xl font-bold text-white">
                   {status}
                 </h2>
                 <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-gray-100 to-slate-100 text-gray-700 shadow-md">
@@ -669,7 +713,7 @@ const ProjectsPage = () => {
                 {filteredProjects.filter(p => p.status === status).map(project => (
                   <div
                     key={project.id}
-                    className={`group relative p-0 rounded-3xl border-2 cursor-pointer transition-all duration-500 hover:shadow-2xl hover:scale-[1.03] overflow-hidden shadow-xl backdrop-blur-sm ${isDarkMode ? 'bg-gray-900/70 border-gray-800 hover:bg-gradient-to-br hover:from-gray-900/70 hover:to-blue-900/30' : 'bg-white/90 border-gray-200/60 hover:bg-gradient-to-br hover:from-white hover:to-blue-50/30'}`}
+                    className={`group relative p-0 rounded-3xl border-2 cursor-pointer transition-all duration-500 hover:shadow-2xl overflow-hidden shadow-xl backdrop-blur-sm ${isDarkMode ? 'bg-gray-900/70 border-gray-800 hover:bg-gradient-to-br hover:from-gray-900/70 hover:to-blue-900/30' : 'bg-white/90 border-gray-200/60 hover:bg-gradient-to-br hover:from-white hover:to-blue-50/30'}`}
                     onClick={(e) => {
                       const el = e.target;
                       if (
@@ -855,7 +899,7 @@ const ProjectsPage = () => {
                 {user?.role === 'manager' && (
                   <button
                     onClick={() => addNewProject(status)}
-                    className="flex items-center w-full justify-center px-8 py-6 text-sm font-bold border-2 border-dashed rounded-2xl text-gray-600 border-gray-300/60 hover:text-black hover:bg-gradient-to-br hover:from-gray-50 hover:to-slate-50 hover:border-gray-400 transition-all duration-500 hover:shadow-xl hover:scale-[1.02] backdrop-blur-sm"
+                    className="flex items-center w-full justify-center px-8 py-6 text-sm font-bold border-2 border-dashed rounded-2xl text-gray-600 border-gray-300/60 hover:text-black hover:bg-gradient-to-br hover:from-gray-50 hover:to-slate-50 hover:border-gray-400 transition-all duration-500 hover:shadow-xl backdrop-blur-sm"
                   >
                     <div className="w-8 h-8 flex items-center justify-center mr-4 rounded-xl bg-gradient-to-br from-black to-gray-800 shadow-lg">
                       <Plus size={16} className="text-white" />
@@ -1036,7 +1080,7 @@ const ProjectsPage = () => {
             {filteredProjects.map((p) => {
               const progress = getProgressFromStatus(p.status);
               return (
-                <div key={p.id} className={`p-8 rounded-3xl border transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl ${isDarkMode ? 'bg-gradient-to-r from-gray-800/60 to-slate-800/60 border-gray-700/60' : 'bg-gradient-to-r from-white/90 to-slate-50/90 border-gray-200/60'} backdrop-blur-lg`}>
+                <div key={p.id} className={`p-8 rounded-3xl border transition-all duration-500 hover:shadow-2xl ${isDarkMode ? 'bg-gradient-to-r from-gray-800/60 to-slate-800/60 border-gray-700/60' : 'bg-gradient-to-r from-white/90 to-slate-50/90 border-gray-200/60'} backdrop-blur-lg`}>
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-6">
                       <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white text-lg font-bold shadow-xl ${p.status === 'Not started' ? 'bg-gradient-to-br from-gray-500 to-gray-600' :
