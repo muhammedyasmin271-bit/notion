@@ -35,7 +35,8 @@ const meetingNoteSchema = new mongoose.Schema({
   },
   notes: {
     type: String,
-    trim: true
+    trim: true,
+    default: ''
   },
   actionItems: [{
     description: String,
@@ -136,17 +137,14 @@ const meetingNoteSchema = new mongoose.Schema({
     endDate: Date
   },
 
-  blocks: [{
-    id: String,
-    type: String,
-    content: String,
-    style: mongoose.Schema.Types.Mixed,
-    calloutType: String,
-    priorityLevel: String,
-    expanded: Boolean,
-    toggleContent: String
-  }],
-  tableData: mongoose.Schema.Types.Mixed,
+  blocks: {
+    type: mongoose.Schema.Types.Mixed,
+    default: []
+  },
+  tableData: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
+  },
   deleted: {
     type: Boolean,
     default: false
@@ -165,18 +163,18 @@ meetingNoteSchema.index({ deleted: 1 });
 meetingNoteSchema.index({ date: 1 });
 
 // Virtual for meeting status
-meetingNoteSchema.virtual('isPast').get(function() {
+meetingNoteSchema.virtual('isPast').get(function () {
   return new Date(this.date) < new Date();
 });
 
 // Virtual for meeting duration in minutes
-meetingNoteSchema.virtual('durationMinutes').get(function() {
+meetingNoteSchema.virtual('durationMinutes').get(function () {
   const match = this.duration.match(/(\d+)\s*(min|hour|hr)/i);
   if (!match) return 0;
-  
+
   const value = parseInt(match[1]);
   const unit = match[2].toLowerCase();
-  
+
   if (unit === 'hour' || unit === 'hr') {
     return value * 60;
   }
@@ -184,33 +182,33 @@ meetingNoteSchema.virtual('durationMinutes').get(function() {
 });
 
 // Method to mark as complete
-meetingNoteSchema.methods.markComplete = function() {
+meetingNoteSchema.methods.markComplete = function () {
   this.status = 'Completed';
   return this.save();
 };
 
 // Method to soft delete
-meetingNoteSchema.methods.softDelete = function() {
+meetingNoteSchema.methods.softDelete = function () {
   this.deleted = true;
   this.deletedAt = new Date();
   return this.save();
 };
 
 // Method to restore
-meetingNoteSchema.methods.restore = function() {
+meetingNoteSchema.methods.restore = function () {
   this.deleted = false;
   this.deletedAt = undefined;
   return this.save();
 };
 
 // Method to add action item
-meetingNoteSchema.methods.addActionItem = function(actionItem) {
+meetingNoteSchema.methods.addActionItem = function (actionItem) {
   this.actionItems.push(actionItem);
   return this.save();
 };
 
 // Method to mark action item complete
-meetingNoteSchema.methods.completeActionItem = function(actionItemId) {
+meetingNoteSchema.methods.completeActionItem = function (actionItemId) {
   const actionItem = this.actionItems.id(actionItemId);
   if (actionItem) {
     actionItem.completed = true;

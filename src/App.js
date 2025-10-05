@@ -15,6 +15,7 @@ import DocumentsPage from './components/DocumentsPage/DocumentsPage';
 import NotepadPage from './components/NotepadPage/NotepadPage';
 import MeetingNotesPage from './components/MeetingNotesPage/MeetingNotesPage';
 import MeetingEditorPage from './components/MeetingEditorPage/MeetingEditorPage';
+
 import TrashPage from './components/TrashPage/TrashPage';
 import InviteMembersPage from './components/InviteMembersPage/InviteMembersPage';
 import LoginPage from './components/auth/LoginPage';

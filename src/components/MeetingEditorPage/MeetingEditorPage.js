@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import './MeetingEditorPage.css';
 import { Save, ArrowLeft, Calendar, Clock, Users, Plus, X, CheckCircle, Circle, Sparkles, GripVertical, Type, Hash, List, Quote, Code, Trash2, Copy, ArrowUp, ArrowDown, ArrowRight, CheckSquare, Table, Minus, AlertCircle, Star, Tag, MapPin, Mail, ListOrdered, FileText, Lightbulb, Info, AlertTriangle, Target, BarChart3 } from 'lucide-react';
 import { getMeetingById, createMeeting, updateMeeting, addMeetingActionItem, getUsers, deleteMeeting } from '../../services/api';
-import { setupAutoSave } from './autosave';
+
 
 const MeetingEditorPage = () => {
   const { isDarkMode } = useTheme();
@@ -44,7 +44,7 @@ const MeetingEditorPage = () => {
   const [aiQuery, setAiQuery] = useState('');
   const [loadingError, setLoadingError] = useState(null);
   const [canEdit, setCanEdit] = useState(true);
-  const [autoSave, setAutoSave] = useState(null);
+
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -220,6 +220,32 @@ const MeetingEditorPage = () => {
 
     setIsSaving(true);
     try {
+      // Create a notes string from all block contents
+      const notesContent = blocks.map(block => {
+        if (block.type === 'heading1') {
+          return `# ${block.content}`;
+        } else if (block.type === 'heading2') {
+          return `## ${block.content}`;
+        } else if (block.type === 'heading3') {
+          return `### ${block.content}`;
+        } else if (block.type === 'bullet') {
+          return `- ${block.content.replace(/^•\s*/, '')}`;
+        } else if (block.type === 'numbered') {
+          return `${block.content}`;
+        } else if (block.type === 'todo') {
+          const isChecked = block.content.includes('☑');
+          return `- [${isChecked ? 'x' : ' '}] ${block.content.replace(/^[☐☑]\s*/, '')}`;
+        } else if (block.type === 'quote') {
+          return `> ${block.content}`;
+        } else if (block.type === 'code') {
+          return `\`\`\`\n${block.content}\n\`\`\``;
+        } else if (block.type === 'divider') {
+          return `---`;
+        } else {
+          return block.content;
+        }
+      }).join('\n\n');
+
       const meetingData = {
         title: meeting.title || 'Untitled Meeting',
         type: meeting.type || 'Team Sync',
@@ -227,10 +253,10 @@ const MeetingEditorPage = () => {
         time: meeting.time || '09:00',
         duration: meeting.duration || '30',
         attendees: meeting.attendees || [],
-        notes: blocks.map(block => block.content || '').join('\n'),
+        notes: notesContent, // Use the generated notes content
         status: meeting.status || 'scheduled',
         location: meeting.location || '',
-        blocks: blocks || [],
+        blocks: blocks || [], // Still send blocks for the rich editor
         tableData: tableData || {}
       };
       
@@ -917,7 +943,7 @@ const MeetingEditorPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <div className="w-full h-screen overflow-y-auto bg-gray-900">
+      <div className="w-full min-h-screen overflow-y-auto bg-gray-900">
         <div className="bg-gray-900 sticky top-0 z-10">
           <div className="max-w-7xl mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
@@ -963,7 +989,7 @@ const MeetingEditorPage = () => {
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto pt-2 pb-6 overflow-y-auto px-6">
+        <div className="max-w-6xl mx-auto pt-2 pb-6 overflow-y-auto px-6">
           {loadingError && (
             <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
               <strong>Error loading meeting:</strong> {loadingError}
