@@ -187,6 +187,7 @@ export const AppProvider = ({ children }) => {
   const canViewAllProjects = () => isAdmin();
   const canCreateNotepad = () => isUser();
   const canShareContent = () => isUser(); // Allow all users to share content
+  const canCreateMeetings = () => isManager(); // Only admins and managers can create meetings
 
   const contextValue = {
     user,

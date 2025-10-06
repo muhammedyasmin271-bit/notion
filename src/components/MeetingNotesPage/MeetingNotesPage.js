@@ -212,17 +212,9 @@ const MeetingNotesPage = () => {
                 onClick={() => navigate(`/meeting-editor/${meeting.id}`)}
               >
                 <div className={`flex items-center text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  <input
-                    type="text"
-                    value={meeting.title}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      updateMeetingField(meeting.id, 'title', e.target.value);
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                    className={`font-semibold text-lg mr-3 bg-transparent border-none outline-none ${isDarkMode ? 'text-gray-100' : 'text-gray-900'} group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors`}
-                  />
-                  <span className="mr-3">•</span>
+                  <span className={`font-semibold text-lg mr-20 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'} group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors`}>
+                    {meeting.title}
+                  </span>
                   <select
                     value={meeting.type}
                     onChange={(e) => {
@@ -230,7 +222,7 @@ const MeetingNotesPage = () => {
                       updateMeetingField(meeting.id, 'type', e.target.value);
                     }}
                     onClick={(e) => e.stopPropagation()}
-                    className={`px-2 py-0.5 rounded text-xs font-medium bg-transparent border-none outline-none mr-3 ${getTypeColor(meeting.type)}`}
+                    className={`px-2 py-0.5 rounded text-xs font-medium bg-transparent border-none outline-none mr-20 ${getTypeColor(meeting.type)}`}
                   >
                     <option value="Standup">Standup</option>
                     <option value="Planning">Planning</option>
@@ -249,7 +241,7 @@ const MeetingNotesPage = () => {
                       updateMeetingField(meeting.id, 'status', e.target.value);
                     }}
                     onClick={(e) => e.stopPropagation()}
-                    className={`px-2 py-0.5 rounded text-xs font-medium bg-transparent border-none outline-none mr-3 ${getStatusColor(meeting.status)}`}
+                    className={`px-2 py-0.5 rounded text-xs font-medium bg-transparent border-none outline-none mr-20 ${getStatusColor(meeting.status)}`}
                   >
                     <option value="scheduled">Scheduled</option>
                     <option value="in-progress">In Progress</option>
@@ -279,17 +271,9 @@ const MeetingNotesPage = () => {
                     className="bg-transparent border-none outline-none mr-3"
                   />
                   <span className="mr-3">•</span>
-                  <input
-                    type="text"
-                    value={meeting.location || ''}
-                    placeholder="Location"
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      updateMeetingField(meeting.id, 'location', e.target.value);
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                    className="bg-transparent border-none outline-none mr-3 w-24"
-                  />
+                  <span className="mr-3 w-24">
+                    {meeting.location || 'No location'}
+                  </span>
                   <span className="mr-3">•</span>
                   <span>{meeting.attendees ? meeting.attendees.length : 0} people</span>
                 </div>

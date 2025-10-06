@@ -128,6 +128,10 @@ router.get('/:id', auth, async (req, res) => {
     meetingObj.canEdit = isCreator;
     meetingObj.permission = isCreator ? 'write' : (sharedAccess?.permission || 'read');
 
+    // Ensure blocks and tableData are properly returned
+    meetingObj.blocks = meetingObj.blocks || [];
+    meetingObj.tableData = meetingObj.tableData || {};
+
     res.json(meetingObj);
   } catch (error) {
     console.error('Error fetching meeting:', error);

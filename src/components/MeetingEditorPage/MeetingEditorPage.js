@@ -44,6 +44,9 @@ const MeetingEditorPage = () => {
   const [aiQuery, setAiQuery] = useState('');
   const [loadingError, setLoadingError] = useState(null);
   const [canEdit, setCanEdit] = useState(true);
+  const [isOwner, setIsOwner] = useState(true);
+  const [saveStatus, setSaveStatus] = useState('saved'); // 'saving', 'saved', 'offline'
+  const [serverStatus, setServerStatus] = useState('unknown'); // 'online', 'offline', 'unknown'
 
 
   useEffect(() => {
@@ -91,6 +94,7 @@ const MeetingEditorPage = () => {
           
           // Set edit permissions
           setCanEdit(meetingData.canEdit !== false);
+          setIsOwner(meetingData.isOwner !== false);
 
           // Use localStorage to persist blocks
           const savedBlocks = localStorage.getItem(`meeting-blocks-${meetingId}`);
@@ -153,12 +157,88 @@ const MeetingEditorPage = () => {
   }, [meetingId, isNewMeeting]);
 
   // Auto-save to localStorage
+  // Auto-save to localStorage every 5 seconds
   useEffect(() => {
-    if (meetingId && meetingId !== 'new') {
-      localStorage.setItem(`meeting-blocks-${meetingId}`, JSON.stringify(blocks));
-      localStorage.setItem(`meeting-tableData-${meetingId}`, JSON.stringify(tableData));
+    const autoSaveInterval = setInterval(() => {
+      if (meetingId && meetingId !== 'new') {
+        setSaveStatus('saving');
+        localStorage.setItem(`meeting-blocks-${meetingId}`, JSON.stringify(blocks));
+        localStorage.setItem(`meeting-tableData-${meetingId}`, JSON.stringify(tableData));
+        localStorage.setItem(`meeting-autosave-${meetingId}`, JSON.stringify({
+          meeting,
+          blocks,
+          tableData,
+          timestamp: new Date().toISOString()
+        }));
+        setTimeout(() => setSaveStatus('saved'), 500);
+      }
+    }, 5000); // Auto-save every 5 seconds
+
+    return () => clearInterval(autoSaveInterval);
+  }, [blocks, tableData, meetingId, meeting]);
+
+  // Check server connectivity
+  useEffect(() => {
+    const checkServerStatus = async () => {
+      try {
+        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/health`, {
+          method: 'GET',
+          timeout: 5000
+        });
+        if (response.ok) {
+          setServerStatus('online');
+          // Try to sync any offline data
+          await syncOfflineData();
+        } else {
+          setServerStatus('offline');
+        }
+      } catch (error) {
+        setServerStatus('offline');
+      }
+    };
+
+    // Check immediately
+    checkServerStatus();
+    
+    // Check every 30 seconds
+    const statusInterval = setInterval(checkServerStatus, 30000);
+    
+    return () => clearInterval(statusInterval);
+  }, [meetingId]);
+
+  // Sync offline data when server comes back online
+  const syncOfflineData = async () => {
+    if (serverStatus !== 'online') return;
+    
+    try {
+      // Check for backup data
+      const backupKeys = Object.keys(localStorage).filter(key => key.startsWith('meeting-backup-'));
+      
+      for (const key of backupKeys) {
+        try {
+          const backupData = JSON.parse(localStorage.getItem(key));
+          if (backupData) {
+            console.log('Syncing offline data:', backupData);
+            
+            if (key.includes('new')) {
+              await createMeeting(backupData);
+            } else {
+              const meetingId = key.replace('meeting-backup-', '');
+              await updateMeeting(meetingId, backupData);
+            }
+            
+            // Remove backup after successful sync
+            localStorage.removeItem(key);
+            console.log('Successfully synced offline data');
+          }
+        } catch (syncError) {
+          console.error('Failed to sync backup data:', syncError);
+        }
+      }
+    } catch (error) {
+      console.error('Error during offline data sync:', error);
     }
-  }, [blocks, tableData, meetingId]);
+  };
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -217,7 +297,6 @@ const MeetingEditorPage = () => {
   };
 
   const handleSave = async () => {
-
     setIsSaving(true);
     try {
       // Create a notes string from all block contents
@@ -253,10 +332,10 @@ const MeetingEditorPage = () => {
         time: meeting.time || '09:00',
         duration: meeting.duration || '30',
         attendees: meeting.attendees || [],
-        notes: notesContent, // Use the generated notes content
+        notes: notesContent,
         status: meeting.status || 'scheduled',
         location: meeting.location || '',
-        blocks: blocks || [], // Still send blocks for the rich editor
+        blocks: blocks || [],
         tableData: tableData || {}
       };
       
@@ -264,31 +343,40 @@ const MeetingEditorPage = () => {
       console.log('Blocks being saved:', blocks);
       console.log('TableData being saved:', tableData);
       
+      // Save to localStorage first for backup
+      const backupKey = isNewMeeting ? `meeting-backup-${Date.now()}` : `meeting-backup-${meetingId}`;
+      localStorage.setItem(backupKey, JSON.stringify({ ...meetingData, blocks, tableData }));
+      localStorage.setItem(`meeting-blocks-${meetingId || 'new'}`, JSON.stringify(blocks));
+      localStorage.setItem(`meeting-tableData-${meetingId || 'new'}`, JSON.stringify(tableData));
+      
       let result;
-      if (isNewMeeting) {
-        result = await createMeeting(meetingData);
-        console.log('Created meeting result:', result);
-      } else {
-        result = await updateMeeting(meetingId, meetingData);
-        console.log('Updated meeting result:', result);
+      try {
+        setSaveStatus('saving');
+        if (isNewMeeting) {
+          result = await createMeeting(meetingData);
+          console.log('Created meeting result:', result);
+        } else {
+          result = await updateMeeting(meetingId, meetingData);
+          console.log('Updated meeting result:', result);
+        }
+        
+        // Clear backup after successful save
+        localStorage.removeItem(backupKey);
+        setSaveStatus('saved');
+        
+        console.log('Save completed successfully');
+        alert(`Meeting ${isNewMeeting ? 'created' : 'updated'} successfully!`);
+        navigate('/meeting-notes');
+      } catch (serverError) {
+        console.error('Server save failed, data saved locally:', serverError);
+        setSaveStatus('offline');
+        setServerStatus('offline');
+        alert(`Server unavailable. Meeting data saved locally and will sync when server is available.\n\nYou can continue working - your data is safe!`);
+        // Don't navigate away, let user continue editing
       }
-
-      // Clear localStorage backup after successful save
-      if (meetingId && meetingId !== 'new') {
-        localStorage.removeItem(`meeting-${meetingId}`);
-      }
-      
-      // Save to localStorage for persistence
-      localStorage.setItem(`meeting-blocks-${meetingId}`, JSON.stringify(blocks));
-      localStorage.setItem(`meeting-tableData-${meetingId}`, JSON.stringify(tableData));
-      
-      console.log('Save completed successfully');
-      alert(`Meeting ${isNewMeeting ? 'created' : 'updated'} successfully!`);
-      navigate('/meeting-notes');
     } catch (error) {
       console.error('Error saving meeting:', error);
-      console.error('Full error:', error);
-      alert(`Failed to save meeting: ${error.response?.data?.message || error.message || 'Unknown error'}`);
+      alert(`Failed to save meeting: ${error.message || 'Unknown error'}`);
     } finally {
       setIsSaving(false);
     }
@@ -494,7 +582,26 @@ const MeetingEditorPage = () => {
     };
 
     if (block.type === 'table') {
-      const table = tableData[block.id] || { rows: 2, cols: 2, data: [['Header 1', 'Header 2'], ['Row 1', 'Row 2']] };
+      const table = tableData[block.id] || { 
+        rows: 2, 
+        cols: 2, 
+        data: [['Header 1', 'Header 2'], ['Row 1', 'Row 2']],
+        colWidths: [120, 120],
+        rowHeights: [32, 32],
+        cellHeights: {}
+      };
+
+      // Ensure table.data exists and is an array
+      if (!table.data || !Array.isArray(table.data)) {
+        table.data = Array(table.rows || 2).fill().map(() => Array(table.cols || 2).fill(''));
+      }
+      // Ensure colWidths and rowHeights exist
+      if (!table.colWidths || table.colWidths.length !== table.cols) {
+        table.colWidths = Array(table.cols).fill(120);
+      }
+      if (!table.rowHeights || table.rowHeights.length !== table.rows) {
+        table.rowHeights = Array(table.rows).fill(32);
+      }
 
       const updateCell = (rowIndex, colIndex, value) => {
         setTableData(prev => {
@@ -509,6 +616,8 @@ const MeetingEditorPage = () => {
           const newTable = { ...prev[block.id] };
           newTable.data.push(Array(newTable.cols).fill(''));
           newTable.rows += 1;
+          const newRowHeights = [...(newTable.rowHeights || Array(newTable.rows - 1).fill(32)), 32];
+          newTable.rowHeights = newRowHeights;
           return { ...prev, [block.id]: newTable };
         });
       };
@@ -518,6 +627,8 @@ const MeetingEditorPage = () => {
           const newTable = { ...prev[block.id] };
           newTable.data = newTable.data.map(row => [...row, '']);
           newTable.cols += 1;
+          const newColWidths = [...(newTable.colWidths || Array(newTable.cols - 1).fill(120)), 120];
+          newTable.colWidths = newColWidths;
           return { ...prev, [block.id]: newTable };
         });
       };
@@ -528,6 +639,8 @@ const MeetingEditorPage = () => {
           const newTable = { ...prev[block.id] };
           newTable.data.pop();
           newTable.rows -= 1;
+          const newRowHeights = (newTable.rowHeights || Array(newTable.rows + 1).fill(32)).slice(0, -1);
+          newTable.rowHeights = newRowHeights;
           return { ...prev, [block.id]: newTable };
         });
       };
@@ -538,95 +651,89 @@ const MeetingEditorPage = () => {
           const newTable = { ...prev[block.id] };
           newTable.data = newTable.data.map(row => row.slice(0, -1));
           newTable.cols -= 1;
+          const newColWidths = (newTable.colWidths || Array(newTable.cols + 1).fill(120)).slice(0, -1);
+          newTable.colWidths = newColWidths;
           return { ...prev, [block.id]: newTable };
         });
       };
 
       return (
-        <div className="flex items-start group relative" style={{ marginRight: '40px', marginBottom: '40px' }}>
+        <div className="flex items-start group relative mb-8 mr-8">
           <div className="flex-1 relative">
             <div className={`border rounded-lg overflow-hidden shadow-sm ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-300 bg-white'}`}>
-              <table className="w-full border-collapse">
+              <table className="border-collapse w-full table-auto">
                 <tbody>
-                  {table.data.map((row, rowIndex) => (
-                    <tr key={rowIndex} className={rowIndex === 0 ? (isDarkMode ? 'bg-gray-700' : 'bg-gray-50') : (isDarkMode ? 'hover:bg-gray-700/50' : 'hover:bg-gray-50/50')}>
-                      {row.map((cell, colIndex) => (
-                        <td key={`${rowIndex}-${colIndex}`} className={`border-r border-b p-0 relative group/cell ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
-                          <input
-                            type="text"
-                            value={cell}
-                            onChange={(e) => updateCell(rowIndex, colIndex, e.target.value)}
-                            placeholder={rowIndex === 0 ? `Column ${colIndex + 1}` : ''}
-                            className={`w-full px-2 py-1 border-none outline-none bg-transparent text-xs leading-tight ${rowIndex === 0 ? (isDarkMode ? 'font-semibold text-gray-200' : 'font-semibold text-gray-800') : (isDarkMode ? 'text-gray-300' : 'text-gray-700')
-                              } ${isDarkMode ? 'focus:bg-blue-900/20 focus:ring-1 focus:ring-blue-700 focus:ring-inset' : 'focus:bg-blue-50/50 focus:ring-1 focus:ring-blue-200 focus:ring-inset'}`}
-                          />
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
+                  {table.data.map((row, rowIndex) => {
+                    const rowHeight = table.cellHeights?.[rowIndex] || {};
+                    return (
+                      <tr key={rowIndex} className={rowIndex === 0 ? (isDarkMode ? 'bg-gray-700' : 'bg-gray-50') : (isDarkMode ? 'hover:bg-gray-700/50' : 'hover:bg-gray-50/50')}>
+                        {row.map((cell, colIndex) => {
+                          const savedHeight = rowHeight[colIndex] || Math.max(32, cell.split('\n').length * 20 + 12);
+                          return (
+                            <td key={`${rowIndex}-${colIndex}`} className={`border-r border-b p-0 align-top ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
+                              <textarea
+                                value={cell}
+                                onChange={(e) => updateCell(rowIndex, colIndex, e.target.value)}
+                                placeholder={rowIndex === 0 ? `Column ${colIndex + 1}` : ''}
+                                rows={Math.max(1, cell.split('\n').length)}
+                                className={`w-full h-full min-h-[32px] border-none outline-none bg-transparent text-sm resize-none overflow-hidden p-2 ${rowIndex === 0 ? (isDarkMode ? 'font-semibold text-gray-200' : 'font-semibold text-gray-800') : (isDarkMode ? 'text-gray-300' : 'text-gray-700')
+                                  } ${isDarkMode ? 'focus:bg-blue-900/20' : 'focus:bg-blue-50/50'}`}
+                                style={{
+                                  height: savedHeight + 'px',
+                                  minHeight: '32px',
+                                  lineHeight: '1.4'
+                                }}
+                                onInput={(e) => {
+                                  e.target.style.height = 'auto';
+                                  const newHeight = Math.max(32, e.target.scrollHeight);
+                                  e.target.style.height = newHeight + 'px';
+                                  // Save cell height
+                                  setTableData(prev => ({
+                                    ...prev,
+                                    [block.id]: {
+                                      ...prev[block.id],
+                                      cellHeights: {
+                                        ...prev[block.id]?.cellHeights,
+                                        [rowIndex]: {
+                                          ...prev[block.id]?.cellHeights?.[rowIndex],
+                                          [colIndex]: newHeight
+                                        }
+                                      }
+                                    }
+                                  }));
+                                }}
+                              />
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
-            <button
-              onClick={() => {
-                setTableData(prev => {
-                  const newTable = { ...prev[block.id] };
-                  newTable.data = newTable.data.map(row => [...row, '']);
-                  newTable.cols += 1;
-                  return { ...prev, [block.id]: newTable };
-                });
-              }}
-              className={`absolute top-1/2 -right-8 transform -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-lg hover:bg-blue-500 hover:text-white hover:border-blue-500 ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'}`}
-              title="Add column"
-            >
-              <Plus className="w-3.5 h-3.5" />
-            </button>
-            {table.cols > 1 && (
-              <button
-                onClick={() => {
-                  setTableData(prev => {
-                    const newTable = { ...prev[block.id] };
-                    newTable.data = newTable.data.map(row => row.slice(0, -1));
-                    newTable.cols -= 1;
-                    return { ...prev, [block.id]: newTable };
-                  });
-                }}
-                className={`absolute top-1/2 -right-16 transform -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-lg hover:bg-red-500 hover:text-white hover:border-red-500 ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'}`}
-                title="Delete column"
-              >
-                <Minus className="w-3.5 h-3.5" />
+            {/* Column controls - Right side */}
+            <div className="absolute top-1/2 -right-6 transform -translate-y-1/2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button onClick={addColumn} className={`w-5 h-5 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`} title="Add column">
+                <Plus className="w-3 h-3" />
               </button>
-            )}
-            <button
-              onClick={() => {
-                setTableData(prev => {
-                  const newTable = { ...prev[block.id] };
-                  newTable.data.push(Array(newTable.cols).fill(''));
-                  newTable.rows += 1;
-                  return { ...prev, [block.id]: newTable };
-                });
-              }}
-              className={`absolute left-1/2 -bottom-8 transform -translate-x-1/2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-lg hover:bg-blue-500 hover:text-white hover:border-blue-500 ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'}`}
-              title="Add row"
-            >
-              <Plus className="w-3.5 h-3.5" />
-            </button>
-            {table.rows > 1 && (
-              <button
-                onClick={() => {
-                  setTableData(prev => {
-                    const newTable = { ...prev[block.id] };
-                    newTable.data.pop();
-                    newTable.rows -= 1;
-                    return { ...prev, [block.id]: newTable };
-                  });
-                }}
-                className={`absolute left-1/2 -bottom-16 transform -translate-x-1/2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-lg hover:bg-red-500 hover:text-white hover:border-red-500 ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'}`}
-                title="Delete row"
-              >
-                <Minus className="w-3.5 h-3.5" />
+              {table.cols > 1 && (
+                <button onClick={deleteColumn} className={`w-5 h-5 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all ${isDarkMode ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-red-500 hover:bg-red-600 text-white'}`} title="Remove column">
+                  <Minus className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+            {/* Row controls - Bottom */}
+            <div className="absolute left-1/2 -bottom-6 transform -translate-x-1/2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button onClick={addRow} className={`w-5 h-5 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`} title="Add row">
+                <Plus className="w-3 h-3" />
               </button>
-            )}
+              {table.rows > 1 && (
+                <button onClick={deleteRow} className={`w-5 h-5 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all ${isDarkMode ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-red-500 hover:bg-red-600 text-white'}`} title="Remove row">
+                  <Minus className="w-3 h-3" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
       );
@@ -956,7 +1063,7 @@ const MeetingEditorPage = () => {
                 </button>
               </div>
               <div className="flex items-center gap-3">
-                {canEdit && !isNewMeeting && (
+                {isOwner && !isNewMeeting && (
                   <button
                     onClick={handleDelete}
                     className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all bg-red-600 hover:bg-red-700 text-white"
@@ -965,23 +1072,45 @@ const MeetingEditorPage = () => {
                     Delete
                   </button>
                 )}
-                {canEdit && (
-                  <button
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 text-white"
-                  >
-                    {isSaving ? (
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    ) : (
-                      <Save className="w-4 h-4" />
+                {isOwner && (
+                  <div className="flex items-center gap-3">
+                    {(saveStatus === 'offline' || serverStatus === 'offline') && (
+                      <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-yellow-600/20 border border-yellow-500/30">
+                        <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+                        <span className="text-yellow-300 text-sm">
+                          {serverStatus === 'offline' ? 'Server offline - Auto-saving locally' : 'Offline - Data saved locally'}
+                        </span>
+                      </div>
                     )}
-                    {isSaving ? 'Saving...' : (isNewMeeting ? 'Create Meeting' : 'Save Meeting')}
-                  </button>
+                    {serverStatus === 'online' && saveStatus === 'saved' && (
+                      <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-green-600/20 border border-green-500/30">
+                        <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                        <span className="text-green-300 text-sm">All changes saved</span>
+                      </div>
+                    )}
+                    {saveStatus === 'saving' && (
+                      <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-blue-600/20 border border-blue-500/30">
+                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                        <span className="text-blue-300 text-sm">Auto-saving...</span>
+                      </div>
+                    )}
+                    <button
+                      onClick={handleSave}
+                      disabled={isSaving}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 text-white"
+                    >
+                      {isSaving ? (
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <Save className="w-4 h-4" />
+                      )}
+                      {isSaving ? 'Saving...' : (isNewMeeting ? 'Create Meeting' : 'Save Meeting')}
+                    </button>
+                  </div>
                 )}
-                {!canEdit && (
+                {!isOwner && (
                   <div className="px-4 py-2 rounded-lg bg-gray-700 text-gray-300 text-sm">
-                    Read Only - You are a participant
+                    {canEdit ? 'Participant - View Only' : 'Read Only - You are a participant'}
                   </div>
                 )}
               </div>
@@ -1002,10 +1131,10 @@ const MeetingEditorPage = () => {
                 <input
                   type="text"
                   value={meeting.title}
-                  onChange={canEdit ? (e) => setMeeting(prev => ({ ...prev, title: e.target.value })) : undefined}
+                  onChange={isOwner ? (e) => setMeeting(prev => ({ ...prev, title: e.target.value })) : undefined}
                   placeholder="Untitled"
-                  readOnly={!canEdit}
-                  className={`w-full px-4 py-3 text-4xl ml-8 rounded-lg transition-colors bg-gray-900 text-white placeholder-gray-400 focus:outline-none ${!canEdit ? 'cursor-not-allowed opacity-75' : ''}`}
+                  readOnly={!isOwner}
+                  className={`w-full px-4 py-3 text-4xl ml-8 rounded-lg transition-colors bg-gray-900 text-white placeholder-gray-400 focus:outline-none ${!isOwner ? 'cursor-not-allowed opacity-75' : ''}`}
                 />
                 <div className="ml-12 mt-2">
                   <span className="text-sm text-gray-400">Created 9/28/2025</span>
@@ -1026,9 +1155,9 @@ const MeetingEditorPage = () => {
                             <input
                               type="date"
                               value={meeting.date}
-                              onChange={canEdit ? (e) => setMeeting(prev => ({ ...prev, date: e.target.value })) : undefined}
-                              readOnly={!canEdit}
-                              className={`px-3 py-2 rounded-lg bg-gray-800 text-white text-sm focus:outline-none ${!canEdit ? 'cursor-not-allowed opacity-75' : ''}`}
+                              onChange={isOwner ? (e) => setMeeting(prev => ({ ...prev, date: e.target.value })) : undefined}
+                              readOnly={!isOwner}
+                              className={`px-3 py-2 rounded-lg bg-gray-800 text-white text-sm focus:outline-none ${!isOwner ? 'cursor-not-allowed opacity-75' : ''}`}
                               style={{ colorScheme: 'dark' }}
                             />
                             <span className="text-sm text-gray-400">
@@ -1044,9 +1173,9 @@ const MeetingEditorPage = () => {
                             <input
                               type="time"
                               value={meeting.time}
-                              onChange={canEdit ? (e) => setMeeting(prev => ({ ...prev, time: e.target.value })) : undefined}
-                              readOnly={!canEdit}
-                              className={`px-3 py-2 rounded-lg bg-gray-800 text-white text-sm focus:outline-none ${!canEdit ? 'cursor-not-allowed opacity-75' : ''}`}
+                              onChange={isOwner ? (e) => setMeeting(prev => ({ ...prev, time: e.target.value })) : undefined}
+                              readOnly={!isOwner}
+                              className={`px-3 py-2 rounded-lg bg-gray-800 text-white text-sm focus:outline-none ${!isOwner ? 'cursor-not-allowed opacity-75' : ''}`}
                               style={{ colorScheme: 'dark' }}
                             />
                             <span className="text-sm text-gray-400">
@@ -1068,7 +1197,8 @@ const MeetingEditorPage = () => {
                             <input
                               type="number"
                               value={meeting.duration}
-                              onChange={(e) => setMeeting(prev => ({ ...prev, duration: e.target.value }))}
+                              onChange={isOwner ? (e) => setMeeting(prev => ({ ...prev, duration: e.target.value })) : undefined}
+                              readOnly={!isOwner}
                               className="px-3 py-2 rounded-lg bg-gray-800 text-white text-sm focus:outline-none w-20"
                               min="5"
                               max="480"
@@ -1087,7 +1217,8 @@ const MeetingEditorPage = () => {
                             </label>
                             <select
                               value={meeting.status}
-                              onChange={(e) => setMeeting(prev => ({ ...prev, status: e.target.value }))}
+                              onChange={isOwner ? (e) => setMeeting(prev => ({ ...prev, status: e.target.value })) : undefined}
+                              disabled={!isOwner}
                               className="px-3 py-2 rounded-lg bg-gray-800 text-white text-sm focus:outline-none flex-1"
                             >
                               <option value="scheduled">Scheduled</option>
@@ -1104,7 +1235,8 @@ const MeetingEditorPage = () => {
                             </label>
                             <select
                               value={meeting.type}
-                              onChange={(e) => setMeeting(prev => ({ ...prev, type: e.target.value }))}
+                              onChange={isOwner ? (e) => setMeeting(prev => ({ ...prev, type: e.target.value })) : undefined}
+                              disabled={!isOwner}
                               className="px-3 py-2 rounded-lg bg-gray-800 text-white text-sm focus:outline-none flex-1"
                             >
                               <option value="Standup">Standup</option>
@@ -1126,7 +1258,8 @@ const MeetingEditorPage = () => {
                             <input
                               type="text"
                               value={meeting.location || ''}
-                              onChange={(e) => setMeeting(prev => ({ ...prev, location: e.target.value }))}
+                              onChange={isOwner ? (e) => setMeeting(prev => ({ ...prev, location: e.target.value })) : undefined}
+                              readOnly={!isOwner}
                               placeholder="Conference Room A"
                               className="px-3 py-2 rounded-lg bg-gray-800 text-white text-sm focus:outline-none flex-1"
                             />
@@ -1134,119 +1267,156 @@ const MeetingEditorPage = () => {
                         </div>
                       </div>
                     </div>
-                    <div className="flex-1">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 relative">
-                          <label className="text-sm font-medium text-gray-300">
-                            <Users className="w-4 h-4 inline mr-1" />
-                            Participants
-                          </label>
-                          {canEdit && (
+                    {isOwner && (
+                      <div className="flex-1">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 relative">
+                            <label className="text-sm font-medium text-gray-300">
+                              <Users className="w-4 h-4 inline mr-1" />
+                              Participants
+                            </label>
                             <button
                               onClick={() => setShowUserDropdown(!showUserDropdown)}
                               className="p-1 rounded bg-blue-600 hover:bg-blue-700 text-white"
                             >
                               <Plus className="w-4 h-4" />
                             </button>
-                          )}
-                          {showUserDropdown && (
-                            <div className="absolute right-0 top-8 w-72 max-h-80 overflow-hidden rounded-lg shadow-xl border z-50 bg-gray-800 border-gray-700">
-                              <div className="p-3 border-b border-gray-700">
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2 text-sm font-medium text-gray-300">
-                                    <Users className="w-4 h-4" />
-                                    Select Participants
+                            {showUserDropdown && (
+                              <div className="absolute right-0 top-8 w-72 max-h-80 overflow-hidden rounded-lg shadow-xl border z-50 bg-gray-800 border-gray-700">
+                                <div className="p-3 border-b border-gray-700">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 text-sm font-medium text-gray-300">
+                                      <Users className="w-4 h-4" />
+                                      Select Participants
+                                    </div>
+                                    <button
+                                      onClick={() => setShowUserDropdown(false)}
+                                      className="p-1 rounded hover:bg-gray-700 transition-colors text-gray-400 hover:text-gray-200"
+                                      title="Close"
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </button>
                                   </div>
-                                  <button
-                                    onClick={() => setShowUserDropdown(false)}
-                                    className="p-1 rounded hover:bg-gray-700 transition-colors text-gray-400 hover:text-gray-200"
-                                    title="Close"
-                                  >
-                                    <X className="w-4 h-4" />
-                                  </button>
+                                  <div className="text-xs text-gray-400 mt-1">
+                                    {meeting.attendees.length} selected
+                                  </div>
                                 </div>
-                                <div className="text-xs text-gray-400 mt-1">
-                                  {meeting.attendees.length} selected
+                                <div className="max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
+                                  <div className="p-2 space-y-1">
+                                    {users.map((user) => {
+                                      const isSelected = meeting.attendees.includes(user.name);
+                                      return (
+                                        <div
+                                          key={user.id}
+                                          onClick={() => {
+                                            if (isSelected) {
+                                              setMeeting(prev => ({
+                                                ...prev,
+                                                attendees: prev.attendees.filter(a => a !== user.name)
+                                              }));
+                                            } else {
+                                              setMeeting(prev => ({
+                                                ...prev,
+                                                attendees: [...prev.attendees, user.name]
+                                              }));
+                                            }
+                                          }}
+                                          className={`w-full flex items-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 ${isSelected
+                                            ? 'bg-blue-600/20 border border-blue-500/30 text-blue-300 shadow-sm'
+                                            : 'hover:bg-gray-700 text-gray-300 hover:shadow-sm'
+                                            }`}
+                                        >
+                                          <div className="mr-3">
+                                            {isSelected ? (
+                                              <CheckCircle className="w-5 h-5 text-blue-400" />
+                                            ) : (
+                                              <Circle className="w-5 h-5 text-gray-500" />
+                                            )}
+                                          </div>
+                                          <div className="flex items-center flex-1">
+                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-medium mr-3">
+                                              {user.name.charAt(0).toUpperCase()}
+                                            </div>
+                                            <div className="flex-1">
+                                              <div className="font-medium text-sm">{user.name}</div>
+                                              <div className="text-xs text-gray-400 flex items-center gap-1">
+                                                <Mail className="w-3 h-3" />
+                                                {user.email}
+                                              </div>
+                                              <div className="text-xs text-gray-500 mt-0.5">
+                                                <span className={`px-1.5 py-0.5 rounded text-xs ${
+                                                  user.role === 'manager' ? 'bg-purple-900/30 text-purple-300' :
+                                                  user.role === 'admin' ? 'bg-red-900/30 text-red-300' :
+                                                  'bg-gray-700/50 text-gray-400'
+                                                }`}>
+                                                  {user.role}
+                                                </span>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                                <div className="p-3 border-t border-gray-700 bg-gray-800/50">
+                                  <div className="text-xs text-gray-400">
+                                    Click to select/deselect participants
+                                  </div>
                                 </div>
                               </div>
-                              <div className="max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
-                                <div className="p-2 space-y-1">
-                                  {users.map((user) => {
-                                    const isSelected = meeting.attendees.includes(user.name);
-                                    return (
-                                      <div
-                                        key={user.id}
-                                        onClick={() => {
-                                          if (isSelected) {
-                                            setMeeting(prev => ({
-                                              ...prev,
-                                              attendees: prev.attendees.filter(a => a !== user.name)
-                                            }));
-                                          } else {
-                                            setMeeting(prev => ({
-                                              ...prev,
-                                              attendees: [...prev.attendees, user.name]
-                                            }));
-                                          }
-                                        }}
-                                        className={`w-full flex items-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 ${isSelected
-                                          ? 'bg-blue-600/20 border border-blue-500/30 text-blue-300 shadow-sm'
-                                          : 'hover:bg-gray-700 text-gray-300 hover:shadow-sm'
-                                          }`}
-                                      >
-                                        <div className="mr-3">
-                                          {isSelected ? (
-                                            <CheckCircle className="w-5 h-5 text-blue-400" />
-                                          ) : (
-                                            <Circle className="w-5 h-5 text-gray-500" />
-                                          )}
+                            )}
+                          </div>
+                          <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700 mt-2 max-h-48 overflow-y-auto">
+                            {meeting.attendees.length > 0 ? (
+                              <div className="space-y-2">
+                                {meeting.attendees.map((attendeeName, index) => {
+                                  const user = users.find(u => u.name === attendeeName);
+                                  return (
+                                    <div key={index} className="flex items-center justify-between p-2 bg-gray-700/50 rounded-lg">
+                                      <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-medium">
+                                          {attendeeName.charAt(0).toUpperCase()}
                                         </div>
-                                        <div className="flex items-center flex-1">
-                                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-medium mr-3">
-                                            {user.name.charAt(0).toUpperCase()}
-                                          </div>
-                                          <div className="flex-1">
-                                            <div className="font-medium text-sm">{user.name}</div>
-                                            <div className="text-xs text-gray-400 flex items-center gap-1">
+                                        <div>
+                                          <div className="font-medium text-sm text-gray-200">{attendeeName}</div>
+                                          {user && (
+                                            <div className="flex items-center gap-2 text-xs text-gray-400">
                                               <Mail className="w-3 h-3" />
                                               {user.email}
-                                            </div>
-                                            <div className="text-xs text-gray-500 mt-0.5">
                                               <span className={`px-1.5 py-0.5 rounded text-xs ${
                                                 user.role === 'manager' ? 'bg-purple-900/30 text-purple-300' :
                                                 user.role === 'admin' ? 'bg-red-900/30 text-red-300' :
-                                                'bg-gray-700/50 text-gray-400'
+                                                'bg-gray-600/50 text-gray-300'
                                               }`}>
                                                 {user.role}
                                               </span>
                                             </div>
-                                          </div>
+                                          )}
                                         </div>
                                       </div>
-                                    );
-                                  })}
-                                </div>
+                                      <button 
+                                        onClick={() => removeAttendee(attendeeName)} 
+                                        className="p-1 rounded hover:bg-red-600/20 text-gray-400 hover:text-red-400 transition-colors"
+                                        title="Remove participant"
+                                      >
+                                        <X className="w-4 h-4" />
+                                      </button>
+                                    </div>
+                                  );
+                                })}
                               </div>
-                              <div className="p-3 border-t border-gray-700 bg-gray-800/50">
-                                <div className="text-xs text-gray-400">
-                                  Click to select/deselect participants
-                                </div>
+                            ) : (
+                              <div className="text-center py-4 text-gray-400">
+                                <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                                <p className="text-sm">No participants added yet</p>
+                                <p className="text-xs mt-1">Click the + button to add participants</p>
                               </div>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex flex-wrap gap-2 mb-2">
-                          {meeting.attendees.map((attendee, index) => (
-                            <span key={index} className="px-2 py-1 bg-gray-800 text-gray-300 rounded text-sm flex items-center gap-1">
-                              {attendee}
-                              <button onClick={() => removeAttendee(attendee)} className="text-gray-500 hover:text-red-400">
-                                <X className="w-3 h-3" />
-                              </button>
-                            </span>
-                          ))}
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
                   </div>
 
                   <hr className="border-gray-700 my-2" />
@@ -1441,7 +1611,14 @@ const MeetingEditorPage = () => {
                                       setBlocks(newBlocks);
                                       setTableData(prev => ({
                                         ...prev,
-                                        [tableId]: { rows: 2, cols: 2, data: [['Header 1', 'Header 2'], ['Row 1', 'Row 2']] }
+                                        [tableId]: { 
+                                          rows: 2, 
+                                          cols: 2, 
+                                          data: [['Header 1', 'Header 2'], ['Row 1', 'Row 2']],
+                                          colWidths: [120, 120],
+                                          rowHeights: [32, 32],
+                                          cellHeights: {}
+                                        }
                                       }));
                                       setShowBlockMenu(null);
                                     }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
