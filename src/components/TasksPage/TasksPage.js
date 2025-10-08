@@ -72,7 +72,7 @@ const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'P
     }
 
     try {
-      const url = `http://localhost:5000/api/projects/${projectId}/data`;
+      const url = `http://localhost:9000/api/projects/${projectId}/data`;
       console.log('Making request to project-specific endpoint:', url);
 
       const response = await fetch(url, {
@@ -158,8 +158,8 @@ const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'P
       // Determine if we're creating a new task or updating an existing one
       const isUpdate = taskData.id;
       const url = isUpdate
-        ? `http://localhost:5000/api/projects/${projectId}/tasks/${taskData.id}`
-        : `http://localhost:5000/api/projects/${projectId}/tasks`;
+        ? `http://localhost:9000/api/projects/${projectId}/tasks/${taskData.id}`
+        : `http://localhost:9000/api/projects/${projectId}/tasks`;
 
       console.log(`Making ${isUpdate ? 'PUT' : 'POST'} request to:`, url);
 
@@ -230,7 +230,7 @@ const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'P
         return null;
       }
 
-      const response = await fetch(`http://localhost:5000/api/tasks/${taskId}`, {
+      const response = await fetch(`http://localhost:9000/api/tasks/${taskId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -271,7 +271,7 @@ const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'P
         throw new Error('Project ID is required for task operations');
       }
 
-      const url = `http://localhost:5000/api/projects/${projectId}/tasks/${taskId}`;
+      const url = `http://localhost:9000/api/projects/${projectId}/tasks/${taskId}`;
 
       const response = await fetch(url, {
         method: 'DELETE',
@@ -330,7 +330,7 @@ const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'P
         throw new Error('Project ID is required for task operations');
       }
 
-      const url = `http://localhost:5000/api/projects/${projectId}/tasks/${id}`;
+      const url = `http://localhost:9000/api/projects/${projectId}/tasks/${id}`;
 
       const response = await fetch(url, {
         method: 'PUT',
@@ -410,7 +410,7 @@ const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'P
         throw new Error('Project ID is required to add tasks');
       }
 
-      const url = `http://localhost:5000/api/projects/${projectId}/tasks`;
+      const url = `http://localhost:9000/api/projects/${projectId}/tasks`;
 
       console.log('Making request to:', url);
 
@@ -507,7 +507,7 @@ const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'P
 
       console.log(`Adding comment to task ${taskId} in project ${projectId}`);
 
-      const response = await fetch(`http://localhost:5000/api/projects/${projectId}/tasks/${taskId}/comments`, {
+      const response = await fetch(`http://localhost:9000/api/projects/${projectId}/tasks/${taskId}/comments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

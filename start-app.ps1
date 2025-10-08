@@ -33,7 +33,7 @@ if ($mongoProcess) {
 Write-Host ""
 Write-Host "Starting the application (Frontend + Backend)..." -ForegroundColor Green
 Write-Host "Frontend will be available at: http://localhost:3000" -ForegroundColor Cyan
-Write-Host "Backend API will be available at: http://localhost:5000/api" -ForegroundColor Cyan
+Write-Host "Backend API will be available at: http://localhost:9000/api" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Press Ctrl+C to stop the application" -ForegroundColor Yellow
 Write-Host ""

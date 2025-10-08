@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
+import { useAppContext } from '../../context/AppContext'; // Added import for AppContext
 import { Plus, Search, Calendar, Clock, Users, FileText, Filter, Edit, CheckCircle, Circle, TrendingUp, BarChart2, Tag, Clock as ClockIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getMeetings, deleteMeeting, completeMeetingActionItem, addMeetingActionItem, updateMeeting } from '../../services/api';
@@ -7,6 +8,7 @@ import ServerStatus from '../ServerStatus/ServerStatus';
 
 const MeetingNotesPage = () => {
   const { isDarkMode } = useTheme();
+  const { user, isManager } = useAppContext(); // Added user and isManager from AppContext
   const navigate = useNavigate();
   const [meetings, setMeetings] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -36,7 +38,7 @@ const MeetingNotesPage = () => {
       console.log('Attempting to load meetings from API...');
       const data = await getMeetings();
       console.log('Received meetings data:', data);
-      
+
       // Transform data to match our component structure
       const transformedMeetings = data.map(meeting => ({
         id: meeting._id,
@@ -53,7 +55,7 @@ const MeetingNotesPage = () => {
         location: meeting.location || '',
         createdAt: meeting.createdAt
       }));
-      
+
       console.log('Transformed meetings:', transformedMeetings);
       setMeetings(transformedMeetings);
     } catch (error) {
@@ -184,9 +186,9 @@ const MeetingNotesPage = () => {
     try {
       const meetingData = { [field]: value };
       await updateMeeting(meetingId, meetingData);
-      
+
       // Update local state
-      setMeetings(meetings.map(m => 
+      setMeetings(meetings.map(m =>
         m.id === meetingId ? { ...m, [field]: value } : m
       ));
     } catch (error) {
@@ -207,7 +209,7 @@ const MeetingNotesPage = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6 flex-1">
               <div className={`w-3 h-3 rounded-full flex-shrink-0 ${getStatusColor(meeting.status).includes('green') ? 'bg-emerald-500' : getStatusColor(meeting.status).includes('blue') ? 'bg-blue-500' : getStatusColor(meeting.status).includes('yellow') ? 'bg-amber-500' : 'bg-gray-500'}`}></div>
-              <div 
+              <div
                 className="flex-1 min-w-0 cursor-pointer"
                 onClick={() => navigate(`/meeting-editor/${meeting.id}`)}
               >
@@ -303,13 +305,16 @@ const MeetingNotesPage = () => {
               Manage your meeting notes and schedules
             </p>
           </div>
-          <button
-            onClick={() => navigate('/meeting-editor/new')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
-          >
-            <Plus className="w-4 h-4" />
-            Create Meeting
-          </button>
+          {/* Conditionally show Create Meeting button only for managers and admins */}
+          {isManager() && (
+            <button
+              onClick={() => navigate('/meeting-editor/new')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
+            >
+              <Plus className="w-4 h-4" />
+              Create Meeting
+            </button>
+          )}
         </div>
 
         {/* Search and Filters */}
@@ -411,7 +416,8 @@ const MeetingNotesPage = () => {
                 : 'Create your first meeting to get started'
               }
             </p>
-            {!searchTerm && filterStatus === 'all' && filterType === 'all' && (
+            {/* Conditionally show Create Meeting button in empty state only for managers and admins */}
+            {!searchTerm && filterStatus === 'all' && filterType === 'all' && isManager() && (
               <button
                 onClick={() => navigate('/meeting-editor/new')}
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}

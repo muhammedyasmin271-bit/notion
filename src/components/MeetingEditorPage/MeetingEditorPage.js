@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { useParams, useNavigate } from 'react-router-dom';
 import './MeetingEditorPage.css';
-import { Save, ArrowLeft, Calendar, Clock, Users, Plus, X, CheckCircle, Circle, Sparkles, GripVertical, Type, Hash, List, Quote, Code, Trash2, Copy, ArrowUp, ArrowDown, ArrowRight, CheckSquare, Table, Minus, AlertCircle, Star, Tag, MapPin, Mail, ListOrdered, FileText, Lightbulb, Info, AlertTriangle, Target, BarChart3 } from 'lucide-react';
+import { Save, ArrowLeft, Calendar, Clock, Users, Plus, X, CheckCircle, Circle, Sparkles, GripVertical, Type, Hash, List, Quote, Code, Trash2, Copy, ArrowUp, ArrowDown, ArrowRight, CheckSquare, Table, Minus, AlertCircle, Star, Tag, MapPin, Mail, ListOrdered, FileText, Lightbulb, Info, AlertTriangle, Target, BarChart3, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, Palette, Link, Image, Video, FileIcon, Bookmark, Flag, Eye, EyeOff } from 'lucide-react';
 import { getMeetingById, createMeeting, updateMeeting, addMeetingActionItem, getUsers, deleteMeeting } from '../../services/api';
 
 
@@ -366,7 +366,9 @@ const MeetingEditorPage = () => {
         
         console.log('Save completed successfully');
         alert(`Meeting ${isNewMeeting ? 'created' : 'updated'} successfully!`);
-        navigate('/meeting-notes');
+        
+        // Navigate to Reports page to display the meeting report
+        navigate('/reports');
       } catch (serverError) {
         console.error('Server save failed, data saved locally:', serverError);
         setSaveStatus('offline');
@@ -509,26 +511,39 @@ const MeetingEditorPage = () => {
           setAiInputBlock(block.id);
           setAiQuery('');
         }
-      } else if (e.key === 'Backspace' && block.content === '' && index > 0) {
+      } else if (e.key === 'Backspace' && index > 0 && e.target.selectionStart === 0) {
         e.preventDefault();
-        const newBlocks = blocks.filter((_, i) => i !== index);
+        const prevBlock = blocks[index - 1];
+        const currentContent = block.content;
+        const newBlocks = [...blocks];
+        
+        // Merge content with previous block if both are text
+        if (prevBlock.type === 'text' && block.type === 'text') {
+          newBlocks[index - 1].content += currentContent;
+        }
+        
+        // Remove current block
+        newBlocks.splice(index, 1);
         setBlocks(newBlocks);
-        // Focus previous block
+        
+        // Focus previous block at the end
         setTimeout(() => {
-          const prevBlock = newBlocks[index - 1];
           if (prevBlock && inputRefs.current[prevBlock.id]) {
-            inputRefs.current[prevBlock.id].focus();
+            const input = inputRefs.current[prevBlock.id];
+            input.focus();
+            const endPos = prevBlock.content.length;
+            input.setSelectionRange(endPos, endPos);
           }
         }, 0);
       } else if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
         e.preventDefault();
         if (blocks.length > 1) {
+          const targetIndex = index > 0 ? index - 1 : 0;
+          const targetBlock = blocks[targetIndex];
           const newBlocks = blocks.filter((_, i) => i !== index);
           setBlocks(newBlocks);
-          // Focus next or previous block
+          // Focus previous block
           setTimeout(() => {
-            const targetIndex = index < newBlocks.length ? index : index - 1;
-            const targetBlock = newBlocks[targetIndex];
             if (targetBlock && inputRefs.current[targetBlock.id]) {
               inputRefs.current[targetBlock.id].focus();
             }
@@ -537,14 +552,14 @@ const MeetingEditorPage = () => {
       } else if (e.key === 'Delete' && e.shiftKey) {
         e.preventDefault();
         if (blocks.length > 1) {
+          const targetIndex = index < blocks.length - 1 ? index : index - 1;
+          const targetBlock = blocks[targetIndex === index ? index + 1 : targetIndex];
           const newBlocks = blocks.filter((_, i) => i !== index);
           setBlocks(newBlocks);
           // Focus next or previous block
           setTimeout(() => {
-            const targetIndex = index < newBlocks.length ? index : index - 1;
-            const targetBlock = newBlocks[targetIndex];
             if (targetBlock && inputRefs.current[targetBlock.id]) {
-              targetBlock.focus();
+              inputRefs.current[targetBlock.id].focus();
             }
           }, 0);
         }
@@ -991,6 +1006,192 @@ const MeetingEditorPage = () => {
 
 
 
+    // Handle new block types
+    if (block.type === 'highlight') {
+      const highlightColors = {
+        yellow: { bg: 'bg-yellow-900/30', border: 'border-yellow-500/50', text: 'text-yellow-200' },
+        green: { bg: 'bg-green-900/30', border: 'border-green-500/50', text: 'text-green-200' },
+        blue: { bg: 'bg-blue-900/30', border: 'border-blue-500/50', text: 'text-blue-200' },
+        red: { bg: 'bg-red-900/30', border: 'border-red-500/50', text: 'text-red-200' },
+        purple: { bg: 'bg-purple-900/30', border: 'border-purple-500/50', text: 'text-purple-200' }
+      };
+      const highlight = highlightColors[block.highlightColor || 'yellow'];
+
+      return (
+        <div className={`${highlight.bg} border ${highlight.border} rounded-lg p-3`}>
+          <div className="flex items-center gap-2 mb-2">
+            <Palette className="w-4 h-4 text-yellow-400" />
+            <select
+              value={block.highlightColor || 'yellow'}
+              onChange={(e) => {
+                const newBlocks = [...blocks];
+                newBlocks[index].highlightColor = e.target.value;
+                setBlocks(newBlocks);
+              }}
+              className="bg-transparent text-white focus:outline-none text-sm"
+            >
+              <option value="yellow" className="bg-gray-800">Yellow</option>
+              <option value="green" className="bg-gray-800">Green</option>
+              <option value="blue" className="bg-gray-800">Blue</option>
+              <option value="red" className="bg-gray-800">Red</option>
+              <option value="purple" className="bg-gray-800">Purple</option>
+            </select>
+          </div>
+          <input
+            ref={(el) => inputRefs.current[block.id] = el}
+            type="text"
+            value={block.content}
+            onChange={(e) => updateBlockContent(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Highlighted text..."
+            className={`w-full bg-transparent ${highlight.text} placeholder-gray-400 focus:outline-none font-medium`}
+          />
+        </div>
+      );
+    }
+
+    if (block.type === 'link') {
+      return (
+        <div className="flex items-center gap-2 p-2 bg-blue-900/20 border border-blue-500/30 rounded">
+          <Link className="w-4 h-4 text-blue-400" />
+          <input
+            ref={(el) => inputRefs.current[block.id] = el}
+            type="text"
+            value={block.content}
+            onChange={(e) => updateBlockContent(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Link text..."
+            className="flex-1 bg-transparent text-blue-300 placeholder-gray-400 focus:outline-none"
+          />
+          <input
+            type="url"
+            value={block.url || ''}
+            onChange={(e) => {
+              const newBlocks = [...blocks];
+              newBlocks[index].url = e.target.value;
+              setBlocks(newBlocks);
+            }}
+            placeholder="https://..."
+            className="flex-1 bg-transparent text-gray-300 placeholder-gray-500 focus:outline-none text-sm"
+          />
+        </div>
+      );
+    }
+
+    if (block.type === 'tag') {
+      const tagColors = {
+        blue: { bg: 'bg-blue-900/30', border: 'border-blue-500/50', text: 'text-blue-300' },
+        green: { bg: 'bg-green-900/30', border: 'border-green-500/50', text: 'text-green-300' },
+        red: { bg: 'bg-red-900/30', border: 'border-red-500/50', text: 'text-red-300' },
+        yellow: { bg: 'bg-yellow-900/30', border: 'border-yellow-500/50', text: 'text-yellow-300' },
+        purple: { bg: 'bg-purple-900/30', border: 'border-purple-500/50', text: 'text-purple-300' }
+      };
+      const tag = tagColors[block.tagColor || 'blue'];
+
+      return (
+        <div className="flex items-center gap-2">
+          <div className={`inline-flex items-center gap-1 px-2 py-1 ${tag.bg} border ${tag.border} rounded-full`}>
+            <Tag className={`w-3 h-3 ${tag.text}`} />
+            <input
+              ref={(el) => inputRefs.current[block.id] = el}
+              type="text"
+              value={block.content}
+              onChange={(e) => updateBlockContent(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Tag name..."
+              className={`bg-transparent ${tag.text} placeholder-gray-400 focus:outline-none text-sm min-w-[60px]`}
+            />
+          </div>
+          <select
+            value={block.tagColor || 'blue'}
+            onChange={(e) => {
+              const newBlocks = [...blocks];
+              newBlocks[index].tagColor = e.target.value;
+              setBlocks(newBlocks);
+            }}
+            className="bg-transparent text-gray-400 focus:outline-none text-xs"
+          >
+            <option value="blue" className="bg-gray-800">Blue</option>
+            <option value="green" className="bg-gray-800">Green</option>
+            <option value="red" className="bg-gray-800">Red</option>
+            <option value="yellow" className="bg-gray-800">Yellow</option>
+            <option value="purple" className="bg-gray-800">Purple</option>
+          </select>
+        </div>
+      );
+    }
+
+    if (block.type === 'progress') {
+      return (
+        <div className="p-3 bg-gray-800/30 border border-gray-600 rounded">
+          <div className="flex items-center gap-2 mb-2">
+            <BarChart3 className="w-4 h-4 text-orange-400" />
+            <input
+              ref={(el) => inputRefs.current[block.id] = el}
+              type="text"
+              value={block.content}
+              onChange={(e) => updateBlockContent(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Progress description..."
+              className="flex-1 bg-transparent text-white placeholder-gray-400 focus:outline-none"
+            />
+            <span className="text-sm text-gray-400">{block.progress || 50}%</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex-1 bg-gray-700 rounded-full h-2">
+              <div 
+                className="bg-orange-400 h-2 rounded-full transition-all duration-300" 
+                style={{ width: `${block.progress || 50}%` }}
+              ></div>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={block.progress || 50}
+              onChange={(e) => {
+                const newBlocks = [...blocks];
+                newBlocks[index].progress = parseInt(e.target.value);
+                setBlocks(newBlocks);
+              }}
+              className="w-20"
+            />
+          </div>
+        </div>
+      );
+    }
+
+    if (block.type === 'hidden') {
+      return (
+        <div className={`p-3 border rounded ${block.visible ? 'bg-gray-800/30 border-gray-600' : 'bg-gray-900/50 border-gray-700 opacity-50'}`}>
+          <div className="flex items-center gap-2 mb-2">
+            <button
+              onClick={() => {
+                const newBlocks = [...blocks];
+                newBlocks[index].visible = !block.visible;
+                setBlocks(newBlocks);
+              }}
+              className="text-gray-400 hover:text-white transition-colors"
+            >
+              {block.visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+            </button>
+            <span className="text-xs text-gray-500">{block.visible ? 'Visible' : 'Hidden'}</span>
+          </div>
+          {block.visible && (
+            <input
+              ref={(el) => inputRefs.current[block.id] = el}
+              type="text"
+              value={block.content}
+              onChange={(e) => updateBlockContent(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Hidden content..."
+              className="w-full bg-transparent text-white placeholder-gray-400 focus:outline-none"
+            />
+          )}
+        </div>
+      );
+    }
+
     return (
       <div className="relative">
         <input
@@ -1021,14 +1222,21 @@ const MeetingEditorPage = () => {
       e.preventDefault();
       try {
         const currentBlockIndex = blocks.findIndex(b => b.id === aiInputBlock);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        const content = `AI Response: ${aiQuery}\n\nHere's a helpful response based on your query about "${aiQuery}". This is a simulated AI response.`;
+        
+        // Get context from current meeting content
+        const context = `Meeting: ${meeting.title}\nType: ${meeting.type}\nAttendees: ${meeting.attendees.join(', ')}\nCurrent notes: ${blocks.map(b => b.content).join(' ').slice(0, 500)}`;
+        
+        const { askAI } = await import('../../services/aiService');
+        const aiResponse = await askAI(aiQuery, context);
 
-        const lines = content.split('\n').filter(line => line.trim());
-        const newBlocks = lines.map((line, idx) => {
-          const l = line.trim();
-          return { id: `ai-block-${Date.now()}-${idx}`, type: 'text', content: l };
-        });
+        // Split response into paragraphs and create blocks
+        const paragraphs = aiResponse.split('\n').filter(p => p.trim());
+        const newBlocks = paragraphs.map((paragraph, idx) => ({
+          id: `ai-block-${Date.now()}-${idx}`,
+          type: 'text',
+          content: paragraph.trim(),
+          style: {}
+        }));
 
         if (newBlocks.length > 0) {
           const updatedBlocks = [...blocks];
@@ -1038,8 +1246,21 @@ const MeetingEditorPage = () => {
 
         setAiInputBlock(null);
         setAiQuery('');
-      } catch (e) {
-        console.error('AI assist failed:', e);
+      } catch (error) {
+        console.error('AI assist failed:', error);
+        // Add error message as a block
+        const errorBlock = {
+          id: `error-block-${Date.now()}`,
+          type: 'text',
+          content: 'AI is currently unavailable. Please try again later.',
+          style: {}
+        };
+        const currentBlockIndex = blocks.findIndex(b => b.id === aiInputBlock);
+        const updatedBlocks = [...blocks];
+        updatedBlocks.splice(currentBlockIndex + 1, 0, errorBlock);
+        setBlocks(updatedBlocks);
+        setAiInputBlock(null);
+        setAiQuery('');
       }
     } else if (e.key === 'Escape') {
       e.preventDefault();
@@ -1104,7 +1325,7 @@ const MeetingEditorPage = () => {
                       ) : (
                         <Save className="w-4 h-4" />
                       )}
-                      {isSaving ? 'Saving...' : (isNewMeeting ? 'Create Meeting' : 'Save Meeting')}
+                      {isSaving ? 'Saving...' : (isNewMeeting ? 'Create & View Report' : 'Save & View Report')}
                     </button>
                   </div>
                 )}
@@ -1642,6 +1863,42 @@ const MeetingEditorPage = () => {
                                       <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'callout', calloutType: 'tip', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
                                         <Lightbulb className="w-4 h-4 text-purple-400" /> Tip Callout
                                       </button>
+
+                                      <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-2">FORMATTING</div>
+                                      <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'highlight', content: '', highlightColor: 'yellow', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                        <Palette className="w-4 h-4 text-yellow-400" /> Highlight
+                                      </button>
+                                      <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'link', content: '', url: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                        <Link className="w-4 h-4 text-blue-400" /> Link
+                                      </button>
+                                      <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'tag', content: '', tagColor: 'blue', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                        <Tag className="w-4 h-4 text-blue-400" /> Tag
+                                      </button>
+                                      <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'flag', content: '', flagColor: 'red', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                        <Flag className="w-4 h-4 text-red-400" /> Flag
+                                      </button>
+
+                                      <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-2">MEDIA</div>
+                                      <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'image', content: '', url: '', alt: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                        <Image className="w-4 h-4 text-green-400" /> Image
+                                      </button>
+                                      <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'video', content: '', url: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                        <Video className="w-4 h-4 text-red-400" /> Video
+                                      </button>
+                                      <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'file', content: '', fileName: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                        <FileIcon className="w-4 h-4 text-gray-400" /> File
+                                      </button>
+
+                                      <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-2">SPECIAL</div>
+                                      <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'progress', content: '', progress: 50, style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                        <BarChart3 className="w-4 h-4 text-orange-400" /> Progress
+                                      </button>
+                                      <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'location', content: '', address: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                        <MapPin className="w-4 h-4 text-pink-400" /> Location
+                                      </button>
+                                      <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'hidden', content: '', visible: false, style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                        <EyeOff className="w-4 h-4 text-gray-400" /> Hidden
+                                      </button>
                                     </div>
                                   </div>
                                   <div className="p-3 border-t border-gray-700 bg-gray-800/50">
@@ -1684,7 +1941,19 @@ const MeetingEditorPage = () => {
                                       <Copy className="w-4 h-4" /> Duplicate
                                     </button>
                                     {blocks.length > 1 && (
-                                      <button onClick={() => { const newBlocks = blocks.filter((_, i) => i !== index); setBlocks(newBlocks); setShowLineMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-red-400">
+                                      <button onClick={() => { 
+                                        const targetIndex = index > 0 ? index - 1 : (blocks.length > 1 ? 1 : 0);
+                                        const targetBlock = blocks[targetIndex];
+                                        const newBlocks = blocks.filter((_, i) => i !== index); 
+                                        setBlocks(newBlocks); 
+                                        setShowLineMenu(null);
+                                        // Focus previous block
+                                        setTimeout(() => {
+                                          if (targetBlock && inputRefs.current[targetBlock.id]) {
+                                            inputRefs.current[targetBlock.id].focus();
+                                          }
+                                        }, 0);
+                                      }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-red-400">
                                         <Trash2 className="w-4 h-4" /> Delete
                                       </button>
                                     )}
@@ -1704,7 +1973,7 @@ const MeetingEditorPage = () => {
                                   value={aiQuery}
                                   onChange={(e) => setAiQuery(e.target.value)}
                                   onKeyDown={handleAiQuerySubmit}
-                                  placeholder="Ask AI anything... (Press Enter to submit)"
+                                  placeholder="Ask me anything about this meeting... (Press Enter)"
                                   className="flex-1 outline-none bg-transparent text-sm font-medium text-purple-200 placeholder-purple-400"
                                   autoFocus
                                 />

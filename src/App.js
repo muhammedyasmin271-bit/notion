@@ -30,12 +30,14 @@ import WelcomePage from './components/WelcomePage/WelcomePage';
 import ManagerRoute from './components/ManagerRoute/ManagerRoute';
 import AdminRoute from './components/AdminRoute/AdminRoute';
 import SavedNotesPage from './components/SavedNotesPage/SavedNotesPage';
-import ReportsPage from './components/ReportsPage/ReportsPage';
+
 import TasksPage from './components/TasksPage/TasksPage';
 import WorkerReports from './components/WorkerReports/WorkerReports';
 import AIAssistant from './components/AIAssistant/AIAssistant';
 import NavigationPanel from './components/NavigationPanel/NavigationPanel';
 import MeetingTemplatesPage from './components/MeetingTemplatesPage/MeetingTemplatesPage';
+import ReportsPage from './components/ReportsPage/ReportsPage';
+import SubmitReportPage from './components/SubmitReportPage/SubmitReportPage';
 
 import './App.css';
 
@@ -292,13 +294,7 @@ const AppContent = () => {
           </ProtectedRoute>
         } />
 
-        <Route path="/reports" element={
-          <ProtectedRoute>
-            <Layout>
-              <ReportsPage />
-            </Layout>
-          </ProtectedRoute>
-        } />
+
 
         <Route path="/projects/:projectId/tasks" element={
           <ProtectedRoute>
@@ -312,6 +308,22 @@ const AppContent = () => {
           <ProtectedRoute>
             <Layout>
               <WorkerReports />
+            </Layout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/reports" element={
+          <ProtectedRoute>
+            <Layout>
+              <ReportsPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/submit-report" element={
+          <ProtectedRoute>
+            <Layout>
+              <SubmitReportPage />
             </Layout>
           </ProtectedRoute>
         } />

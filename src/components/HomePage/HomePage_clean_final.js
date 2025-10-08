@@ -472,25 +472,25 @@ const HomePage = () => {
         if (!token) return;
 
         // Fetch projects
-        const projectsResponse = await fetch('http://localhost:5000/api/projects', {
+        const projectsResponse = await fetch('http://localhost:9000/api/projects', {
           headers: { 'x-auth-token': token }
         });
         const projects = projectsResponse.ok ? await projectsResponse.json() : [];
 
         // Fetch goals
-        const goalsResponse = await fetch('http://localhost:5000/api/goals', {
+        const goalsResponse = await fetch('http://localhost:9000/api/goals', {
           headers: { 'x-auth-token': token }
         });
         const goals = goalsResponse.ok ? await goalsResponse.json() : [];
 
         // Fetch documents
-        const documentsResponse = await fetch('http://localhost:5000/api/documents', {
+        const documentsResponse = await fetch('http://localhost:9000/api/documents', {
           headers: { 'x-auth-token': token }
         });
         const documents = documentsResponse.ok ? await documentsResponse.json() : [];
 
         // Fetch meeting notes
-        const meetingsResponse = await fetch('http://localhost:5000/api/meetings', {
+        const meetingsResponse = await fetch('http://localhost:9000/api/meetings', {
           headers: { 'x-auth-token': token }
         });
         const meetings = meetingsResponse.ok ? await meetingsResponse.json() : [];

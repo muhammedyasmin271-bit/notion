@@ -1,7 +1,7 @@
 // Notification utility functions
 import { sendWebPushNotification } from './webPush';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:9000/api';
 
 export const createNotification = async (recipientId, type, title, message, fromUserId = null, fromUserName = null, entityType = null, entityId = null) => {
   try {

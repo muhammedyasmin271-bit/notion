@@ -13,7 +13,7 @@ const HomePage = () => {
   const [stats, setStats] = useState({
     projects: 0, documents: 0, completed: 0, meetings: 0
   });
-  const [recentActivity, setRecentActivity] = useState([]);
+
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -23,9 +23,9 @@ const HomePage = () => {
         if (!token) return;
 
         const [projects, documents, meetings] = await Promise.all([
-          fetch('http://localhost:5000/api/projects', { headers: { 'x-auth-token': token } }).then(r => r.json()).catch(() => []),
-          fetch('http://localhost:5000/api/documents', { headers: { 'x-auth-token': token } }).then(r => r.json()).catch(() => []),
-          fetch('http://localhost:5000/api/meetings', { headers: { 'x-auth-token': token } }).then(r => r.json()).catch(() => [])
+          fetch('http://localhost:9000/api/projects', { headers: { 'x-auth-token': token } }).then(r => r.json()).catch(() => []),
+          fetch('http://localhost:9000/api/documents', { headers: { 'x-auth-token': token } }).then(r => r.json()).catch(() => []),
+          fetch('http://localhost:9000/api/meetings', { headers: { 'x-auth-token': token } }).then(r => r.json()).catch(() => [])
         ]);
 
         setStats({
@@ -35,12 +35,7 @@ const HomePage = () => {
           meetings: meetings.length
         });
 
-        setRecentActivity([
-          { id: 1, type: 'project', message: 'Project "Website Redesign" updated', time: '2 hours ago', icon: Target, priority: 'high' },
-          { id: 2, type: 'meeting', message: 'Team standup completed', time: '4 hours ago', icon: Calendar, priority: 'medium' },
-          { id: 3, type: 'document', message: 'Client feedback received', time: '1 day ago', icon: FileText, priority: 'low' },
-          { id: 4, type: 'notification', message: 'New task assigned', time: '2 days ago', icon: Bell, priority: 'high' }
-        ]);
+
       } catch (error) {
         console.error('Error:', error);
       }
@@ -183,98 +178,36 @@ const HomePage = () => {
           ))}
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 mb-12">
-          
-          {/* Quick Actions */}
-          <div className="xl:col-span-2">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                Smart Actions
-              </h2>
-              <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${
-                isDarkMode ? 'bg-blue-500/20 border border-blue-400/30' : 'bg-blue-100 border border-blue-200'
-              }`}>
-                <Sparkles className={`w-4 h-4 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
-                <span className={`text-xs font-medium ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
-                  AI Enhanced
-                </span>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {quickActions.map((action, index) => (
-                <button
-                  key={action.name}
-                  onClick={() => window.location.href = action.path}
-                  className={`group relative overflow-hidden rounded-3xl bg-gradient-to-br ${action.bg} p-8 text-white shadow-2xl hover:shadow-3xl transition-all duration-700 hover:scale-105`}
-                >
-                  <div className="relative z-10">
-                    <div className="flex items-start justify-between mb-6">
-                      <action.icon className="w-10 h-10 group-hover:scale-125 group-hover:rotate-12 transition-all duration-500" />
-                      <ArrowRight className="w-5 h-5 opacity-60 group-hover:opacity-100 transition-opacity duration-300" />
-                    </div>
-                    <h3 className="text-2xl font-bold mb-3 group-hover:scale-105 transition-transform duration-300">
-                      {action.name}
-                    </h3>
-                    <p className="text-white/80 text-sm group-hover:text-white transition-colors duration-300">
-                      {action.desc}
-                    </p>
-                  </div>
-                  
-                  <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                </button>
-              ))}
-            </div>
+        {/* Quick Actions */}
+        <div className="mb-12">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              Smart Actions
+            </h2>
           </div>
-
-          {/* Activity Feed */}
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                Activity Feed
-              </h2>
-              <RefreshCw className={`w-4 h-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} animate-spin`} />
-            </div>
-            
-            <div className={`space-y-4 rounded-3xl ${
-              isDarkMode ? 'bg-white/5 border border-white/10 backdrop-blur-sm' : 'bg-white/70 border border-white/20 backdrop-blur-sm'
-            } p-6 shadow-xl`}>
-              {recentActivity.map((activity) => (
-                <div key={activity.id} className={`flex items-center space-x-4 p-4 rounded-2xl ${
-                  isDarkMode ? 'hover:bg-white/10' : 'hover:bg-gray-50/50'
-                } transition-all duration-300 group hover:scale-[1.02]`}>
-                  <div className={`relative p-3 rounded-xl ${
-                    activity.type === 'project' ? 'bg-blue-500/20 border border-blue-400/30' :
-                    activity.type === 'meeting' ? 'bg-orange-500/20 border border-orange-400/30' :
-                    activity.type === 'document' ? 'bg-purple-500/20 border border-purple-400/30' :
-                    'bg-red-500/20 border border-red-400/30'
-                  }`}>
-                    <activity.icon className={`w-5 h-5 ${
-                      activity.type === 'project' ? 'text-blue-400' :
-                      activity.type === 'meeting' ? 'text-orange-400' :
-                      activity.type === 'document' ? 'text-purple-400' :
-                      'text-red-400'
-                    }`} />
-                    
-                    <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${
-                      activity.priority === 'high' ? 'bg-red-500 animate-pulse' :
-                      activity.priority === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
-                    }`}></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+            {quickActions.map((action, index) => (
+              <button
+                key={action.name}
+                onClick={() => window.location.href = action.path}
+                className={`group relative overflow-hidden rounded-3xl bg-gradient-to-br ${action.bg} p-8 text-white shadow-2xl hover:shadow-3xl transition-all duration-700 hover:scale-105`}
+              >
+                <div className="relative z-10">
+                  <div className="flex items-start justify-between mb-6">
+                    <action.icon className="w-10 h-10 group-hover:scale-125 group-hover:rotate-12 transition-all duration-500" />
+                    <ArrowRight className="w-5 h-5 opacity-60 group-hover:opacity-100 transition-opacity duration-300" />
                   </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-semibold truncate ${
-                      isDarkMode ? 'text-white' : 'text-gray-900'
-                    } group-hover:text-blue-400 transition-colors duration-300`}>
-                      {activity.message}
-                    </p>
-                    <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                      {activity.time}
-                    </p>
-                  </div>
+                  <h3 className="text-2xl font-bold mb-3 group-hover:scale-105 transition-transform duration-300">
+                    {action.name}
+                  </h3>
+                  <p className="text-white/80 text-sm group-hover:text-white transition-colors duration-300">
+                    {action.desc}
+                  </p>
                 </div>
-              ))}
-            </div>
+                
+                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              </button>
+            ))}
           </div>
         </div>
 

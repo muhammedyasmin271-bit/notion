@@ -14,3 +14,4 @@ export { default as TrashPage } from './TrashPage/TrashPage';
 export { default as InviteMembersPage } from './InviteMembersPage/InviteMembersPage';
 export { default as LoginPage } from './LoginPage/LoginPage';
 export { default as SettingsPage } from './SettingsPage/SettingsPage';
+export { default as SubmitReportPage } from './SubmitReportPage/SubmitReportPage';

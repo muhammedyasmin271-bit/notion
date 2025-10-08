@@ -84,7 +84,7 @@ const ReportPage = () => {
 
   const fetchProject = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/projects/${projectId}`, {
+      const response = await fetch(`http://localhost:9000/api/projects/${projectId}`, {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
       if (response.ok) {
@@ -114,7 +114,7 @@ const ReportPage = () => {
     const reportContent = blocks.map(block => block.content).join('\n');
 
     try {
-      const response = await fetch(`http://localhost:5000/api/projects/${project.id}`, {
+      const response = await fetch(`http://localhost:9000/api/projects/${project.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -138,7 +138,7 @@ const ReportPage = () => {
     setSavingAnswers(true);
 
     try {
-      const response = await fetch(`http://localhost:5000/api/projects/${project.id}`, {
+      const response = await fetch(`http://localhost:9000/api/projects/${project.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

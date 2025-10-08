@@ -49,7 +49,7 @@ const ProjectsPage = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/users?limit=100', {
+      const response = await fetch('http://localhost:9000/api/users?limit=100', {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
       if (response.ok) {
@@ -127,7 +127,7 @@ const ProjectsPage = () => {
 
   const fetchProjects = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/projects', {
+      const response = await fetch('http://localhost:9000/api/projects', {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
       if (response.ok) {
@@ -256,8 +256,8 @@ const ProjectsPage = () => {
     // Persist to backend
     try {
       const endpoint = field === 'status'
-        ? `http://localhost:5000/api/projects/${projectId}/status`
-        : `http://localhost:5000/api/projects/${projectId}`;
+        ? `http://localhost:9000/api/projects/${projectId}/status`
+        : `http://localhost:9000/api/projects/${projectId}`;
 
       console.log('Making API call to:', endpoint, 'with data:', { [field]: value });
 
@@ -302,7 +302,7 @@ const ProjectsPage = () => {
     if (user?.role !== 'manager') return;
 
     try {
-      const response = await fetch(`http://localhost:5000/api/projects/${projectId}`, {
+      const response = await fetch(`http://localhost:9000/api/projects/${projectId}`, {
         method: 'DELETE',
         headers: {
           'x-auth-token': localStorage.getItem('token')
@@ -334,7 +334,7 @@ const ProjectsPage = () => {
 
     // Persist to backend
     try {
-      const response = await fetch(`http://localhost:5000/api/projects/${projectId}`, {
+      const response = await fetch(`http://localhost:9000/api/projects/${projectId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -399,7 +399,7 @@ const ProjectsPage = () => {
     if (!projectData.name || !projectData.name.trim()) return;
 
     try {
-      const response = await fetch('http://localhost:5000/api/projects', {
+      const response = await fetch('http://localhost:9000/api/projects', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

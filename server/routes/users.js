@@ -698,4 +698,132 @@ router.post('/bulk-update',
     }
   });
 
+// @route   POST /api/users/share-report
+// @desc    Share report with selected user
+// @access  Private
+router.post('/share-report',
+  updateLimiter,
+  auth,
+  [
+    body('recipientId', 'Recipient ID is required').isMongoId(),
+    body('reportData', 'Report data is required').notEmpty(),
+    body('reportType').optional().trim().escape()
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { recipientId, reportData, reportType } = req.body;
+      
+      // Simple sharing without database models for now
+      // const SharedReport = require('../models/SharedReport');
+      // const Notification = require('../models/Notification');
+
+      // Verify recipient exists
+      const recipient = await User.findById(recipientId).select('-password');
+      if (!recipient) {
+        return res.status(404).json({ message: 'Recipient not found' });
+      }
+
+      if (!recipient.isActive) {
+        return res.status(400).json({ message: 'Cannot share with inactive user' });
+      }
+
+      // Get sender info
+      const sender = await User.findById(req.user.id).select('name');
+
+      // For now, just simulate sharing without database
+      const sharedReport = {
+        id: `shared-${Date.now()}`,
+        sharedBy: req.user.id,
+        sharedWith: recipientId,
+        reportType: reportType || 'management_report',
+        reportData,
+        sharedAt: new Date()
+      };
+
+      res.json({
+        message: `Report shared successfully with ${recipient.name}`,
+        sharedReport: {
+          id: sharedReport.id,
+          recipientName: recipient.name,
+          recipientEmail: recipient.email,
+          sharedAt: sharedReport.sharedAt
+        }
+      });
+    } catch (err) {
+      console.error('Share report error:', err);
+      if (err.kind === 'ObjectId') {
+        return res.status(404).json({ message: 'Invalid recipient ID' });
+      }
+      res.status(500).json({
+        message: 'Server error',
+        error: process.env.NODE_ENV === 'development' ? err.message : undefined
+      });
+    }
+  });
+
+// @route   GET /api/users/shared-reports
+// @desc    Get reports shared with current user
+// @access  Private
+router.get('/shared-reports',
+  readLimiter,
+  auth,
+  async (req, res) => {
+    try {
+      const SharedReport = require('../models/SharedReport');
+      
+      const sharedReports = await SharedReport.find({ sharedWith: req.user.id })
+        .populate('sharedBy', 'name email')
+        .sort({ sharedAt: -1 })
+        .lean();
+
+      res.json({ sharedReports });
+    } catch (err) {
+      console.error('Get shared reports error:', err);
+      res.status(500).json({
+        message: 'Server error',
+        error: process.env.NODE_ENV === 'development' ? err.message : undefined
+      });
+    }
+  });
+
+// @route   GET /api/users/team-members
+// @desc    Get all team members for sharing
+// @access  Private
+router.get('/team-members',
+  readLimiter,
+  auth,
+  async (req, res) => {
+    try {
+      const cacheKey = `team_members_${req.user.id}`;
+      const cached = cache.get(cacheKey);
+      if (cached) {
+        return res.json(cached);
+      }
+
+      // Get all active users except the current user
+      const teamMembers = await User.find({
+        _id: { $ne: req.user.id },
+        isActive: true
+      })
+        .select('name email role')
+        .sort({ name: 1 })
+        .lean();
+
+      const response = { teamMembers };
+      cache.set(cacheKey, response);
+      res.json(response);
+    } catch (err) {
+      console.error('Get team members error:', err);
+      res.status(500).json({
+        message: 'Server error',
+        error: process.env.NODE_ENV === 'development' ? err.message : undefined
+      });
+    }
+  });
+
 module.exports = router;

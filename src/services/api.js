@@ -2,7 +2,7 @@ const API_BASE_URL =
     process.env.REACT_APP_API_URL ||
     (typeof window !== 'undefined' && window.location.hostname !== 'localhost'
         ? '/api'
-        : 'http://localhost:5000/api');
+        : 'http://localhost:9000/api');
 
 // API service class for handling HTTP requests
 class ApiService {
@@ -737,6 +737,20 @@ class ApiService {
     async aiAssist(prompt, mode = 'summarize') {
         return await this.post('/ai/assist', { prompt, mode });
     }
+
+    // AI Chat functionality
+    async aiChat(messages) {
+        try {
+            const response = await this.request('/ai/chat', {
+                method: 'POST',
+                body: JSON.stringify({ messages }),
+            });
+            return response;
+        } catch (error) {
+            console.error('AI Chat Error:', error);
+            throw error;
+        }
+    }
 }
 
 // Create and export a singleton instance
@@ -758,6 +772,7 @@ export const put = (endpoint, data) => apiService.put(endpoint, data);
 export const deleteRequest = (endpoint) => apiService.delete(endpoint);
 export const upload = (endpoint, formData) => apiService.upload(endpoint, formData);
 export const aiAssist = (prompt, mode) => apiService.aiAssist(prompt, mode);
+export const aiChat = (messages) => apiService.aiChat(messages);
 export const createUser = (userData) => apiService.createUser(userData);
 export const updateUser = (userId, userData) => apiService.updateUser(userId, userData);
 export const getUserById = (userId) => apiService.getUserById(userId);

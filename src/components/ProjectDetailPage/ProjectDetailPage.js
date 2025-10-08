@@ -439,7 +439,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
     try {
       console.log('Fetching project with ID:', projectId);
       // First fetch the basic project data
-      const projectResponse = await fetch(`http://localhost:5000/api/projects/${projectId}`, {
+      const projectResponse = await fetch(`http://localhost:9000/api/projects/${projectId}`, {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
       
@@ -494,7 +494,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
         }
         
         // Fetch the project's tasks and other data
-        const dataResponse = await fetch(`http://localhost:5000/api/projects/${projectId}/data`, {
+        const dataResponse = await fetch(`http://localhost:9000/api/projects/${projectId}/data`, {
           headers: { 'x-auth-token': localStorage.getItem('token') }
         });
         
@@ -574,7 +574,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       console.log('Current todo blocks:', todoBlocks);
       
       // First, get existing tasks to compare
-      const response = await fetch(`http://localhost:5000/api/projects/${projectId}/data`, {
+      const response = await fetch(`http://localhost:9000/api/projects/${projectId}/data`, {
         headers: { 'x-auth-token': token }
       });
       
@@ -603,7 +603,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
         if (block.taskId) {
           // Update existing task
           console.log('Updating task:', block.taskId, 'with data:', taskData);
-          const updateResponse = await fetch(`http://localhost:5000/api/projects/${projectId}/tasks/${block.taskId}`, {
+          const updateResponse = await fetch(`http://localhost:9000/api/projects/${projectId}/tasks/${block.taskId}`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -621,7 +621,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
         } else {
           // Create new task
           console.log('Creating new task with data:', taskData);
-          const createResponse = await fetch(`http://localhost:5000/api/projects/${projectId}/tasks`, {
+          const createResponse = await fetch(`http://localhost:9000/api/projects/${projectId}/tasks`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -650,7 +650,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       
       for (const task of tasksToDelete) {
         console.log('Deleting task:', task.id);
-        const deleteResponse = await fetch(`http://localhost:5000/api/projects/${projectId}/tasks/${task.id}`, {
+        const deleteResponse = await fetch(`http://localhost:9000/api/projects/${projectId}/tasks/${task.id}`, {
           method: 'DELETE',
           headers: { 'x-auth-token': token }
         });
@@ -682,7 +682,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
         return;
       }
 
-      const response = await fetch(`http://localhost:5000/api/projects/${project.id}`, {
+      const response = await fetch(`http://localhost:9000/api/projects/${project.id}`, {
         method: 'DELETE',
         headers: { 'x-auth-token': token }
       });
@@ -760,7 +760,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
 
       if (project.id === 'new') {
         console.log('Creating new project...');
-        const response = await fetch('http://localhost:5000/api/projects', {
+        const response = await fetch('http://localhost:9000/api/projects', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -798,7 +798,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
         }
       } else {
         console.log('Updating existing project...');
-        const response = await fetch(`http://localhost:5000/api/projects/${project.id}`, {
+        const response = await fetch(`http://localhost:9000/api/projects/${project.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -861,7 +861,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
         return;
       }
 
-      const response = await fetch(`http://localhost:5000/api/projects/${project.id}/status`, {
+      const response = await fetch(`http://localhost:9000/api/projects/${project.id}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -886,7 +886,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
     setLoadingUsers(true);
     try {
       // Fetch users from database API
-      const response = await fetch('http://localhost:5000/api/auth/users', {
+      const response = await fetch('http://localhost:9000/api/auth/users', {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
       
@@ -1061,7 +1061,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch(`http://localhost:5000/api/projects/${project.id}/notes`, {
+      const response = await fetch(`http://localhost:9000/api/projects/${project.id}/notes`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

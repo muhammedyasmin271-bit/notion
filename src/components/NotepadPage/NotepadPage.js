@@ -1224,11 +1224,11 @@ const NotepadPage = () => {
 					}
 				}).join('\n');
 
-				// Simulate AI response
-				await new Promise(resolve => setTimeout(resolve, 1000));
-				const content = `AI Response: ${aiQuery}\n\nHere's a helpful response based on your query about "${aiQuery}". This is a simulated AI response that would normally come from an AI service.`;
+				// Use real AI service
+				const { askAI } = await import('../../services/aiService');
+				const aiResponse = await askAI(aiQuery, context);
 
-				const lines = content.split('\n').filter(line => line.trim());
+				const lines = aiResponse.split('\n').filter(line => line.trim());
 				const newBlocks = lines.map((line, idx) => {
 					const l = line.trim();
 					if (l.startsWith('- [ ] ')) return { id: `ai-block-${Date.now()}-${idx}`, type: 'todo', content: l.replace(/^- \[ \]\s*/, '') };
@@ -1249,9 +1249,21 @@ const NotepadPage = () => {
 
 				setAiInputBlock(null);
 				setAiQuery('');
-			} catch (e) {
-				console.error('AI assist failed:', e);
-				setAiError('AI assistant failed. Please try again.');
+			} catch (error) {
+				console.error('AI assist failed:', error);
+				setAiError('AI is currently unavailable. Please try again later.');
+				// Add error message as a block
+				const errorBlock = {
+					id: `error-block-${Date.now()}`,
+					type: 'text',
+					content: 'AI is currently unavailable. Please try again later.'
+				};
+				const currentBlockIndex = blocks.findIndex(b => b.id === aiInputBlock);
+				const updatedBlocks = [...blocks];
+				updatedBlocks.splice(currentBlockIndex + 1, 0, errorBlock);
+				setBlocks(updatedBlocks);
+				setAiInputBlock(null);
+				setAiQuery('');
 			} finally {
 				setIsGenerating(false);
 			}
@@ -2317,7 +2329,7 @@ const NotepadPage = () => {
 										value={aiQuery}
 										onChange={(e) => setAiQuery(e.target.value)}
 										onKeyDown={handleAiQuerySubmit}
-										placeholder="Ask AI anything... (Press Enter to submit)"
+										placeholder="Ask me anything about your notes... (Press Enter)"
 										className={`flex-1 outline-none bg-transparent text-sm font-medium ${isDarkMode ? 'text-purple-200 placeholder-purple-400' : 'text-purple-700 placeholder-purple-500'}`}
 										autoFocus
 									/>

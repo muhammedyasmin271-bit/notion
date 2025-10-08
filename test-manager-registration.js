@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = 'http://localhost:9000/api';
 
 async function testManagerRegistration() {
   console.log('🧪 Testing Manager Registration System...\n');
