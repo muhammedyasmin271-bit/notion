@@ -1,8 +1,11 @@
 /* Custom scrollbar styles for Meeting Editor dropdowns */
 .scrollbar-thin {
     scrollbar-width: thin;
+    scroll-behavior: smooth;
+    overflow-y: auto;
   }
   
+  /* Dark mode scrollbar colors */
   .scrollbar-thumb-gray-600 {
     scrollbar-color: #4b5563 transparent;
   }
@@ -11,39 +14,62 @@
     scrollbar-color: #4b5563 #1f2937;
   }
   
+  /* Light mode scrollbar colors */
+  .scrollbar-thumb-gray-400 {
+    scrollbar-color: #9ca3af transparent;
+  }
+  
+  .scrollbar-track-gray-200 {
+    scrollbar-color: #9ca3af #f3f4f6;
+  }
+  
   /* Webkit scrollbar styles for better cross-browser support */
   .scrollbar-thin::-webkit-scrollbar {
     width: 6px;
   }
   
-  .scrollbar-thin::-webkit-scrollbar-track {
+  /* Dark mode webkit scrollbar */
+  .scrollbar-thumb-gray-600.scrollbar-track-gray-800::-webkit-scrollbar-track {
     background: #1f2937;
     border-radius: 3px;
   }
   
-  .scrollbar-thin::-webkit-scrollbar-thumb {
+  .scrollbar-thumb-gray-600.scrollbar-track-gray-800::-webkit-scrollbar-thumb {
     background: #4b5563;
     border-radius: 3px;
   }
   
-  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  .scrollbar-thumb-gray-600.scrollbar-track-gray-800::-webkit-scrollbar-thumb:hover {
     background: #6b7280;
   }
   
-  /* Smooth scrolling */
-  .scrollbar-thin {
-    scroll-behavior: smooth;
-  }
-  
-  /* Hide scrollbar when not needed */
-  .scrollbar-thin {
-    overflow-y: auto;
-  }
-  
-  .scrollbar-thin:not(:hover)::-webkit-scrollbar-thumb {
+  .scrollbar-thumb-gray-600.scrollbar-track-gray-800:not(:hover)::-webkit-scrollbar-thumb {
     background: transparent;
   }
   
-  .scrollbar-thin:hover::-webkit-scrollbar-thumb {
+  .scrollbar-thumb-gray-600.scrollbar-track-gray-800:hover::-webkit-scrollbar-thumb {
     background: #4b5563;
+  }
+  
+  /* Light mode webkit scrollbar */
+  .scrollbar-thumb-gray-400.scrollbar-track-gray-200::-webkit-scrollbar-track {
+    background: #f3f4f6;
+    border-radius: 3px;
+  }
+  
+  .scrollbar-thumb-gray-400.scrollbar-track-gray-200::-webkit-scrollbar-thumb {
+    background: #9ca3af;
+    border-radius: 3px;
+  }
+  
+  .scrollbar-thumb-gray-400.scrollbar-track-gray-200::-webkit-scrollbar-thumb:hover {
+    background: #6b7280;
+  }
+  
+  .scrollbar-thumb-gray-400.scrollbar-track-gray-200:not(:hover)::-webkit-scrollbar-thumb {
+    background: transparent;
+  }
+  
+  .scrollbar-thumb-gray-400.scrollbar-track-gray-200:hover::-webkit-scrollbar-thumb {
+    background: #9ca3af;
   }

@@ -4,6 +4,7 @@ const Document = require('../models/Document');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 const auth = require('../middleware/auth');
+const { getVisibilityFilter } = require('../middleware/visibility');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -45,16 +46,11 @@ router.get('/', auth, async (req, res) => {
   try {
     const { type, category, status, search, sortBy = 'updatedAt', sortOrder = 'desc' } = req.query;
     const userId = req.user.id;
+    const userRole = req.user.role;
 
-    // Visibility: documents the user can see
-    const visibilityOr = [
-      { author: userId, deleted: false },
-      { isPublic: true, deleted: false },
-      { 'collaborators.user': userId, deleted: false },
-      { 'sharedWith.user': userId, deleted: false },
-    ];
-
-    const andFilters = [{ $or: visibilityOr }];
+    // Apply visibility filter based on role
+    const visibilityFilter = getVisibilityFilter(userId, userRole);
+    const andFilters = [{ deleted: false }, visibilityFilter];
 
     // Apply additional filters
     if (type && type !== 'all') andFilters.push({ type });

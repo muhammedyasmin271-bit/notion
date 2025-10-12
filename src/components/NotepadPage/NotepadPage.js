@@ -112,6 +112,7 @@ const NotepadPage = () => {
 	const [aiQuery, setAiQuery] = useState('');
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [aiError, setAiError] = useState('');
+	const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
 	const titleInputRef = useRef(null);
 	const formattingMenuRef = useRef(null);
@@ -1278,20 +1279,24 @@ const NotepadPage = () => {
 	const renderBlock = (block, index) => {
 		const commonProps = {
 			ref: (el) => blockRefs.current[block.id] = el,
-			className: `w-full outline-none resize-none border-none bg-transparent py-1 px-2 rounded transition-all duration-200 font-inter leading-relaxed ${isDarkMode ? 'text-gray-100 placeholder-gray-500 focus:bg-gray-800/20' : 'text-gray-800 placeholder-gray-400 focus:bg-gray-50/30'} hover:bg-opacity-30`,
+			className: `w-full max-w-none outline-none resize-none border-none bg-transparent py-1 px-2 rounded transition-all duration-200 font-inter leading-relaxed ${isDarkMode ? 'text-gray-100 placeholder-gray-500 focus:bg-gray-800/20' : 'text-gray-800 placeholder-gray-400 focus:bg-gray-50/30'} hover:bg-opacity-30`,
+			style: { minHeight: '24px', lineHeight: '1.6', wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', width: '100%', margin: 0 },
 			value: block.content,
 			onChange: (e) => updateBlock(block.id, e.target.value),
 			onKeyDown: (e) => handleBlockKeyDown(block.id, e),
 			onFocus: () => setActiveBlockId(block.id),
 			placeholder: getBlockPlaceholder(block.type),
-			style: { minHeight: '24px', lineHeight: '1.6' }
+			onInput: (e) => {
+				e.target.style.height = 'auto';
+				e.target.style.height = e.target.scrollHeight + 'px';
+			}
 		};
 
 		switch (block.type) {
 			case 'h1':
 				return (
 					<div className="flex items-start group relative">
-						<div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
+						<div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center w-6 h-6"
 								onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1310,7 +1315,7 @@ const NotepadPage = () => {
 						</div>
 						<input
 							{...commonProps}
-							className={`${commonProps.className} text-4xl font-bold tracking-tight`}
+							className={`${commonProps.className} text-2xl md:text-4xl font-bold tracking-tight`}
 							style={{ ...commonProps.style, minHeight: '48px', lineHeight: '1.2' }}
 						/>
 						{showBlockMenu === block.id && (
@@ -1357,7 +1362,7 @@ const NotepadPage = () => {
 			case 'h2':
 				return (
 					<div className="flex items-start group relative">
-						<div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2">
+						<div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
 								onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1376,7 +1381,7 @@ const NotepadPage = () => {
 						</div>
 						<input
 							{...commonProps}
-							className={`${commonProps.className} text-3xl font-bold tracking-tight`}
+							className={`${commonProps.className} text-xl md:text-3xl font-bold tracking-tight`}
 							style={{ ...commonProps.style, minHeight: '40px', lineHeight: '1.3' }}
 						/>
 						{showBlockMenu === block.id && (
@@ -1423,7 +1428,7 @@ const NotepadPage = () => {
 			case 'h3':
 				return (
 					<div className="flex items-start group relative">
-						<div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2">
+						<div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
 								onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1442,7 +1447,7 @@ const NotepadPage = () => {
 						</div>
 						<input
 							{...commonProps}
-							className={`${commonProps.className} text-2xl font-bold tracking-tight`}
+							className={`${commonProps.className} text-lg md:text-2xl font-bold tracking-tight`}
 							style={{ ...commonProps.style, minHeight: '36px', lineHeight: '1.4' }}
 						/>
 						{showBlockMenu === block.id && (
@@ -1489,7 +1494,7 @@ const NotepadPage = () => {
 			case 'bulleted':
 				return (
 					<div className="flex items-start group relative">
-						<div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2">
+						<div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
 								onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1508,7 +1513,7 @@ const NotepadPage = () => {
 						</div>
 						<div className="flex items-start w-full">
 							<span className="mr-2 mt-1 flex-shrink-0">•</span>
-							<input {...commonProps} className={`${commonProps.className} flex-1`} />
+							<textarea {...commonProps} className={`${commonProps.className} flex-1`} />
 						</div>
 						{showBlockMenu === block.id && (
 							<div
@@ -1566,7 +1571,7 @@ const NotepadPage = () => {
 				};
 				return (
 					<div className="flex items-start group relative">
-						<div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2">
+						<div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
 								onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1585,7 +1590,7 @@ const NotepadPage = () => {
 						</div>
 						<div className="flex items-start w-full">
 							<span className="mr-2 mt-1 flex-shrink-0 min-w-[24px]">{getNumberedIndex()}.</span>
-							<input {...commonProps} className={`${commonProps.className} flex-1`} />
+							<textarea {...commonProps} className={`${commonProps.className} flex-1`} />
 						</div>
 						{showBlockMenu === block.id && (
 							<div
@@ -1631,7 +1636,7 @@ const NotepadPage = () => {
 			case 'todo':
 				return (
 					<div className="flex items-start group relative">
-						<div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2">
+						<div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
 								onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1650,7 +1655,7 @@ const NotepadPage = () => {
 						</div>
 						<div className="flex items-start w-full">
 							<input type="checkbox" className="mr-2 mt-1 flex-shrink-0" />
-							<input {...commonProps} className={`${commonProps.className} flex-1`} />
+							<textarea {...commonProps} className={`${commonProps.className} flex-1`} />
 						</div>
 						{showBlockMenu === block.id && (
 							<div
@@ -1696,7 +1701,7 @@ const NotepadPage = () => {
 			case 'quote':
 				return (
 					<div className="flex items-start group relative">
-						<div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2">
+						<div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
 								onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1714,7 +1719,7 @@ const NotepadPage = () => {
 							</button>
 						</div>
 						<div className={`border-l-4 pl-4 py-2 transition-all duration-200 ${isDarkMode ? 'border-blue-500 bg-blue-900/10' : 'border-blue-400 bg-blue-50/50'}`}>
-							<input {...commonProps} className={`${commonProps.className} italic text-lg`} style={{ ...commonProps.style, minHeight: '32px' }} />
+							<textarea {...commonProps} className={`${commonProps.className} italic text-lg`} style={{ ...commonProps.style, minHeight: '32px' }} />
 						</div>
 						{showBlockMenu === block.id && (
 							<div
@@ -1760,7 +1765,7 @@ const NotepadPage = () => {
 			case 'divider':
 				return (
 					<div className="flex items-center my-4 relative group">
-						<div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2">
+						<div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
 								onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1822,7 +1827,7 @@ const NotepadPage = () => {
 			case 'callout':
 				return (
 					<div className="flex items-start group relative bg-blue-100 dark:bg-blue-900/30 rounded-lg p-4 my-2">
-						<div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2">
+						<div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
 								onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1840,7 +1845,7 @@ const NotepadPage = () => {
 							</button>
 						</div>
 						<Lightbulb className="w-5 h-5 text-blue-500 mr-2 mt-1" />
-						<input {...commonProps} />
+						<textarea {...commonProps} />
 						{showBlockMenu === block.id && (
 							<div
 								ref={blockMenuRef}
@@ -1885,7 +1890,7 @@ const NotepadPage = () => {
 			case 'code':
 				return (
 					<div className="flex items-start group relative">
-						<div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2">
+						<div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
 								onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1967,7 +1972,7 @@ const NotepadPage = () => {
 				}
 				return (
 					<div className="flex items-start group relative mb-8 mr-8">
-						<div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
+						<div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
 							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
 								<Plus className="w-4 h-4" />
 							</button>
@@ -2075,7 +2080,7 @@ const NotepadPage = () => {
 			case 'image':
 				return (
 					<div className="flex items-start group relative">
-						<div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
+						<div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
 							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
 								<Plus className="w-4 h-4" />
 							</button>
@@ -2149,7 +2154,7 @@ const NotepadPage = () => {
 			case 'video':
 				return (
 					<div className="flex items-start group relative">
-						<div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
+						<div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
 							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
 								<Plus className="w-4 h-4" />
 							</button>
@@ -2241,7 +2246,7 @@ const NotepadPage = () => {
 			case 'link':
 				return (
 					<div className="flex items-start group relative">
-						<div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
+						<div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
 							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
 								<Plus className="w-4 h-4" />
 							</button>
@@ -2301,7 +2306,7 @@ const NotepadPage = () => {
 			default: // text
 				return (
 					<div className={`flex items-start group relative ${aiInputBlock === block.id ? 'bg-blue-50/30 rounded-lg p-2' : ''} transition-all duration-200`}>
-						<div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2">
+						<div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
 								onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -2353,7 +2358,7 @@ const NotepadPage = () => {
 									onFocus={() => setActiveBlockId(block.id)}
 									placeholder={getBlockPlaceholder(block.type)}
 									rows={Math.max(1, ((block.content || '').match(/\n/g) || []).length + 1)}
-									className={`w-full outline-none resize-none border-none bg-transparent py-1 px-2 rounded transition-all duration-200 font-inter leading-relaxed overflow-hidden ${isDarkMode ? 'text-gray-100 placeholder-gray-500 focus:bg-gray-800/20' : 'text-gray-800 placeholder-gray-400 focus:bg-gray-50/30'} hover:bg-opacity-30`}
+									className={`w-full outline-none resize-none border-none bg-transparent py-1 px-2 rounded transition-all duration-200 font-inter leading-relaxed text-base md:text-base ${isDarkMode ? 'text-gray-100 placeholder-gray-500 focus:bg-gray-800/20' : 'text-gray-800 placeholder-gray-400 focus:bg-gray-50/30'} hover:bg-opacity-30`}
 									style={{ minHeight: '24px', lineHeight: '1.6' }}
 								/>
 							)}
@@ -2460,14 +2465,28 @@ const NotepadPage = () => {
 
 	return (
 		<div className={`min-h-screen ${isDarkMode ? 'bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white' : 'bg-white text-gray-900'}`}>
-			<div className="flex h-screen">
+			<div className="flex h-screen relative">
+				{/* Mobile Header */}
+				<div className={`md:hidden fixed top-0 left-0 right-0 z-40 p-4 border-b backdrop-blur-sm ${isDarkMode ? 'bg-gray-900/95 border-gray-700' : 'bg-white/95 border-gray-200'}`}>
+					<div className="flex items-center justify-between">
+						<div className="w-10"></div>
+						<h1 className="text-lg font-bold">Notes</h1>
+						<button
+							onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+							className={`p-2 rounded-lg ${isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}
+						>
+							<FileText className="w-6 h-6" />
+						</button>
+					</div>
+				</div>
+
 				{/* Main Content */}
-				<div className="flex-1 flex flex-col">
+				<div className="flex-1 flex flex-col md:ml-0">
 					{currentNote ? (
 						<>
 							{/* Title Section */}
-							<div className={`p-8 ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
-								<div className="max-w-3xl mx-auto">
+							<div className={`p-4 md:p-8 pt-20 md:pt-8 ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
+								<div className="max-w-3xl mx-auto px-2 md:px-0">
 									{isEditingTitle ? (
 										<input
 											ref={titleInputRef}
@@ -2536,8 +2555,8 @@ const NotepadPage = () => {
 							</div>
 
 							{/* Content */}
-							<div className={`flex-1 overflow-y-auto p-8 pb-32 ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
-								<div className="max-w-3xl mx-auto">
+							<div className={`flex-1 overflow-y-auto p-4 md:p-8 pb-32 ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
+								<div className="max-w-3xl mx-auto px-2 md:px-0">
 									<div className="space-y-0.5 min-h-96">
 										{blocks.map((block, index) => (
 											<div key={block.id}>
@@ -2558,10 +2577,10 @@ const NotepadPage = () => {
 							</div>
 
 							{/* Bottom Action Bar */}
-							<div className={`fixed bottom-0 left-0 right-0 border-t backdrop-blur-sm ${isDarkMode ? 'bg-gray-900/95 border-gray-700' : 'bg-white/95 border-gray-200'} p-4 shadow-lg`}>
-								<div className="max-w-3xl mx-auto flex items-center justify-between">
+							<div className={`fixed bottom-0 left-0 right-0 border-t backdrop-blur-sm ${isDarkMode ? 'bg-gray-900/95 border-gray-700' : 'bg-white/95 border-gray-200'} p-2 md:p-4 shadow-lg`}>
+								<div className="max-w-3xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2 md:gap-0">
 									{/* Note Metadata */}
-									<div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} space-y-1`}>
+									<div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} space-y-1 hidden md:block`}>
 										<div className="flex items-center gap-2">
 											<User className="w-3 h-3" />
 											<span>Created by: {currentNote?.createdBy === user?.id ? 'You' : (currentNote?.createdByName || 'Unknown')}</span>
@@ -2573,7 +2592,7 @@ const NotepadPage = () => {
 									</div>
 
 									{/* Save Status Indicator - Right Side */}
-									<div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} space-y-1`}>
+									<div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} space-y-1 hidden md:block`}>
 										<div className="flex items-center gap-2">
 											<div className={`w-2 h-2 rounded-full ${lastSaved ? 'bg-green-500' : 'bg-gray-400'}`}></div>
 											<span className={lastSaved ? 'text-green-600' : ''}>
@@ -2595,10 +2614,10 @@ const NotepadPage = () => {
 									</div>
 									
 									{/* Action Buttons */}
-									<div className="flex items-center gap-4">
+									<div className="flex items-center gap-2 md:gap-4 w-full md:w-auto justify-center">
 									<button
 										onClick={saveNote}
-										className={`flex items-center px-6 py-3 rounded-xl font-semibold transition-all duration-200 hover:scale-105 ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'} shadow-lg`}
+										className={`flex items-center justify-center flex-1 px-4 py-3 rounded-xl font-semibold transition-all duration-200 hover:scale-105 ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'} shadow-lg text-sm`}
 									>
 										<Save className="w-4 h-4 mr-2" />
 										Save
@@ -2606,7 +2625,7 @@ const NotepadPage = () => {
 
 									{/* Share button - Only visible to Managers and Admins */}
 									{(user?.role === 'manager' || user?.role === 'admin') && (
-										<div className="relative">
+										<div className="relative flex-1">
 											<button
 												onClick={async () => {
 													// Always try to fetch users when opening share modal
@@ -2633,7 +2652,7 @@ const NotepadPage = () => {
 													}
 													setShowShareModal(!showShareModal);
 												}}
-												className={`flex items-center px-6 py-3 rounded-xl font-semibold transition-all duration-200 hover:scale-105 ${isDarkMode ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-green-500 hover:bg-green-600 text-white'} shadow-lg`}
+												className={`flex items-center justify-center w-full px-4 py-3 rounded-xl font-semibold transition-all duration-200 hover:scale-105 ${isDarkMode ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-green-500 hover:bg-green-600 text-white'} shadow-lg text-sm`}
 											>
 												<Share2 className="w-4 h-4 mr-2" />
 												Share
@@ -2779,10 +2798,10 @@ const NotepadPage = () => {
 										</div>
 									)}
 
-									<div className="relative">
+									<div className="relative flex-1">
 										<button
 											onClick={() => setShowTemplates(!showTemplates)}
-											className={`flex items-center px-6 py-3 rounded-xl font-semibold transition-all duration-200 hover:scale-105 ${isDarkMode ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'bg-purple-500 hover:bg-purple-600 text-white'} shadow-lg`}
+											className={`flex items-center justify-center w-full px-4 py-3 rounded-xl font-semibold transition-all duration-200 hover:scale-105 ${isDarkMode ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'bg-purple-500 hover:bg-purple-600 text-white'} shadow-lg text-sm`}
 										>
 											<FileText className="w-4 h-4 mr-2" />
 											Templates
@@ -2837,37 +2856,45 @@ const NotepadPage = () => {
 					)}
 				</div>
 
+				{/* Mobile Sidebar Overlay */}
+				{isSidebarOpen && (
+					<div 
+						className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
+						onClick={() => setIsSidebarOpen(false)}
+					/>
+				)}
+
 				{/* Sidebar */}
-				<div className={`w-80 border-l backdrop-blur-sm ${isDarkMode ? 'bg-gray-900/80 border-gray-700/50' : 'bg-white/80 border-gray-200/50'} flex flex-col shadow-2xl`}>
-					<div className="p-6 border-b border-gray-200 dark:border-gray-700">
-						<div className="flex items-center justify-between mb-6">
-							<div className="flex items-center gap-4">
-								<div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg ${isDarkMode ? 'bg-gradient-to-br from-blue-600 to-purple-600' : 'bg-gradient-to-br from-blue-500 to-purple-500'}`}>
-									<FileText className="w-6 h-6 text-white" />
+				<div className={`${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'} md:translate-x-0 fixed md:relative top-0 right-0 md:left-auto w-64 md:w-80 h-full md:h-auto border-l backdrop-blur-sm ${isDarkMode ? 'bg-gray-900/95 md:bg-gray-900/80 border-gray-700/50' : 'bg-white/95 md:bg-white/80 border-gray-200/50'} flex flex-col shadow-2xl transition-transform duration-300 ease-in-out z-40 md:z-auto`}>
+					<div className="p-4 md:p-6 border-b border-gray-200 dark:border-gray-700 pt-16 md:pt-6">
+						<div className="flex items-center justify-between mb-4 md:mb-6">
+							<div className="flex items-center gap-2 md:gap-4">
+								<div className={`w-8 md:w-12 h-8 md:h-12 rounded-2xl flex items-center justify-center shadow-lg ${isDarkMode ? 'bg-gradient-to-br from-blue-600 to-purple-600' : 'bg-gradient-to-br from-blue-500 to-purple-500'}`}>
+									<FileText className="w-4 md:w-6 h-4 md:h-6 text-white" />
 								</div>
 								<div>
-									<h1 className="text-2xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+									<h1 className="text-xl md:text-2xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
 										Notes
 									</h1>
-									<p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Create and organize your thoughts</p>
+									<p className={`text-xs md:text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Create and organize your thoughts</p>
 								</div>
 							</div>
 							<button
 								onClick={createNewNote}
-								className={`p-3 rounded-2xl font-bold transition-all duration-300 hover:scale-105 shadow-xl ${isDarkMode ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700' : 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600'}`}
+								className={`p-2 md:p-3 rounded-2xl font-bold transition-all duration-300 hover:scale-105 shadow-xl ${isDarkMode ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700' : 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600'}`}
 							>
-								<Plus className="w-5 h-5" />
+								<Plus className="w-4 md:w-5 h-4 md:h-5" />
 							</button>
 						</div>
 
-						<div className="relative mb-6">
-							<Search className={`absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`} />
+						<div className="relative mb-4 md:mb-6">
+							<Search className={`absolute left-3 md:left-4 top-1/2 transform -translate-y-1/2 w-4 md:w-5 h-4 md:h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`} />
 							<input
 								type="text"
-								placeholder="Search notes, content, tags..."
+								placeholder="Search notes..."
 								value={searchQuery}
 								onChange={(e) => setSearchQuery(e.target.value)}
-								className={`w-full pl-12 pr-4 py-4 rounded-2xl border-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base transition-all duration-200 ${isDarkMode
+								className={`w-full pl-10 md:pl-12 pr-3 md:pr-4 py-3 md:py-4 rounded-2xl border-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm md:text-base transition-all duration-200 ${isDarkMode
 									? 'bg-gray-800/50 border-gray-700 text-white placeholder-gray-400'
 									: 'bg-white/70 border-gray-300 text-gray-900 placeholder-gray-500'
 									}`}
@@ -2877,8 +2904,8 @@ const NotepadPage = () => {
 
 
 						{/* Filter Buttons */}
-						<div className="mb-4">
-							<div className="flex flex-wrap gap-1">
+						<div className="mb-3 md:mb-4">
+							<div className="flex flex-wrap gap-1 text-xs">
 								<button
 									onClick={() => setSelectedTag('saved')}
 									className={`px-2 py-1 text-xs rounded-full ${selectedTag === 'saved'
@@ -2916,7 +2943,7 @@ const NotepadPage = () => {
 						</div>
 					</div>
 
-					<div className="flex-1 overflow-y-auto p-2">
+					<div className="flex-1 overflow-y-auto p-2 pb-20 md:pb-2">
 						{loading ? (
 							<div className="flex justify-center items-center h-full">
 								<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
@@ -2932,8 +2959,11 @@ const NotepadPage = () => {
 								{filteredNotes.map(note => (
 									<div
 										key={note._id}
-										onClick={() => selectNote(note)}
-										className={`p-4 rounded-2xl cursor-pointer transition-all duration-300 hover:scale-105 relative shadow-lg backdrop-blur-sm ${selectedNote === note._id
+										onClick={() => {
+											selectNote(note);
+											setIsSidebarOpen(false); // Close sidebar on mobile when note is selected
+										}}
+										className={`p-3 md:p-4 rounded-2xl cursor-pointer transition-all duration-300 hover:scale-105 relative shadow-lg backdrop-blur-sm ${selectedNote === note._id
 											? isDarkMode
 												? 'bg-blue-900/50 border-2 border-blue-500 ring-2 ring-blue-500/30'
 												: 'bg-blue-50 border-2 border-blue-500 ring-2 ring-blue-500/30'

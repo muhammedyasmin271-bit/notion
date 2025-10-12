@@ -13,7 +13,7 @@ const callOpenAI = async (messages, temperature = 0.7, maxTokens = 1000) => {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: 'gpt-4-turbo-2024-04-09',
+      model: 'gpt-4o',
       messages,
       temperature,
       max_tokens: maxTokens,

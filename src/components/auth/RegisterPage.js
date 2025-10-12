@@ -100,7 +100,7 @@ const RegisterPage = () => {
   };
 
   return (
-    <div className={`min-h-screen flex items-center justify-center p-6 transition-all duration-500 relative overflow-hidden ${
+    <div className={`min-h-screen flex items-center justify-center p-3 sm:p-6 transition-all duration-500 relative overflow-hidden ${
       isDarkMode ? 'bg-black' : 'bg-white'
     }`}>
       {/* Animated Background Elements */}
@@ -116,24 +116,24 @@ const RegisterPage = () => {
         }`}></div>
       </div>
 
-      <div className={`w-full max-w-lg rounded-3xl shadow-2xl border-2 overflow-hidden relative z-10 transition-all duration-500 backdrop-blur-xl ${
+      <div className={`w-full max-w-lg rounded-2xl sm:rounded-3xl shadow-2xl border-2 overflow-hidden relative z-10 transition-all duration-500 backdrop-blur-xl ${
         isDarkMode ? 'bg-gray-900/90 border-gray-800 shadow-black/50' : 'bg-white/95 border-gray-200 shadow-gray-500/20'
       }`}>
         {/* Header */}
-        <div className="px-10 py-10 text-center">
+        <div className="px-4 sm:px-10 py-6 sm:py-10 text-center">
           <img 
             src="/darul-kubra-logo.png" 
             alt="Darul Kubra Logo" 
-            className={`w-48 h-48 mx-auto object-contain mb-6 transition-all duration-300 hover:scale-110 ${
+            className={`w-24 h-24 sm:w-32 sm:h-32 mx-auto object-contain mb-4 sm:mb-6 transition-all duration-300 hover:scale-110 ${
               isDarkMode ? 'mix-blend-screen' : 'mix-blend-multiply'
             }`}
           />
-          <h1 className={`text-3xl font-black mb-2 ${
+          <h1 className={`text-xl sm:text-3xl font-black mb-2 leading-tight ${
             isDarkMode ? 'text-white' : 'text-black'
           }`}>
             DARUL KUBRA WORK SPACE
           </h1>
-          <p className={`text-lg font-medium ${
+          <p className={`text-sm sm:text-lg font-medium ${
             isDarkMode ? 'text-gray-400' : 'text-gray-600'
           }`}>
             Create your account to get started
@@ -141,7 +141,7 @@ const RegisterPage = () => {
         </div>
 
         {/* Form */}
-        <div className="px-10 py-8">
+        <div className="px-4 sm:px-10 py-6 sm:py-8">
           {error && (
             <div className={`mb-6 p-4 rounded-xl border-2 flex items-center ${
               isDarkMode ? 'bg-red-900/20 border-red-700 text-red-300' : 'bg-red-50 border-red-200 text-red-700'
@@ -151,16 +151,16 @@ const RegisterPage = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
             {/* Name Field */}
             <div>
-              <label className={`block text-sm font-bold mb-3 ${
+              <label className={`block text-sm font-bold mb-2 sm:mb-3 ${
                 isDarkMode ? 'text-gray-300' : 'text-gray-700'
               }`}>
                 Full Name *
               </label>
               <div className="relative">
-                <User className={`absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 ${
+                <User className={`absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 ${
                   isDarkMode ? 'text-gray-400' : 'text-gray-400'
                 }`} />
                 <input
@@ -168,7 +168,7 @@ const RegisterPage = () => {
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  className={`w-full pl-12 pr-4 py-4 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${
+                  className={`w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 border-2 rounded-lg sm:rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${
                     validationErrors.name 
                       ? (isDarkMode ? 'border-red-600 bg-red-900/10' : 'border-red-400 bg-red-50')
                       : (isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500')
@@ -188,13 +188,13 @@ const RegisterPage = () => {
 
             {/* Username Field */}
             <div>
-              <label className={`block text-sm font-bold mb-3 ${
+              <label className={`block text-sm font-bold mb-2 sm:mb-3 ${
                 isDarkMode ? 'text-gray-300' : 'text-gray-700'
               }`}>
                 Username *
               </label>
               <div className="relative">
-                <User className={`absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 ${
+                <User className={`absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 ${
                   isDarkMode ? 'text-gray-400' : 'text-gray-400'
                 }`} />
                 <input
@@ -202,7 +202,7 @@ const RegisterPage = () => {
                   name="username"
                   value={formData.username}
                   onChange={handleChange}
-                  className={`w-full pl-12 pr-4 py-4 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${
+                  className={`w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 border-2 rounded-lg sm:rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${
                     validationErrors.username 
                       ? (isDarkMode ? 'border-red-600 bg-red-900/10' : 'border-red-400 bg-red-50')
                       : (isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500')
@@ -227,13 +227,13 @@ const RegisterPage = () => {
 
             {/* Password Field */}
             <div>
-              <label className={`block text-sm font-bold mb-3 ${
+              <label className={`block text-sm font-bold mb-2 sm:mb-3 ${
                 isDarkMode ? 'text-gray-300' : 'text-gray-700'
               }`}>
                 Password *
               </label>
               <div className="relative">
-                <Lock className={`absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 ${
+                <Lock className={`absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 ${
                   isDarkMode ? 'text-gray-400' : 'text-gray-400'
                 }`} />
                 <input
@@ -241,7 +241,7 @@ const RegisterPage = () => {
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  className={`w-full pl-12 pr-12 py-4 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${
+                  className={`w-full pl-10 sm:pl-12 pr-10 sm:pr-12 py-3 sm:py-4 border-2 rounded-lg sm:rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${
                     validationErrors.password 
                       ? (isDarkMode ? 'border-red-600 bg-red-900/10' : 'border-red-400 bg-red-50')
                       : (isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500')
@@ -252,7 +252,7 @@ const RegisterPage = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className={`absolute right-4 top-1/2 transform -translate-y-1/2 ${
+                  className={`absolute right-3 sm:right-4 top-1/2 transform -translate-y-1/2 p-1 ${
                     isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-400 hover:text-gray-600'
                   }`}
                 >
@@ -270,13 +270,13 @@ const RegisterPage = () => {
 
             {/* Confirm Password Field */}
             <div>
-              <label className={`block text-sm font-bold mb-3 ${
+              <label className={`block text-sm font-bold mb-2 sm:mb-3 ${
                 isDarkMode ? 'text-gray-300' : 'text-gray-700'
               }`}>
                 Confirm Password *
               </label>
               <div className="relative">
-                <Lock className={`absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 ${
+                <Lock className={`absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 ${
                   isDarkMode ? 'text-gray-400' : 'text-gray-400'
                 }`} />
                 <input
@@ -284,7 +284,7 @@ const RegisterPage = () => {
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  className={`w-full pl-12 pr-12 py-4 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${
+                  className={`w-full pl-10 sm:pl-12 pr-10 sm:pr-12 py-3 sm:py-4 border-2 rounded-lg sm:rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${
                     validationErrors.confirmPassword 
                       ? (isDarkMode ? 'border-red-600 bg-red-900/10' : 'border-red-400 bg-red-50')
                       : (isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500')
@@ -295,7 +295,7 @@ const RegisterPage = () => {
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className={`absolute right-4 top-1/2 transform -translate-y-1/2 ${
+                  className={`absolute right-3 sm:right-4 top-1/2 transform -translate-y-1/2 p-1 ${
                     isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-400 hover:text-gray-600'
                   }`}
                 >
@@ -313,7 +313,7 @@ const RegisterPage = () => {
 
             {/* Role Selection */}
             <div>
-              <label className={`block text-sm font-bold mb-3 ${
+              <label className={`block text-sm font-bold mb-2 sm:mb-3 ${
                 isDarkMode ? 'text-gray-300' : 'text-gray-700'
               }`}>
                 Role
@@ -322,13 +322,13 @@ const RegisterPage = () => {
                 name="role"
                 value={formData.role}
                 onChange={handleChange}
-                className={`w-full px-4 py-4 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 cursor-pointer ${
+                className={`w-full px-3 sm:px-4 py-3 sm:py-4 border-2 rounded-lg sm:rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 cursor-pointer min-h-[48px] ${
                   isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
                 }`}
                 disabled={isSubmitting}
               >
                 <option value="user">👤 Team Member</option>
-                <option value="manager">👨‍💼 Manager</option>
+                <option value="manager">👨💼 Manager</option>
               </select>
               <p className={`mt-2 text-xs ${
                 isDarkMode ? 'text-gray-500' : 'text-gray-500'
@@ -337,14 +337,11 @@ const RegisterPage = () => {
               </p>
             </div>
 
-
-
-
             {/* Submit Button */}
             <button
               type="submit"
               disabled={isSubmitting || loading}
-              className={`w-full py-4 text-lg font-bold rounded-2xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ${
+              className={`w-full py-3 sm:py-4 text-base sm:text-lg font-bold rounded-xl sm:rounded-2xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none min-h-[48px] ${
                 isDarkMode 
                   ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white' 
                   : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white'
@@ -365,13 +362,13 @@ const RegisterPage = () => {
           </form>
 
           {/* Additional Info & Login Link */}
-          <div className="mt-8 text-center space-y-4">
-            <p className={`text-sm ${
+          <div className="mt-6 sm:mt-8 text-center space-y-3 sm:space-y-4">
+            <p className={`text-xs sm:text-sm ${
               isDarkMode ? 'text-gray-400' : 'text-gray-500'
             }`}>
               📋 Your registration will be reviewed by a manager for approval
             </p>
-            <p className={`text-sm ${
+            <p className={`text-xs sm:text-sm ${
               isDarkMode ? 'text-gray-400' : 'text-gray-500'
             }`}>
               🔒 Your data is protected with enterprise-grade security

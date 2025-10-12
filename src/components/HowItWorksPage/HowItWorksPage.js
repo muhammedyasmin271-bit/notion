@@ -246,79 +246,71 @@ Welcome to your new productivity powerhouse! 🎉`;
   }, [currentIndex, fullText]);
 
   return (
-    <div className={`min-h-screen ${
-      isDarkMode ? 'bg-gradient-to-br from-gray-900 via-black to-gray-900' : 'bg-gradient-to-br from-white via-blue-50 to-purple-50'
-    }`}>
-      
+    <div className={`min-h-screen ${isDarkMode ? 'bg-gradient-to-br from-gray-900 via-black to-gray-900' : 'bg-gradient-to-br from-white via-blue-50 to-purple-50'
+      }`}>
+
       {/* Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className={`absolute -top-40 -right-40 w-80 h-80 ${
-          isDarkMode ? 'bg-gradient-to-br from-purple-400/20 to-blue-600/20' : 'bg-gradient-to-br from-purple-300/30 to-blue-500/30'
-        } rounded-full blur-3xl animate-pulse`}></div>
-        <div className={`absolute -bottom-40 -left-40 w-96 h-96 ${
-          isDarkMode ? 'bg-gradient-to-br from-blue-400/15 to-purple-600/15' : 'bg-gradient-to-br from-blue-300/25 to-purple-500/25'
-        } rounded-full blur-3xl animate-pulse`} style={{animationDelay: '2s'}}></div>
+        <div className={`absolute -top-40 -right-40 w-80 h-80 ${isDarkMode ? 'bg-gradient-to-br from-purple-400/20 to-blue-600/20' : 'bg-gradient-to-br from-purple-300/30 to-blue-500/30'
+          } rounded-full blur-3xl animate-pulse`}></div>
+        <div className={`absolute -bottom-40 -left-40 w-96 h-96 ${isDarkMode ? 'bg-gradient-to-br from-blue-400/15 to-purple-600/15' : 'bg-gradient-to-br from-blue-300/25 to-purple-500/25'
+          } rounded-full blur-3xl animate-pulse`} style={{ animationDelay: '2s' }}></div>
       </div>
 
-      <div className="relative z-10 p-8 max-w-4xl mx-auto">
-        
-        {/* Header */}
-        <div className="flex items-center mb-8">
-          <button 
+      <div className="relative z-10 p-4 sm:p-6 max-w-4xl mx-auto">
+
+        {/* Header - Mobile optimized */}
+        <div className="flex items-center mb-6">
+          <button
             onClick={() => window.history.back()}
-            className={`p-3 rounded-xl ${
-              isDarkMode ? 'bg-white/10 hover:bg-white/20' : 'bg-white/60 hover:bg-white/80'
-            } transition-all duration-300 mr-4`}
+            className={`p-2 sm:p-3 rounded-xl ${isDarkMode ? 'bg-white/10 hover:bg-white/20' : 'bg-white/60 hover:bg-white/80'
+              } transition-all duration-300 mr-3 sm:mr-4`}
           >
-            <ArrowLeft className={`w-6 h-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`} />
+            <ArrowLeft className={`w-5 h-5 sm:w-6 sm:h-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`} />
           </button>
-          <div className="flex items-center space-x-4">
-            <div className="p-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-600">
-              <Brain className="w-8 h-8 text-white" />
+          <div className="flex items-center space-x-3 sm:space-x-4">
+            <div className="p-3 sm:p-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-600">
+              <Brain className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
             </div>
-            <h1 className={`text-4xl font-black ${
-              isDarkMode ? 'bg-gradient-to-r from-white via-purple-400 to-blue-400 bg-clip-text text-transparent'
-                         : 'bg-gradient-to-r from-gray-900 via-purple-600 to-blue-600 bg-clip-text text-transparent'
-            }`}>
+            <h1 className={`text-2xl sm:text-4xl font-black ${isDarkMode ? 'bg-gradient-to-r from-white via-purple-400 to-blue-400 bg-clip-text text-transparent'
+                : 'bg-gradient-to-r from-gray-900 via-purple-600 to-blue-600 bg-clip-text text-transparent'
+              }`}>
               How It Works
             </h1>
           </div>
         </div>
 
-        {/* Content */}
-        <div className={`rounded-3xl ${
-          isDarkMode ? 'bg-white/5 border border-white/10 backdrop-blur-sm' : 'bg-white/70 border border-white/20 backdrop-blur-sm'
-        } p-8 shadow-2xl`}>
-          
-          <div className={`prose prose-lg max-w-none ${
-            isDarkMode ? 'prose-invert' : ''
-          }`}>
-            <pre className={`whitespace-pre-wrap font-sans leading-relaxed ${
-              isDarkMode ? 'text-gray-200' : 'text-gray-800'
+        {/* Content - Mobile optimized */}
+        <div className={`rounded-2xl sm:rounded-3xl ${isDarkMode ? 'bg-white/5 border border-white/10 backdrop-blur-sm' : 'bg-white/70 border border-white/20 backdrop-blur-sm'
+          } p-4 sm:p-6 shadow-xl sm:shadow-2xl`}>
+
+          <div className={`prose prose-sm sm:prose-lg max-w-none ${isDarkMode ? 'prose-invert' : ''
             }`}>
+            <pre className={`whitespace-pre-wrap font-sans leading-relaxed text-sm sm:text-base ${isDarkMode ? 'text-gray-200' : 'text-gray-800'
+              }`}>
               {displayedText}
               <span className="animate-pulse">|</span>
             </pre>
           </div>
 
-          {/* Progress Indicator */}
-          <div className="mt-8">
-            <div className={`w-full bg-gray-200 ${isDarkMode ? 'dark:bg-gray-700' : ''} rounded-full h-2`}>
-              <div 
-                className="bg-gradient-to-r from-purple-500 to-blue-600 h-2 rounded-full transition-all duration-300"
+          {/* Progress Indicator - Mobile optimized */}
+          <div className="mt-6 sm:mt-8">
+            <div className={`w-full bg-gray-200 ${isDarkMode ? 'dark:bg-gray-700' : ''} rounded-full h-1.5 sm:h-2`}>
+              <div
+                className="bg-gradient-to-r from-purple-500 to-blue-600 h-1.5 sm:h-2 rounded-full transition-all duration-300"
                 style={{ width: `${(currentIndex / fullText.length) * 100}%` }}
               ></div>
             </div>
-            <p className={`text-sm mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            <p className={`text-xs sm:text-sm mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
               {Math.round((currentIndex / fullText.length) * 100)}% complete
             </p>
           </div>
 
         </div>
 
-        {/* Quick Actions */}
+        {/* Quick Actions - Mobile optimized */}
         {currentIndex >= fullText.length && (
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in-up">
+          <div className="mt-6 sm:mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 animate-fade-in-up">
             {[
               { name: 'Start Project', icon: Target, path: '/projects' },
               { name: 'Upload Files', icon: Zap, path: '/documents' },
@@ -327,16 +319,13 @@ Welcome to your new productivity powerhouse! 🎉`;
               <button
                 key={action.name}
                 onClick={() => window.location.href = action.path}
-                className={`p-6 rounded-2xl ${
-                  isDarkMode ? 'bg-white/10 hover:bg-white/20' : 'bg-white/60 hover:bg-white/80'
-                } transition-all duration-300 hover:scale-105 group`}
+                className={`p-4 sm:p-6 rounded-2xl ${isDarkMode ? 'bg-white/10 hover:bg-white/20' : 'bg-white/60 hover:bg-white/80'
+                  } transition-all duration-300 hover:scale-105 group`}
               >
-                <action.icon className={`w-8 h-8 mb-4 mx-auto ${
-                  isDarkMode ? 'text-purple-400' : 'text-purple-600'
-                } group-hover:scale-110 transition-transform duration-300`} />
-                <h3 className={`text-lg font-bold ${
-                  isDarkMode ? 'text-white' : 'text-gray-900'
-                }`}>
+                <action.icon className={`w-6 h-6 sm:w-8 sm:h-8 mb-3 sm:mb-4 mx-auto ${isDarkMode ? 'text-purple-400' : 'text-purple-600'
+                  } group-hover:scale-110 transition-transform duration-300`} />
+                <h3 className={`text-base sm:text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'
+                  }`}>
                   {action.name}
                 </h3>
               </button>

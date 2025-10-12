@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Bell, Clock, AlertCircle, MessageCircle, Star, CheckCircle, RefreshCw, Filter, Search, Archive, Trash2, MoreVertical, User, Calendar, Flag, Settings, Download, Upload, Eye, EyeOff, Pin, Zap, TrendingUp, BarChart3, Activity, Shield, Globe, Smartphone, Mail, Slack, Github, Twitter } from 'lucide-react';
+import { Bell, Clock, AlertCircle, MessageCircle, Star, CheckCircle, Archive, Trash2, MoreVertical, User, Calendar, Flag, Settings, Download, Upload, Eye, EyeOff, Pin, Zap, TrendingUp, BarChart3, Activity, Shield, Globe, Smartphone, Mail, Slack, Github, Twitter } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { getUserNotifications, getUnreadCount, markAsRead } from '../../utils/notifications';
 import { useTheme } from '../../context/ThemeContext';
@@ -8,11 +8,7 @@ const NotificationsPage = () => {
   const { user } = useAppContext();
   const { isDarkMode } = useTheme();
   const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState('all');
-  const [filterStatus, setFilterStatus] = useState('all');
   const [selectedNotifications, setSelectedNotifications] = useState([]);
   const [showActions, setShowActions] = useState(false);
   const [viewMode, setViewMode] = useState('table'); // table, card, compact
@@ -39,15 +35,12 @@ const NotificationsPage = () => {
   const loadNotifications = async () => {
     if (user?.id) {
       try {
-        setLoading(true);
         const userNotifications = await getUserNotifications(user.id);
         setNotifications(userNotifications);
         const count = await getUnreadCount(user.id);
         setUnreadCount(count);
       } catch (error) {
         console.error('Error loading notifications:', error);
-      } finally {
-        setLoading(false);
       }
     }
   };
@@ -112,15 +105,7 @@ const NotificationsPage = () => {
     let filtered = notifications.filter(notification => {
       // Skip archived notifications
       if (archivedNotifications.includes(notification.id)) return false;
-
-      const matchesSearch = notification.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        notification.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (notification.fromUserName && notification.fromUserName.toLowerCase().includes(searchQuery.toLowerCase()));
-      const matchesType = filterType === 'all' || notification.type === filterType;
-      const matchesStatus = filterStatus === 'all' ||
-        (filterStatus === 'read' && notification.read) ||
-        (filterStatus === 'unread' && !notification.read);
-      return matchesSearch && matchesType && matchesStatus;
+      return true; // Show all notifications since we removed filters
     });
 
     // Sort notifications
@@ -159,7 +144,7 @@ const NotificationsPage = () => {
     });
 
     return filtered.slice(0, 100); // Show up to 100 notifications
-  }, [notifications, searchQuery, filterType, filterStatus, sortBy, sortOrder, pinnedNotifications, archivedNotifications]);
+  }, [notifications, sortBy, sortOrder, pinnedNotifications, archivedNotifications]);
 
   const recentNotifications = filteredAndSortedNotifications;
 
@@ -306,142 +291,65 @@ const NotificationsPage = () => {
         backgroundAttachment: 'fixed'
       }}
     >
-      {/* Professional Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center">
-            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mr-6 shadow-lg relative ${isDarkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white border border-gray-200'}`}>
-              <Bell className={`w-8 h-8 ${isDarkMode ? 'text-white' : 'text-black'}`} />
-              {unreadCount > 0 && (
-                <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </div>
-              )}
-            </div>
-            <div>
-              <h1 className={`text-4xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>Notifications</h1>
-              <p className={`text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Manage your notifications and stay informed</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            {selectedNotifications.length > 0 && (
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleBulkMarkAsRead}
-                  className={`flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${isDarkMode ? 'bg-gray-800 text-white hover:bg-gray-700' : 'bg-gray-200 text-black hover:bg-gray-300'
-                    }`}
-                >
-                  <CheckCircle className="w-4 h-4 mr-1" />
-                  Mark Read
-                </button>
-                <button
-                  onClick={handleBulkDelete}
-                  className="flex items-center px-4 py-2 text-sm font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 transition-all duration-200"
-                >
-                  <Trash2 className="w-4 h-4 mr-1" />
-                  Delete
-                </button>
+      {/* Simplified Header without settings button */}
+      <div className="mb-6">
+        <div className="flex items-center">
+          <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center mr-4 sm:mr-6 shadow-lg relative ${isDarkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white border border-gray-200'}`}>
+            <Bell className={`w-6 h-6 sm:w-8 sm:h-8 ${isDarkMode ? 'text-white' : 'text-black'}`} />
+            {unreadCount > 0 && (
+              <div className="absolute -top-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 bg-red-500 rounded-full flex items-center justify-center text-white text-xs sm:text-sm font-bold">
+                {unreadCount > 99 ? '99+' : unreadCount}
               </div>
             )}
-            <button
-              onClick={loadNotifications}
-              disabled={loading}
-              className={`flex items-center px-6 py-3 text-sm font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 ${isDarkMode ? 'bg-white text-black hover:bg-gray-100' : 'bg-black text-white hover:bg-gray-900'
-                } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              {loading ? 'Loading...' : 'Refresh'}
-            </button>
           </div>
-        </div>
-
-        {/* Advanced Search and Filters */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-4">
-            <div className="relative">
-              <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`} />
-              <input
-                type="text"
-                placeholder="Search notifications..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className={`pl-10 pr-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-80 text-sm border ${isDarkMode ? 'bg-gray-900 border-gray-700 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
-                  }`}
-              />
-            </div>
-
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className={`px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm border ${isDarkMode ? 'bg-gray-900 border-gray-700 text-white' : 'bg-white border-gray-300 text-gray-900'
-                }`}
-            >
-              <option value="all">All Types</option>
-              <option value="meeting">Meetings</option>
-              <option value="chat">Messages</option>
-              <option value="project">Projects</option>
-              <option value="goal">Goals</option>
-              <option value="user">Users</option>
-              <option value="system">System</option>
-            </select>
-
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className={`px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm border ${isDarkMode ? 'bg-gray-900 border-gray-700 text-white' : 'bg-white border-gray-300 text-gray-900'
-                }`}
-            >
-              <option value="all">All Status</option>
-              <option value="unread">Unread</option>
-              <option value="read">Read</option>
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              {recentNotifications.length} of {notifications.length} notifications
-            </span>
+          <div>
+            <h1 className={`text-2xl sm:text-4xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>Notifications</h1>
+            <p className={`text-sm sm:text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Manage your notifications</p>
           </div>
         </div>
       </div>
 
-      {/* Professional Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <div className={`p-6 rounded-2xl shadow-lg border transition-all duration-300 hover:shadow-xl hover:scale-105 ${isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'}`}>
+      {/* Compact Statistics - Improved for mobile */}
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        <div className={`p-3 sm:p-4 rounded-xl shadow-md border transition-all duration-200 hover:shadow-lg ${isDarkMode ? 'bg-gray-900/50 border-gray-700' : 'bg-white/50 border-gray-200'}`}>
           <div className="flex items-center justify-between">
-            <div>
-              <p className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>{unreadCount}</p>
-              <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Unread Notifications</p>
-              <div className={`text-xs mt-1 ${unreadCount > 10 ? 'text-red-500' : 'text-green-500'}`}>
-                {unreadCount > 10 ? '⚠️ Needs Attention' : '✅ Under Control'}
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-red-500/20' : 'bg-red-100'}`}>
+                <AlertCircle className={`h-4 w-4 sm:h-5 sm:w-5 ${isDarkMode ? 'text-red-400' : 'text-red-600'}`} />
+              </div>
+              <div>
+                <p className={`text-lg sm:text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{unreadCount}</p>
+                <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Unread</p>
               </div>
             </div>
-            <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-white' : 'bg-black'}`}>
-              <AlertCircle className={`h-8 w-8 ${isDarkMode ? 'text-black' : 'text-white'}`} />
+            <div className={`text-xs px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full ${unreadCount > 10 ? (isDarkMode ? 'bg-red-500/20 text-red-300' : 'bg-red-100 text-red-700') : (isDarkMode ? 'bg-green-500/20 text-green-300' : 'bg-green-100 text-green-700')}`}>
+              {unreadCount > 10 ? '⚠️' : '✅'}
             </div>
           </div>
         </div>
-        <div className={`p-6 rounded-2xl shadow-lg border transition-all duration-300 hover:shadow-xl hover:scale-105 ${isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'}`}>
+        <div className={`p-3 sm:p-4 rounded-xl shadow-md border transition-all duration-200 hover:shadow-lg ${isDarkMode ? 'bg-gray-900/50 border-gray-700' : 'bg-white/50 border-gray-200'}`}>
           <div className="flex items-center justify-between">
-            <div>
-              <p className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>{notifications.length}</p>
-              <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Notifications</p>
-              <div className={`text-xs mt-1 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
-                📊 {pinnedNotifications.length} pinned • {analytics.todayCount} today
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-blue-500/20' : 'bg-blue-100'}`}>
+                <Bell className={`h-4 w-4 sm:h-5 sm:w-5 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+              </div>
+              <div>
+                <p className={`text-lg sm:text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{notifications.length}</p>
+                <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total</p>
               </div>
             </div>
-            <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-gray-700' : 'bg-gray-300'}`}>
-              <Bell className={`h-8 w-8 ${isDarkMode ? 'text-white' : 'text-black'}`} />
+            <div className={`text-xs px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full ${isDarkMode ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-100 text-blue-700'}`}>
+              📊 {pinnedNotifications.length}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Settings Panel */}
+      {/* Settings Panel - Keep the functionality but remove the button to access it */}
       {showSettings && (
-        <div className={`mb-8 p-6 rounded-2xl shadow-lg border ${isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'}`}>
+        <div className={`mb-6 p-4 rounded-2xl shadow-lg border ${isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'}`}>
           <div className="flex items-center justify-between mb-4">
-            <h3 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>Notification Preferences</h3>
+            <h3 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>Notification Preferences</h3>
             <button
               onClick={() => setShowSettings(false)}
               className={`p-2 rounded-lg ${isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}
@@ -449,220 +357,358 @@ const NotificationsPage = () => {
               <EyeOff className={`w-5 h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
             </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Mail className={`w-5 h-5 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
-                <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>Email</span>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
+              <div className="flex items-center gap-2">
+                <Mail className={`w-4 h-4 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+                <span className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>Email</span>
               </div>
               <input
                 type="checkbox"
                 checked={notificationPreferences.email}
                 onChange={(e) => setNotificationPreferences(prev => ({ ...prev, email: e.target.checked }))}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
               />
             </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Smartphone className={`w-5 h-5 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
-                <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>Push</span>
+            <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
+              <div className="flex items-center gap-2">
+                <Smartphone className={`w-4 h-4 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
+                <span className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>Push</span>
               </div>
               <input
                 type="checkbox"
                 checked={notificationPreferences.push}
                 onChange={(e) => setNotificationPreferences(prev => ({ ...prev, push: e.target.checked }))}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
               />
             </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Slack className={`w-5 h-5 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`} />
-                <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>Slack</span>
+            <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
+              <div className="flex items-center gap-2">
+                <Slack className={`w-4 h-4 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`} />
+                <span className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>Slack</span>
               </div>
               <input
                 type="checkbox"
                 checked={notificationPreferences.slack}
                 onChange={(e) => setNotificationPreferences(prev => ({ ...prev, slack: e.target.checked }))}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
               />
             </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className={`text-lg ${isDarkMode ? 'text-yellow-400' : 'text-yellow-600'}`}>📱</span>
-                <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>Auto-Refresh</span>
+            <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
+              <div className="flex items-center gap-2">
+                <span className={`text-sm ${isDarkMode ? 'text-yellow-400' : 'text-yellow-600'}`}>📱</span>
+                <span className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>Auto-Refresh</span>
               </div>
               <input
                 type="checkbox"
                 checked={autoRefresh}
                 onChange={(e) => setAutoRefresh(e.target.checked)}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
               />
             </div>
           </div>
         </div>
       )}
 
-      {/* Professional Notifications Table */}
+      {/* Notifications Container */}
       <div className={`rounded-xl shadow-lg border overflow-hidden ${isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'}`}>
-        <div className="overflow-x-auto">
-          {recentNotifications.length === 0 ? (
-            <div className="text-center py-12">
-              <Bell className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className={`mt-2 text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>No notifications found</h3>
-              <p className={`mt-1 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
-                {searchQuery || filterType !== 'all' || filterStatus !== 'all'
-                  ? 'Try adjusting your filters'
-                  : 'You\'re all caught up!'}
-              </p>
+        {recentNotifications.length === 0 ? (
+          <div className="text-center py-12 sm:py-16">
+            <Bell className="mx-auto h-12 w-12 sm:h-16 sm:w-16 text-gray-400 mb-3 sm:mb-4" />
+            <h3 className={`text-lg sm:text-xl font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-2`}>You're all caught up!</h3>
+            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              No new notifications at the moment
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden lg:block overflow-x-auto">
+              <table className="w-full">
+                <thead className={`${isDarkMode ? 'bg-gray-900 border-b border-gray-700 text-gray-200' : 'bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200'}`}>
+                  <tr>
+                    <th className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                      <input
+                        type="checkbox"
+                        checked={selectedNotifications.length === recentNotifications.length && recentNotifications.length > 0}
+                        onChange={handleSelectAll}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                    </th>
+                    <th className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                      <div className="flex items-center">
+                        <Bell className="h-4 w-4 mr-2" />
+                        Notification
+                      </div>
+                    </th>
+                    <th className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                      <div className="flex items-center">
+                        <Flag className="h-4 w-4 mr-2" />
+                        Type
+                      </div>
+                    </th>
+                    <th className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                      <div className="flex items-center">
+                        <User className="h-4 w-4 mr-2" />
+                        From
+                      </div>
+                    </th>
+                    <th className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                      <div className="flex items-center">
+                        <Calendar className="h-4 w-4 mr-2" />
+                        Time
+                      </div>
+                    </th>
+                    <th className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                      Status
+                    </th>
+                    <th className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className={`${isDarkMode ? 'bg-transparent divide-gray-800' : 'bg-white divide-gray-100'} divide-y`}>
+                  {recentNotifications.map((notification, index) => {
+                    const priority = getNotificationPriority(notification.type, notification.title);
+                    return (
+                      <tr
+                        key={notification.id}
+                        className={`transition-all duration-200 hover:scale-[1.01] cursor-pointer ${isDarkMode ? 'hover:bg-gray-900/40' : 'hover:bg-gray-50'
+                          } ${!notification.read ? 'border-l-4 border-blue-500' : ''} ${getPriorityColor(priority)}`}
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <input
+                            type="checkbox"
+                            checked={selectedNotifications.includes(notification.id)}
+                            onChange={() => handleSelectNotification(notification.id)}
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap" onClick={() => !notification.read && handleMarkAsRead(notification.id)}>
+                          <div className="flex items-center gap-4">
+                            <div className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center relative ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'
+                              }`}>
+                              {React.cloneElement(getNotificationIcon(notification.type), {
+                                className: `w-6 h-6 ${isDarkMode ? 'text-white' : 'text-black'}`
+                              })}
+                              {!notification.read && (
+                                <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full" />
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className={`text-sm font-semibold mb-1 ${isDarkMode ? (!notification.read ? 'text-white' : 'text-gray-300') : (!notification.read ? 'text-gray-900' : 'text-gray-700')
+                                }`}>
+                                {notification.title}
+                                {priority === 'high' && <span className="ml-2 text-red-500 text-xs font-bold">URGENT</span>}
+                              </div>
+                              <p className={`text-sm max-w-md truncate ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                                {notification.message}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold border ${isDarkMode ? 'bg-gray-700 text-white border-gray-600' : 'bg-gray-200 text-black border-gray-300'
+                            }`}>
+                            {notification.type}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            {notification.fromUserName ? (
+                              <>
+                                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-medium mr-3">
+                                  {notification.fromUserName.charAt(0).toUpperCase()}
+                                </div>
+                                <div className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                  {notification.fromUserName}
+                                </div>
+                              </>
+                            ) : (
+                              <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>System</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                            {formatTime(notification.createdAt)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold ${notification.read
+                            ? (isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700')
+                            : (isDarkMode ? 'bg-blue-900 text-blue-300' : 'bg-blue-100 text-blue-800')
+                            }`}>
+                            {notification.read ? 'Read' : 'Unread'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <div className="flex items-center gap-1">
+                            {!notification.read && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleMarkAsRead(notification.id); }}
+                                className={`p-1 rounded hover:scale-110 transition-transform ${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-800'
+                                  }`}
+                                title="Mark as read"
+                              >
+                                <CheckCircle className="h-4 w-4" />
+                              </button>
+                            )}
+                            <button
+                              className={`p-1 rounded hover:scale-110 transition-transform ${isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-600 hover:text-gray-800'
+                                }`}
+                              title="More options"
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-          ) : (
-            <table className="w-full">
-              <thead className={`${isDarkMode ? 'bg-gray-900 border-b border-gray-700 text-gray-200' : 'bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200'}`}>
-                <tr>
-                  <th className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+
+            {/* Mobile Card View - Enhanced for better mobile experience */}
+            <div className="lg:hidden">
+              {/* Mobile Header with Select All */}
+              <div className={`px-4 py-3 border-b ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
                     <input
                       type="checkbox"
                       checked={selectedNotifications.length === recentNotifications.length && recentNotifications.length > 0}
                       onChange={handleSelectAll}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-3 h-4 w-4"
                     />
-                  </th>
-                  <th className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                    <div className="flex items-center">
-                      <Bell className="h-4 w-4 mr-2" />
-                      Notification
+                    <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Select All
+                    </span>
+                  </div>
+                  {selectedNotifications.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleBulkMarkAsRead}
+                        className={`px-3 py-1 text-xs font-medium rounded ${isDarkMode ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-blue-500 text-white hover:bg-blue-600'}`}
+                      >
+                        Mark Read
+                      </button>
+                      <button
+                        onClick={handleBulkDelete}
+                        className="px-3 py-1 text-xs font-medium rounded bg-red-600 text-white hover:bg-red-700"
+                      >
+                        Delete
+                      </button>
                     </div>
-                  </th>
-                  <th className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                    <div className="flex items-center">
-                      <Flag className="h-4 w-4 mr-2" />
-                      Type
-                    </div>
-                  </th>
-                  <th className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                    <div className="flex items-center">
-                      <User className="h-4 w-4 mr-2" />
-                      From
-                    </div>
-                  </th>
-                  <th className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                    <div className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-2" />
-                      Time
-                    </div>
-                  </th>
-                  <th className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                    Status
-                  </th>
-                  <th className={`px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className={`${isDarkMode ? 'bg-transparent divide-gray-800' : 'bg-white divide-gray-100'} divide-y`}>
-                {recentNotifications.map((notification, index) => {
+                  )}
+                </div>
+              </div>
+
+              {/* Mobile Cards - Improved for better touch interaction */}
+              <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                {recentNotifications.map((notification) => {
                   const priority = getNotificationPriority(notification.type, notification.title);
                   return (
-                    <tr
+                    <div
                       key={notification.id}
-                      className={`transition-all duration-200 hover:scale-[1.01] cursor-pointer ${isDarkMode ? 'hover:bg-gray-900/40' : 'hover:bg-gray-50'
-                        } ${!notification.read ? 'border-l-4 border-blue-500' : ''} ${getPriorityColor(priority)}`}
+                      className={`p-4 transition-all duration-200 ${isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-50'
+                        } ${!notification.read ? 'border-l-4 border-blue-500 bg-blue-50/20 dark:bg-blue-900/20' : ''} ${getPriorityColor(priority)}`}
                     >
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-start gap-3">
                         <input
                           type="checkbox"
                           checked={selectedNotifications.includes(notification.id)}
                           onChange={() => handleSelectNotification(notification.id)}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mt-1 flex-shrink-0 h-5 w-5"
                           onClick={(e) => e.stopPropagation()}
                         />
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap" onClick={() => !notification.read && handleMarkAsRead(notification.id)}>
-                        <div className="flex items-center gap-4">
-                          <div className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center relative ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'
-                            }`}>
-                            {React.cloneElement(getNotificationIcon(notification.type), {
-                              className: `w-6 h-6 ${isDarkMode ? 'text-white' : 'text-black'}`
-                            })}
-                            {!notification.read && (
-                              <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full" />
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center relative ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'
+                                }`}>
+                                {React.cloneElement(getNotificationIcon(notification.type), {
+                                  className: `w-5 h-5 ${isDarkMode ? 'text-white' : 'text-black'}`
+                                })}
+                                {!notification.read && (
+                                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-gray-900" />
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className={`text-sm font-semibold mb-1 ${isDarkMode ? (!notification.read ? 'text-white' : 'text-gray-300') : (!notification.read ? 'text-gray-900' : 'text-gray-700')
+                                  }`}>
+                                  {notification.title}
+                                  {priority === 'high' && <span className="ml-2 text-red-500 text-xs font-bold">URGENT</span>}
+                                </div>
+                                <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} line-clamp-2`}>
+                                  {notification.message}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-col items-end gap-2">
+                              <span className={`text-xs whitespace-nowrap ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                {formatTime(notification.createdAt)}
+                              </span>
+                              <div className="flex items-center gap-1">
+                                {!notification.read && (
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); handleMarkAsRead(notification.id); }}
+                                    className={`p-1.5 rounded-full hover:scale-110 transition-transform ${isDarkMode ? 'text-blue-400 hover:text-blue-300 hover:bg-gray-700' : 'text-blue-600 hover:text-blue-800 hover:bg-gray-200'
+                                      }`}
+                                    title="Mark as read"
+                                  >
+                                    <CheckCircle className="h-4 w-4" />
+                                  </button>
+                                )}
+                                <button
+                                  className={`p-1.5 rounded-full hover:scale-110 transition-transform ${isDarkMode ? 'text-gray-400 hover:text-gray-300 hover:bg-gray-700' : 'text-gray-600 hover:text-gray-800 hover:bg-gray-200'
+                                    }`}
+                                  title="More options"
+                                >
+                                  <MoreVertical className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                            <div className="flex items-center gap-2">
+                              <span className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold border ${isDarkMode ? 'bg-gray-700 text-white border-gray-600' : 'bg-gray-200 text-black border-gray-300'
+                                }`}>
+                                {notification.type}
+                              </span>
+                              <span className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold ${notification.read
+                                ? (isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700')
+                                : (isDarkMode ? 'bg-blue-900 text-blue-300' : 'bg-blue-100 text-blue-800')
+                                }`}>
+                                {notification.read ? 'Read' : 'Unread'}
+                              </span>
+                            </div>
+
+                            {notification.fromUserName && (
+                              <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-medium">
+                                  {notification.fromUserName.charAt(0).toUpperCase()}
+                                </div>
+                                <span className={`text-xs max-w-[80px] truncate ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                  {notification.fromUserName}
+                                </span>
+                              </div>
                             )}
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <div className={`text-sm font-semibold mb-1 ${isDarkMode ? (!notification.read ? 'text-white' : 'text-gray-300') : (!notification.read ? 'text-gray-900' : 'text-gray-700')
-                              }`}>
-                              {notification.title}
-                              {priority === 'high' && <span className="ml-2 text-red-500 text-xs font-bold">URGENT</span>}
-                            </div>
-                            <p className={`text-sm max-w-md truncate ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                              {notification.message}
-                            </p>
-                          </div>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold border ${isDarkMode ? 'bg-gray-700 text-white border-gray-600' : 'bg-gray-200 text-black border-gray-300'
-                          }`}>
-                          {notification.type}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          {notification.fromUserName ? (
-                            <>
-                              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-medium mr-3">
-                                {notification.fromUserName.charAt(0).toUpperCase()}
-                              </div>
-                              <div className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                                {notification.fromUserName}
-                              </div>
-                            </>
-                          ) : (
-                            <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>System</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                          {formatTime(notification.createdAt)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold ${notification.read
-                            ? (isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700')
-                            : (isDarkMode ? 'bg-blue-900 text-blue-300' : 'bg-blue-100 text-blue-800')
-                          }`}>
-                          {notification.read ? 'Read' : 'Unread'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <div className="flex items-center gap-1">
-                          {!notification.read && (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleMarkAsRead(notification.id); }}
-                              className={`p-1 rounded hover:scale-110 transition-transform ${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-800'
-                                }`}
-                              title="Mark as read"
-                            >
-                              <CheckCircle className="h-4 w-4" />
-                            </button>
-                          )}
-                          <button
-                            className={`p-1 rounded hover:scale-110 transition-transform ${isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-600 hover:text-gray-800'
-                              }`}
-                            title="More options"
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
+                      </div>
+                    </div>
                   );
                 })}
-              </tbody>
-            </table>
-          )}
-        </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

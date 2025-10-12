@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const auth = require('../middleware/auth');
 const Project = require('../models/Project');
 const { requireManager } = require('../middleware/roleAuth');
+
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -70,29 +71,32 @@ function mapProject(p) {
 // GET /api/projects - Get all projects (auth required)
 router.get('/', auth, async (req, res) => {
   try {
-    console.log(req.user);
-    
     const userId = req.user.id;
     const userName = req.user.username;
-    console.log(userName);
-
     const userRole = req.user.role;
     
     let projects;
     
     if (userRole === 'admin') {
-      // Admin can see all projects
-      projects = await Project.find({ archived: false })
-        .populate('owner', 'name email')
-        .sort({ createdAt: -1 });
-    } else {
-      // Users can see projects they own, are assigned to, or are viewers of
+      // Admin can see: all assigned/viewer projects + own projects
       projects = await Project.find({
         archived: false,
         $or: [
-          { owner: userId },                           // project owner
-          { assignedTo: { $in: [userName, req.user.name] } }, // assigned
-          { viewers: { $in: [userName, req.user.name] } }     // viewers
+          { owner: userId },
+          { assignedTo: { $exists: true, $ne: [] } },
+          { viewers: { $exists: true, $ne: [] } }
+        ]
+      })
+        .populate('owner', 'name email')
+        .sort({ createdAt: -1 });
+    } else {
+      // Regular users can see: own projects + assigned projects + viewer projects
+      projects = await Project.find({
+        archived: false,
+        $or: [
+          { owner: userId },
+          { assignedTo: { $in: [userName, req.user.name] } },
+          { viewers: { $in: [userName, req.user.name] } }
         ]
       })
         .populate('owner', 'name email')

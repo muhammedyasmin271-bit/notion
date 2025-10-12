@@ -128,6 +128,17 @@ const uploadRoutes = require('./routes/upload');
 const taskRoutes = require('./routes/tasks');
 const reportRoutes = require('./routes/reports');
 
+// Database status middleware (must be before routes)
+app.use('/api', (req, res, next) => {
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({
+      message: 'Database unavailable',
+      error: 'Please start MongoDB or check database connection'
+    });
+  }
+  next();
+});
+
 // Use routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -143,17 +154,6 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/reports', reportRoutes);
-
-// Database status middleware
-app.use('/api', (req, res, next) => {
-  if (mongoose.connection.readyState !== 1) {
-    return res.status(503).json({
-      message: 'Database unavailable',
-      error: 'Please start MongoDB or check database connection'
-    });
-  }
-  next();
-});
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

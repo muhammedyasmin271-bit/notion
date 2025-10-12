@@ -1,5 +1,35 @@
 const mongoose = require('mongoose');
 
+const BlockSchema = new mongoose.Schema({
+  id: {
+    type: String,
+    required: true
+  },
+  type: {
+    type: String,
+    required: true
+  },
+  content: {
+    type: String,
+    default: ''
+  },
+  style: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
+  },
+  calloutType: String,
+  priorityLevel: String,
+  highlightColor: String,
+  tagColor: String,
+  progress: Number,
+  expanded: Boolean,
+  toggleContent: String,
+  url: String,
+  emailAddress: String,
+  address: String,
+  visible: Boolean
+}, { _id: false });
+
 const ReportSchema = new mongoose.Schema({
   title: {
     type: String,
@@ -9,12 +39,7 @@ const ReportSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
-  blocks: [{
-    id: String,
-    type: String,
-    content: String,
-    style: mongoose.Schema.Types.Mixed
-  }],
+  blocks: [BlockSchema],
   tableData: {
     type: mongoose.Schema.Types.Mixed,
     default: {}
@@ -33,6 +58,10 @@ const ReportSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   }],
+  isPublic: {
+    type: Boolean,
+    default: false
+  },
   status: {
     type: String,
     enum: ['draft', 'submitted', 'published'],

@@ -21,7 +21,6 @@ import InviteMembersPage from './components/InviteMembersPage/InviteMembersPage'
 import LoginPage from './components/auth/LoginPage';
 import RegisterPage from './components/auth/RegisterPage';
 import PendingApprovalPage from './components/auth/PendingApprovalPage';
-import SettingsPage from './components/SettingsPage/SettingsPage';
 import HowItWorksPage from './components/HowItWorksPage/HowItWorksPage';
 import AIAssistantPage from './components/AIAssistantPage/AIAssistantPage';
 import UserManagementPage from './components/UserManagementPage/UserManagementPage';
@@ -29,6 +28,13 @@ import UserProfilePage from './components/UserProfilePage/UserProfilePage';
 import WelcomePage from './components/WelcomePage/WelcomePage';
 import ManagerRoute from './components/ManagerRoute/ManagerRoute';
 import AdminRoute from './components/AdminRoute/AdminRoute';
+import AdminDashboard from './components/AdminDashboard/AdminDashboard';
+import AdminSettings from './components/AdminDashboard/AdminSettings';
+import AdminReports from './components/AdminDashboard/AdminReports';
+import AdminAuditLog from './components/AdminDashboard/AdminAuditLog';
+import AdminSecurityCenter from './components/AdminDashboard/AdminSecurityCenter';
+import AdminUserAnalytics from './components/AdminDashboard/AdminUserAnalytics';
+import AdminDataManagement from './components/AdminDashboard/AdminDataManagement'; // Add this line
 import SavedNotesPage from './components/SavedNotesPage/SavedNotesPage';
 
 import TasksPage from './components/TasksPage/TasksPage';
@@ -38,6 +44,7 @@ import NavigationPanel from './components/NavigationPanel/NavigationPanel';
 import MeetingTemplatesPage from './components/MeetingTemplatesPage/MeetingTemplatesPage';
 import ReportsPage from './components/ReportsPage/ReportsPage';
 import SubmitReportPage from './components/SubmitReportPage/SubmitReportPage';
+import SharedReportsPage from './components/SharedReportsPage/SharedReportsPage';
 
 import './App.css';
 
@@ -246,13 +253,6 @@ const AppContent = () => {
           </ProtectedRoute>
         } />
 
-        <Route path="/settings" element={
-          <ProtectedRoute>
-            <Layout>
-              <SettingsPage />
-            </Layout>
-          </ProtectedRoute>
-        } />
 
         <Route path="/how-it-works" element={
           <ProtectedRoute>
@@ -279,6 +279,14 @@ const AppContent = () => {
         } />
 
         <Route path="/users" element={
+          <ManagerRoute>
+            <Layout>
+              <UserManagementPage />
+            </Layout>
+          </ManagerRoute>
+        } />
+
+        <Route path="/user-management" element={
           <ManagerRoute>
             <Layout>
               <UserManagementPage />
@@ -328,6 +336,14 @@ const AppContent = () => {
           </ProtectedRoute>
         } />
 
+        <Route path="/shared-reports" element={
+          <ProtectedRoute>
+            <Layout>
+              <SharedReportsPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+
 
 
 
@@ -336,45 +352,58 @@ const AppContent = () => {
         <Route path="/admin" element={
           <AdminRoute>
             <Layout>
-              <div className="p-6">
-                <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                    <h2 className="text-xl font-semibold mb-4">User Management</h2>
-                    <p className="mb-4">Manage all users, approve registrations, and assign roles.</p>
-                    <button
-                      onClick={() => window.location.href = '/users'}
-                      className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
-                    >
-                      Manage Users
-                    </button>
-                  </div>
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                    <h2 className="text-xl font-semibold mb-4">System Reports</h2>
-                    <p className="mb-4">View system analytics and usage reports.</p>
-                    <button
-                      onClick={() => window.location.href = '/reports'}
-                      className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
-                    >
-                      View Reports
-                    </button>
-                  </div>
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                    <h2 className="text-xl font-semibold mb-4">System Settings</h2>
-                    <p className="mb-4">Configure system-wide settings and preferences.</p>
-                    <button
-                      onClick={() => window.location.href = '/settings'}
-                      className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
-                    >
-                      System Settings
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <AdminDashboard />
             </Layout>
           </AdminRoute>
         } />
 
+        <Route path="/admin/settings" element={
+          <AdminRoute>
+            <Layout>
+              <AdminSettings />
+            </Layout>
+          </AdminRoute>
+        } />
+
+        <Route path="/admin/reports" element={
+          <AdminRoute>
+            <Layout>
+              <AdminReports />
+            </Layout>
+          </AdminRoute>
+        } />
+
+        <Route path="/admin/audit-log" element={
+          <AdminRoute>
+            <Layout>
+              <AdminAuditLog />
+            </Layout>
+          </AdminRoute>
+        } />
+
+        <Route path="/admin/security" element={
+          <AdminRoute>
+            <Layout>
+              <AdminSecurityCenter />
+            </Layout>
+          </AdminRoute>
+        } />
+
+        <Route path="/admin/analytics" element={
+          <AdminRoute>
+            <Layout>
+              <AdminUserAnalytics />
+            </Layout>
+          </AdminRoute>
+        } />
+
+        <Route path="/admin/data-management" element={
+          <AdminRoute>
+            <Layout>
+              <AdminDataManagement />
+            </Layout>
+          </AdminRoute>
+        } />
         {/* Catch all route - redirect to home */}
         <Route path="*" element={
           <ProtectedRoute>

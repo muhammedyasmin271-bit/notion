@@ -84,14 +84,26 @@ const UserManagementPage = () => {
     }
   };
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.department.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesRole = filterRole === 'all' || user.role === filterRole;
+  const filteredUsers = users.filter(userItem => {
+    const matchesSearch = userItem.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      userItem.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      userItem.department.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesRole = filterRole === 'all' || userItem.role === filterRole;
     // Hide declined users unless explicitly filtering for declined
-    const declinedHidden = user.status === 'declined' && filterStatus !== 'declined';
-    const matchesStatus = filterStatus === 'all' || user.status === filterStatus;
+    const declinedHidden = userItem.status === 'declined' && filterStatus !== 'declined';
+    const matchesStatus = filterStatus === 'all' || userItem.status === filterStatus;
+    
+    // Role-based visibility for pending approvals
+    if (userItem.status === 'pending') {
+      // Admins see all pending users
+      if (user?.role === 'admin') {
+        // Admin sees all
+      } else if (user?.role === 'manager') {
+        // Managers only see pending regular users, not other managers
+        if (userItem.role === 'manager') return false;
+      }
+    }
+    
     return !declinedHidden && matchesSearch && matchesRole && matchesStatus;
   });
 
@@ -310,21 +322,21 @@ const UserManagementPage = () => {
   };
 
   return (
-    <div className={`content p-6 lg:p-8 font-sans min-h-screen ${isDarkMode ? 'bg-black text-white' : 'bg-white text-gray-900'
+    <div className={`content p-3 sm:p-6 lg:p-8 font-sans min-h-screen ${isDarkMode ? 'bg-black text-white' : 'bg-white text-gray-900'
       }`}>
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-6">
+      <div className="mb-6 sm:mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-4">
           <div className="flex items-center">
-            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mr-6 shadow-lg ${isDarkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white border border-gray-200'
+            <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl flex items-center justify-center mr-3 sm:mr-6 shadow-lg ${isDarkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white border border-gray-200'
               }`}>
-              <Users className={`w-8 h-8 ${isDarkMode ? 'text-white' : 'text-black'}`} />
+              <Users className={`w-6 h-6 sm:w-8 sm:h-8 ${isDarkMode ? 'text-white' : 'text-black'}`} />
             </div>
             <div>
-              <h1 className={`text-4xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>
+              <h1 className={`text-2xl sm:text-3xl lg:text-4xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>
                 {isPickerMode ? 'Select Team Members' : 'Team Members'}
               </h1>
-              <p className={`text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              <p className={`text-sm sm:text-base lg:text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                 {isPickerMode ? `Select users to assign to ${pickerData?.type || 'item'}` : 'Manage your team and user accounts'}
               </p>
             </div>
@@ -360,20 +372,20 @@ const UserManagementPage = () => {
         </div>
 
         {/* Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className={`p-6 rounded-2xl shadow-lg border ${isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
+          <div className={`p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg border ${isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
             }`}>
             <div className="flex items-center justify-between">
               <div>
-                <p className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                <p className={`text-xl sm:text-2xl lg:text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>
                   {users.length}
                 </p>
-                <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                <p className={`text-xs sm:text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} truncate`}>
                   Total Users
                 </p>
               </div>
-              <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-white' : 'bg-black'}`}>
-                <Users className={`h-8 w-8 ${isDarkMode ? 'text-black' : 'text-white'}`} />
+              <div className={`p-2 sm:p-3 rounded-lg sm:rounded-xl ${isDarkMode ? 'bg-white' : 'bg-black'}`}>
+                <Users className={`h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 ${isDarkMode ? 'text-black' : 'text-white'}`} />
               </div>
             </div>
           </div>
@@ -431,8 +443,8 @@ const UserManagementPage = () => {
         </div>
 
         {/* Search */}
-        <div className="flex items-center space-x-4 mb-6">
-          <div className="relative">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <div className="relative flex-1">
             <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-400'
               }`} />
             <input
@@ -440,43 +452,45 @@ const UserManagementPage = () => {
               placeholder="Search users..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className={`pl-10 pr-4 py-3 rounded-lg w-80 text-sm border ${isDarkMode ? 'bg-gray-900 border-gray-700 text-white' : 'bg-white border-gray-300 text-gray-900'
+              className={`pl-10 pr-4 py-3 rounded-lg w-full text-sm border ${isDarkMode ? 'bg-gray-900 border-gray-700 text-white' : 'bg-white border-gray-300 text-gray-900'
                 }`}
             />
           </div>
 
-          <select
-            value={filterRole}
-            onChange={(e) => setFilterRole(e.target.value)}
-            className={`px-4 py-3 rounded-lg text-sm border ${isDarkMode ? 'bg-gray-900 border-gray-700 text-white' : 'bg-white border-gray-300 text-gray-900'
-              }`}
-          >
-            <option value="all">All Roles</option>
-            <option value="admin">Admins</option>
-            <option value="manager">Managers</option>
-            <option value="user">Team Members</option>
-          </select>
+          <div className="flex gap-2 sm:gap-3">
+            <select
+              value={filterRole}
+              onChange={(e) => setFilterRole(e.target.value)}
+              className={`flex-1 sm:w-auto px-3 py-3 rounded-lg text-sm border ${isDarkMode ? 'bg-gray-900 border-gray-700 text-white' : 'bg-white border-gray-300 text-gray-900'
+                }`}
+            >
+              <option value="all">All Roles</option>
+              <option value="admin">Admins</option>
+              <option value="manager">Managers</option>
+              <option value="user">Team Members</option>
+            </select>
 
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className={`px-4 py-3 rounded-lg text-sm border ${isDarkMode ? 'bg-gray-900 border-gray-700 text-white' : 'bg-white border-gray-300 text-gray-900'
-              }`}
-          >
-            <option value="all">All Statuses</option>
-            <option value="pending">Pending</option>
-            <option value="approved">Approved</option>
-            <option value="declined">Declined</option>
-          </select>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className={`flex-1 sm:w-auto px-3 py-3 rounded-lg text-sm border ${isDarkMode ? 'bg-gray-900 border-gray-700 text-white' : 'bg-white border-gray-300 text-gray-900'
+                }`}
+            >
+              <option value="all">All Statuses</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="declined">Declined</option>
+            </select>
+          </div>
         </div>
       </div>
 
       {/* Users Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
         {filteredUsers.map((userItem) => (
           <div
             key={userItem.id}
-            className={`rounded-2xl shadow-lg border overflow-hidden cursor-pointer hover:scale-105 transition-transform duration-200 ${isPickerMode && selectedUsers.includes(userItem.name)
+            className={`rounded-xl sm:rounded-2xl shadow-lg border overflow-hidden cursor-pointer hover:scale-105 transition-transform duration-200 ${isPickerMode && selectedUsers.includes(userItem.name)
               ? (isDarkMode ? 'bg-blue-900/20 border-blue-600 ring-2 ring-blue-500/30' : 'bg-blue-50 border-blue-400 ring-2 ring-blue-400/30')
               : userItem.status === 'pending'
                 ? (isDarkMode ? 'bg-yellow-900/10 border-yellow-700 ring-2 ring-yellow-600/20' : 'bg-yellow-50 border-yellow-300 ring-2 ring-yellow-400/20')
@@ -485,33 +499,34 @@ const UserManagementPage = () => {
             onClick={() => isPickerMode ? handleUserSelection(userItem.name) : setShowUserProfile(userItem)}
           >
             {/* User Header */}
-            <div className={`p-6 border-b ${isDarkMode ? 'border-gray-800' : 'border-gray-100'}`}>
-              <div className="flex items-center space-x-4 mb-4">
-                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold ${isDarkMode ? 'bg-white text-black' : 'bg-black text-white'
+            <div className={`p-4 sm:p-6 border-b ${isDarkMode ? 'border-gray-800' : 'border-gray-100'}`}>
+              <div className="flex items-center space-x-3 sm:space-x-4 mb-3 sm:mb-4">
+                <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl flex items-center justify-center text-lg sm:text-2xl font-bold ${isDarkMode ? 'bg-white text-black' : 'bg-black text-white'
                   }`}>
                   {userItem.name.charAt(0).toUpperCase()}
                 </div>
-                <div>
-                  <h3 className={`font-bold text-xl ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                <div className="flex-1 min-w-0">
+                  <h3 className={`font-bold text-lg sm:text-xl truncate ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                     {userItem.name}
                   </h3>
-                  <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} truncate`}>
                     @{userItem.username}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <span className={`px-3 py-1 rounded-full text-xs font-bold border-2 flex items-center gap-2 ${userItem.role === 'admin'
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-bold border-2 flex items-center gap-1 sm:gap-2 ${userItem.role === 'admin'
                   ? (isDarkMode ? 'bg-red-900 text-red-300 border-red-700' : 'bg-red-100 text-red-800 border-red-300')
                   : userItem.role === 'manager'
                     ? (isDarkMode ? 'bg-yellow-900 text-yellow-300 border-yellow-700' : 'bg-yellow-100 text-yellow-800 border-yellow-300')
                     : (isDarkMode ? 'bg-blue-900 text-blue-300 border-blue-700' : 'bg-blue-100 text-blue-800 border-blue-300')
                   }`}>
                   {userItem.role === 'admin' ? <Shield className="w-3 h-3" /> : userItem.role === 'manager' ? <Crown className="w-3 h-3" /> : <UserIcon className="w-3 h-3" />}
-                  {userItem.role === 'admin' ? 'Admin' : userItem.role === 'manager' ? 'Manager' : 'Team Member'}
+                  <span className="hidden sm:inline">{userItem.role === 'admin' ? 'Admin' : userItem.role === 'manager' ? 'Manager' : 'Team Member'}</span>
+                  <span className="sm:hidden">{userItem.role === 'admin' ? 'A' : userItem.role === 'manager' ? 'M' : 'U'}</span>
                 </span>
-                <span className={`px-3 py-1 rounded-full text-xs font-bold border-2 flex items-center gap-1 ${userItem.status === 'approved'
+                <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-bold border-2 flex items-center gap-1 ${userItem.status === 'approved'
                   ? (isDarkMode ? 'bg-green-900 text-green-300 border-green-700' : 'bg-green-100 text-green-800 border-green-300')
                   : userItem.status === 'declined'
                     ? (isDarkMode ? 'bg-red-900 text-red-300 border-red-700' : 'bg-red-100 text-red-800 border-red-300')
@@ -520,9 +535,10 @@ const UserManagementPage = () => {
                   {userItem.status === 'pending' && <Clock className="w-3 h-3" />}
                   {userItem.status === 'approved' && <Check className="w-3 h-3" />}
                   {userItem.status === 'declined' && <X className="w-3 h-3" />}
-                  {userItem.status.charAt(0).toUpperCase() + userItem.status.slice(1)}
+                  <span className="hidden sm:inline">{userItem.status.charAt(0).toUpperCase() + userItem.status.slice(1)}</span>
+                  <span className="sm:hidden">{userItem.status.charAt(0).toUpperCase()}</span>
                 </span>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${isDarkMode ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-700'
+                <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium truncate max-w-[100px] sm:max-w-none ${isDarkMode ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-700'
                   }`}>
                   {userItem.department}
                 </span>
@@ -530,38 +546,38 @@ const UserManagementPage = () => {
             </div>
 
             {/* User Details */}
-            <div className="p-6">
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 text-sm">
-                  <Mail className="w-4 h-4 opacity-50" />
-                  <span className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
+            <div className="p-4 sm:p-6">
+              <div className="space-y-3 sm:space-y-4">
+                <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+                  <Mail className="w-4 h-4 opacity-50 flex-shrink-0" />
+                  <span className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'} truncate`}>
                     {userItem.email}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-3 text-sm">
-                  <Phone className="w-4 h-4 opacity-50" />
-                  <span className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
+                <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+                  <Phone className="w-4 h-4 opacity-50 flex-shrink-0" />
+                  <span className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'} truncate`}>
                     {userItem.phone}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-3 text-sm">
-                  <Building className="w-4 h-4 opacity-50" />
-                  <span className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
+                <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+                  <Building className="w-4 h-4 opacity-50 flex-shrink-0" />
+                  <span className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'} truncate`}>
                     {userItem.location}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-3 text-sm">
-                  <Calendar className="w-4 h-4 opacity-50" />
+                <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+                  <Calendar className="w-4 h-4 opacity-50 flex-shrink-0" />
                   <span className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
                     Joined {new Date(userItem.joinDate).toLocaleDateString()}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-3 text-sm">
-                  <div className={`w-4 h-4 rounded opacity-50 ${isDarkMode ? 'bg-blue-400' : 'bg-blue-600'}`}></div>
+                <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+                  <div className={`w-4 h-4 rounded opacity-50 flex-shrink-0 ${isDarkMode ? 'bg-blue-400' : 'bg-blue-600'}`}></div>
                   <span className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
                     {userItem.files?.length || 0} files uploaded
                   </span>

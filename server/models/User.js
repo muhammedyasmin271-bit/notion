@@ -58,6 +58,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  jobTitle: {
+    type: String,
+    default: ''
+  },
   department: {
     type: String,
     default: ''

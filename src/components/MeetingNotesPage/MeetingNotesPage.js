@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAppContext } from '../../context/AppContext'; // Added import for AppContext
-import { Plus, Search, Calendar, Clock, Users, FileText, Filter, Edit, CheckCircle, Circle, TrendingUp, BarChart2, Tag, Clock as ClockIcon } from 'lucide-react';
+import { Plus, Search, Calendar, Clock, Users, FileText, Filter, Edit, CheckCircle, Circle, TrendingUp, BarChart2, Tag, Clock as ClockIcon, Newspaper as MeetingNotesIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getMeetings, deleteMeeting, completeMeetingActionItem, addMeetingActionItem, updateMeeting } from '../../services/api';
-import ServerStatus from '../ServerStatus/ServerStatus';
+
 
 const MeetingNotesPage = () => {
   const { isDarkMode } = useTheme();
@@ -204,15 +204,87 @@ const MeetingNotesPage = () => {
 
   const MeetingListItem = ({ meeting }) => {
     return (
-      <div className={`border-b last:border-b-0 transition-all duration-200 ${isDarkMode ? 'border-gray-700/50' : 'border-gray-200/60'}`}>
-        <div className={`p-5 hover:bg-gradient-to-r ${isDarkMode ? 'hover:from-gray-800/30 hover:to-gray-800/10' : 'hover:from-blue-50/30 hover:to-purple-50/20'} group transition-all duration-200`}>
-          <div className="flex items-center justify-between">
+      <div 
+        className={`border-b last:border-b-0 transition-all duration-200 cursor-pointer ${isDarkMode ? 'border-gray-700/50' : 'border-gray-200/60'}`}
+        onClick={() => navigate(`/meeting-editor/${meeting.id}`)}
+      >
+        <div className={`p-3 sm:p-5 hover:bg-gradient-to-r ${isDarkMode ? 'hover:from-gray-800/30 hover:to-gray-800/10' : 'hover:from-blue-50/30 hover:to-purple-50/20'} group transition-all duration-200`}>
+          {/* Mobile Layout */}
+          <div className="block sm:hidden">
+            <div className="flex items-center gap-2 mb-3">
+              <div className={`w-3 h-3 rounded-full flex-shrink-0 ${getStatusColor(meeting.status).includes('green') ? 'bg-emerald-500' : getStatusColor(meeting.status).includes('blue') ? 'bg-blue-500' : getStatusColor(meeting.status).includes('yellow') ? 'bg-amber-500' : 'bg-gray-500'}`}></div>
+              <span className={`font-semibold text-base ${isDarkMode ? 'text-gray-100' : 'text-gray-900'} group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors`}>
+                {meeting.title}
+              </span>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <select
+                  value={meeting.type}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    updateMeetingField(meeting.id, 'type', e.target.value);
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className={`px-2 py-1 rounded text-xs font-medium bg-transparent border-none outline-none ${getTypeColor(meeting.type)}`}
+                >
+                  <option value="Standup">Standup</option>
+                  <option value="Planning">Planning</option>
+                  <option value="Review">Review</option>
+                  <option value="Retro">Retro</option>
+                  <option value="Presentation">Presentation</option>
+                  <option value="Brainstorming">Brainstorming</option>
+                  <option value="Client Meeting">Client Meeting</option>
+                  <option value="Team Sync">Team Sync</option>
+                </select>
+                <select
+                  value={meeting.status}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    updateMeetingField(meeting.id, 'status', e.target.value);
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className={`px-2 py-1 rounded text-xs font-medium bg-transparent border-none outline-none ${getStatusColor(meeting.status)}`}
+                >
+                  <option value="scheduled">Scheduled</option>
+                  <option value="in-progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <input
+                  type="date"
+                  value={meeting.date}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    updateMeetingField(meeting.id, 'date', e.target.value);
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="bg-transparent border-none outline-none text-xs"
+                />
+                <span>•</span>
+                <input
+                  type="time"
+                  value={meeting.time}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    updateMeetingField(meeting.id, 'time', e.target.value);
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="bg-transparent border-none outline-none text-xs"
+                />
+                <span>•</span>
+                <span className="text-xs">{meeting.attendees ? meeting.attendees.length : 0} people</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop Layout */}
+          <div className="hidden sm:flex items-center">
             <div className="flex items-center gap-6 flex-1">
               <div className={`w-3 h-3 rounded-full flex-shrink-0 ${getStatusColor(meeting.status).includes('green') ? 'bg-emerald-500' : getStatusColor(meeting.status).includes('blue') ? 'bg-blue-500' : getStatusColor(meeting.status).includes('yellow') ? 'bg-amber-500' : 'bg-gray-500'}`}></div>
-              <div
-                className="flex-1 min-w-0 cursor-pointer"
-                onClick={() => navigate(`/meeting-editor/${meeting.id}`)}
-              >
+              <div className="flex-1 min-w-0">
                 <div className={`flex items-center text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                   <span className={`font-semibold text-lg mr-20 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'} group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors`}>
                     {meeting.title}
@@ -281,13 +353,6 @@ const MeetingNotesPage = () => {
                 </div>
               </div>
             </div>
-            <button
-              onClick={() => navigate(`/meeting-editor/${meeting.id}`)}
-              className={`flex items-center gap-1 px-3 py-1 rounded text-xs font-medium transition-colors ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
-            >
-              <Edit className="w-3 h-3" />
-              Edit
-            </button>
           </div>
         </div>
       </div>
@@ -295,21 +360,26 @@ const MeetingNotesPage = () => {
   };
 
   return (
-    <div className={`min-h-screen p-6 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+    <div className={`min-h-screen p-3 sm:p-6 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">Meeting Notes</h1>
-            <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              Manage your meeting notes and schedules
-            </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 sm:mb-8 gap-4">
+          <div className="flex items-center">
+            <div className={`w-10 h-10 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl flex items-center justify-center mr-3 sm:mr-6 ${isDarkMode ? 'bg-gradient-to-br from-blue-700 via-indigo-700 to-purple-700 shadow-indigo-900/40' : 'bg-gradient-to-br from-black via-gray-800 to-slate-700 shadow-black/20'} shadow-xl`}>
+              <MeetingNotesIcon className="w-5 h-5 sm:w-8 sm:h-8 text-white" />
+            </div>
+            <div>
+              <h1 className={`text-2xl sm:text-3xl font-bold ${isDarkMode ? 'bg-gradient-to-r from-white via-gray-200 to-blue-200' : 'bg-gradient-to-r from-black via-gray-800 to-slate-600'} bg-clip-text text-transparent mb-1`}>Meeting Notes</h1>
+              <p className={`text-sm sm:text-base ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} font-medium`}>
+                Manage your meeting notes and schedules
+              </p>
+            </div>
           </div>
           {/* Conditionally show Create Meeting button only for managers and admins */}
           {isManager() && (
             <button
               onClick={() => navigate('/meeting-editor/new')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
+              className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-all w-full sm:w-auto ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
             >
               <Plus className="w-4 h-4" />
               Create Meeting
@@ -318,23 +388,23 @@ const MeetingNotesPage = () => {
         </div>
 
         {/* Search and Filters */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="relative flex-1">
+        <div className="flex flex-col gap-4 mb-6">
+          <div className="relative">
             <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
             <input
               type="text"
-              placeholder="Search meetings, attendees, tags..."
+              placeholder="Search meetings..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className={`w-full pl-10 pr-4 py-2 rounded-lg border transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-400 focus:border-blue-500' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500'} focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
             />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="hidden sm:flex items-center gap-2">
             <Filter className={`w-4 h-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className={`px-3 py-2 rounded-lg border transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-100' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
+              className={`px-3 py-2 rounded-lg border transition-colors text-sm ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-100' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
             >
               <option value="all">All Status</option>
               <option value="scheduled">Scheduled</option>
@@ -345,7 +415,7 @@ const MeetingNotesPage = () => {
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
-              className={`px-3 py-2 rounded-lg border transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-100' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
+              className={`px-3 py-2 rounded-lg border transition-colors text-sm ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-100' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
             >
               <option value="all">All Types</option>
               <option value="Standup">Standup</option>
@@ -356,7 +426,7 @@ const MeetingNotesPage = () => {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className={`px-3 py-2 rounded-lg border transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-100' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
+              className={`px-3 py-2 rounded-lg border transition-colors text-sm ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-100' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
             >
               <option value="date">Sort by Date</option>
               <option value="title">Sort by Title</option>
@@ -365,8 +435,8 @@ const MeetingNotesPage = () => {
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        {/* Stats - Hidden on mobile */}
+        <div className="hidden sm:grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <div className={`rounded-lg p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
             <div className={`text-2xl font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
               {meetings.length}
@@ -427,7 +497,7 @@ const MeetingNotesPage = () => {
             )}
           </div>
         )}
-        <ServerStatus />
+
       </div>
     </div>
   );

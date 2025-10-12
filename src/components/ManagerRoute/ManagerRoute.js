@@ -10,7 +10,7 @@ const ManagerRoute = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
   
-  if (user?.role !== 'manager') {
+  if (user?.role !== 'manager' && user?.role !== 'admin') {
     return <Navigate to="/home" replace />;
   }
   

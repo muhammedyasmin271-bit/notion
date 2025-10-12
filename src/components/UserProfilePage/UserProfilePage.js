@@ -1,58 +1,119 @@
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
-import { User, Mail, Shield, Calendar, Settings, Save, Eye, EyeOff, CheckCircle, AlertCircle, Edit3 } from 'lucide-react';
+import { User, Mail, Shield, Calendar, Settings, Save, Eye, EyeOff, CheckCircle, AlertCircle, Edit3, Palette, Moon, Sun, Bell, Volume2, VolumeX, Type, Clock, Keyboard } from 'lucide-react';
 
 const UserProfilePage = () => {
   const { user, updateUserPreferences, changePassword, apiService } = useAppContext();
-  const { isDarkMode } = useTheme();
-  
+  const { isDarkMode, toggleTheme, navbarBgColor, updateNavbarBgColor } = useTheme();
+
   const [activeTab, setActiveTab] = useState('profile');
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
-  
+
   // Profile form state
   const [profileForm, setProfileForm] = useState({
     name: user?.name || '',
     email: user?.email || '',
-    username: user?.username || ''
+    username: user?.username || '',
+    department: user?.department || '',
+    phoneNumber: user?.phone || '',
+    location: user?.location || ''
   });
-  
+
   // Password form state
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   });
-  
+
   const [showPasswords, setShowPasswords] = useState({
     current: false,
     new: false,
     confirm: false
   });
-  
+
   // Preferences state
   const [preferences, setPreferences] = useState({
     theme: user?.preferences?.theme || 'auto',
     notifications: {
-      email: user?.preferences?.notifications?.email || true,
-      push: user?.preferences?.notifications?.push || true
+      email: {
+        mentions: user?.preferences?.notifications?.email?.mentions || true,
+        assignments: user?.preferences?.notifications?.email?.assignments || true,
+        deadlines: user?.preferences?.notifications?.email?.deadlines || true,
+        general: user?.preferences?.notifications?.email?.general || true
+      },
+      inApp: {
+        enabled: user?.preferences?.notifications?.inApp?.enabled || true,
+        sound: user?.preferences?.notifications?.inApp?.sound || true,
+        desktop: user?.preferences?.notifications?.inApp?.desktop || true
+      },
+      push: {
+        enabled: user?.preferences?.notifications?.push?.enabled || true,
+        mentions: user?.preferences?.notifications?.push?.mentions || true,
+        assignments: user?.preferences?.notifications?.push?.assignments || true,
+        deadlines: user?.preferences?.notifications?.push?.deadlines || true
+      }
+    },
+    editor: {
+      fontSize: user?.preferences?.editor?.fontSize || '14',
+      fontFamily: user?.preferences?.editor?.fontFamily || 'Inter',
+      autoSave: user?.preferences?.editor?.autoSave || '30',
+      markdownShortcuts: user?.preferences?.editor?.markdownShortcuts || true,
+      wordWrap: user?.preferences?.editor?.wordWrap || true,
+      lineNumbers: user?.preferences?.editor?.lineNumbers || true
     }
   });
+
+  const handleDarkModeToggle = () => {
+    toggleTheme();
+    showMessage('success', `Switched to ${!isDarkMode ? 'dark' : 'light'} mode successfully!`);
+
+    setTimeout(() => {
+      window.dispatchEvent(new Event('theme-changed'));
+    }, 100);
+  };
 
   useEffect(() => {
     if (user) {
       setProfileForm({
         name: user.name || '',
         email: user.email || '',
-        username: user.username || ''
+        username: user.username || '',
+        department: user.department || '',
+        phoneNumber: user.phone || '',
+        location: user.location || ''
       });
       setPreferences({
         theme: user.preferences?.theme || 'auto',
         notifications: {
-          email: user.preferences?.notifications?.email || true,
-          push: user.preferences?.notifications?.push || true
+          email: {
+            mentions: user.preferences?.notifications?.email?.mentions || true,
+            assignments: user.preferences?.notifications?.email?.assignments || true,
+            deadlines: user.preferences?.notifications?.email?.deadlines || true,
+            general: user.preferences?.notifications?.email?.general || true
+          },
+          inApp: {
+            enabled: user.preferences?.notifications?.inApp?.enabled || true,
+            sound: user.preferences?.notifications?.inApp?.sound || true,
+            desktop: user.preferences?.notifications?.inApp?.desktop || true
+          },
+          push: {
+            enabled: user.preferences?.notifications?.push?.enabled || true,
+            mentions: user.preferences?.notifications?.push?.mentions || true,
+            assignments: user.preferences?.notifications?.push?.assignments || true,
+            deadlines: user.preferences?.notifications?.push?.deadlines || true
+          }
+        },
+        editor: {
+          fontSize: user.preferences?.editor?.fontSize || '14',
+          fontFamily: user.preferences?.editor?.fontFamily || 'Inter',
+          autoSave: user.preferences?.editor?.autoSave || '30',
+          markdownShortcuts: user.preferences?.editor?.markdownShortcuts || true,
+          wordWrap: user.preferences?.editor?.wordWrap || true,
+          lineNumbers: user.preferences?.editor?.lineNumbers || true
         }
       });
     }
@@ -66,8 +127,24 @@ const UserProfilePage = () => {
   const handleProfileSave = async () => {
     setLoading(true);
     try {
+      // Map frontend fields to backend fields
+      const profileData = {
+        name: profileForm.name,
+        email: profileForm.email,
+        department: profileForm.department,
+        phone: profileForm.phoneNumber,
+        location: profileForm.location
+      };
+
+      // Remove undefined/empty fields
+      Object.keys(profileData).forEach(key => {
+        if (profileData[key] === undefined || profileData[key] === '') {
+          delete profileData[key];
+        }
+      });
+
       // Update profile via API
-      await apiService.put('/auth/profile', profileForm);
+      await apiService.put('/users/profile', profileData);
       setIsEditing(false);
       showMessage('success', 'Profile updated successfully');
     } catch (error) {
@@ -82,7 +159,7 @@ const UserProfilePage = () => {
       showMessage('error', 'New passwords do not match');
       return;
     }
-    
+
     if (passwordForm.newPassword.length < 6) {
       showMessage('error', 'New password must be at least 6 characters');
       return;
@@ -124,16 +201,14 @@ const UserProfilePage = () => {
   };
 
   return (
-    <div className={`content p-6 lg:p-8 font-sans min-h-screen ${
-      isDarkMode ? 'bg-black text-white' : 'bg-white text-gray-900'
-    }`}>
+    <div className={`content p-6 lg:p-8 font-sans min-h-screen ${isDarkMode ? 'bg-black text-white' : 'bg-white text-gray-900'
+      }`}>
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center">
-            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mr-6 shadow-lg transition-all duration-300 ${
-              isDarkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white border border-gray-200'
-            }`}>
+            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mr-6 shadow-lg transition-all duration-300 ${isDarkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white border border-gray-200'
+              }`}>
               <User className={`w-8 h-8 ${isDarkMode ? 'text-white' : 'text-black'}`} />
             </div>
             <div>
@@ -149,11 +224,10 @@ const UserProfilePage = () => {
 
         {/* Message Display */}
         {message.text && (
-          <div className={`mb-6 p-4 rounded-xl border-2 flex items-center ${
-            message.type === 'success'
+          <div className={`mb-6 p-4 rounded-xl border-2 flex items-center ${message.type === 'success'
               ? (isDarkMode ? 'bg-green-900/20 border-green-700 text-green-300' : 'bg-green-50 border-green-200 text-green-700')
               : (isDarkMode ? 'bg-red-900/20 border-red-700 text-red-300' : 'bg-red-50 border-red-200 text-red-700')
-          }`}>
+            }`}>
             {message.type === 'success' ? (
               <CheckCircle className="w-5 h-5 mr-3 flex-shrink-0" />
             ) : (
@@ -175,11 +249,10 @@ const UserProfilePage = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center px-6 py-3 rounded-xl font-semibold transition-all duration-200 ${
-                  activeTab === tab.id
+                className={`flex items-center px-6 py-3 rounded-xl font-semibold transition-all duration-200 ${activeTab === tab.id
                     ? (isDarkMode ? 'bg-white text-black' : 'bg-black text-white')
                     : (isDarkMode ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200')
-                }`}
+                  }`}
               >
                 <Icon className="w-4 h-4 mr-2" />
                 {tab.label}
@@ -190,9 +263,8 @@ const UserProfilePage = () => {
       </div>
 
       {/* Tab Content */}
-      <div className={`rounded-2xl shadow-lg border ${
-        isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
-      }`}>
+      <div className={`rounded-2xl shadow-lg border ${isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
+        }`}>
         {/* Profile Tab */}
         {activeTab === 'profile' && (
           <div className="p-8">
@@ -202,9 +274,8 @@ const UserProfilePage = () => {
               </h2>
               <button
                 onClick={() => setIsEditing(!isEditing)}
-                className={`flex items-center px-4 py-2 rounded-xl font-semibold transition-all duration-200 ${
-                  isDarkMode ? 'bg-blue-900 text-blue-300 hover:bg-blue-800' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                }`}
+                className={`flex items-center px-4 py-2 rounded-xl font-semibold transition-all duration-200 ${isDarkMode ? 'bg-blue-900 text-blue-300 hover:bg-blue-800' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                  }`}
               >
                 <Edit3 className="w-4 h-4 mr-2" />
                 {isEditing ? 'Cancel' : 'Edit'}
@@ -214,31 +285,27 @@ const UserProfilePage = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* User Avatar */}
               <div className="md:col-span-2 flex justify-center mb-6">
-                <div className={`w-32 h-32 rounded-full flex items-center justify-center text-4xl font-bold shadow-lg ${
-                  isDarkMode ? 'bg-white text-black' : 'bg-black text-white'
-                }`}>
+                <div className={`w-32 h-32 rounded-full flex items-center justify-center text-4xl font-bold shadow-lg ${isDarkMode ? 'bg-white text-black' : 'bg-black text-white'
+                  }`}>
                   {user?.name?.charAt(0)?.toUpperCase() || 'U'}
                 </div>
               </div>
 
               {/* Name */}
               <div>
-                <label className={`block text-sm font-semibold mb-3 ${
-                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                }`}>Full Name</label>
+                <label className={`block text-sm font-semibold mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Full Name</label>
                 {isEditing ? (
                   <input
                     type="text"
                     value={profileForm.name}
                     onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-                    className={`w-full px-4 py-3 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${
-                      isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                    }`}
+                    className={`w-full px-4 py-3 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                      }`}
                   />
                 ) : (
-                  <div className={`px-4 py-3 rounded-xl border font-medium ${
-                    isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-gray-50 border-gray-300 text-gray-900'
-                  }`}>
+                  <div className={`px-4 py-3 rounded-xl border font-medium ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-gray-50 border-gray-300 text-gray-900'
+                    }`}>
                     {user?.name || 'Not set'}
                   </div>
                 )}
@@ -246,12 +313,10 @@ const UserProfilePage = () => {
 
               {/* Username */}
               <div>
-                <label className={`block text-sm font-semibold mb-3 ${
-                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                }`}>Username</label>
-                <div className={`px-4 py-3 rounded-xl border font-medium ${
-                  isDarkMode ? 'bg-gray-800 border-gray-600 text-gray-400' : 'bg-gray-50 border-gray-300 text-gray-500'
-                }`}>
+                <label className={`block text-sm font-semibold mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Username</label>
+                <div className={`px-4 py-3 rounded-xl border font-medium ${isDarkMode ? 'bg-gray-800 border-gray-600 text-gray-400' : 'bg-gray-50 border-gray-300 text-gray-500'
+                  }`}>
                   @{user?.username || 'Not set'}
                 </div>
                 <p className={`mt-2 text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
@@ -261,49 +326,107 @@ const UserProfilePage = () => {
 
               {/* Email */}
               <div>
-                <label className={`block text-sm font-semibold mb-3 ${
-                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                }`}>Email Address</label>
+                <label className={`block text-sm font-semibold mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Email Address</label>
                 {isEditing ? (
                   <input
                     type="email"
                     value={profileForm.email}
                     onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
-                    className={`w-full px-4 py-3 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${
-                      isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                    }`}
+                    className={`w-full px-4 py-3 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                      }`}
                   />
                 ) : (
-                  <div className={`px-4 py-3 rounded-xl border font-medium ${
-                    isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-gray-50 border-gray-300 text-gray-900'
-                  }`}>
+                  <div className={`px-4 py-3 rounded-xl border font-medium ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-gray-50 border-gray-300 text-gray-900'
+                    }`}>
                     {user?.email || 'Not set'}
+                  </div>
+                )}
+              </div>
+
+
+
+              {/* Department */}
+              <div>
+                <label className={`block text-sm font-semibold mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Department</label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={profileForm.department}
+                    onChange={(e) => setProfileForm({ ...profileForm, department: e.target.value })}
+                    className={`w-full px-4 py-3 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                      }`}
+                    placeholder="e.g., Engineering, Marketing, Sales"
+                  />
+                ) : (
+                  <div className={`px-4 py-3 rounded-xl border font-medium ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-gray-50 border-gray-300 text-gray-900'
+                    }`}>
+                    {user?.department || 'Not set'}
+                  </div>
+                )}
+              </div>
+
+              {/* Phone Number */}
+              <div>
+                <label className={`block text-sm font-semibold mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Phone Number</label>
+                {isEditing ? (
+                  <input
+                    type="tel"
+                    value={profileForm.phoneNumber}
+                    onChange={(e) => setProfileForm({ ...profileForm, phoneNumber: e.target.value })}
+                    className={`w-full px-4 py-3 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                      }`}
+                    placeholder="e.g., +1 (555) 123-4567"
+                  />
+                ) : (
+                  <div className={`px-4 py-3 rounded-xl border font-medium ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-gray-50 border-gray-300 text-gray-900'
+                    }`}>
+                    {user?.phone || 'Not set'}
+                  </div>
+                )}
+              </div>
+
+              {/* Location */}
+              <div>
+                <label className={`block text-sm font-semibold mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Location</label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={profileForm.location}
+                    onChange={(e) => setProfileForm({ ...profileForm, location: e.target.value })}
+                    className={`w-full px-4 py-3 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                      }`}
+                    placeholder="e.g., New York, NY"
+                  />
+                ) : (
+                  <div className={`px-4 py-3 rounded-xl border font-medium ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-gray-50 border-gray-300 text-gray-900'
+                    }`}>
+                    {user?.location || 'Not set'}
                   </div>
                 )}
               </div>
 
               {/* Role */}
               <div>
-                <label className={`block text-sm font-semibold mb-3 ${
-                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                }`}>Role</label>
-                <div className={`px-4 py-3 rounded-xl border font-medium flex items-center ${
-                  isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-gray-50 border-gray-300 text-gray-900'
-                }`}>
+                <label className={`block text-sm font-semibold mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Role</label>
+                <div className={`px-4 py-3 rounded-xl border font-medium flex items-center ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-gray-50 border-gray-300 text-gray-900'
+                  }`}>
                   <Shield className="w-4 h-4 mr-2" />
-                  {user?.role === 'manager' ? 'Manager' : 'Team Member'}
+                  {user?.role === 'admin' ? 'Admin' : user?.role === 'manager' ? 'Manager' : 'Team Member'}
                 </div>
               </div>
 
               {/* Account Created */}
               <div className="md:col-span-2">
-                <label className={`block text-sm font-semibold mb-3 ${
-                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                }`}>Account Information</label>
+                <label className={`block text-sm font-semibold mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Account Information</label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className={`px-4 py-3 rounded-xl border font-medium ${
-                    isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-gray-50 border-gray-300 text-gray-900'
-                  }`}>
+                  <div className={`px-4 py-3 rounded-xl border font-medium ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-gray-50 border-gray-300 text-gray-900'
+                    }`}>
                     <div className="flex items-center">
                       <Calendar className="w-4 h-4 mr-2" />
                       <div>
@@ -312,9 +435,8 @@ const UserProfilePage = () => {
                       </div>
                     </div>
                   </div>
-                  <div className={`px-4 py-3 rounded-xl border font-medium ${
-                    isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-gray-50 border-gray-300 text-gray-900'
-                  }`}>
+                  <div className={`px-4 py-3 rounded-xl border font-medium ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-gray-50 border-gray-300 text-gray-900'
+                    }`}>
                     <div className="flex items-center">
                       <User className="w-4 h-4 mr-2" />
                       <div>
@@ -357,25 +479,22 @@ const UserProfilePage = () => {
               <div className="space-y-6">
                 {/* Current Password */}
                 <div>
-                  <label className={`block text-sm font-semibold mb-3 ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                  }`}>Current Password</label>
+                  <label className={`block text-sm font-semibold mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                    }`}>Current Password</label>
                   <div className="relative">
                     <input
                       type={showPasswords.current ? 'text' : 'password'}
                       value={passwordForm.currentPassword}
                       onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
-                      className={`w-full px-4 py-3 pr-12 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${
-                        isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                      }`}
+                      className={`w-full px-4 py-3 pr-12 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                        }`}
                       placeholder="Enter current password"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
-                      className={`absolute right-4 top-1/2 transform -translate-y-1/2 ${
-                        isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-400 hover:text-gray-600'
-                      }`}
+                      className={`absolute right-4 top-1/2 transform -translate-y-1/2 ${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-400 hover:text-gray-600'
+                        }`}
                     >
                       {showPasswords.current ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
@@ -384,25 +503,22 @@ const UserProfilePage = () => {
 
                 {/* New Password */}
                 <div>
-                  <label className={`block text-sm font-semibold mb-3 ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                  }`}>New Password</label>
+                  <label className={`block text-sm font-semibold mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                    }`}>New Password</label>
                   <div className="relative">
                     <input
                       type={showPasswords.new ? 'text' : 'password'}
                       value={passwordForm.newPassword}
                       onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                      className={`w-full px-4 py-3 pr-12 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${
-                        isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                      }`}
+                      className={`w-full px-4 py-3 pr-12 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                        }`}
                       placeholder="Enter new password"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
-                      className={`absolute right-4 top-1/2 transform -translate-y-1/2 ${
-                        isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-400 hover:text-gray-600'
-                      }`}
+                      className={`absolute right-4 top-1/2 transform -translate-y-1/2 ${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-400 hover:text-gray-600'
+                        }`}
                     >
                       {showPasswords.new ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
@@ -411,25 +527,22 @@ const UserProfilePage = () => {
 
                 {/* Confirm New Password */}
                 <div>
-                  <label className={`block text-sm font-semibold mb-3 ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                  }`}>Confirm New Password</label>
+                  <label className={`block text-sm font-semibold mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                    }`}>Confirm New Password</label>
                   <div className="relative">
                     <input
                       type={showPasswords.confirm ? 'text' : 'password'}
                       value={passwordForm.confirmPassword}
                       onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                      className={`w-full px-4 py-3 pr-12 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${
-                        isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                      }`}
+                      className={`w-full px-4 py-3 pr-12 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                        }`}
                       placeholder="Confirm new password"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
-                      className={`absolute right-4 top-1/2 transform -translate-y-1/2 ${
-                        isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-400 hover:text-gray-600'
-                      }`}
+                      className={`absolute right-4 top-1/2 transform -translate-y-1/2 ${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-400 hover:text-gray-600'
+                        }`}
                     >
                       {showPasswords.confirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
@@ -462,79 +575,530 @@ const UserProfilePage = () => {
               Preferences
             </h2>
 
-            <div className="max-w-md space-y-6">
-              {/* Theme Selection */}
+            <div className="space-y-8">
+              {/* Appearance Section */}
               <div>
-                <label className={`block text-sm font-semibold mb-3 ${
-                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                }`}>Theme</label>
-                <select
-                  value={preferences.theme}
-                  onChange={(e) => setPreferences({ ...preferences, theme: e.target.value })}
-                  className={`w-full px-4 py-3 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 cursor-pointer ${
-                    isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
-                  }`}
-                >
-                  <option value="auto">🌓 Auto (System)</option>
-                  <option value="light">☀️ Light</option>
-                  <option value="dark">🌙 Dark</option>
-                </select>
-              </div>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'
+                    }`}>
+                    <Palette className={`w-5 h-5 ${isDarkMode ? 'text-white' : 'text-black'}`} />
+                  </div>
+                  <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                    Appearance
+                  </h3>
+                </div>
 
-              {/* Notification Preferences */}
-              <div>
-                <label className={`block text-sm font-semibold mb-3 ${
-                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                }`}>Notifications</label>
-                <div className="space-y-3">
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={preferences.notifications.email}
-                      onChange={(e) => setPreferences({
-                        ...preferences,
-                        notifications: { ...preferences.notifications, email: e.target.checked }
-                      })}
-                      className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 focus:ring-2"
-                    />
-                    <span className={`ml-3 font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                      📧 Email Notifications
-                    </span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={preferences.notifications.push}
-                      onChange={(e) => setPreferences({
-                        ...preferences,
-                        notifications: { ...preferences.notifications, push: e.target.checked }
-                      })}
-                      className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 focus:ring-2"
-                    />
-                    <span className={`ml-3 font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                      🔔 Push Notifications
-                    </span>
-                  </label>
+                <div className="space-y-4">
+                  {/* Theme Mode */}
+                  <div className={`p-4 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
+                    }`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        {isDarkMode ? (
+                          <Moon className={`w-6 h-6 ${isDarkMode ? 'text-white' : 'text-black'}`} />
+                        ) : (
+                          <Sun className={`w-6 h-6 ${isDarkMode ? 'text-white' : 'text-black'}`} />
+                        )}
+                        <div>
+                          <p className={`font-semibold ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                            Theme Mode
+                          </p>
+                          <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            {isDarkMode ? 'Dark mode is active' : 'Light mode is active'}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleDarkModeToggle}
+                        className={`relative inline-flex h-8 w-16 items-center rounded-full transition-colors duration-300 focus:outline-none ${isDarkMode ? 'bg-white' : 'bg-black'
+                          }`}
+                      >
+                        <span
+                          className={`inline-block h-6 w-6 transform rounded-full transition-transform duration-300 ${isDarkMode ? 'translate-x-9 bg-black' : 'translate-x-1 bg-white'
+                            }`}
+                        >
+                          <span className="flex h-full w-full items-center justify-center">
+                            {isDarkMode ? (
+                              <Moon className="h-3 w-3 text-white" />
+                            ) : (
+                              <Sun className="h-3 w-3 text-black" />
+                            )}
+                          </span>
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Navbar Background Color */}
+                  <div className={`p-4 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
+                    }`}>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-4">
+                        <div className={`w-6 h-6 rounded ${navbarBgColor}`}></div>
+                        <div>
+                          <p className={`font-semibold ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                            Navbar Background
+                          </p>
+                          <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            Customize your navigation bar color
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { name: 'Default Blue', class: 'bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900' },
+                        { name: 'Dark Gray', class: 'bg-gradient-to-br from-gray-800 via-gray-700 to-slate-800' },
+                        { name: 'Dark', class: 'bg-gradient-to-br from-gray-900 via-slate-800 to-black' }
+                      ].map((color) => (
+                        <button
+                          key={color.name}
+                          onClick={() => {
+                            updateNavbarBgColor(color.class);
+                            showMessage('success', `Navbar color changed to ${color.name}!`);
+                          }}
+                          className={`p-3 rounded-lg border-2 transition-all duration-200 hover:scale-105 ${navbarBgColor === color.class
+                              ? 'border-blue-500 ring-2 ring-blue-500/20'
+                              : (isDarkMode ? 'border-gray-600 hover:border-gray-500' : 'border-gray-300 hover:border-gray-400')
+                            }`}
+                          title={color.name}
+                        >
+                          <div className={`w-full h-8 rounded ${color.class}`}></div>
+                          <p className={`text-xs mt-2 font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                            }`}>
+                            {color.name}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <button
-                onClick={handlePreferencesUpdate}
-                disabled={loading}
-                className="w-full py-3 text-base font-bold text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? (
-                  <div className="flex items-center justify-center">
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                    Saving...
+              {/* Notifications Section */}
+              <div>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'
+                    }`}>
+                    <Bell className={`w-5 h-5 ${isDarkMode ? 'text-white' : 'text-black'}`} />
                   </div>
-                ) : (
-                  <div className="flex items-center justify-center">
-                    <Save className="w-5 h-5 mr-2" />
-                    Save Preferences
+                  <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                    Notifications
+                  </h3>
+                </div>
+
+                <div className="space-y-6">
+                  {/* Email Notifications */}
+                  <div className={`p-6 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
+                    }`}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <Mail className={`w-5 h-5 ${isDarkMode ? 'text-white' : 'text-black'}`} />
+                      <h4 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                        Email Notifications
+                      </h4>
+                    </div>
+                    <div className="space-y-3">
+                      <label className="flex items-center justify-between">
+                        <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          📧 Mentions
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={preferences.notifications.email.mentions}
+                          onChange={(e) => setPreferences({
+                            ...preferences,
+                            notifications: {
+                              ...preferences.notifications,
+                              email: { ...preferences.notifications.email, mentions: e.target.checked }
+                            }
+                          })}
+                          className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 focus:ring-2"
+                        />
+                      </label>
+                      <label className="flex items-center justify-between">
+                        <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          📋 Assignments
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={preferences.notifications.email.assignments}
+                          onChange={(e) => setPreferences({
+                            ...preferences,
+                            notifications: {
+                              ...preferences.notifications,
+                              email: { ...preferences.notifications.email, assignments: e.target.checked }
+                            }
+                          })}
+                          className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 focus:ring-2"
+                        />
+                      </label>
+                      <label className="flex items-center justify-between">
+                        <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          ⏰ Deadlines
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={preferences.notifications.email.deadlines}
+                          onChange={(e) => setPreferences({
+                            ...preferences,
+                            notifications: {
+                              ...preferences.notifications,
+                              email: { ...preferences.notifications.email, deadlines: e.target.checked }
+                            }
+                          })}
+                          className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 focus:ring-2"
+                        />
+                      </label>
+                      <label className="flex items-center justify-between">
+                        <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          📢 General Updates
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={preferences.notifications.email.general}
+                          onChange={(e) => setPreferences({
+                            ...preferences,
+                            notifications: {
+                              ...preferences.notifications,
+                              email: { ...preferences.notifications.email, general: e.target.checked }
+                            }
+                          })}
+                          className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 focus:ring-2"
+                        />
+                      </label>
+                    </div>
                   </div>
-                )}
-              </button>
+
+                  {/* In-App Notifications */}
+                  <div className={`p-6 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
+                    }`}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <Bell className={`w-5 h-5 ${isDarkMode ? 'text-white' : 'text-black'}`} />
+                      <h4 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                        In-App Notifications
+                      </h4>
+                    </div>
+                    <div className="space-y-3">
+                      <label className="flex items-center justify-between">
+                        <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          🔔 Enable In-App Notifications
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={preferences.notifications.inApp.enabled}
+                          onChange={(e) => setPreferences({
+                            ...preferences,
+                            notifications: {
+                              ...preferences.notifications,
+                              inApp: { ...preferences.notifications.inApp, enabled: e.target.checked }
+                            }
+                          })}
+                          className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 focus:ring-2"
+                        />
+                      </label>
+                      <label className="flex items-center justify-between">
+                        <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          🔊 Sound Notifications
+                        </span>
+                        <div className="flex items-center gap-2">
+                          {preferences.notifications.inApp.sound ? (
+                            <Volume2 className="w-4 h-4 text-green-500" />
+                          ) : (
+                            <VolumeX className="w-4 h-4 text-gray-500" />
+                          )}
+                          <input
+                            type="checkbox"
+                            checked={preferences.notifications.inApp.sound}
+                            onChange={(e) => setPreferences({
+                              ...preferences,
+                              notifications: {
+                                ...preferences.notifications,
+                                inApp: { ...preferences.notifications.inApp, sound: e.target.checked }
+                              }
+                            })}
+                            className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 focus:ring-2"
+                          />
+                        </div>
+                      </label>
+                      <label className="flex items-center justify-between">
+                        <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          🖥️ Desktop Notifications
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={preferences.notifications.inApp.desktop}
+                          onChange={(e) => setPreferences({
+                            ...preferences,
+                            notifications: {
+                              ...preferences.notifications,
+                              inApp: { ...preferences.notifications.inApp, desktop: e.target.checked }
+                            }
+                          })}
+                          className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 focus:ring-2"
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Push Notifications */}
+                  <div className={`p-6 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
+                    }`}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <Bell className={`w-5 h-5 ${isDarkMode ? 'text-white' : 'text-black'}`} />
+                      <h4 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                        Push Notifications
+                      </h4>
+                    </div>
+                    <div className="space-y-3">
+                      <label className="flex items-center justify-between">
+                        <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          📱 Enable Push Notifications
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={preferences.notifications.push.enabled}
+                          onChange={(e) => setPreferences({
+                            ...preferences,
+                            notifications: {
+                              ...preferences.notifications,
+                              push: { ...preferences.notifications.push, enabled: e.target.checked }
+                            }
+                          })}
+                          className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 focus:ring-2"
+                        />
+                      </label>
+                      <label className="flex items-center justify-between">
+                        <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          💬 Mentions
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={preferences.notifications.push.mentions}
+                          onChange={(e) => setPreferences({
+                            ...preferences,
+                            notifications: {
+                              ...preferences.notifications,
+                              push: { ...preferences.notifications.push, mentions: e.target.checked }
+                            }
+                          })}
+                          className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 focus:ring-2"
+                        />
+                      </label>
+                      <label className="flex items-center justify-between">
+                        <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          📋 Assignments
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={preferences.notifications.push.assignments}
+                          onChange={(e) => setPreferences({
+                            ...preferences,
+                            notifications: {
+                              ...preferences.notifications,
+                              push: { ...preferences.notifications.push, assignments: e.target.checked }
+                            }
+                          })}
+                          className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 focus:ring-2"
+                        />
+                      </label>
+                      <label className="flex items-center justify-between">
+                        <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          ⏰ Deadlines
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={preferences.notifications.push.deadlines}
+                          onChange={(e) => setPreferences({
+                            ...preferences,
+                            notifications: {
+                              ...preferences.notifications,
+                              push: { ...preferences.notifications.push, deadlines: e.target.checked }
+                            }
+                          })}
+                          className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 focus:ring-2"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Editor Settings Section */}
+              <div>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'
+                    }`}>
+                    <Type className={`w-5 h-5 ${isDarkMode ? 'text-white' : 'text-black'}`} />
+                  </div>
+                  <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                    Editor Settings
+                  </h3>
+                </div>
+
+                <div className="space-y-6">
+                  {/* Font Settings */}
+                  <div className={`p-6 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
+                    }`}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <Type className={`w-5 h-5 ${isDarkMode ? 'text-white' : 'text-black'}`} />
+                      <h4 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                        Font Settings
+                      </h4>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                          }`}>Font Size</label>
+                        <select
+                          value={preferences.editor.fontSize}
+                          onChange={(e) => setPreferences({
+                            ...preferences,
+                            editor: { ...preferences.editor, fontSize: e.target.value }
+                          })}
+                          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                            }`}
+                        >
+                          <option value="12">12px</option>
+                          <option value="14">14px</option>
+                          <option value="16">16px</option>
+                          <option value="18">18px</option>
+                          <option value="20">20px</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                          }`}>Font Family</label>
+                        <select
+                          value={preferences.editor.fontFamily}
+                          onChange={(e) => setPreferences({
+                            ...preferences,
+                            editor: { ...preferences.editor, fontFamily: e.target.value }
+                          })}
+                          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                            }`}
+                        >
+                          <option value="Inter">Inter</option>
+                          <option value="Roboto">Roboto</option>
+                          <option value="Open Sans">Open Sans</option>
+                          <option value="Lato">Lato</option>
+                          <option value="Source Code Pro">Source Code Pro</option>
+                          <option value="Fira Code">Fira Code</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Auto-Save Settings */}
+                  <div className={`p-6 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
+                    }`}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <Clock className={`w-5 h-5 ${isDarkMode ? 'text-white' : 'text-black'}`} />
+                      <h4 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                        Auto-Save Settings
+                      </h4>
+                    </div>
+                    <div>
+                      <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>Auto-Save Interval</label>
+                      <select
+                        value={preferences.editor.autoSave}
+                        onChange={(e) => setPreferences({
+                          ...preferences,
+                          editor: { ...preferences.editor, autoSave: e.target.value }
+                        })}
+                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'
+                          }`}
+                      >
+                        <option value="10">10 seconds</option>
+                        <option value="30">30 seconds</option>
+                        <option value="60">1 minute</option>
+                        <option value="300">5 minutes</option>
+                        <option value="0">Disabled</option>
+                      </select>
+                      <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                        }`}>
+                        How often to automatically save your work
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Editor Features */}
+                  <div className={`p-6 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
+                    }`}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <Keyboard className={`w-5 h-5 ${isDarkMode ? 'text-white' : 'text-black'}`} />
+                      <h4 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                        Editor Features
+                      </h4>
+                    </div>
+                    <div className="space-y-3">
+                      <label className="flex items-center justify-between">
+                        <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          ⌨️ Markdown Shortcuts
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={preferences.editor.markdownShortcuts}
+                          onChange={(e) => setPreferences({
+                            ...preferences,
+                            editor: { ...preferences.editor, markdownShortcuts: e.target.checked }
+                          })}
+                          className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 focus:ring-2"
+                        />
+                      </label>
+                      <label className="flex items-center justify-between">
+                        <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          📝 Word Wrap
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={preferences.editor.wordWrap}
+                          onChange={(e) => setPreferences({
+                            ...preferences,
+                            editor: { ...preferences.editor, wordWrap: e.target.checked }
+                          })}
+                          className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 focus:ring-2"
+                        />
+                      </label>
+                      <label className="flex items-center justify-between">
+                        <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          🔢 Line Numbers
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={preferences.editor.lineNumbers}
+                          onChange={(e) => setPreferences({
+                            ...preferences,
+                            editor: { ...preferences.editor, lineNumbers: e.target.checked }
+                          })}
+                          className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 focus:ring-2"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  onClick={handlePreferencesUpdate}
+                  disabled={loading}
+                  className="px-6 py-3 text-base font-bold text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <div className="flex items-center justify-center">
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      Saving...
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center">
+                      <Save className="w-5 h-5 mr-2" />
+                      Save Preferences
+                    </div>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         )}

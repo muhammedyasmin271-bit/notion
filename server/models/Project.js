@@ -136,6 +136,21 @@ const projectSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  sharedWith: [{
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    permission: {
+      type: String,
+      enum: ['read', 'write', 'admin'],
+      default: 'read'
+    },
+    sharedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   archived: {
     type: Boolean,
     default: false

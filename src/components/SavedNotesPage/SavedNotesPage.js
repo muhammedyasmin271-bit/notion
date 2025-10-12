@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Star, Archive, Search, Clock, Filter, Plus, ChevronRight } from 'lucide-react';
+import { useTheme } from '../../context/ThemeContext';
 
 const getExcerpt = (html, length = 140) => {
   const text = (html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
@@ -9,6 +10,7 @@ const getExcerpt = (html, length = 140) => {
 
 export default function SavedNotesPage() {
   const navigate = useNavigate();
+  const { isDarkMode } = useTheme();
   const [notes, setNotes] = useState([]);
   // Filters (persisted)
   const [q, setQ] = useState('');
@@ -105,11 +107,11 @@ export default function SavedNotesPage() {
   };
 
   return (
-    <div className="px-6 py-8 max-w-7xl mx-auto">
+    <div className={`px-6 py-8 max-w-7xl mx-auto min-h-screen ${isDarkMode ? 'bg-black text-white' : 'bg-gray-50 text-gray-900'}`}>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold">Saved Notes</h1>
-          <p className="text-sm opacity-70">Browse, search, and open your notes</p>
+          <h1 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Saved Notes</h1>
+          <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Browse, search, and open your notes</p>
         </div>
         <button onClick={createNewNote} className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700">
           <Plus className="w-4 h-4"/> New Note
@@ -124,28 +126,28 @@ export default function SavedNotesPage() {
             value={q}
             onChange={(e)=>setQ(e.target.value)}
             placeholder="Search by title, tag, or description..."
-            className="w-full pl-9 pr-3 py-2 rounded-md border border-gray-300 bg-white/70 backdrop-blur"
+            className={`w-full pl-9 pr-3 py-2 rounded-md border backdrop-blur ${isDarkMode ? 'border-gray-600 bg-gray-800/70 text-white placeholder-gray-400' : 'border-gray-300 bg-white/70 text-gray-900 placeholder-gray-500'}`}
           />
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="inline-flex items-center gap-1 p-1 rounded-full border bg-white">
+          <div className={`inline-flex items-center gap-1 p-1 rounded-full border ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'}`}>
             <button
-              className={`px-3 py-1.5 rounded-full text-sm ${view==='all' ? 'bg-blue-600 text-white' : 'hover:bg-gray-50'}`}
+              className={`px-3 py-1.5 rounded-full text-sm ${view==='all' ? 'bg-blue-600 text-white' : isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}`}
               onClick={()=>setView('all')}
               title="Show all notes"
             >
               All <span className="ml-1 opacity-80">({counts.total})</span>
             </button>
             <button
-              className={`px-3 py-1.5 rounded-full text-sm inline-flex items-center gap-1 ${view==='favorites' ? 'bg-yellow-500 text-white' : 'hover:bg-gray-50'}`}
+              className={`px-3 py-1.5 rounded-full text-sm inline-flex items-center gap-1 ${view==='favorites' ? 'bg-yellow-500 text-white' : isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}`}
               onClick={()=>setView('favorites')}
               title="Show favorites"
             >
               <Star className="w-4 h-4"/> <span>Fav</span> <span className="ml-1 opacity-80">({counts.fav})</span>
             </button>
             <button
-              className={`px-3 py-1.5 rounded-full text-sm inline-flex items-center gap-1 ${view==='archived' ? 'bg-slate-800 text-white' : 'hover:bg-gray-50'}`}
+              className={`px-3 py-1.5 rounded-full text-sm inline-flex items-center gap-1 ${view==='archived' ? 'bg-slate-800 text-white' : isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}`}
               onClick={()=>setView('archived')}
               title="Show archived"
             >
@@ -157,7 +159,7 @@ export default function SavedNotesPage() {
             <select
               value={sortBy}
               onChange={(e)=>setSortBy(e.target.value)}
-              className="appearance-none pl-3 pr-8 py-2 rounded-md border border-gray-300 bg-white"
+              className={`appearance-none pl-3 pr-8 py-2 rounded-md border ${isDarkMode ? 'border-gray-600 bg-gray-800 text-white' : 'border-gray-300 bg-white text-gray-900'}`}
               title="Sort by"
             >
               <option value="edited">Last edited</option>
@@ -170,9 +172,9 @@ export default function SavedNotesPage() {
       </div>
 
       {result.length === 0 ? (
-        <div className="text-center py-24 border-2 border-dashed rounded-xl bg-white/60">
-          <div className="text-xl font-semibold mb-1">No notes found</div>
-          <div className="opacity-70 mb-4">Try a different search, switch views, or create a new note.</div>
+        <div className={`text-center py-24 border-2 border-dashed rounded-xl ${isDarkMode ? 'bg-gray-800/60 border-gray-600' : 'bg-white/60 border-gray-300'}`}>
+          <div className={`text-xl font-semibold mb-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>No notes found</div>
+          <div className={`mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Try a different search, switch views, or create a new note.</div>
           <button onClick={createNewNote} className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 inline-flex items-center gap-2">
             <Plus className="w-4 h-4"/> New Note
           </button>
@@ -184,16 +186,16 @@ export default function SavedNotesPage() {
               key={n.id}
               ref={el => { if (el) cardRefs.current[n.id] = el; }}
               onClick={()=>openInEditor(n.id)}
-              className="group text-left rounded-xl border border-gray-200 bg-white/70 hover:bg-white shadow-sm hover:shadow transition overflow-hidden"
+              className={`group text-left rounded-xl border shadow-sm hover:shadow transition overflow-hidden ${isDarkMode ? 'border-gray-700 bg-gray-800/70 hover:bg-gray-800' : 'border-gray-200 bg-white/70 hover:bg-white'}`}
             >
               <div className="p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       {n.properties?.isFavorite && <Star className="w-4 h-4 text-yellow-500"/>}
-                      <h3 className="font-semibold truncate">{n.title || 'Untitled'}</h3>
+                      <h3 className={`font-semibold truncate ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{n.title || 'Untitled'}</h3>
                     </div>
-                    <p className="text-sm opacity-80 line-clamp-2">{getExcerpt(n.content)}</p>
+                    <p className={`text-sm line-clamp-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{getExcerpt(n.content)}</p>
                   </div>
                   <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-60 transition"/>
                 </div>
@@ -206,7 +208,7 @@ export default function SavedNotesPage() {
                   </div>
                 )}
 
-                <div className="mt-4 flex items-center justify-between text-xs opacity-70">
+                <div className={`mt-4 flex items-center justify-between text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
                   <div className="inline-flex items-center gap-1"><Clock className="w-3 h-3"/> {new Date(n.properties?.lastEdited).toLocaleString()}</div>
                   {(n.properties?.isArchived) && <span className="inline-flex items-center gap-1"><Archive className="w-3 h-3"/> Archived</span>}
                 </div>

@@ -58,24 +58,44 @@ router.get('/stats', auth, async (req, res) => {
 router.get('/', auth, async (req, res) => {
   try {
     const { status, type, search, sortBy = 'date', sortOrder = 'desc' } = req.query;
+    const userId = req.user.id;
+    const userRole = req.user.role;
 
+    // New visibility logic:
+    // - No participants: Only owner can see
+    // - Has participants: Owner + participants + admin can see
     let query = {
       $or: [
-        { createdBy: req.user.id },
-        { 'sharedWith.user': req.user.id }
+        { createdBy: userId }, // Owner can always see their meetings
+        { 'sharedWith.user': userId } // Participants can see meetings shared with them
       ],
       deleted: false
     };
+
+    // If user is admin, they can also see meetings that have participants
+    if (userRole === 'admin') {
+      query.$or.push({
+        'sharedWith.0': { $exists: true } // Has at least one participant
+      });
+    }
 
     // Apply filters
     if (status && status !== 'all') query.status = status;
     if (type && type !== 'all') query.type = type;
     if (search) {
-      query.$or = [
+      // Preserve visibility logic while adding search filters
+      const searchConditions = [
         { title: { $regex: search, $options: 'i' } },
         { notes: { $regex: search, $options: 'i' } },
         { summary: { $regex: search, $options: 'i' } }
       ];
+      
+      // Combine visibility conditions with search conditions
+      query.$and = [
+        { $or: query.$or }, // Keep our visibility logic
+        { $or: searchConditions } // Add search conditions
+      ];
+      delete query.$or; // Remove the original $or since we're using $and now
     }
 
     // Build sort object
@@ -115,11 +135,19 @@ router.get('/:id', auth, async (req, res) => {
       return res.status(404).json({ message: 'Meeting note not found' });
     }
 
-    // Check if user has access (creator or shared with)
+    // Check if user has access (creator, shared with, or admin with participants)
     const isCreator = meeting.createdBy._id.toString() === req.user.id;
     const sharedAccess = meeting.sharedWith.find(share => share.user && share.user._id.toString() === req.user.id);
+    const isAdmin = req.user.role === 'admin';
+    const hasParticipants = meeting.sharedWith && meeting.sharedWith.length > 0;
 
-    if (!isCreator && !sharedAccess) {
+    // Access rules:
+    // - Creator can always access
+    // - Participants can access if shared with them
+    // - Admin can access if meeting has participants
+    const hasAccess = isCreator || sharedAccess || (isAdmin && hasParticipants);
+
+    if (!hasAccess) {
       return res.status(403).json({ message: 'Not authorized to access this meeting' });
     }
 

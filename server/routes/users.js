@@ -229,6 +229,32 @@ router.get('/',
     }
   });
 
+// @route   GET /api/users/profile
+// @desc    Get current user profile
+// @access  Private
+router.get('/profile',
+  readLimiter,
+  auth,
+  async (req, res) => {
+    try {
+      const user = await User.findById(req.user.id)
+        .select('-password')
+        .lean();
+
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      res.json(user);
+    } catch (err) {
+      console.error('Get profile error:', err);
+      res.status(500).json({
+        message: 'Server error',
+        error: process.env.NODE_ENV === 'development' ? err.message : undefined
+      });
+    }
+  });
+
 // @route   GET /api/users/:id
 // @desc    Get user by ID with extended profile info
 // @access  Private
@@ -268,6 +294,63 @@ router.get('/:id',
       if (err.kind === 'ObjectId') {
         return res.status(404).json({ message: 'Invalid user ID' });
       }
+      res.status(500).json({
+        message: 'Server error',
+        error: process.env.NODE_ENV === 'development' ? err.message : undefined
+      });
+    }
+  });
+
+// @route   PUT /api/users/profile
+// @desc    Update own profile
+// @access  Private
+router.put('/profile',
+  updateLimiter,
+  auth,
+  [
+    body('name').optional().not().isEmpty().trim().escape(),
+    body('email').optional().isEmail().normalizeEmail(),
+    body('phone').optional().trim(),
+    body('jobTitle').optional().trim().escape(),
+    body('department').optional().trim().escape(),
+    body('location').optional().trim().escape()
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      // Check if email is already in use
+      if (req.body.email) {
+        const existingUser = await User.findOne({
+          email: req.body.email,
+          _id: { $ne: req.user.id }
+        });
+        if (existingUser) {
+          return res.status(400).json({ message: 'Email already in use' });
+        }
+      }
+
+      const updateData = { ...req.body, updatedAt: new Date() };
+      const user = await User.findByIdAndUpdate(
+        req.user.id,
+        { $set: updateData },
+        { new: true, runValidators: true }
+      ).select('-password');
+
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      // Clear cache
+      cache.del(`user_${req.user.id}`);
+      delKeysByPrefix('users_');
+
+      res.json({ message: 'Profile updated successfully', user });
+    } catch (err) {
+      console.error('Update profile error:', err);
       res.status(500).json({
         message: 'Server error',
         error: process.env.NODE_ENV === 'development' ? err.message : undefined
@@ -799,24 +882,19 @@ router.get('/team-members',
   auth,
   async (req, res) => {
     try {
-      const cacheKey = `team_members_${req.user.id}`;
-      const cached = cache.get(cacheKey);
-      if (cached) {
-        return res.json(cached);
-      }
-
-      // Get all active users except the current user
-      const teamMembers = await User.find({
-        _id: { $ne: req.user.id },
-        isActive: true
-      })
-        .select('name email role')
-        .sort({ name: 1 })
+      // Use same query as main users endpoint
+      const users = await User.find({})
+        .select('-password')
+        .sort({ createdAt: -1 })
         .lean();
 
-      const response = { teamMembers };
-      cache.set(cacheKey, response);
-      res.json(response);
+      // Filter out current user
+      const teamMembers = users.filter(user => user._id.toString() !== req.user.id);
+
+      console.log('Total users found:', users.length);
+      console.log('Team members (excluding self):', teamMembers.length);
+      
+      res.json({ teamMembers });
     } catch (err) {
       console.error('Get team members error:', err);
       res.status(500).json({

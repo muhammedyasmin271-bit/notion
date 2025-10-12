@@ -1514,19 +1514,25 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
   const renderBlock = (block, index) => {
     const commonProps = {
       ref: (el) => blockRefs.current[block.id] = el,
-      className: `w-full outline-none resize-none border-none bg-transparent py-1 px-2 rounded ${isDarkMode ? 'text-gray-100' : 'text-gray-800'}`,
+      className: `w-full max-w-none outline-none resize-none border-none bg-transparent py-1 px-0 rounded transition-all duration-200 font-inter leading-relaxed ${isDarkMode ? 'text-gray-100 placeholder-gray-500 focus:bg-gray-800/20' : 'text-gray-800 placeholder-gray-400 focus:bg-gray-50/30'} hover:bg-opacity-30`,
+      style: { minHeight: '24px', lineHeight: '1.6', wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', width: '100%', margin: 0 },
       value: block.content,
       onChange: (e) => updateBlock(block.id, { content: e.target.value }),
       onKeyDown: (e) => handleBlockKeyDown(block.id, e),
       onFocus: () => setActiveBlockId(block.id),
-      placeholder: getBlockPlaceholder(block.type, index)
+      onInput: (e) => {
+        e.target.style.height = 'auto';
+        e.target.style.height = e.target.scrollHeight + 'px';
+      },
+      placeholder: getBlockPlaceholder(block.type, index),
+      rows: 1
     };
 
     switch (block.type) {
       case 'h1':
         return (
           <div className="flex items-start group relative">
-            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
+            <div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
               <button
                 className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6"
                 onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1543,9 +1549,9 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                 <GripVertical className="w-4 h-4" />
               </button>
             </div>
-            <input
+            <textarea
               {...commonProps}
-              className={`${commonProps.className} text-4xl font-bold`}
+              className={`${commonProps.className} text-xl sm:text-4xl font-bold`}
             />
             {showBlockMenu === block.id && (
               <div
@@ -1597,7 +1603,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       case 'h2':
         return (
           <div className="flex items-start group relative">
-            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
+            <div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
               <button
                 className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6"
                 onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1614,9 +1620,9 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                 <GripVertical className="w-4 h-4" />
               </button>
             </div>
-            <input
+            <textarea
               {...commonProps}
-              className={`${commonProps.className} text-3xl font-bold`}
+              className={`${commonProps.className} text-lg sm:text-3xl font-bold`}
             />
             {showBlockMenu === block.id && (
               <div
@@ -1661,7 +1667,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       case 'h3':
         return (
           <div className="flex items-start group relative">
-            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
+            <div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
               <button
                 className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6"
                 onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1678,9 +1684,9 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                 <GripVertical className="w-4 h-4" />
               </button>
             </div>
-            <input
+            <textarea
               {...commonProps}
-              className={`${commonProps.className} text-2xl font-bold`}
+              className={`${commonProps.className} text-base sm:text-2xl font-bold`}
             />
             {showBlockMenu === block.id && (
               <div
@@ -1725,7 +1731,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       case 'bullet':
         return (
           <div className="flex items-start group relative">
-            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
+            <div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
               <button
                 className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6"
                 onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1742,9 +1748,9 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                 <GripVertical className="w-4 h-4" />
               </button>
             </div>
-            <div className="flex items-center">
-              <span className="mr-2 font-bold text-gray-600 text-lg leading-none">•</span>
-              <input {...commonProps} />
+            <div className="flex items-start w-full">
+              <span className="mr-2 font-bold text-gray-600 text-lg leading-none mt-1">•</span>
+              <textarea {...commonProps} className={`${commonProps.className} flex-1 min-w-0 w-full`} />
             </div>
             {showBlockMenu === block.id && (
               <div
@@ -1796,7 +1802,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
         };
         return (
           <div className="flex items-start group relative">
-            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
+            <div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
               <button
                 className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6"
                 onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1813,9 +1819,9 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                 <GripVertical className="w-4 h-4" />
               </button>
             </div>
-            <div className="flex items-center">
-              <span className="mr-2 font-medium text-gray-600 min-w-[20px]">{getNumberedIndex()}.</span>
-              <input {...commonProps} />
+            <div className="flex items-start w-full">
+              <span className="mr-2 font-medium text-gray-600 min-w-[20px] mt-1">{getNumberedIndex()}.</span>
+              <textarea {...commonProps} className={`${commonProps.className} flex-1 min-w-0 w-full`} />
             </div>
             {showBlockMenu === block.id && (
               <div
@@ -1860,7 +1866,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       case 'todo':
         return (
           <div className="flex items-start group relative">
-            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
+            <div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
               <button
                 className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6"
                 onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1877,7 +1883,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                 <GripVertical className="w-4 h-4" />
               </button>
             </div>
-            <div className="flex items-center">
+            <div className="flex items-start w-full">
               <input 
                 type="checkbox" 
                 checked={block.checked || false}
@@ -1895,7 +1901,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                 }}
                 className="mr-2 mt-1" 
               />
-              <input {...commonProps} />
+              <textarea {...commonProps} className={`${commonProps.className} flex-1 min-w-0 w-full`} />
             </div>
             {showBlockMenu === block.id && (
               <div
@@ -1960,14 +1966,14 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                   <GripVertical className="w-4 h-4" />
                 </button>
               </div>
-              <div className="flex items-center flex-1">
+              <div className="flex items-start flex-1 w-full">
                 <button
                   onClick={() => toggleBlock(block.id)}
-                  className="mr-2 p-1 hover:bg-gray-100 rounded transition-colors"
+                  className="mr-2 p-1 hover:bg-gray-100 rounded transition-colors mt-1"
                 >
                   {isToggleOpen ? <ChevronDown className="w-4 h-4 text-gray-500" /> : <ChevronRight className="w-4 h-4 text-gray-500" />}
                 </button>
-                <input {...commonProps} />
+                <textarea {...commonProps} className={`${commonProps.className} flex-1 min-w-0 w-full`} />
               </div>
             </div>
             {isToggleOpen && (
@@ -1986,6 +1992,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                   }}
                   placeholder="Toggle content..."
                   className={`w-full p-2 border-none outline-none bg-transparent resize-none ${isDarkMode ? 'text-gray-200 placeholder-gray-400' : 'text-gray-800 placeholder-gray-500'}`}
+                  style={{ wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}
                   rows="3"
                 />
               </div>
@@ -2032,9 +2039,9 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
               </button>
             </div>
             <div className={`border-l-4 border-blue-400 p-4 rounded-r-lg flex-1 ${isDarkMode ? 'bg-blue-900/20' : 'bg-blue-50'}`}>
-              <div className="flex items-center">
-                <span className="mr-2 text-lg">💡</span>
-                <input {...commonProps} className="bg-transparent border-none outline-none flex-1" />
+              <div className="flex items-start w-full">
+                <span className="mr-2 text-lg mt-1">💡</span>
+                <textarea {...commonProps} className="bg-transparent border-none outline-none flex-1 min-w-0 max-w-none w-full" />
               </div>
             </div>
             {showBlockMenu === block.id && (
@@ -2112,7 +2119,10 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                                   style={{
                                     height: savedHeight + 'px',
                                     minHeight: '32px',
-                                    lineHeight: '1.4'
+                                    lineHeight: '1.4',
+                                    wordWrap: 'break-word',
+                                    whiteSpace: 'pre-wrap',
+                                    overflowWrap: 'break-word'
                                   }}
                                   onInput={(e) => {
                                     e.target.style.height = 'auto';
@@ -2446,7 +2456,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                   <p className="text-center text-gray-500 mb-2">Embed content</p>
                 </div>
               )}
-              <textarea {...commonProps} className="w-full p-3 border-none outline-none resize-none font-mono text-sm" rows="3" placeholder="Paste embed code (iframe, script, etc.)" />
+              <textarea {...commonProps} className="w-full p-3 border-none outline-none resize-none font-mono text-sm" style={{ wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }} rows="3" placeholder="Paste embed code (iframe, script, etc.)" />
             </div>
             {showBlockMenu === block.id && (
               <div ref={blockMenuRef} className="absolute left-0 top-0 mt-8 w-52 rounded-xl shadow-lg border bg-white border-gray-200 z-10 overflow-hidden">
@@ -2485,7 +2495,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                 <Hash className="w-5 h-5 mr-2 text-purple-500" />
                 <span className="text-sm text-gray-600">Math Equation</span>
               </div>
-              <textarea {...commonProps} className="w-full border-none outline-none resize-none font-mono" rows="2" placeholder="Enter LaTeX math equation" />
+              <textarea {...commonProps} className="w-full border-none outline-none resize-none font-mono" style={{ wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }} rows="2" placeholder="Enter LaTeX math equation" />
             </div>
             {showBlockMenu === block.id && (
               <div ref={blockMenuRef} className="absolute left-0 top-0 mt-8 w-52 rounded-xl shadow-lg border bg-white border-gray-200 z-10 overflow-hidden">
@@ -2524,7 +2534,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                 <Copy className="w-5 h-5 mr-2 text-green-500" />
                 <span className="text-sm text-gray-600">Template</span>
               </div>
-              <textarea {...commonProps} className="w-full border-none outline-none resize-none" rows="3" placeholder="Create a reusable template" />
+              <textarea {...commonProps} className="w-full border-none outline-none resize-none" style={{ wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }} rows="3" placeholder="Create a reusable template" />
             </div>
             {showBlockMenu === block.id && (
               <div ref={blockMenuRef} className="absolute left-0 top-0 mt-8 w-52 rounded-xl shadow-lg border bg-white border-gray-200 z-10 overflow-hidden">
@@ -2611,7 +2621,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       default: // text
         return (
           <div className={`flex items-start group relative ${aiInputBlock === block.id ? 'bg-blue-50/30 rounded-lg p-2' : ''} transition-all duration-200`}>
-            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
+            <div className="flex items-center opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity mr-2 gap-1 sm:opacity-0">
               <button
                 className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6"
                 onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -2654,7 +2664,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                   </button>
                 </div>
               ) : (
-                <input {...commonProps} />
+                <textarea {...commonProps} />
               )}
             </div>
             {showBlockMenu === block.id && (
@@ -2730,7 +2740,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
         </div>
       )}
 
-      <div className={`bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-gray-100 border-l border-gray-700/50 font-sans antialiased fixed top-0 z-10 transition-all duration-300 h-screen overflow-y-auto shadow-2xl ${isFullscreen ? 'left-0 w-full' : 'right-0 w-full md:w-1/2'
+      <div className={`${isDarkMode ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-gray-100 border-l border-gray-700/50' : 'bg-white text-gray-900 border-l border-gray-200'} font-sans antialiased fixed top-0 z-10 transition-all duration-300 h-screen overflow-y-auto shadow-2xl ${isFullscreen ? 'left-0 w-full' : 'right-0 w-full md:w-1/2'
         }`}>
         <div className={`sticky top-0 z-40 backdrop-blur-sm transition-all duration-300 border-b ${isDarkMode ? 'bg-gray-900/95 border-gray-800' : 'bg-white/95 border-gray-200'} ${isFullscreen ? 'px-4 sm:px-10 md:px-64' : 'px-4 sm:px-6'
           }`}>
@@ -3033,7 +3043,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
             </div>
 
             {/* Notes Section */}
-            <div className={`${isFullscreen ? 'mb-20 ml-16 mr-16' : 'mb-4 ml-4 mr-4'}`}>
+            <div className={`${isFullscreen ? 'mb-20 ml-4 mr-4' : 'mb-4 ml-2 mr-2'}`}>
               {/* Top horizontal line */}
               <div className={`border-t-2 ${isDarkMode ? 'border-gray-600' : 'border-gray-300'} mb-4`}></div>
               
@@ -3081,7 +3091,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
               
               {/* Bottom horizontal line */}
               <div className={`border-t-2 ${isDarkMode ? 'border-gray-600' : 'border-gray-300'} mb-4`}></div>
-              <div className={`${isFullscreen ? 'p-6' : 'p-2'}`}>
+              <div className={`${isFullscreen ? 'p-1' : 'p-0'}`}>
                 <div className={`space-y-0 ${isFullscreen ? 'min-h-96' : 'min-h-32'}`}>
                   {blocks.map((block, index) => (
                     <div key={block.id}>

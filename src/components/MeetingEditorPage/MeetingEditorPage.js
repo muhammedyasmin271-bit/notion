@@ -289,6 +289,37 @@ const MeetingEditorPage = () => {
     };
   }, [currentBlockId, blocks]);
 
+  // Fix textarea height on mobile to show full content
+  useEffect(() => {
+    const adjustTextareaHeights = () => {
+      const textareas = document.querySelectorAll('textarea');
+      textareas.forEach(textarea => {
+        if (textarea.scrollHeight > textarea.clientHeight) {
+          textarea.style.height = 'auto';
+          textarea.style.height = textarea.scrollHeight + 'px';
+        }
+      });
+    };
+
+    // Adjust heights after component mounts and when blocks change
+    adjustTextareaHeights();
+    
+    // Also adjust on window resize (orientation change)
+    window.addEventListener('resize', adjustTextareaHeights);
+    
+    return () => {
+      window.removeEventListener('resize', adjustTextareaHeights);
+    };
+  }, [blocks]);
+
+  // Helper function to adjust textarea height
+  const adjustTextareaHeight = (textarea) => {
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = textarea.scrollHeight + 'px';
+    }
+  };
+
   const removeAttendee = (attendee) => {
     setMeeting(prev => ({
       ...prev,
@@ -367,8 +398,7 @@ const MeetingEditorPage = () => {
         console.log('Save completed successfully');
         alert(`Meeting ${isNewMeeting ? 'created' : 'updated'} successfully!`);
         
-        // Navigate to Reports page to display the meeting report
-        navigate('/reports');
+        // Stay on the current page after saving
       } catch (serverError) {
         console.error('Server save failed, data saved locally:', serverError);
         setSaveStatus('offline');
@@ -573,7 +603,7 @@ const MeetingEditorPage = () => {
     };
 
     const getInputClassName = () => {
-      const baseClass = "w-full px-3 py-2 bg-transparent text-white placeholder-gray-400 focus:outline-none border-none leading-tight";
+      const baseClass = `w-full px-0 sm:px-3 py-2 bg-transparent ${isDarkMode ? 'text-white placeholder-gray-400' : 'text-gray-900 placeholder-gray-500'} focus:outline-none border-none leading-relaxed font-inter`;
       const styleClass = `${block.style?.bold ? 'font-bold ' : ''
         }${block.style?.italic ? 'italic ' : ''
         }${block.style?.underline ? 'underline ' : ''
@@ -584,13 +614,13 @@ const MeetingEditorPage = () => {
 
       switch (block.type) {
         case 'heading1':
-          return `${baseClass} ${styleClass} text-3xl font-bold`;
+          return `${baseClass} ${styleClass} text-2xl sm:text-3xl font-bold`;
         case 'heading2':
-          return `${baseClass} ${styleClass} text-2xl font-semibold`;
+          return `${baseClass} ${styleClass} text-xl sm:text-2xl font-semibold`;
         case 'heading3':
-          return `${baseClass} ${styleClass} text-xl font-medium`;
+          return `${baseClass} ${styleClass} text-lg sm:text-xl font-medium`;
         case 'code':
-          return `${baseClass} ${styleClass} font-mono bg-gray-800 rounded px-2 py-1 text-green-400`;
+          return `${baseClass} ${styleClass} font-mono rounded px-2 py-1 ${isDarkMode ? 'bg-gray-800 text-green-400' : 'bg-gray-200 text-green-700'}`;
         default:
           return `${baseClass} ${styleClass} text-base`;
       }
@@ -681,22 +711,22 @@ const MeetingEditorPage = () => {
                   {table.data.map((row, rowIndex) => {
                     const rowHeight = table.cellHeights?.[rowIndex] || {};
                     return (
-                      <tr key={rowIndex} className={rowIndex === 0 ? (isDarkMode ? 'bg-gray-700' : 'bg-gray-50') : (isDarkMode ? 'hover:bg-gray-700/50' : 'hover:bg-gray-50/50')}>
+                      <tr key={rowIndex} className={rowIndex === 0 ? (isDarkMode ? 'bg-gray-700' : 'bg-gray-100') : (isDarkMode ? 'hover:bg-gray-700/50' : 'hover:bg-gray-100/50')}>
                         {row.map((cell, colIndex) => {
                           const savedHeight = rowHeight[colIndex] || Math.max(32, cell.split('\n').length * 20 + 12);
                           return (
-                            <td key={`${rowIndex}-${colIndex}`} className={`border-r border-b p-0 align-top ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
+                            <td key={`${rowIndex}-${colIndex}`} className={`border-r border-b p-0 align-top ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}>
                               <textarea
                                 value={cell}
                                 onChange={(e) => updateCell(rowIndex, colIndex, e.target.value)}
                                 placeholder={rowIndex === 0 ? `Column ${colIndex + 1}` : ''}
                                 rows={Math.max(1, cell.split('\n').length)}
-                                className={`w-full h-full min-h-[32px] border-none outline-none bg-transparent text-sm resize-none overflow-hidden p-2 ${rowIndex === 0 ? (isDarkMode ? 'font-semibold text-gray-200' : 'font-semibold text-gray-800') : (isDarkMode ? 'text-gray-300' : 'text-gray-700')
-                                  } ${isDarkMode ? 'focus:bg-blue-900/20' : 'focus:bg-blue-50/50'}`}
+                                className={`w-full h-full min-h-[32px] border-none outline-none bg-transparent text-sm resize-none overflow-hidden p-0 sm:p-3 ${rowIndex === 0 ? (isDarkMode ? 'font-semibold text-gray-200' : 'font-semibold text-gray-800') : (isDarkMode ? 'text-gray-300' : 'text-gray-700')
+                                  } ${isDarkMode ? 'focus:bg-blue-900/20' : 'focus:bg-blue-100/30'}`}
                                 style={{
                                   height: savedHeight + 'px',
                                   minHeight: '32px',
-                                  lineHeight: '1.4'
+                                  lineHeight: '1.0'
                                 }}
                                 onInput={(e) => {
                                   e.target.style.height = 'auto';
@@ -756,15 +786,14 @@ const MeetingEditorPage = () => {
 
     if (block.type === 'quote') {
       return (
-        <div className="border-l-4 border-gray-400 bg-gray-800/30 pl-6 py-4 rounded-r-md">
+        <div className={`border-l-4 pl-6 py-4 rounded-r-md ${isDarkMode ? 'border-gray-400 bg-gray-800/30' : 'border-gray-500 bg-gray-200/50'}`}>
           <input
             ref={(el) => inputRefs.current[block.id] = el}
             type="text"
             value={block.content}
             onChange={(e) => updateBlockContent(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Quote text..."
-            className="w-full bg-transparent text-white text-base italic placeholder-gray-400 focus:outline-none border-none"
+            onFocus={() => setCurrentBlockId(block.id)}
+            className={`w-full bg-transparent ${isDarkMode ? 'text-white' : 'text-black'} text-base italic placeholder-gray-400 focus:outline-none border-none`}
           />
         </div>
       );
@@ -790,8 +819,9 @@ const MeetingEditorPage = () => {
             value={block.content}
             onChange={(e) => updateBlockContent(e.target.value)}
             onKeyDown={handleKeyDown}
+            onFocus={() => setCurrentBlockId(block.id)}
             placeholder="Callout text..."
-            className="flex-1 bg-transparent text-white placeholder-gray-400 focus:outline-none border-none"
+            className={`flex-1 bg-transparent ${isDarkMode ? 'text-white' : 'text-black'} placeholder-gray-400 focus:outline-none border-none`}
           />
         </div>
       );
@@ -808,15 +838,21 @@ const MeetingEditorPage = () => {
     if (block.type === 'bullet') {
       return (
         <div className="flex items-start gap-2">
-          <span className="text-gray-400 mt-2 text-lg leading-none">•</span>
-          <input
+          <span className={`mt-2 text-lg leading-none ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>•</span>
+          <textarea
             ref={(el) => inputRefs.current[block.id] = el}
-            type="text"
             value={block.content.replace(/^• /, '')}
             onChange={(e) => updateBlockContent(`• ${e.target.value}`)}
             onKeyDown={handleKeyDown}
             placeholder="List item..."
-            className={getInputClassName()}
+            className={`${getInputClassName()} resize-none overflow-hidden`}
+            rows={Math.max(1, ((block.content || '').match(/\n/g) || []).length + 1)}
+            style={{ minHeight: '1.5rem', lineHeight: '1.0', wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', height: 'auto' }}
+            onInput={(e) => adjustTextareaHeight(e.target)}
+            onFocus={(e) => {
+              setCurrentBlockId(block.id);
+              adjustTextareaHeight(e.target);
+            }}
           />
         </div>
       );
@@ -826,15 +862,21 @@ const MeetingEditorPage = () => {
       const number = block.content.match(/^(\d+)\./)?.[1] || '1';
       return (
         <div className="flex items-start gap-2">
-          <span className="text-gray-400 mt-2 min-w-[20px]">{number}.</span>
-          <input
+          <span className={`mt-2 min-w-[20px] ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{number}.</span>
+          <textarea
             ref={(el) => inputRefs.current[block.id] = el}
-            type="text"
             value={block.content.replace(/^\d+\. /, '')}
             onChange={(e) => updateBlockContent(`${number}. ${e.target.value}`)}
             onKeyDown={handleKeyDown}
             placeholder="List item..."
-            className={getInputClassName()}
+            className={`${getInputClassName()} resize-none overflow-hidden`}
+            rows={Math.max(1, ((block.content || '').match(/\n/g) || []).length + 1)}
+            style={{ minHeight: '1.5rem', lineHeight: '1.0', wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', height: 'auto' }}
+            onInput={(e) => adjustTextareaHeight(e.target)}
+            onFocus={(e) => {
+              setCurrentBlockId(block.id);
+              adjustTextareaHeight(e.target);
+            }}
           />
         </div>
       );
@@ -844,25 +886,31 @@ const MeetingEditorPage = () => {
       const isChecked = block.content.includes('☑');
       return (
         <div className="flex items-start gap-2">
-          <button
-            onClick={() => {
+          <input 
+            type="checkbox" 
+            className="mr-2 mt-1 flex-shrink-0"
+            checked={isChecked}
+            onChange={() => {
               const newContent = isChecked
                 ? block.content.replace('☑', '☐')
                 : block.content.replace('☐', '☑');
               updateBlockContent(newContent);
             }}
-            className="mt-2 text-gray-400 hover:text-white transition-colors"
-          >
-            {isChecked ? <CheckSquare className="w-4 h-4 text-green-400" /> : <CheckSquare className="w-4 h-4" />}
-          </button>
-          <input
+          />
+          <textarea
             ref={(el) => inputRefs.current[block.id] = el}
-            type="text"
             value={block.content.replace(/^[☐☑] /, '')}
             onChange={(e) => updateBlockContent(`${isChecked ? '☑' : '☐'} ${e.target.value}`)}
             onKeyDown={handleKeyDown}
             placeholder="To-do item..."
-            className={`${getInputClassName()} ${isChecked ? 'line-through text-gray-500' : ''}`}
+            className={`${getInputClassName()} ${isChecked ? 'line-through text-gray-500' : ''} resize-none overflow-hidden`}
+            rows={Math.max(1, ((block.content || '').match(/\n/g) || []).length + 1)}
+            style={{ minHeight: '1.5rem', lineHeight: '1.0', wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', height: 'auto' }}
+            onInput={(e) => adjustTextareaHeight(e.target)}
+            onFocus={(e) => {
+              setCurrentBlockId(block.id);
+              adjustTextareaHeight(e.target);
+            }}
           />
         </div>
       );
@@ -879,7 +927,7 @@ const MeetingEditorPage = () => {
                 newBlocks[index].expanded = !isExpanded;
                 setBlocks(newBlocks);
               }}
-              className="mt-2 text-gray-400 hover:text-white transition-colors"
+              className={`mt-2 transition-colors ${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}
             >
               {isExpanded ? '▼' : '▶'}
             </button>
@@ -889,6 +937,7 @@ const MeetingEditorPage = () => {
               value={block.content.replace(/^[▶▼] /, '')}
               onChange={(e) => updateBlockContent(`${isExpanded ? '▼' : '▶'} ${e.target.value}`)}
               onKeyDown={handleKeyDown}
+              onFocus={() => setCurrentBlockId(block.id)}
               placeholder="Toggle item..."
               className={getInputClassName()}
             />
@@ -924,7 +973,7 @@ const MeetingEditorPage = () => {
       };
 
       return (
-        <div className="flex items-center gap-2 p-2 bg-blue-900/20 border border-blue-500/30 rounded">
+        <div className={`flex items-center gap-2 p-2 border rounded ${isDarkMode ? 'bg-blue-900/20 border-blue-500/30' : 'bg-blue-100/50 border-blue-300/50'}`}>
           <Calendar className="w-4 h-4 text-blue-400" />
           <input
             ref={(el) => inputRefs.current[block.id] = el}
@@ -932,10 +981,10 @@ const MeetingEditorPage = () => {
             value={block.content}
             onChange={(e) => updateBlockContent(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="bg-transparent text-white focus:outline-none"
+            className={`bg-transparent ${isDarkMode ? 'text-white' : 'text-black'} focus:outline-none`}
             style={{ colorScheme: 'dark' }}
           />
-          <span className="text-blue-300 text-sm">{formatDate(block.content)}</span>
+          <span className={`text-sm ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>{formatDate(block.content)}</span>
         </div>
       );
     }
@@ -951,7 +1000,7 @@ const MeetingEditorPage = () => {
       };
 
       return (
-        <div className="flex items-center gap-2 p-2 bg-green-900/20 border border-green-500/30 rounded">
+        <div className={`flex items-center gap-2 p-2 border rounded ${isDarkMode ? 'bg-green-900/20 border-green-500/30' : 'bg-green-100/50 border-green-300/50'}`}>
           <Clock className="w-4 h-4 text-green-400" />
           <input
             ref={(el) => inputRefs.current[block.id] = el}
@@ -959,10 +1008,10 @@ const MeetingEditorPage = () => {
             value={block.content}
             onChange={(e) => updateBlockContent(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="bg-transparent text-white focus:outline-none"
+            className={`bg-transparent ${isDarkMode ? 'text-white' : 'text-black'} focus:outline-none`}
             style={{ colorScheme: 'dark' }}
           />
-          <span className="text-green-300 text-sm">{formatTime(block.content)}</span>
+          <span className={`text-sm ${isDarkMode ? 'text-green-300' : 'text-green-700'}`}>{formatTime(block.content)}</span>
         </div>
       );
     }
@@ -985,7 +1034,7 @@ const MeetingEditorPage = () => {
               newBlocks[index].priorityLevel = e.target.value;
               setBlocks(newBlocks);
             }}
-            className="bg-transparent text-white focus:outline-none"
+            className={`bg-transparent ${isDarkMode ? 'text-white' : 'text-black'} focus:outline-none`}
           >
             <option value="high" className="bg-gray-800">High Priority</option>
             <option value="medium" className="bg-gray-800">Medium Priority</option>
@@ -997,8 +1046,9 @@ const MeetingEditorPage = () => {
             value={block.content}
             onChange={(e) => updateBlockContent(e.target.value)}
             onKeyDown={handleKeyDown}
+            onFocus={() => setCurrentBlockId(block.id)}
             placeholder="Priority item..."
-            className="flex-1 bg-transparent text-white placeholder-gray-400 focus:outline-none"
+            className={`flex-1 bg-transparent ${isDarkMode ? 'text-white' : 'text-black'} placeholder-gray-400 focus:outline-none`}
           />
         </div>
       );
@@ -1043,6 +1093,7 @@ const MeetingEditorPage = () => {
             value={block.content}
             onChange={(e) => updateBlockContent(e.target.value)}
             onKeyDown={handleKeyDown}
+            onFocus={() => setCurrentBlockId(block.id)}
             placeholder="Highlighted text..."
             className={`w-full bg-transparent ${highlight.text} placeholder-gray-400 focus:outline-none font-medium`}
           />
@@ -1052,7 +1103,7 @@ const MeetingEditorPage = () => {
 
     if (block.type === 'link') {
       return (
-        <div className="flex items-center gap-2 p-2 bg-blue-900/20 border border-blue-500/30 rounded">
+        <div className={`flex items-center gap-2 p-2 border rounded ${isDarkMode ? 'bg-blue-900/20 border-blue-500/30' : 'bg-blue-100/50 border-blue-300/50'}`}>
           <Link className="w-4 h-4 text-blue-400" />
           <input
             ref={(el) => inputRefs.current[block.id] = el}
@@ -1061,7 +1112,7 @@ const MeetingEditorPage = () => {
             onChange={(e) => updateBlockContent(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Link text..."
-            className="flex-1 bg-transparent text-blue-300 placeholder-gray-400 focus:outline-none"
+            className={`flex-1 bg-transparent focus:outline-none ${isDarkMode ? 'text-blue-300 placeholder-gray-400' : 'text-blue-700 placeholder-gray-500'}`}
           />
           <input
             type="url"
@@ -1072,7 +1123,7 @@ const MeetingEditorPage = () => {
               setBlocks(newBlocks);
             }}
             placeholder="https://..."
-            className="flex-1 bg-transparent text-gray-300 placeholder-gray-500 focus:outline-none text-sm"
+            className={`flex-1 bg-transparent focus:outline-none text-sm ${isDarkMode ? 'text-gray-300 placeholder-gray-500' : 'text-gray-700 placeholder-gray-600'}`}
           />
         </div>
       );
@@ -1123,7 +1174,7 @@ const MeetingEditorPage = () => {
 
     if (block.type === 'progress') {
       return (
-        <div className="p-3 bg-gray-800/30 border border-gray-600 rounded">
+        <div className={`p-3 border rounded ${isDarkMode ? 'bg-gray-800/30 border-gray-600' : 'bg-gray-200/30 border-gray-400'}`}>
           <div className="flex items-center gap-2 mb-2">
             <BarChart3 className="w-4 h-4 text-orange-400" />
             <input
@@ -1133,12 +1184,12 @@ const MeetingEditorPage = () => {
               onChange={(e) => updateBlockContent(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Progress description..."
-              className="flex-1 bg-transparent text-white placeholder-gray-400 focus:outline-none"
+              className={`flex-1 bg-transparent ${isDarkMode ? 'text-white' : 'text-black'} placeholder-gray-400 focus:outline-none`}
             />
-            <span className="text-sm text-gray-400">{block.progress || 50}%</span>
+            <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{block.progress || 50}%</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex-1 bg-gray-700 rounded-full h-2">
+            <div className={`flex-1 rounded-full h-2 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-300'}`}>
               <div 
                 className="bg-orange-400 h-2 rounded-full transition-all duration-300" 
                 style={{ width: `${block.progress || 50}%` }}
@@ -1163,7 +1214,7 @@ const MeetingEditorPage = () => {
 
     if (block.type === 'hidden') {
       return (
-        <div className={`p-3 border rounded ${block.visible ? 'bg-gray-800/30 border-gray-600' : 'bg-gray-900/50 border-gray-700 opacity-50'}`}>
+        <div className={`p-3 border rounded ${block.visible ? `${isDarkMode ? 'bg-gray-800/30 border-gray-600' : 'bg-gray-100/30 border-gray-300'}` : `${isDarkMode ? 'bg-gray-900/50 border-gray-700' : 'bg-gray-200/50 border-gray-400'} opacity-50`}`}>
           <div className="flex items-center gap-2 mb-2">
             <button
               onClick={() => {
@@ -1171,11 +1222,11 @@ const MeetingEditorPage = () => {
                 newBlocks[index].visible = !block.visible;
                 setBlocks(newBlocks);
               }}
-              className="text-gray-400 hover:text-white transition-colors"
+              className={`transition-colors ${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-700'}`}
             >
               {block.visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
             </button>
-            <span className="text-xs text-gray-500">{block.visible ? 'Visible' : 'Hidden'}</span>
+            <span className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-600'}`}>{block.visible ? 'Visible' : 'Hidden'}</span>
           </div>
           {block.visible && (
             <input
@@ -1185,7 +1236,7 @@ const MeetingEditorPage = () => {
               onChange={(e) => updateBlockContent(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Hidden content..."
-              className="w-full bg-transparent text-white placeholder-gray-400 focus:outline-none"
+              className={`w-full bg-transparent ${isDarkMode ? 'text-white' : 'text-black'} placeholder-gray-400 focus:outline-none`}
             />
           )}
         </div>
@@ -1194,13 +1245,15 @@ const MeetingEditorPage = () => {
 
     return (
       <div className="relative">
-        <input
+        <textarea
           ref={(el) => inputRefs.current[block.id] = el}
-          type="text"
           value={block.content}
           onChange={(e) => updateBlockContent(e.target.value)}
           onKeyDown={handleKeyDown}
-          onFocus={() => setCurrentBlockId(block.id)}
+          onFocus={(e) => {
+            setCurrentBlockId(block.id);
+            adjustTextareaHeight(e.target);
+          }}
           onBlur={(e) => {
             // Delay hiding toolbar to allow clicking on toolbar buttons
             setTimeout(() => {
@@ -1210,7 +1263,10 @@ const MeetingEditorPage = () => {
             }, 150);
           }}
           placeholder={index === 0 ? "Start typing your meeting notes... " : "Continue typing... (Try markdown shortcuts)"}
-          className={getInputClassName()}
+          className={`${getInputClassName()} resize-none overflow-hidden`}
+          rows={Math.max(1, ((block.content || '').match(/\n/g) || []).length + 1)}
+          style={{ minHeight: '1.5rem', lineHeight: '1.0', wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', height: 'auto' }}
+          onInput={(e) => adjustTextareaHeight(e.target)}
         />
 
       </div>
@@ -1270,68 +1326,49 @@ const MeetingEditorPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <div className="w-full min-h-screen overflow-y-auto bg-gray-900">
-        <div className="bg-gray-900 sticky top-0 z-10">
-          <div className="max-w-7xl mx-auto px-6 py-4">
-            <div className="flex items-center justify-between">
+    <div className={`min-h-screen ${isDarkMode ? 'bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white' : 'bg-white text-gray-900'}`}>
+      <div className={`w-full min-h-screen overflow-y-auto ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
+        <div className={`sticky top-0 z-10 ${isDarkMode ? 'bg-gray-900/95 backdrop-blur-sm' : 'bg-white/95 backdrop-blur-sm'} border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+          <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => navigate('/meeting-notes')}
-                  className="p-2 rounded-lg transition-colors text-gray-400 hover:bg-gray-800"
+                  className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'text-gray-400 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-100'}`}
                 >
                   <ArrowLeft className="w-5 h-5" />
                 </button>
               </div>
               <div className="flex items-center gap-3">
-                {isOwner && !isNewMeeting && (
-                  <button
-                    onClick={handleDelete}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all bg-red-600 hover:bg-red-700 text-white"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Delete
-                  </button>
+                {!isOwner && (
+                  <div className={`px-4 py-2 rounded-lg text-xs sm:text-sm text-center ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'}`}>
+                    {canEdit ? 'Participant - View Only' : 'Read Only - You are a participant'}
+                  </div>
                 )}
+                {/* Desktop Action Buttons */}
                 {isOwner && (
-                  <div className="flex items-center gap-3">
-                    {(saveStatus === 'offline' || serverStatus === 'offline') && (
-                      <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-yellow-600/20 border border-yellow-500/30">
-                        <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
-                        <span className="text-yellow-300 text-sm">
-                          {serverStatus === 'offline' ? 'Server offline - Auto-saving locally' : 'Offline - Data saved locally'}
-                        </span>
-                      </div>
-                    )}
-                    {serverStatus === 'online' && saveStatus === 'saved' && (
-                      <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-green-600/20 border border-green-500/30">
-                        <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                        <span className="text-green-300 text-sm">All changes saved</span>
-                      </div>
-                    )}
-                    {saveStatus === 'saving' && (
-                      <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-blue-600/20 border border-blue-500/30">
-                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-                        <span className="text-blue-300 text-sm">Auto-saving...</span>
-                      </div>
+                  <div className="hidden sm:flex gap-3">
+                    {!isNewMeeting && (
+                      <button
+                        onClick={handleDelete}
+                        className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-all bg-red-600 hover:bg-red-700 text-white"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Delete
+                      </button>
                     )}
                     <button
                       onClick={handleSave}
                       disabled={isSaving}
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 text-white"
+                      className="flex items-center justify-center gap-2 px-6 py-2 rounded-lg font-medium transition-all bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 text-white"
                     >
                       {isSaving ? (
                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       ) : (
                         <Save className="w-4 h-4" />
                       )}
-                      {isSaving ? 'Saving...' : (isNewMeeting ? 'Create & View Report' : 'Save & View Report')}
+                      {isSaving ? 'Saving...' : (isNewMeeting ? 'Create Meeting' : 'Save Changes')}
                     </button>
-                  </div>
-                )}
-                {!isOwner && (
-                  <div className="px-4 py-2 rounded-lg bg-gray-700 text-gray-300 text-sm">
-                    {canEdit ? 'Participant - View Only' : 'Read Only - You are a participant'}
                   </div>
                 )}
               </div>
@@ -1339,38 +1376,38 @@ const MeetingEditorPage = () => {
           </div>
         </div>
 
-        <div className="max-w-6xl mx-auto pt-2 pb-6 overflow-y-auto px-6">
+        <div className="max-w-6xl mx-auto pt-2 pb-20 sm:pb-6 overflow-y-auto px-0 sm:px-6">
           {loadingError && (
-            <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+            <div className={`mb-6 p-4 border rounded ${isDarkMode ? 'bg-red-900/20 border-red-700 text-red-300' : 'bg-red-100 border-red-400 text-red-700'}`}>
               <strong>Error loading meeting:</strong> {loadingError}
               <p className="mt-2 text-sm">Please try refreshing the page or contact support if the issue persists.</p>
             </div>
           )}
           <div className="w-full">
             <div>
-              <div className="rounded-lg pt-0 pb-0 bg-gray-900 px-6">
+              <div className={`rounded-lg pt-0 pb-0 px-0 sm:px-6 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
                 <input
                   type="text"
                   value={meeting.title}
                   onChange={isOwner ? (e) => setMeeting(prev => ({ ...prev, title: e.target.value })) : undefined}
                   placeholder="Untitled"
                   readOnly={!isOwner}
-                  className={`w-full px-4 py-3 text-4xl ml-8 rounded-lg transition-colors bg-gray-900 text-white placeholder-gray-400 focus:outline-none ${!isOwner ? 'cursor-not-allowed opacity-75' : ''}`}
+                  className={`w-full px-0 sm:px-4 py-3 text-2xl sm:text-4xl ml-0 sm:ml-8 rounded-lg transition-colors ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'} placeholder-gray-400 focus:outline-none ${!isOwner ? 'cursor-not-allowed opacity-75' : ''}`}
                 />
-                <div className="ml-12 mt-2">
-                  <span className="text-sm text-gray-400">Created 9/28/2025</span>
+                <div className="ml-0 sm:ml-12 mt-2">
+                  <span className={`text-xs sm:text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Created 9/28/2025</span>
                 </div>
               </div>
 
-              <div className="rounded-lg bg-gray-900">
+              <div className={`rounded-lg ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
                 <div className="p-6">
-                  <div className="flex gap-8 ml-24">
+                  <div className="flex flex-col lg:flex-row gap-4 lg:gap-8 ml-2 sm:ml-8 lg:ml-24">
                     <div className="flex-1 space-y-1">
-                      <div className="p-4">
-                        <div className="space-y-3">
+                      <div className="p-2 sm:p-4">
+                        <div className="space-y-1">
                           <div className="flex items-center gap-3">
                             <Calendar className="w-4 h-4 text-blue-400" />
-                            <label className="text-sm font-medium text-gray-300 min-w-[70px]">
+                            <label className={`text-sm font-medium min-w-[70px] ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                               Date
                             </label>
                             <input
@@ -1378,17 +1415,15 @@ const MeetingEditorPage = () => {
                               value={meeting.date}
                               onChange={isOwner ? (e) => setMeeting(prev => ({ ...prev, date: e.target.value })) : undefined}
                               readOnly={!isOwner}
-                              className={`px-3 py-2 rounded-lg bg-gray-800 text-white text-sm focus:outline-none ${!isOwner ? 'cursor-not-allowed opacity-75' : ''}`}
-                              style={{ colorScheme: 'dark' }}
+                              className={`px-3 py-2 rounded-lg text-sm focus:outline-none ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} ${!isOwner ? 'cursor-not-allowed opacity-75' : ''}`}
+                              style={{ colorScheme: isDarkMode ? 'dark' : 'light' }}
                             />
-                            <span className="text-sm text-gray-400">
-                              {meeting.date ? new Date(meeting.date).toLocaleDateString('en-US') : 'mm/dd/yyyy'}
-                            </span>
+
                           </div>
 
                           <div className="flex items-center gap-3">
                             <Clock className="w-4 h-4 text-green-400" />
-                            <label className="text-sm font-medium text-gray-300 min-w-[70px]">
+                            <label className={`text-sm font-medium min-w-[70px] ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                               Time
                             </label>
                             <input
@@ -1396,23 +1431,15 @@ const MeetingEditorPage = () => {
                               value={meeting.time}
                               onChange={isOwner ? (e) => setMeeting(prev => ({ ...prev, time: e.target.value })) : undefined}
                               readOnly={!isOwner}
-                              className={`px-3 py-2 rounded-lg bg-gray-800 text-white text-sm focus:outline-none ${!isOwner ? 'cursor-not-allowed opacity-75' : ''}`}
-                              style={{ colorScheme: 'dark' }}
+                              className={`px-3 py-2 rounded-lg text-sm focus:outline-none ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} ${!isOwner ? 'cursor-not-allowed opacity-75' : ''}`}
+                              style={{ colorScheme: isDarkMode ? 'dark' : 'light' }}
                             />
-                            <span className="text-sm text-gray-400">
-                              {meeting.time ? (() => {
-                                const [hours, minutes] = meeting.time.split(':');
-                                const hour = parseInt(hours);
-                                const ampm = hour >= 12 ? 'PM' : 'AM';
-                                const displayHour = hour % 12 || 12;
-                                return `${displayHour}:${minutes} ${ampm}`;
-                              })() : '09:32 PM'}
-                            </span>
+
                           </div>
 
                           <div className="flex items-center gap-3">
                             <Clock className="w-4 h-4 text-purple-400" />
-                            <label className="text-sm font-medium text-gray-300 min-w-[70px]">
+                            <label className={`text-sm font-medium min-w-[70px] ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                               Duration
                             </label>
                             <input
@@ -1420,11 +1447,11 @@ const MeetingEditorPage = () => {
                               value={meeting.duration}
                               onChange={isOwner ? (e) => setMeeting(prev => ({ ...prev, duration: e.target.value })) : undefined}
                               readOnly={!isOwner}
-                              className="px-3 py-2 rounded-lg bg-gray-800 text-white text-sm focus:outline-none w-20"
+                              className={`px-3 py-2 rounded-lg text-sm focus:outline-none w-20 ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}
                               min="5"
                               max="480"
                             />
-                            <span className="text-sm text-gray-400">min</span>
+                            <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>min</span>
                           </div>
 
                           <div className="flex items-center gap-3">
@@ -1433,14 +1460,14 @@ const MeetingEditorPage = () => {
                                   meeting.status === 'cancelled' ? 'text-red-400' :
                                     'text-gray-400'
                               }`} />
-                            <label className="text-sm font-medium text-gray-300 min-w-[70px]">
+                            <label className={`text-sm font-medium min-w-[70px] ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                               Status
                             </label>
                             <select
                               value={meeting.status}
                               onChange={isOwner ? (e) => setMeeting(prev => ({ ...prev, status: e.target.value })) : undefined}
                               disabled={!isOwner}
-                              className="px-3 py-2 rounded-lg bg-gray-800 text-white text-sm focus:outline-none flex-1"
+                              className={`px-3 py-2 rounded-lg text-sm focus:outline-none flex-1 ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}
                             >
                               <option value="scheduled">Scheduled</option>
                               <option value="active">Active</option>
@@ -1451,14 +1478,14 @@ const MeetingEditorPage = () => {
 
                           <div className="flex items-center gap-3">
                             <Tag className="w-4 h-4 text-orange-400" />
-                            <label className="text-sm font-medium text-gray-300 min-w-[70px]">
+                            <label className={`text-sm font-medium min-w-[70px] ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                               Type
                             </label>
                             <select
                               value={meeting.type}
                               onChange={isOwner ? (e) => setMeeting(prev => ({ ...prev, type: e.target.value })) : undefined}
                               disabled={!isOwner}
-                              className="px-3 py-2 rounded-lg bg-gray-800 text-white text-sm focus:outline-none flex-1"
+                              className={`px-3 py-2 rounded-lg text-sm focus:outline-none flex-1 ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}
                             >
                               <option value="Standup">Standup</option>
                               <option value="Planning">Planning</option>
@@ -1473,7 +1500,7 @@ const MeetingEditorPage = () => {
 
                           <div className="flex items-center gap-3">
                             <MapPin className="w-4 h-4 text-yellow-400" />
-                            <label className="text-sm font-medium text-gray-300 min-w-[70px]">
+                            <label className={`text-sm font-medium min-w-[70px] ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                               Location
                             </label>
                             <input
@@ -1482,17 +1509,17 @@ const MeetingEditorPage = () => {
                               onChange={isOwner ? (e) => setMeeting(prev => ({ ...prev, location: e.target.value })) : undefined}
                               readOnly={!isOwner}
                               placeholder="Conference Room A"
-                              className="px-3 py-2 rounded-lg bg-gray-800 text-white text-sm focus:outline-none flex-1"
+                              className={`px-3 py-2 rounded-lg text-sm focus:outline-none flex-1 ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}
                             />
                           </div>
                         </div>
                       </div>
                     </div>
                     {isOwner && (
-                      <div className="flex-1">
+                      <div className="flex-1 lg:max-w-md">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2 relative">
-                            <label className="text-sm font-medium text-gray-300">
+                            <label className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                               <Users className="w-4 h-4 inline mr-1" />
                               Participants
                             </label>
@@ -1503,26 +1530,26 @@ const MeetingEditorPage = () => {
                               <Plus className="w-4 h-4" />
                             </button>
                             {showUserDropdown && (
-                              <div className="absolute right-0 top-8 w-72 max-h-80 overflow-hidden rounded-lg shadow-xl border z-50 bg-gray-800 border-gray-700">
-                                <div className="p-3 border-b border-gray-700">
+                              <div className={`absolute right-0 top-8 w-72 sm:w-80 max-h-80 overflow-hidden rounded-lg shadow-xl border z-50 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                                <div className={`p-3 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                                   <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2 text-sm font-medium text-gray-300">
+                                    <div className={`flex items-center gap-2 text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                                       <Users className="w-4 h-4" />
                                       Select Participants
                                     </div>
                                     <button
                                       onClick={() => setShowUserDropdown(false)}
-                                      className="p-1 rounded hover:bg-gray-700 transition-colors text-gray-400 hover:text-gray-200"
+                                      className={`p-1 rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-200' : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'}`}
                                       title="Close"
                                     >
                                       <X className="w-4 h-4" />
                                     </button>
                                   </div>
-                                  <div className="text-xs text-gray-400 mt-1">
+                                  <div className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                                     {meeting.attendees.length} selected
                                   </div>
                                 </div>
-                                <div className="max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
+                                <div className={`max-h-64 overflow-y-auto scrollbar-thin ${isDarkMode ? 'scrollbar-thumb-gray-600 scrollbar-track-gray-800' : 'scrollbar-thumb-gray-400 scrollbar-track-gray-200'}`}>
                                   <div className="p-2 space-y-1">
                                     {users.map((user) => {
                                       const isSelected = meeting.attendees.includes(user.name);
@@ -1543,8 +1570,8 @@ const MeetingEditorPage = () => {
                                             }
                                           }}
                                           className={`w-full flex items-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 ${isSelected
-                                            ? 'bg-blue-600/20 border border-blue-500/30 text-blue-300 shadow-sm'
-                                            : 'hover:bg-gray-700 text-gray-300 hover:shadow-sm'
+                                            ? `${isDarkMode ? 'bg-blue-600/20 border border-blue-500/30 text-blue-300' : 'bg-blue-100 border border-blue-300 text-blue-700'} shadow-sm`
+                                            : `${isDarkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'} hover:shadow-sm`
                                             }`}
                                         >
                                           <div className="mr-3">
@@ -1559,16 +1586,16 @@ const MeetingEditorPage = () => {
                                               {user.name.charAt(0).toUpperCase()}
                                             </div>
                                             <div className="flex-1">
-                                              <div className="font-medium text-sm">{user.name}</div>
-                                              <div className="text-xs text-gray-400 flex items-center gap-1">
+                                              <div className={`font-medium text-sm ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>{user.name}</div>
+                                              <div className={`text-xs flex items-center gap-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                                                 <Mail className="w-3 h-3" />
                                                 {user.email}
                                               </div>
-                                              <div className="text-xs text-gray-500 mt-0.5">
+                                              <div className={`text-xs mt-0.5 ${isDarkMode ? 'text-gray-500' : 'text-gray-600'}`}>
                                                 <span className={`px-1.5 py-0.5 rounded text-xs ${
-                                                  user.role === 'manager' ? 'bg-purple-900/30 text-purple-300' :
-                                                  user.role === 'admin' ? 'bg-red-900/30 text-red-300' :
-                                                  'bg-gray-700/50 text-gray-400'
+                                                  user.role === 'manager' ? (isDarkMode ? 'bg-purple-900/30 text-purple-300' : 'bg-purple-100 text-purple-700') :
+                                                  user.role === 'admin' ? (isDarkMode ? 'bg-red-900/30 text-red-300' : 'bg-red-100 text-red-700') :
+                                                  (isDarkMode ? 'bg-gray-700/50 text-gray-400' : 'bg-gray-200 text-gray-600')
                                                 }`}>
                                                   {user.role}
                                                 </span>
@@ -1588,27 +1615,27 @@ const MeetingEditorPage = () => {
                               </div>
                             )}
                           </div>
-                          <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700 mt-2 max-h-48 overflow-y-auto">
+                          <div className={`rounded-lg p-2 sm:p-3 border mt-2 max-h-48 overflow-y-auto ${isDarkMode ? 'bg-gray-800/50 border-gray-700' : 'bg-white border-gray-300'}`}>
                             {meeting.attendees.length > 0 ? (
                               <div className="space-y-2">
                                 {meeting.attendees.map((attendeeName, index) => {
                                   const user = users.find(u => u.name === attendeeName);
                                   return (
-                                    <div key={index} className="flex items-center justify-between p-2 bg-gray-700/50 rounded-lg">
+                                    <div key={index} className={`flex items-center justify-between p-2 rounded-lg ${isDarkMode ? 'bg-gray-700/50' : 'bg-white'}`}>
                                       <div className="flex items-center gap-3">
                                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-medium">
                                           {attendeeName.charAt(0).toUpperCase()}
                                         </div>
                                         <div>
-                                          <div className="font-medium text-sm text-gray-200">{attendeeName}</div>
+                                          <div className={`font-medium text-sm ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>{attendeeName}</div>
                                           {user && (
-                                            <div className="flex items-center gap-2 text-xs text-gray-400">
+                                            <div className={`flex items-center gap-2 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                                               <Mail className="w-3 h-3" />
                                               {user.email}
                                               <span className={`px-1.5 py-0.5 rounded text-xs ${
-                                                user.role === 'manager' ? 'bg-purple-900/30 text-purple-300' :
-                                                user.role === 'admin' ? 'bg-red-900/30 text-red-300' :
-                                                'bg-gray-600/50 text-gray-300'
+                                                user.role === 'manager' ? (isDarkMode ? 'bg-purple-900/30 text-purple-300' : 'bg-purple-100 text-purple-700') :
+                                                user.role === 'admin' ? (isDarkMode ? 'bg-red-900/30 text-red-300' : 'bg-red-100 text-red-700') :
+                                                (isDarkMode ? 'bg-gray-600/50 text-gray-300' : 'bg-gray-200 text-gray-600')
                                               }`}>
                                                 {user.role}
                                               </span>
@@ -1618,7 +1645,7 @@ const MeetingEditorPage = () => {
                                       </div>
                                       <button 
                                         onClick={() => removeAttendee(attendeeName)} 
-                                        className="p-1 rounded hover:bg-red-600/20 text-gray-400 hover:text-red-400 transition-colors"
+                                        className={`p-1 rounded transition-colors ${isDarkMode ? 'hover:bg-red-600/20 text-gray-400 hover:text-red-400' : 'hover:bg-red-100 text-gray-500 hover:text-red-600'}`}
                                         title="Remove participant"
                                       >
                                         <X className="w-4 h-4" />
@@ -1628,10 +1655,10 @@ const MeetingEditorPage = () => {
                                 })}
                               </div>
                             ) : (
-                              <div className="text-center py-4 text-gray-400">
+                              <div className={`text-center py-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                                 <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
                                 <p className="text-sm">No participants added yet</p>
-                                <p className="text-xs mt-1">Click the + button to add participants</p>
+                                <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-600'}`}>Click the + button to add participants</p>
                               </div>
                             )}
                           </div>
@@ -1640,27 +1667,27 @@ const MeetingEditorPage = () => {
                     )}
                   </div>
 
-                  <hr className="border-gray-700 my-2" />
+                  <hr className={`my-2 ${isDarkMode ? 'border-gray-700' : 'border-gray-300'}`} />
 
                   <div className="mt-2 relative">
                     <div className="flex items-center justify-between mb-2">
-                      <div className="text-sm font-medium text-gray-300">Notes</div>
+                      <div className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Notes</div>
                       <div className="relative">
                         <button
                           onClick={() => setShowTemplateDropdown(showTemplateDropdown === 'notes-header' ? null : 'notes-header')}
-                          className="p-1 rounded hover:bg-gray-700 transition-colors text-gray-400 hover:text-gray-200"
+                          className={`p-1 rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-200' : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'}`}
                           title="Templates"
                         >
                           <FileText className="w-4 h-4" />
                         </button>
                         {showTemplateDropdown === 'notes-header' && (
-                          <div className="absolute right-0 top-8 w-80 max-h-96 overflow-hidden bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
-                            <div className="p-3 border-b border-gray-700">
-                              <div className="flex items-center gap-2 text-sm font-medium text-gray-300">
+                          <div className={`absolute right-0 top-8 w-80 max-h-96 overflow-hidden border rounded-lg shadow-xl z-50 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                            <div className={`p-3 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                              <div className={`flex items-center gap-2 text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                                 <FileText className="w-4 h-4" />
                                 Meeting Templates
                               </div>
-                              <div className="text-xs text-gray-400 mt-1">
+                              <div className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                                 Choose a template to get started quickly
                               </div>
                             </div>
@@ -1747,28 +1774,28 @@ const MeetingEditorPage = () => {
                         )}
                       </div>
                     </div>
-                    <hr className="border-gray-700 my-1" />
+                    <hr className={`my-1 ${isDarkMode ? 'border-gray-700' : 'border-gray-300'}`} />
 
-                    <div className="p-4 min-h-[300px]">
+                    <div className="p-0 sm:p-4 min-h-[300px] pb-8">
                       {blocks.map((block, index) => (
-                        <div key={block.id} className={`flex items-start group relative mb-1 rounded px-2 py-1 ${aiInputBlock === block.id ? 'bg-purple-50/30 rounded-lg p-2' : ''} transition-all duration-200`}>
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 mr-2">
+                        <div key={block.id} className={`flex items-start group relative mb-2 rounded px-0 sm:px-3 py-2 ${aiInputBlock === block.id ? 'bg-purple-50/30 rounded-lg p-2' : ''} transition-all duration-200`}>
+                          <div className={`flex items-center gap-1 transition-opacity duration-200 mr-1 sm:mr-2 ${currentBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
                             <div className="relative">
                               <button
                                 onClick={() => setShowBlockMenu(showBlockMenu === block.id ? null : block.id)}
-                                className="p-1 rounded hover:bg-gray-700 transition-colors text-gray-400 hover:text-gray-200"
+                                className={`p-1 rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-200' : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'}`}
                                 title="Add block"
                               >
                                 <Plus className="w-4 h-4" />
                               </button>
                               {showBlockMenu === block.id && (
-                                <div className="absolute left-0 top-8 w-72 max-h-96 overflow-hidden bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
-                                  <div className="p-3 border-b border-gray-700">
-                                    <div className="flex items-center gap-2 text-sm font-medium text-gray-300">
+                                <div className={`absolute left-0 top-8 w-64 sm:w-72 max-h-96 overflow-hidden border rounded-lg shadow-xl z-50 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                                  <div className={`p-3 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                                    <div className={`flex items-center gap-2 text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                                       <Plus className="w-4 h-4" />
                                       Add Block
                                     </div>
-                                    <div className="text-xs text-gray-400 mt-1">
+                                    <div className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                                       Choose a block type to add content
                                     </div>
                                   </div>
@@ -1916,28 +1943,28 @@ const MeetingEditorPage = () => {
                                   console.log('GripVertical clicked for block:', block.id);
                                   setShowLineMenu(showLineMenu === block.id ? null : block.id);
                                 }}
-                                className="p-1 rounded hover:bg-gray-700 transition-colors text-gray-400 hover:text-gray-200"
+                                className={`p-1 rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-200' : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'}`}
                                 title="Line options"
                               >
                                 <GripVertical className="w-4 h-4" />
                               </button>
                               {showLineMenu === block.id && (
-                                <div className="absolute left-0 top-8 w-40 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
+                                <div className={`absolute left-0 top-8 w-36 sm:w-40 border rounded-lg shadow-xl z-50 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
                                   <div className="p-2">
-                                    <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'text', content: '', style: {} }); setBlocks(newBlocks); setShowLineMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                    <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'text', content: '', style: {} }); setBlocks(newBlocks); setShowLineMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}>
                                       <Plus className="w-4 h-4" /> Add Line
                                     </button>
                                     {index > 0 && (
-                                      <button onClick={() => { const newBlocks = [...blocks]; [newBlocks[index], newBlocks[index - 1]] = [newBlocks[index - 1], newBlocks[index]]; setBlocks(newBlocks); setShowLineMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                      <button onClick={() => { const newBlocks = [...blocks]; [newBlocks[index], newBlocks[index - 1]] = [newBlocks[index - 1], newBlocks[index]]; setBlocks(newBlocks); setShowLineMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}>
                                         <ArrowUp className="w-4 h-4" /> Move Up
                                       </button>
                                     )}
                                     {index < blocks.length - 1 && (
-                                      <button onClick={() => { const newBlocks = [...blocks]; [newBlocks[index], newBlocks[index + 1]] = [newBlocks[index + 1], newBlocks[index]]; setBlocks(newBlocks); setShowLineMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                      <button onClick={() => { const newBlocks = [...blocks]; [newBlocks[index], newBlocks[index + 1]] = [newBlocks[index + 1], newBlocks[index]]; setBlocks(newBlocks); setShowLineMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}>
                                         <ArrowDown className="w-4 h-4" /> Move Down
                                       </button>
                                     )}
-                                    <button onClick={() => { const newBlocks = [...blocks]; const duplicated = { ...block, id: `block-${Date.now()}` }; newBlocks.splice(index + 1, 0, duplicated); setBlocks(newBlocks); setShowLineMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                    <button onClick={() => { const newBlocks = [...blocks]; const duplicated = { ...block, id: `block-${Date.now()}` }; newBlocks.splice(index + 1, 0, duplicated); setBlocks(newBlocks); setShowLineMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}>
                                       <Copy className="w-4 h-4" /> Duplicate
                                     </button>
                                     {blocks.length > 1 && (
@@ -1953,7 +1980,7 @@ const MeetingEditorPage = () => {
                                             inputRefs.current[targetBlock.id].focus();
                                           }
                                         }, 0);
-                                      }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-red-400">
+                                      }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-red-700 text-red-300' : 'hover:bg-red-100 text-red-700'}`}>
                                         <Trash2 className="w-4 h-4" /> Delete
                                       </button>
                                     )}
@@ -1964,8 +1991,8 @@ const MeetingEditorPage = () => {
                           </div>
                           <div className="flex-1 relative">
                             {aiInputBlock === block.id ? (
-                              <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-purple-900/20 border border-purple-800/30 transition-all duration-200">
-                                <div className="p-1 rounded bg-purple-900/40">
+                              <div className={`flex items-center gap-3 px-3 py-2 rounded-lg border transition-all duration-200 ${isDarkMode ? 'bg-purple-900/20 border-purple-800/30' : 'bg-purple-100/50 border-purple-300/50'}`}>
+                                <div className={`p-1 rounded ${isDarkMode ? 'bg-purple-900/40' : 'bg-purple-200/60'}`}>
                                   <Sparkles className="w-4 h-4 text-purple-400" />
                                 </div>
                                 <input
@@ -1974,7 +2001,7 @@ const MeetingEditorPage = () => {
                                   onChange={(e) => setAiQuery(e.target.value)}
                                   onKeyDown={handleAiQuerySubmit}
                                   placeholder="Ask me anything about this meeting... (Press Enter)"
-                                  className="flex-1 outline-none bg-transparent text-sm font-medium text-purple-200 placeholder-purple-400"
+                                  className={`flex-1 outline-none bg-transparent text-sm font-medium ${isDarkMode ? 'text-purple-200 placeholder-purple-400' : 'text-purple-800 placeholder-purple-500'}`}
                                   autoFocus
                                 />
                                 <button
@@ -1982,7 +2009,7 @@ const MeetingEditorPage = () => {
                                     setAiInputBlock(null);
                                     setAiQuery('');
                                   }}
-                                  className="p-1 rounded-full hover:bg-gray-700 transition-colors text-purple-400 hover:text-purple-300"
+                                  className={`p-1 rounded-full transition-colors text-purple-400 hover:text-purple-300 ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
                                   title="Cancel"
                                 >
                                   <X className="w-4 h-4" />
@@ -2003,6 +2030,37 @@ const MeetingEditorPage = () => {
             </div>
           </div>
         </div>
+
+        {/* Mobile Bottom Action Bar */}
+        {isOwner && (
+          <div className={`sm:hidden fixed bottom-0 left-0 right-0 z-20 border-t ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'}`}>
+            <div className="max-w-6xl mx-auto px-3 py-3">
+              <div className="flex gap-3 justify-end">
+                {!isNewMeeting && (
+                  <button
+                    onClick={handleDelete}
+                    className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-all bg-red-600 hover:bg-red-700 text-white flex-1"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete
+                  </button>
+                )}
+                <button
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="flex items-center justify-center gap-2 px-6 py-2 rounded-lg font-medium transition-all bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 text-white flex-1"
+                >
+                  {isSaving ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  {isSaving ? 'Saving...' : (isNewMeeting ? 'Create Meeting' : 'Save Changes')}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

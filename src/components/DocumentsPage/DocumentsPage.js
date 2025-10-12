@@ -640,133 +640,129 @@ const DocumentsPage = () => {
                     </div>
                 )}
 
-                <div className="mb-12">
-                    <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-8 mb-10">
-                        <div className="flex items-start gap-6">
-                            <div className={`relative w-20 h-20 rounded-2xl flex items-center justify-center shadow-xl ${isDarkMode 
+                <div className="mb-8 sm:mb-12">
+                    <div className="flex flex-col gap-6 sm:gap-8 mb-8 sm:mb-10">
+                        <div className="flex items-start gap-4 sm:gap-6">
+                            <div className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center shadow-xl ${isDarkMode 
                                 ? 'bg-gray-800 border border-gray-700' 
                                 : 'bg-gray-100 border border-gray-300'
                             }`}>
-                                <FolderOpen className={`w-10 h-10 ${isDarkMode ? 'text-white' : 'text-black'}`} />
-                                <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                                <FolderOpen className={`w-8 h-8 sm:w-10 sm:h-10 ${isDarkMode ? 'text-white' : 'text-black'}`} />
+                                <div className="absolute -top-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 bg-green-500 rounded-full flex items-center justify-center">
                                     <span className="text-xs font-bold text-white">{filteredDocuments.length}</span>
                                 </div>
                             </div>
-                            <div className="space-y-2">
-                                <h1 className={`text-4xl lg:text-5xl font-black leading-tight ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                            <div className="space-y-2 flex-1">
+                                <h1 className={`text-3xl sm:text-4xl lg:text-5xl font-black leading-tight ${isDarkMode ? 'text-white' : 'text-black'}`}>
                                     Documents
                                 </h1>
-                                <p className={`text-lg font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                                <p className={`hidden sm:block text-base sm:text-lg font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                                     Organize, share, and collaborate on your files
                                 </p>
-                                <div className="flex items-center gap-4 text-sm">
-                                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${isDarkMode ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-600'}`}>
-                                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                                        <span className="font-semibold">{filteredDocuments.length} documents</span>
-                                    </div>
-                                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${isDarkMode ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-600'}`}>
-                                        <Users className="w-3 h-3" />
-                                        <span>Team workspace</span>
-                                    </div>
-                                </div>
                             </div>
                         </div>
 
                         {canUpload && (
                             <button
                                 onClick={() => setShowUploadModal(true)}
-                                className={`group flex items-center gap-3 px-6 py-3.5 rounded-xl font-semibold transition-all duration-300 hover:scale-[1.02] ${isDarkMode
+                                className={`group flex items-center justify-center gap-3 px-6 py-3.5 rounded-xl font-semibold transition-all duration-300 hover:scale-[1.02] w-full sm:w-auto ${isDarkMode
                                     ? 'bg-white text-black hover:bg-gray-100'
                                     : 'bg-black text-white hover:bg-gray-900'
                                 }`}
                             >
                                 <Upload className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-                                Upload Document
+                                <span className="sm:inline">Upload Document</span>
                             </button>
                         )}
                     </div>
 
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                        <div className="relative flex-1 max-w-2xl">
+                    <div className="space-y-4">
+                        <div className="relative hidden sm:block">
                             <Search className={`absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`} />
                             <input
                                 type="text"
-                                placeholder="Search documents, descriptions, tags..."
+                                placeholder="Search documents..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className={`w-full pl-12 pr-6 py-4 rounded-2xl border focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base transition-all duration-200 ${isDarkMode
+                                className={`w-full pl-12 pr-6 py-3 sm:py-4 rounded-2xl border focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base transition-all duration-200 ${isDarkMode
                                     ? 'bg-black border-gray-700 text-white placeholder-gray-400'
                                     : 'bg-white border-gray-300 text-black placeholder-gray-400'
                                 }`}
                             />
                         </div>
 
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                             {canManage && (
-                                <div className={`flex items-center rounded-2xl p-1 border-2 ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-300'}`}>
+                                <div className={`flex items-center rounded-2xl p-1 border-2 overflow-x-auto ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-300'}`}>
                                     <button
                                         onClick={() => setFilter('all')}
-                                        className={`px-4 py-3 rounded-xl text-sm font-bold transition-all duration-200 ${filter === 'all'
+                                        className={`px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 whitespace-nowrap ${filter === 'all'
                                             ? (isDarkMode ? 'bg-blue-600 text-white shadow-lg' : 'bg-blue-500 text-white shadow-lg')
                                             : (isDarkMode ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100')
                                         }`}
                                     >
-                                        All Documents
+                                        <span className="hidden sm:inline">All Documents</span>
+                                        <span className="sm:hidden">All</span>
                                     </button>
                                     <button
                                         onClick={() => setFilter('owned')}
-                                        className={`px-4 py-3 rounded-xl text-sm font-bold transition-all duration-200 ${filter === 'owned'
+                                        className={`px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 whitespace-nowrap ${filter === 'owned'
                                             ? (isDarkMode ? 'bg-blue-600 text-white shadow-lg' : 'bg-blue-500 text-white shadow-lg')
                                             : (isDarkMode ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100')
                                         }`}
                                     >
-                                        Owned by Me
+                                        <span className="hidden sm:inline">Owned by Me</span>
+                                        <span className="sm:hidden">Mine</span>
                                     </button>
                                     <button
                                         onClick={() => setFilter('shared')}
-                                        className={`px-4 py-3 rounded-xl text-sm font-bold transition-all duration-200 ${filter === 'shared'
+                                        className={`px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 whitespace-nowrap ${filter === 'shared'
                                             ? (isDarkMode ? 'bg-blue-600 text-white shadow-lg' : 'bg-blue-500 text-white shadow-lg')
                                             : (isDarkMode ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100')
                                         }`}
                                     >
-                                        Shared with Me
+                                        <span className="hidden sm:inline">Shared with Me</span>
+                                        <span className="sm:hidden">Shared</span>
                                     </button>
                                 </div>
                             )}
 
-                            <div className={`flex items-center rounded-2xl p-1 border-2 ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-300'}`}>
-                                <button
-                                    onClick={() => setViewMode('grid')}
-                                    className={`p-3 rounded-xl transition-all duration-200 ${viewMode === 'grid'
-                                        ? (isDarkMode ? 'bg-blue-600 text-white shadow-lg' : 'bg-blue-500 text-white shadow-lg')
-                                        : (isDarkMode ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100')
-                                    }`}
-                                >
-                                    <Grid className="w-5 h-5" />
-                                </button>
-                                <button
-                                    onClick={() => setViewMode('list')}
-                                    className={`p-3 rounded-xl transition-all duration-200 ${viewMode === 'list'
-                                        ? (isDarkMode ? 'bg-blue-600 text-white shadow-lg' : 'bg-blue-500 text-white shadow-lg')
-                                        : (isDarkMode ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100')
-                                    }`}
-                                >
-                                    <List className="w-5 h-5" />
-                                </button>
-                            </div>
+                            <div className="flex items-center justify-between sm:justify-end gap-3">
+                                <div className={`hidden sm:flex items-center rounded-2xl p-1 border-2 ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-300'}`}>
+                                    <button
+                                        onClick={() => setViewMode('grid')}
+                                        className={`p-2 sm:p-3 rounded-xl transition-all duration-200 ${viewMode === 'grid'
+                                            ? (isDarkMode ? 'bg-blue-600 text-white shadow-lg' : 'bg-blue-500 text-white shadow-lg')
+                                            : (isDarkMode ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100')
+                                        }`}
+                                    >
+                                        <Grid className="w-4 h-4 sm:w-5 sm:h-5" />
+                                    </button>
+                                    <button
+                                        onClick={() => setViewMode('list')}
+                                        className={`p-2 sm:p-3 rounded-xl transition-all duration-200 ${viewMode === 'list'
+                                            ? (isDarkMode ? 'bg-blue-600 text-white shadow-lg' : 'bg-blue-500 text-white shadow-lg')
+                                            : (isDarkMode ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100')
+                                        }`}
+                                    >
+                                        <List className="w-4 h-4 sm:w-5 sm:h-5" />
+                                    </button>
+                                </div>
 
-                            {canManage && selectedDocs.length > 0 && (
-                                <button
-                                    onClick={handleBulkDelete}
-                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${isDarkMode
-                                        ? 'bg-red-900 text-red-200 hover:bg-red-800'
-                                        : 'bg-red-100 text-red-700 hover:bg-red-200'
-                                    }`}
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                    Delete ({selectedDocs.length})
-                                </button>
-                            )}
+                                {canManage && selectedDocs.length > 0 && (
+                                    <button
+                                        onClick={handleBulkDelete}
+                                        className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm ${isDarkMode
+                                            ? 'bg-red-900 text-red-200 hover:bg-red-800'
+                                            : 'bg-red-100 text-red-700 hover:bg-red-200'
+                                        }`}
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                        <span className="hidden sm:inline">Delete ({selectedDocs.length})</span>
+                                        <span className="sm:hidden">({selectedDocs.length})</span>
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -810,59 +806,62 @@ const DocumentsPage = () => {
                                 )}
                             </div>
                         ) : (
-                            <div className={`grid ${viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' : 'grid-cols-1'} gap-6`}>
+                            <div className={`grid ${viewMode === 'grid' ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5' : 'grid-cols-1'} gap-3 sm:gap-4`}>
                                 {filteredDocuments.map((doc) => (
-                                    <div key={doc._id} className={`group relative rounded-xl border transition-all duration-200 hover:shadow-lg ${isDarkMode ? 'bg-gray-900 border-gray-700 hover:border-gray-600' : 'bg-white border-gray-200 hover:border-gray-300'}`}>
-                                        <div className="p-6">
-                                            <div className="flex items-start justify-between mb-4">
-                                                <div className={`p-3 rounded-lg ${getFileTypeColor(doc.type)}`}>
-                                                    {getFileTypeIcon(doc.type)}
+                                    <div key={doc._id} className={`group relative rounded-xl border transition-all duration-300 hover:shadow-xl hover:scale-[1.02] cursor-pointer ${isDarkMode ? 'bg-gray-900 border-gray-700 hover:border-blue-500' : 'bg-white border-gray-200 hover:border-blue-400'}`} onClick={() => openPreview(doc)}>
+                                        <div className="p-3">
+                                            <div className="flex items-start justify-between mb-3">
+                                                <div className={`p-2 rounded-lg shadow-sm ${getFileTypeColor(doc.type)}`}>
+                                                    {getFileTypeIcon(doc.type, "w-4 h-4")}
                                                 </div>
-                                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200" onClick={(e) => e.stopPropagation()}>
                                                     <button 
                                                         onClick={() => openPreview(doc)}
-                                                        className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}
+                                                        className={`p-1.5 rounded-lg transition-all duration-200 hover:scale-110 ${isDarkMode ? 'hover:bg-gray-800 text-gray-400 hover:text-white' : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'}`}
                                                         title="View document"
                                                     >
-                                                        <Eye className="w-4 h-4" />
+                                                        <Eye className="w-3.5 h-3.5" />
                                                     </button>
                                                     {canManage && (
                                                         <button 
-                                                            onClick={() => {
-                                                                console.log('Delete clicked - canManage:', canManage, 'doc.author:', doc.author, 'user:', user);
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
                                                                 handleDeleteDocument(doc._id);
                                                             }}
-                                                            className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-red-900 text-red-400' : 'hover:bg-red-50 text-red-600'}`}
+                                                            className={`p-1.5 rounded-lg transition-all duration-200 hover:scale-110 ${isDarkMode ? 'hover:bg-red-900 text-red-400 hover:text-red-300' : 'hover:bg-red-50 text-red-600 hover:text-red-700'}`}
                                                             title="Delete document"
                                                         >
-                                                            <Trash2 className="w-4 h-4" />
+                                                            <Trash2 className="w-3.5 h-3.5" />
                                                         </button>
                                                     )}
                                                     {doc.attachments && doc.attachments.length > 0 && (
                                                         <button 
-                                                            onClick={() => handleDownload(doc.attachments[0])}
-                                                            className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleDownload(doc.attachments[0]);
+                                                            }}
+                                                            className={`p-1.5 rounded-lg transition-all duration-200 hover:scale-110 ${isDarkMode ? 'hover:bg-gray-800 text-gray-400 hover:text-white' : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'}`}
                                                             title="Download file"
                                                         >
-                                                            <Download className="w-4 h-4" />
+                                                            <Download className="w-3.5 h-3.5" />
                                                         </button>
                                                     )}
                                                 </div>
                                             </div>
-                                            <h3 className={`font-semibold mb-2 truncate ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{doc.title}</h3>
-                                            <p className={`text-sm mb-3 line-clamp-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{doc.content || 'No description'}</p>
+                                            <h3 className={`font-bold mb-2 text-sm leading-tight line-clamp-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{doc.title}</h3>
+                                            <p className={`text-xs mb-2 line-clamp-2 leading-relaxed ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{doc.content || 'No description'}</p>
                                             
                                             {/* Show sharing info */}
                                             {doc.author && doc.author._id !== user?.id && (
                                                 <div className={`text-xs mb-2 flex items-center gap-1 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
-                                                    <Share2 className="w-3 h-3" />
-                                                    <span>Shared by {doc.author.name}</span>
+                                                    <Share2 className="w-2.5 h-2.5 flex-shrink-0" />
+                                                    <span className="truncate font-medium">Shared by {doc.author.name}</span>
                                                 </div>
                                             )}
                                             
-                                            <div className="flex items-center justify-between text-xs">
-                                                <span className={`${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>{formatFileSize(doc.attachments?.[0]?.size)}</span>
-                                                <span className={`${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>{new Date(doc.createdAt).toLocaleDateString()}</span>
+                                            <div className="flex items-center justify-between text-xs pt-2 border-t border-gray-200/50">
+                                                <span className={`truncate font-medium ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>{formatFileSize(doc.attachments?.[0]?.size)}</span>
+                                                <span className={`font-medium ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>{new Date(doc.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -874,25 +873,23 @@ const DocumentsPage = () => {
 
                 {/* Document Preview Modal */}
                 {showPreview && previewDoc && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75">
-                        <div className={`max-w-4xl max-h-[90vh] w-full mx-4 rounded-xl overflow-hidden ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
-                            <div className={`p-6 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{previewDoc.title}</h2>
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4">
+                        <div className={`max-w-4xl max-h-[90vh] w-full rounded-xl overflow-hidden ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
+                            <div className={`p-4 sm:p-6 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                                <div className="flex items-start justify-between gap-4">
+                                    <div className="flex-1 min-w-0">
+                                        <h2 className={`text-lg sm:text-xl font-bold truncate ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{previewDoc.title}</h2>
                                         <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Shared by {previewDoc.author?.name}</p>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={() => setShowPreview(false)}
-                                            className={`p-2 rounded-lg ${isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}
-                                        >
-                                            <X className="w-5 h-5" />
-                                        </button>
-                                    </div>
+                                    <button
+                                        onClick={() => setShowPreview(false)}
+                                        className={`p-2 rounded-lg flex-shrink-0 ${isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}
+                                    >
+                                        <X className="w-5 h-5" />
+                                    </button>
                                 </div>
                             </div>
-                            <div className="p-6 overflow-y-auto max-h-[60vh]">
+                            <div className="p-4 sm:p-6 overflow-y-auto max-h-[60vh]">
                                 <div className={`prose max-w-none ${isDarkMode ? 'prose-invert' : ''}`}>
                                     <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{previewDoc.content || 'No description available'}</p>
                                     
@@ -1022,23 +1019,27 @@ const DocumentsPage = () => {
                     </div>
                 )}
 
-                {/* Upload Modal */}
+                {/* Upload Modal - Half Screen */}
                 {showUploadModal && (
-                    <div className="fixed inset-0 z-50 flex">
-                        <div className="w-1/2 h-full" onClick={() => setShowUploadModal(false)} />
-                        <div className={`w-1/2 h-full ${isDarkMode ? 'bg-gray-900' : 'bg-white'} shadow-2xl overflow-y-auto`}>
-                            <div className="p-8">
-                                <div className="flex items-center justify-between mb-8">
-                                    <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Upload Document</h2>
+                    <div className={`fixed top-0 right-0 w-full md:w-1/2 h-screen z-50 ${isDarkMode ? 'bg-gray-900 border-l border-gray-700' : 'bg-white border-l border-gray-200'} shadow-2xl overflow-y-auto`}>
+                            {/* Header */}
+                            <div className={`sticky top-0 z-40 backdrop-blur-sm transition-all duration-300 border-b ${isDarkMode ? 'bg-gray-900/95 border-gray-800' : 'bg-white/95 border-gray-200'} px-4 sm:px-6`}>
+                                <div className="flex items-center justify-between h-14">
+                                    <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Upload Document</h2>
                                     <button
                                         onClick={() => setShowUploadModal(false)}
-                                        className={`p-2 rounded-lg ${isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}
+                                        className={`p-2 rounded-lg transition-all duration-200 ${isDarkMode ? 'text-gray-400 hover:bg-gray-800/60' : 'text-gray-500 hover:bg-gray-100'}`}
+                                        title="Close"
                                     >
                                         <X className="w-5 h-5" />
                                     </button>
                                 </div>
+                            </div>
+                            
+                            {/* Content */}
+                            <div className="p-4 sm:p-6">
                                 
-                                <div className="space-y-6">
+                                <div className="space-y-4 sm:space-y-6">
                                     <div>
                                         <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>Title *</label>
                                         <input
@@ -1230,7 +1231,7 @@ const DocumentsPage = () => {
                                     </div>
                                 </div>
                                 
-                                <div className="flex gap-3 mt-8">
+                                <div className="flex flex-col sm:flex-row gap-3 mt-6 sm:mt-8">
                                     <button
                                         onClick={() => setShowUploadModal(false)}
                                         className={`flex-1 px-6 py-3 rounded-lg font-medium ${isDarkMode ? 'bg-gray-800 text-gray-200 hover:bg-gray-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
@@ -1246,7 +1247,6 @@ const DocumentsPage = () => {
                                     </button>
                                 </div>
                             </div>
-                        </div>
                     </div>
                 )}
                 

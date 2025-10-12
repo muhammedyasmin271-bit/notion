@@ -4,7 +4,6 @@ import {
   Home as HomeIcon,
   LayoutGrid as ProjectsIcon,
   Folder as DocumentsIcon,
-  Settings as SettingsIcon,
   Newspaper as MeetingNotesIcon,
   FileText as NotepadIcon,
   LogOut,
@@ -51,6 +50,7 @@ const NavBar = () => {
     const path = location.pathname;
     if (path === '/' || path === '/home') return 'home';
     if (path === '/meeting-notes') return 'meetingNotes';
+    if (path === '/user-management') return 'user-management';
     if (path === '/admin') return 'admin';
     return path.substring(1); // Remove leading slash
   };
@@ -74,8 +74,7 @@ const NavBar = () => {
     { name: 'Meeting Notes', icon: MeetingNotesIcon, page: 'meetingNotes', path: '/meeting-notes', description: 'Meeting summaries' },
     { name: 'Reports', icon: ReportsIcon, page: 'reports', path: '/reports', description: 'Analytics & insights' },
     { name: 'Profile', icon: ProfileIcon, page: 'profile', path: '/profile', description: 'User profile & settings' },
-    { name: 'Users', icon: UsersIcon, page: 'users', path: '/users', description: 'User management' },
-    { name: 'Settings', icon: SettingsIcon, page: 'settings', path: '/settings', description: 'App configuration' },
+    { name: 'User Management', icon: UsersIcon, page: 'user-management', path: '/user-management', description: 'User management' },
     { name: 'Admin', icon: Shield, page: 'admin', path: '/admin', description: 'Admin dashboard' },
   ];
 
@@ -96,8 +95,8 @@ const NavBar = () => {
       item.description.toLowerCase().includes(searchQuery.toLowerCase());
 
     // Role-based filtering
-    if (item.page === 'users') {
-      // Users page only visible to managers and admins
+    if (item.page === 'user-management') {
+      // User management page visible to managers and admins
       return matchesSearch && (user?.role === 'manager' || user?.role === 'admin');
     }
 
@@ -119,7 +118,7 @@ const NavBar = () => {
       {/* Mobile Menu Button */}
       <button
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="lg:hidden mobile-menu-button"
+        className="lg:hidden sticky left-0 top-0 z-50 mobile-menu-button"
         title="Toggle menu"
       >
         <Menu size={20} />
@@ -150,10 +149,17 @@ const NavBar = () => {
           )}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-2 hover:bg-white/20 rounded-lg transition-all duration-200 hover:scale-110 backdrop-blur-sm bg-white/10"
+            className="hidden lg:block p-2 hover:bg-white/20 rounded-lg transition-all duration-200 hover:scale-110 backdrop-blur-sm bg-white/10"
             title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
-            {isCollapsed ? <Menu size={20} /> : <X size={20} />}
+            <Menu size={20} />
+          </button>
+          <button
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="lg:hidden p-2 hover:bg-white/20 rounded-lg transition-all duration-200"
+            title="Close menu"
+          >
+            <X size={20} />
           </button>
         </div>
 

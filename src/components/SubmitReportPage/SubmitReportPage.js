@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useTheme } from '../../context/ThemeContext';
 import { ArrowLeft, Send, Paperclip, X, Bug, Lightbulb, Shield, Zap, MessageSquare, CheckCircle, Upload, FileText, Plus, Sparkles, GripVertical, Type, Hash, List, Quote, Code, Trash2, Copy, ArrowUp, ArrowDown, ArrowRight, CheckSquare, Table, Minus, AlertCircle, Star, Tag, MapPin, Mail, ListOrdered, Calendar, Clock, Target, BarChart3, Info, AlertTriangle, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, Palette, Link, Image, Video, FileIcon, Bookmark, Flag, Users, Settings, Eye, EyeOff, Lock, Unlock, Share2, ChevronDown } from 'lucide-react';
 
 // Share Report Component
@@ -11,21 +12,34 @@ const ShareReportSection = ({ reportData, selectedUsers, setSelectedUsers }) => 
   useEffect(() => {
     const fetchTeamMembers = async () => {
       try {
-        const apiService = (await import('../../services/api')).default;
-        const response = await apiService.getUsers();
-        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.error('No authentication token found');
+          return;
+        }
+
+        const response = await fetch('http://localhost:9000/api/users', {
+          method: 'GET',
+          headers: {
+            'x-auth-token': token,
+            'Content-Type': 'application/json'
+          }
+        });
         
-        // Filter out current user and only show active users
-        const teamMembers = response.users
-          .filter(user => user._id !== currentUser.id && user.isActive)
-          .map(user => ({
-            _id: user._id,
-            name: user.name,
-            email: user.email,
-            role: user.role
-          }));
-        
-        setUsers(teamMembers);
+        if (response.ok) {
+          const data = await response.json();
+          console.log('👥 Received users data:', data);
+          // Filter out current user
+          const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+          const teamMembers = (data.users || []).filter(user => user._id !== currentUser.id);
+          console.log('📝 Team members count:', teamMembers.length);
+          setUsers(teamMembers);
+        } else {
+          console.error('Failed to fetch users:', response.status, response.statusText);
+          const errorText = await response.text();
+          console.error('Error response:', errorText);
+          setUsers([]);
+        }
       } catch (error) {
         console.error('Error fetching team members:', error);
         setUsers([]);
@@ -40,33 +54,12 @@ const ShareReportSection = ({ reportData, selectedUsers, setSelectedUsers }) => 
     
     setIsSharing(true);
     try {
-      const token = localStorage.getItem('token');
-      // Get current report ID
-      const reportId = new URLSearchParams(window.location.search).get('edit') || 'new';
-      
-      const response = await fetch(`http://localhost:9000/api/reports/${reportId}/share`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': token
-        },
-        body: JSON.stringify({
-          userIds: selectedUsers
-        })
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        alert(data.message);
-      } else {
-        const error = await response.json();
-        alert(error.message || 'Failed to share report');
-      }
-      
+      const selectedNames = getSelectedUserNames();
+      alert(`✓ Ready to share with: ${selectedNames.join(', ')}\n\nThe report will be shared when you save it.`);
       setShowDropdown(false);
     } catch (error) {
-      console.error('Share error:', error);
-      alert('Failed to share report. Please try again.');
+      console.error('Share preparation error:', error);
+      alert('Failed to prepare sharing. Please try again.');
     } finally {
       setIsSharing(false);
     }
@@ -167,7 +160,7 @@ const ShareReportSection = ({ reportData, selectedUsers, setSelectedUsers }) => 
           ) : (
             <CheckCircle className="w-5 h-5" />
           )}
-          {isSharing ? 'Sharing...' : `Share with ${selectedUsers.length} member(s)`}
+          {isSharing ? 'Preparing...' : `Ready to Share with ${selectedUsers.length} member(s)`}
         </button>
       )}
     </div>
@@ -175,6 +168,7 @@ const ShareReportSection = ({ reportData, selectedUsers, setSelectedUsers }) => 
 };
 
 const SubmitReportPage = () => {
+  const { isDarkMode } = useTheme();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -201,27 +195,109 @@ const SubmitReportPage = () => {
   const [currentBlockId, setCurrentBlockId] = useState(null);
   const [showTemplateDropdown, setShowTemplateDropdown] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState([]);
+  const [activeLineId, setActiveLineId] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
   const inputRefs = useRef({});
+
+  // Check if device is mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Handle clicking outside to hide mobile line buttons
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isMobile && activeLineId && !event.target.closest('.block-line')) {
+        setActiveLineId(null);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [isMobile, activeLineId]);
 
   useEffect(() => {
     const editId = searchParams.get('edit');
-    if (editId) {
-      const savedReports = JSON.parse(localStorage.getItem('submittedReports') || '[]');
-      const reportToEdit = savedReports.find(r => r.id === editId);
-      if (reportToEdit) {
-        setIsEditMode(true);
-        setReport(reportToEdit);
-        setBlocks(reportToEdit.blocks || [{ id: 'block-1', type: 'text', content: '', style: {} }]);
-        setTableData(reportToEdit.tableData || {});
-        setAttachments(reportToEdit.attachments || []);
-        // Load shared users from localStorage
-        const savedSharedUsers = localStorage.getItem(`sharedUsers_${editId}`);
-        if (savedSharedUsers) {
-          setSelectedUsers(JSON.parse(savedSharedUsers));
-        } else {
-          setSelectedUsers(reportToEdit.sharedWith || []);
+    if (editId && editId !== 'new') {
+      const fetchReport = async () => {
+        try {
+          const token = localStorage.getItem('token');
+          if (!token) {
+            console.error('No authentication token found');
+            return;
+          }
+
+          const response = await fetch(`http://localhost:9000/api/reports/${editId}`, {
+            method: 'GET',
+            headers: {
+              'x-auth-token': token,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            const reportToEdit = data.report;
+            
+            if (reportToEdit) {
+              setIsEditMode(true);
+              setReport({
+                type: reportToEdit.reportType || 'bug',
+                priority: 'medium',
+                title: reportToEdit.title || '',
+                description: reportToEdit.description || '',
+                stepsToReproduce: '',
+                expectedBehavior: '',
+                actualBehavior: '',
+                environment: '',
+                email: JSON.parse(localStorage.getItem('user') || '{}').email || '',
+                phone: ''
+              });
+              // Ensure blocks have all required properties
+              const loadedBlocks = reportToEdit.blocks && reportToEdit.blocks.length > 0 
+                ? reportToEdit.blocks.map(block => ({
+                    id: block.id || `block-${Date.now()}-${Math.random()}`,
+                    type: block.type || 'text',
+                    content: block.content || '',
+                    style: block.style || {},
+                    // Preserve all other block properties
+                    ...block
+                  }))
+                : [{ id: 'block-1', type: 'text', content: '', style: {} }];
+              
+              setBlocks(loadedBlocks);
+              console.log('📝 Loaded blocks for editing:', {
+                count: loadedBlocks.length,
+                types: loadedBlocks.map(b => b.type)
+              });
+              setTableData(reportToEdit.tableData || {});
+              // Convert attachment metadata back to display format
+              const loadedAttachments = (reportToEdit.attachments || []).map(att => ({
+                name: att.name || 'Unknown file',
+                size: att.size || 0,
+                path: att.path,
+                filename: att.filename,
+                isMetadata: true
+              }));
+              setAttachments(loadedAttachments);
+              setSelectedUsers(reportToEdit.sharedWith ? reportToEdit.sharedWith.map(user => user._id || user) : []);
+            }
+          } else {
+            console.error('Failed to fetch report:', response.status, response.statusText);
+          }
+        } catch (error) {
+          console.error('Error fetching report:', error);
         }
-      }
+      };
+      
+      fetchReport();
     }
   }, [searchParams]);
 
@@ -457,7 +533,7 @@ const SubmitReportPage = () => {
     };
 
     const getInputClassName = () => {
-      const baseClass = "w-full px-3 py-2 bg-transparent text-white placeholder-gray-400 focus:outline-none border-none leading-tight";
+      const baseClass = `w-full max-w-none py-1 px-1 ${isDarkMode ? 'bg-transparent text-gray-100 placeholder-gray-500 focus:bg-gray-800/20' : 'bg-transparent text-gray-800 placeholder-gray-400 focus:bg-gray-50/30'} focus:outline-none border-0 border-none rounded transition-all duration-200 font-inter leading-relaxed hover:bg-opacity-30`;
       const styleClass = `${block.style?.bold ? 'font-bold ' : ''
         }${block.style?.italic ? 'italic ' : ''
         }${block.style?.underline ? 'underline ' : ''
@@ -575,12 +651,16 @@ const SubmitReportPage = () => {
                                 onChange={(e) => updateCell(rowIndex, colIndex, e.target.value)}
                                 placeholder={rowIndex === 0 ? `Column ${colIndex + 1}` : ''}
                                 rows={Math.max(1, cell.split('\n').length)}
-                                className={`w-full h-full min-h-[32px] border-none outline-none bg-transparent text-sm resize-none overflow-hidden p-2 ${rowIndex === 0 ? 'font-semibold text-gray-200' : 'text-gray-300'
-                                  } focus:bg-blue-900/20`}
+                                className={`w-full h-full min-h-[32px] border-0 border-none outline-none bg-transparent text-sm resize-none p-2 rounded transition-all duration-200 ${rowIndex === 0 ? `font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}` : `${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`} ${isDarkMode ? 'focus:bg-blue-900/20' : 'focus:bg-blue-100/30'} hover:bg-opacity-30`}
                                 style={{
                                   height: savedHeight + 'px',
                                   minHeight: '32px',
-                                  lineHeight: '1.4'
+                                  lineHeight: '1.6',
+                                  wordWrap: 'break-word',
+                                  whiteSpace: 'pre-wrap',
+                                  overflowWrap: 'break-word',
+                                  width: '100%',
+                                  margin: 0
                                 }}
                                 onInput={(e) => {
                                   e.target.style.height = 'auto';
@@ -641,14 +721,23 @@ const SubmitReportPage = () => {
     if (block.type === 'quote') {
       return (
         <div className="border-l-4 border-gray-400 bg-gray-800/30 pl-6 py-4 rounded-r-md">
-          <input
+          <textarea
             ref={(el) => inputRefs.current[block.id] = el}
-            type="text"
             value={block.content}
             onChange={(e) => updateBlockContent(e.target.value)}
+            onInput={(e) => {
+              // Auto-resize textarea with better line break handling
+              e.target.style.height = 'auto';
+              const scrollHeight = e.target.scrollHeight;
+              const minHeight = 24;
+              const newHeight = Math.max(minHeight, scrollHeight);
+              e.target.style.height = newHeight + 'px';
+            }}
             onKeyDown={handleKeyDown}
             placeholder="Quote text..."
-            className="w-full bg-transparent text-white text-base italic placeholder-gray-400 focus:outline-none border-none"
+            rows={1}
+            className={`w-full ${isDarkMode ? 'bg-transparent text-white' : 'bg-white text-black'} text-base italic placeholder-gray-400 focus:outline-none border-0 border-none resize-none`}
+            style={{ minHeight: '24px', lineHeight: '1.6', wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', width: '100%', margin: 0 }}
           />
         </div>
       );
@@ -668,14 +757,23 @@ const SubmitReportPage = () => {
       return (
         <div className={`${callout.bg} ${callout.border} border rounded-lg p-4 flex items-start gap-3`}>
           <IconComponent className={`w-5 h-5 ${callout.color} mt-0.5 flex-shrink-0`} />
-          <input
+          <textarea
             ref={(el) => inputRefs.current[block.id] = el}
-            type="text"
             value={block.content}
             onChange={(e) => updateBlockContent(e.target.value)}
+            onInput={(e) => {
+              // Auto-resize textarea with better line break handling
+              e.target.style.height = 'auto';
+              const scrollHeight = e.target.scrollHeight;
+              const minHeight = 24;
+              const newHeight = Math.max(minHeight, scrollHeight);
+              e.target.style.height = newHeight + 'px';
+            }}
             onKeyDown={handleKeyDown}
             placeholder="Callout text..."
-            className="flex-1 bg-transparent text-white placeholder-gray-400 focus:outline-none border-none"
+            rows={1}
+            className={`flex-1 ${isDarkMode ? 'bg-transparent text-white' : 'bg-white text-black'} placeholder-gray-400 focus:outline-none border-0 border-none resize-none`}
+            style={{ minHeight: '24px', lineHeight: '1.6', wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', width: '100%', margin: 0 }}
           />
         </div>
       );
@@ -693,14 +791,23 @@ const SubmitReportPage = () => {
       return (
         <div className="flex items-start gap-2">
           <span className="text-gray-400 mt-2 text-lg leading-none">•</span>
-          <input
+          <textarea
             ref={(el) => inputRefs.current[block.id] = el}
-            type="text"
             value={block.content.replace(/^• /, '')}
             onChange={(e) => updateBlockContent(`• ${e.target.value}`)}
+            onInput={(e) => {
+              // Auto-resize textarea with better line break handling
+              e.target.style.height = 'auto';
+              const scrollHeight = e.target.scrollHeight;
+              const minHeight = 24;
+              const newHeight = Math.max(minHeight, scrollHeight);
+              e.target.style.height = newHeight + 'px';
+            }}
             onKeyDown={handleKeyDown}
             placeholder="List item..."
-            className={getInputClassName()}
+            rows={1}
+            className={`${getInputClassName()} resize-none flex-1`}
+            style={{ minHeight: '24px', lineHeight: '1.6', wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', width: '100%', margin: 0 }}
           />
         </div>
       );
@@ -711,14 +818,23 @@ const SubmitReportPage = () => {
       return (
         <div className="flex items-start gap-2">
           <span className="text-gray-400 mt-2 min-w-[20px]">{number}.</span>
-          <input
+          <textarea
             ref={(el) => inputRefs.current[block.id] = el}
-            type="text"
             value={block.content.replace(/^\d+\. /, '')}
             onChange={(e) => updateBlockContent(`${number}. ${e.target.value}`)}
+            onInput={(e) => {
+              // Auto-resize textarea with better line break handling
+              e.target.style.height = 'auto';
+              const scrollHeight = e.target.scrollHeight;
+              const minHeight = 24;
+              const newHeight = Math.max(minHeight, scrollHeight);
+              e.target.style.height = newHeight + 'px';
+            }}
             onKeyDown={handleKeyDown}
             placeholder="List item..."
-            className={getInputClassName()}
+            rows={1}
+            className={`${getInputClassName()} resize-none flex-1`}
+            style={{ minHeight: '24px', lineHeight: '1.6', wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', width: '100%', margin: 0 }}
           />
         </div>
       );
@@ -728,25 +844,34 @@ const SubmitReportPage = () => {
       const isChecked = block.content.includes('☑');
       return (
         <div className="flex items-start gap-2">
-          <button
-            onClick={() => {
+          <input
+            type="checkbox"
+            checked={isChecked}
+            onChange={() => {
               const newContent = isChecked
                 ? block.content.replace('☑', '☐')
                 : block.content.replace('☐', '☑');
               updateBlockContent(newContent);
             }}
-            className="mt-2 text-gray-400 hover:text-white transition-colors"
-          >
-            {isChecked ? <CheckSquare className="w-4 h-4 text-green-400" /> : <CheckSquare className="w-4 h-4" />}
-          </button>
-          <input
+            className="mr-2 mt-1 flex-shrink-0"
+          />
+          <textarea
             ref={(el) => inputRefs.current[block.id] = el}
-            type="text"
             value={block.content.replace(/^[☐☑] /, '')}
             onChange={(e) => updateBlockContent(`${isChecked ? '☑' : '☐'} ${e.target.value}`)}
+            onInput={(e) => {
+              // Auto-resize textarea with better line break handling
+              e.target.style.height = 'auto';
+              const scrollHeight = e.target.scrollHeight;
+              const minHeight = 24;
+              const newHeight = Math.max(minHeight, scrollHeight);
+              e.target.style.height = newHeight + 'px';
+            }}
             onKeyDown={handleKeyDown}
             placeholder="To-do item..."
-            className={`${getInputClassName()} ${isChecked ? 'line-through text-gray-500' : ''}`}
+            rows={1}
+            className={`${getInputClassName()} ${isChecked ? 'line-through text-gray-500' : ''} resize-none flex-1`}
+            style={{ minHeight: '24px', lineHeight: '1.6', wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', width: '100%', margin: 0 }}
           />
         </div>
       );
@@ -767,19 +892,25 @@ const SubmitReportPage = () => {
             >
               {isExpanded ? '▼' : '▶'}
             </button>
-            <input
+            <textarea
               ref={(el) => inputRefs.current[block.id] = el}
-              type="text"
               value={block.content.replace(/^[▶▼] /, '')}
               onChange={(e) => updateBlockContent(`${isExpanded ? '▼' : '▶'} ${e.target.value}`)}
+              onInput={(e) => {
+                // Auto-resize textarea
+                e.target.style.height = 'auto';
+                e.target.style.height = Math.max(20, e.target.scrollHeight) + 'px';
+              }}
               onKeyDown={handleKeyDown}
               placeholder="Toggle item..."
-              className={getInputClassName()}
+              rows={1}
+              className={`${getInputClassName()} resize-none flex-1`}
+              style={{ minHeight: '24px', lineHeight: '1.6', wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', width: '100%', margin: 0 }}
             />
           </div>
           {isExpanded && (
             <div className="ml-6 mt-2 p-3 bg-gray-800/30 rounded border-l-2 border-gray-600">
-              <input
+              <textarea
                 type="text"
                 placeholder="Toggle content... (nested content)"
                 onChange={(e) => {
@@ -789,7 +920,14 @@ const SubmitReportPage = () => {
                   setBlocks(newBlocks);
                 }}
                 value={block.toggleContent || ''}
-                className="w-full bg-transparent text-gray-300 placeholder-gray-500 focus:outline-none"
+                onInput={(e) => {
+                  // Auto-resize textarea
+                  e.target.style.height = 'auto';
+                  e.target.style.height = Math.max(20, e.target.scrollHeight) + 'px';
+                }}
+                rows={1}
+                className="w-full bg-transparent text-gray-300 placeholder-gray-500 focus:outline-none resize-none"
+                style={{ minHeight: '24px', lineHeight: '1.6', wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', width: '100%', margin: 0 }}
               />
             </div>
           )}
@@ -816,7 +954,7 @@ const SubmitReportPage = () => {
             value={block.content}
             onChange={(e) => updateBlockContent(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="bg-transparent text-white focus:outline-none"
+            className={`bg-transparent ${isDarkMode ? 'text-white' : 'text-black'} focus:outline-none`}
             style={{ colorScheme: 'dark' }}
           />
           <span className="text-blue-300 text-sm">{formatDate(block.content)}</span>
@@ -843,7 +981,7 @@ const SubmitReportPage = () => {
             value={block.content}
             onChange={(e) => updateBlockContent(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="bg-transparent text-white focus:outline-none"
+            className={`bg-transparent ${isDarkMode ? 'text-white' : 'text-black'} focus:outline-none`}
             style={{ colorScheme: 'dark' }}
           />
           <span className="text-green-300 text-sm">{formatTime(block.content)}</span>
@@ -869,7 +1007,7 @@ const SubmitReportPage = () => {
               newBlocks[index].priorityLevel = e.target.value;
               setBlocks(newBlocks);
             }}
-            className="bg-transparent text-white focus:outline-none"
+            className={`bg-transparent ${isDarkMode ? 'text-white' : 'text-black'} focus:outline-none`}
           >
             <option value="high" className="bg-gray-800">High Priority</option>
             <option value="medium" className="bg-gray-800">Medium Priority</option>
@@ -882,7 +1020,7 @@ const SubmitReportPage = () => {
             onChange={(e) => updateBlockContent(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Priority item..."
-            className="flex-1 bg-transparent text-white placeholder-gray-400 focus:outline-none"
+            className={`flex-1 bg-transparent ${isDarkMode ? 'text-white' : 'text-black'} placeholder-gray-400 focus:outline-none`}
           />
         </div>
       );
@@ -1014,7 +1152,7 @@ const SubmitReportPage = () => {
               onChange={(e) => updateBlockContent(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Progress description..."
-              className="flex-1 bg-transparent text-white placeholder-gray-400 focus:outline-none"
+              className={`flex-1 bg-transparent ${isDarkMode ? 'text-white' : 'text-black'} placeholder-gray-400 focus:outline-none`}
             />
             <span className="text-sm text-gray-400">{block.progress || 50}%</span>
           </div>
@@ -1084,7 +1222,7 @@ const SubmitReportPage = () => {
               onChange={(e) => updateBlockContent(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Hidden content..."
-              className="w-full bg-transparent text-white placeholder-gray-400 focus:outline-none"
+              className={`w-full bg-transparent ${isDarkMode ? 'text-white' : 'text-black'} placeholder-gray-400 focus:outline-none`}
             />
           )}
         </div>
@@ -1093,11 +1231,19 @@ const SubmitReportPage = () => {
 
     return (
       <div className="relative">
-        <input
+        <textarea
           ref={(el) => inputRefs.current[block.id] = el}
-          type="text"
           value={block.content}
           onChange={(e) => updateBlockContent(e.target.value)}
+          onInput={(e) => {
+            // Auto-resize textarea with better line break handling
+            e.target.style.height = 'auto';
+            const scrollHeight = e.target.scrollHeight;
+            const lineHeight = parseFloat(getComputedStyle(e.target).lineHeight) || 16;
+            const minHeight = 24;
+            const newHeight = Math.max(minHeight, scrollHeight);
+            e.target.style.height = newHeight + 'px';
+          }}
           onKeyDown={handleKeyDown}
           onFocus={() => setCurrentBlockId(block.id)}
           onBlur={(e) => {
@@ -1109,7 +1255,9 @@ const SubmitReportPage = () => {
             }, 150);
           }}
           placeholder={index === 0 ? "Start typing your report... (Try markdown shortcuts)" : "Continue typing..."}
-          className={getInputClassName()}
+          rows={1}
+          className={`${getInputClassName()} resize-none`}
+          style={{ minHeight: '24px', lineHeight: '1.6', wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}
         />
 
       </div>
@@ -1164,46 +1312,92 @@ const SubmitReportPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!report.title || !report.title.trim()) {
+      alert('Please enter a report title.');
+      return;
+    }
+
+    // Validate selectedUsers array
+    if (selectedUsers && selectedUsers.length > 0) {
+      const invalidUsers = selectedUsers.filter(id => !id || typeof id !== 'string' || id.length !== 24);
+      if (invalidUsers.length > 0) {
+        console.error('❌ Invalid user IDs detected:', invalidUsers);
+        alert('Some selected users have invalid IDs. Please refresh and try again.');
+        return;
+      }
+      console.log('✅ Selected users validation passed:', selectedUsers);
+    }
+
     setIsSubmitting(true);
     try {
-      // Convert blocks to description text
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Authentication required. Please log in again.');
+        navigate('/login');
+        return;
+      }
+
+      // Upload new files first
+      const uploadedAttachments = [];
+      for (const file of attachments) {
+        if (file instanceof File) {
+          const formData = new FormData();
+          formData.append('file', file);
+          
+          const uploadResponse = await fetch('http://localhost:9000/api/upload', {
+            method: 'POST',
+            headers: { 'x-auth-token': token },
+            body: formData
+          });
+          
+          if (uploadResponse.ok) {
+            const uploadData = await uploadResponse.json();
+            uploadedAttachments.push({
+              name: uploadData.originalName,
+              size: uploadData.size,
+              path: uploadData.path,
+              filename: uploadData.filename
+            });
+          }
+        } else {
+          // Keep existing attachments
+          uploadedAttachments.push(file);
+        }
+      }
+
       const description = blocks.map(block => {
-        if (block.type === 'heading1') {
-          return `# ${block.content}`;
-        } else if (block.type === 'heading2') {
-          return `## ${block.content}`;
-        } else if (block.type === 'heading3') {
-          return `### ${block.content}`;
-        } else if (block.type === 'bullet') {
-          return `- ${block.content.replace(/^•\s*/, '')}`;
-        } else if (block.type === 'numbered') {
-          return `${block.content}`;
-        } else if (block.type === 'todo') {
+        if (block.type === 'heading1') return `# ${block.content}`;
+        if (block.type === 'heading2') return `## ${block.content}`;
+        if (block.type === 'heading3') return `### ${block.content}`;
+        if (block.type === 'bullet') return `- ${block.content.replace(/^•\s*/, '')}`;
+        if (block.type === 'numbered') return `${block.content}`;
+        if (block.type === 'todo') {
           const isChecked = block.content.includes('☑');
           return `- [${isChecked ? 'x' : ' '}] ${block.content.replace(/^[☐☑]\s*/, '')}`;
-        } else if (block.type === 'quote') {
-          return `> ${block.content}`;
-        } else if (block.type === 'code') {
-          return `\`\`\`\n${block.content}\n\`\`\``;
-        } else if (block.type === 'divider') {
-          return `---`;
-        } else {
-          return block.content;
         }
+        if (block.type === 'quote') return `> ${block.content}`;
+        if (block.type === 'code') return `\`\`\`\n${block.content}\n\`\`\``;
+        if (block.type === 'divider') return `---`;
+        return block.content;
       }).join('\n\n');
 
-      const token = localStorage.getItem('token');
       const editId = searchParams.get('edit');
-      
       const reportData = {
         reportId: editId && editId !== 'new' ? editId : null,
-        title: report.title,
+        title: report.title.trim(),
         description,
         blocks,
         tableData,
-        attachments: attachments.map(file => ({ name: file.name, size: file.size })),
+        attachments: uploadedAttachments,
         sharedWith: selectedUsers
       };
+      
+      console.log('📝 Frontend sending report data:', {
+        title: reportData.title,
+        sharedWithCount: reportData.sharedWith ? reportData.sharedWith.length : 0,
+        sharedWith: reportData.sharedWith,
+        reportId: reportData.reportId
+      });
       
       const response = await fetch('http://localhost:9000/api/reports', {
         method: 'POST',
@@ -1214,50 +1408,68 @@ const SubmitReportPage = () => {
         body: JSON.stringify(reportData)
       });
       
-      if (response.ok) {
-        const data = await response.json();
-        alert(data.message);
-      } else {
-        const error = await response.json();
-        alert(error.message || 'Failed to save report');
-      }
+      const data = await response.json();
       
-      navigate('/reports');
+      console.log('📝 Backend response:', {
+        ok: response.ok,
+        status: response.status,
+        data: data
+      });
+      
+      if (response.ok && data.success) {
+        alert(`✅ ${data.message}`);
+        navigate('/reports');
+      } else {
+        console.error('❌ Report submission failed:', data);
+        alert(`❌ ${data.message || 'Failed to save report. Please try again.'}`);
+      }
     } catch (error) {
-      alert(isEditMode ? 'Failed to update report. Please try again.' : 'Failed to submit report. Please try again.');
+      console.error('Submit error:', error);
+      alert(`❌ Failed to ${isEditMode ? 'update' : 'submit'} report. Please try again.`);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
-      <div className="max-w-5xl mx-auto px-6 py-8">
+    <div className={`min-h-screen transition-colors duration-200 ${
+      isDarkMode 
+        ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white' 
+        : 'bg-white text-gray-900'
+    }`}>
+      <div className="max-w-full mx-auto px-1 sm:px-2 py-4 sm:py-8">
         {/* Header */}
-        <div className="flex items-center gap-6 mb-12">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 mb-8 sm:mb-12">
           <button
             onClick={() => navigate('/')}
-            className="p-3 rounded-xl hover:bg-gray-800/50 transition-all duration-200 text-gray-400 hover:text-white border border-gray-700 hover:border-gray-600"
+            className={`p-2 sm:p-3 rounded-lg sm:rounded-xl transition-all duration-200 border ${
+              isDarkMode 
+                ? 'hover:bg-gray-800/50 text-gray-400 hover:text-white border-gray-700 hover:border-gray-600'
+                : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900 border-gray-300 hover:border-gray-400'
+            }`}
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
-          <div className="flex-1">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">{isEditMode ? 'Edit Report' : 'Submit Report'}</h1>
-            <p className="text-gray-400 mt-2 text-lg">{isEditMode ? 'View and edit your report content' : 'Help us improve by reporting issues or suggesting features'}</p>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">{isEditMode ? 'Edit Report' : 'Submit Report'}</h1>
+            <p className={`mt-1 sm:mt-2 text-sm sm:text-lg ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+            }`}>{isEditMode ? 'View and edit your report content' : 'Help us improve by reporting issues or suggesting features'}</p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="relative">
+          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+            <div className="relative flex-1 sm:flex-none">
               <button
                 type="button"
                 onClick={() => setShowTemplateDropdown(!showTemplateDropdown)}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2"
+                className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
                 title="Templates"
               >
                 <FileText className="w-4 h-4" />
-                Templates
+                <span className="hidden sm:inline">Templates</span>
+                <span className="sm:hidden">Templates</span>
               </button>
                 {showTemplateDropdown && (
-                  <div className="absolute right-0 top-12 w-96 max-h-96 overflow-hidden bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
+                  <div className="absolute right-0 sm:right-0 left-0 sm:left-auto top-12 w-full sm:w-96 max-h-96 overflow-hidden bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
                 <div className="p-3 border-b border-gray-700">
                   <div className="flex items-center gap-2 text-sm font-medium text-gray-300">
                     <FileText className="w-4 h-4" />
@@ -1326,24 +1538,7 @@ const SubmitReportPage = () => {
                   </div>
                 )}
             </div>
-            {isEditMode && (
-              <button
-                type="button"
-                onClick={() => {
-                  if (window.confirm('Are you sure you want to delete this report? This action cannot be undone.')) {
-                    const editId = searchParams.get('edit');
-                    const savedReports = JSON.parse(localStorage.getItem('submittedReports') || '[]');
-                    const updatedReports = savedReports.filter(r => r.id !== editId);
-                    localStorage.setItem('submittedReports', JSON.stringify(updatedReports));
-                    navigate('/reports');
-                  }
-                }}
-                className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-                title="Delete Report"
-              >
-                <Trash2 className="w-5 h-5" />
-              </button>
-            )}
+
           </div>
         </div>
 
@@ -1353,34 +1548,57 @@ const SubmitReportPage = () => {
 
 
           {/* Title and Description - Connected */}
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-700/50 shadow-xl">
-            <div className="bg-gray-700/50 border border-gray-600 rounded-xl focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all duration-200 min-h-[800px]">
+          <div className={`backdrop-blur-sm rounded-xl sm:rounded-2xl p-1 sm:p-2 shadow-xl ${
+            isDarkMode 
+              ? 'bg-gray-800/50' 
+              : 'bg-white'
+          }`}>
+            <div className={`rounded-xl transition-all duration-200 min-h-[400px] sm:min-h-[800px] ${
+              isDarkMode 
+                ? 'bg-gray-700/50' 
+                : 'bg-white'
+            }`}>
               <input
                 type="text"
                 value={report.title}
                 onChange={(e) => setReport(prev => ({ ...prev, title: e.target.value }))}
                 placeholder="TITLE"
-                className="w-full px-4 py-4 bg-transparent border-none focus:outline-none text-3xl border-b border-gray-600 rounded-t-xl rounded-b-none"
+                className={`w-full px-3 sm:px-4 py-3 sm:py-4 ${isDarkMode ? 'bg-transparent text-white' : 'bg-white text-black'} border-none focus:outline-none text-xl sm:text-3xl rounded-t-xl rounded-b-none`}
                 required
               />
-              <div className="p-4">
+              <div className="p-0.5 sm:p-1">
                 {blocks.map((block, index) => (
-                  <div key={block.id} className={`flex items-start group relative mb-1 rounded px-2 py-1 ${aiInputBlock === block.id ? 'bg-purple-50/30 rounded-lg p-2' : ''} transition-all duration-200`}>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 mr-2">
+                  <div key={block.id} className={`block-line flex items-start group relative mb-1 rounded px-0.5 py-0.5 ${aiInputBlock === block.id ? 'bg-purple-50/30 rounded-lg p-1' : ''} transition-all duration-200`}
+                    onClick={(e) => {
+                      // On mobile, toggle line buttons visibility when clicking the line
+                      if (isMobile) {
+                        e.stopPropagation();
+                        setActiveLineId(activeLineId === block.id ? null : block.id);
+                      }
+                    }}
+                  >
+                    <div className={`flex items-center gap-0.5 transition-opacity duration-200 mr-1 ${
+                      isMobile 
+                        ? (activeLineId === block.id ? 'opacity-100' : 'opacity-0')
+                        : 'opacity-0 group-hover:opacity-100'
+                    }`}>
                       <div className="relative">
                         <button
                           type="button"
-                          onClick={() => setShowBlockMenu(showBlockMenu === block.id ? null : block.id)}
-                          className="p-1 rounded hover:bg-gray-700 transition-colors text-gray-400 hover:text-gray-200"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowBlockMenu(showBlockMenu === block.id ? null : block.id);
+                          }}
+                          className="p-2 sm:p-1 rounded hover:bg-gray-700 transition-colors text-gray-400 hover:text-gray-200"
                           title="Add block"
                         >
-                          <Plus className="w-4 h-4" />
+                          <Plus className="w-5 h-5 sm:w-4 sm:h-4" />
                         </button>
                         {showBlockMenu === block.id && (
-                          <div className="absolute left-0 top-8 w-72 max-h-96 overflow-hidden bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
+                          <div className="absolute left-0 sm:left-0 right-0 sm:right-auto top-8 w-full sm:w-72 max-h-96 overflow-hidden bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
                             <div className="p-3 border-b border-gray-700">
                               <div className="flex items-center gap-2 text-sm font-medium text-gray-300">
-                                <Plus className="w-4 h-4" />
+                                <Plus className="w-5 h-5 sm:w-4 sm:h-4" />
                                 Add Block
                               </div>
                               <div className="text-xs text-gray-400 mt-1">
@@ -1530,16 +1748,16 @@ const SubmitReportPage = () => {
                             console.log('GripVertical clicked for block:', block.id);
                             setShowLineMenu(showLineMenu === block.id ? null : block.id);
                           }}
-                          className="p-1 rounded hover:bg-gray-700 transition-colors text-gray-400 hover:text-gray-200"
+                          className="p-2 sm:p-1 rounded hover:bg-gray-700 transition-colors text-gray-400 hover:text-gray-200"
                           title="Line options"
                         >
-                          <GripVertical className="w-4 h-4" />
+                          <GripVertical className="w-5 h-5 sm:w-4 sm:h-4" />
                         </button>
                         {showLineMenu === block.id && (
-                          <div className="absolute left-0 top-8 w-40 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
+                          <div className="absolute left-0 sm:left-0 right-0 sm:right-auto top-8 w-full sm:w-40 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
                             <div className="p-2">
                               <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'text', content: '', style: {} }); setBlocks(newBlocks); setShowLineMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
-                                <Plus className="w-4 h-4" /> Add Line
+                                <Plus className="w-5 h-5 sm:w-4 sm:h-4" /> Add Line
                               </button>
                               {index > 0 && (
                                 <button type="button" onClick={() => { const newBlocks = [...blocks];[newBlocks[index], newBlocks[index - 1]] = [newBlocks[index - 1], newBlocks[index]]; setBlocks(newBlocks); setShowLineMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
@@ -1617,9 +1835,17 @@ const SubmitReportPage = () => {
 
 
           {/* Attachments */}
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-700/50 shadow-xl">
-            <label className="block text-sm font-semibold mb-4 text-gray-300">Attachments</label>
-            <div className="border-2 border-dashed border-gray-600 rounded-xl p-8 hover:border-blue-500 transition-all duration-300 group">
+          <div className={`backdrop-blur-sm rounded-2xl p-8 border shadow-xl ${
+            isDarkMode 
+              ? 'bg-gray-800/50 border-gray-700/50' 
+              : 'bg-white/50 border-gray-200/50'
+          }`}>
+            <label className={`block text-sm font-semibold mb-4 ${
+              isDarkMode ? 'text-gray-300' : 'text-gray-700'
+            }`}>Attachments</label>
+            <div className={`border-2 border-dashed rounded-xl p-8 hover:border-blue-500 transition-all duration-300 group ${
+              isDarkMode ? 'border-gray-600' : 'border-gray-300'
+            }`}>
               <input
                 type="file"
                 multiple
@@ -1648,8 +1874,14 @@ const SubmitReportPage = () => {
                     <button
                       type="button"
                       onClick={() => {
-                        const url = URL.createObjectURL(file);
-                        window.open(url, '_blank');
+                        if (file instanceof File) {
+                          const url = URL.createObjectURL(file);
+                          window.open(url, '_blank');
+                        } else if (file.path) {
+                          window.open(`http://localhost:9000${file.path}`, '_blank');
+                        } else {
+                          alert('File not available');
+                        }
                       }}
                       className="flex items-center gap-3 flex-1 text-left hover:text-blue-300 transition-colors"
                     >
@@ -1658,7 +1890,10 @@ const SubmitReportPage = () => {
                       </div>
                       <div>
                         <div className="text-sm font-medium">{file.name}</div>
-                        <div className="text-xs text-gray-400">{(file.size / 1024 / 1024).toFixed(2)} MB</div>
+                        <div className="text-xs text-gray-400">
+                          {file.size ? (file.size / 1024 / 1024).toFixed(2) + ' MB' : 'Size unknown'}
+                          {file.isMetadata && <span className="ml-2 text-yellow-400">(Saved)</span>}
+                        </div>
                       </div>
                     </button>
                     <button
@@ -1675,25 +1910,75 @@ const SubmitReportPage = () => {
           </div>
 
           {/* Share Report */}
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-700/50 shadow-xl">
-            <h3 className="text-xl font-bold mb-6 text-gray-200">Share Report</h3>
+          <div className={`backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-8 border shadow-xl ${
+            isDarkMode 
+              ? 'bg-gray-800/50 border-gray-700/50' 
+              : 'bg-white/50 border-gray-200/50'
+          }`}>
+            <h3 className={`text-lg sm:text-xl font-bold mb-4 sm:mb-6 ${
+              isDarkMode ? 'text-gray-200' : 'text-gray-800'
+            }`}>Share Report</h3>
             <ShareReportSection reportData={report} selectedUsers={selectedUsers} setSelectedUsers={setSelectedUsers} />
           </div>
 
-          {/* Submit */}
-          <div className="flex justify-end pt-4">
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 text-white"
-            >
-              {isSubmitting ? (
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <Send className="w-4 h-4" />
-              )}
-              {isSubmitting ? (isEditMode ? 'Updating Report...' : 'Submitting Report...') : (isEditMode ? 'Update Report' : 'Submit Management Report')}
-            </button>
+          {/* Submit and Delete */}
+          <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-0 pt-4">
+            {isEditMode && (
+              <button
+                type="button"
+                onClick={async () => {
+                  if (window.confirm('Are you sure you want to delete this report? This action cannot be undone.')) {
+                    try {
+                      const editId = searchParams.get('edit');
+                      const token = localStorage.getItem('token');
+                      
+                      if (!token) {
+                        alert('Authentication required. Please log in again.');
+                        navigate('/login');
+                        return;
+                      }
+
+                      const response = await fetch(`http://localhost:9000/api/reports/${editId}`, {
+                        method: 'DELETE',
+                        headers: {
+                          'x-auth-token': token,
+                          'Content-Type': 'application/json'
+                        }
+                      });
+
+                      if (response.ok) {
+                        alert('Report deleted successfully');
+                        navigate('/reports');
+                      } else {
+                        const errorData = await response.json();
+                        alert(`Failed to delete report: ${errorData.message || 'Unknown error'}`);
+                      }
+                    } catch (error) {
+                      console.error('Error deleting report:', error);
+                      alert('Failed to delete report. Please try again.');
+                    }
+                  }
+                }}
+                className="flex items-center justify-center gap-2 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-all"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete Report
+              </button>
+            )}
+            <div className={isEditMode ? '' : 'w-full sm:w-auto'}>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 text-white"
+              >
+                {isSubmitting ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
+                {isSubmitting ? (isEditMode ? 'Updating Report...' : 'Submitting Report...') : (isEditMode ? 'Update Report' : 'Submit Management Report')}
+              </button>
+            </div>
           </div>
         </form>
       </div>

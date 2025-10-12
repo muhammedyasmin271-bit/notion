@@ -34,6 +34,7 @@ const ProjectsPage = () => {
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [view, setView] = useState('By Status');
+  const [mobileStatusFilter, setMobileStatusFilter] = useState('Not started');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterPriority, setFilterPriority] = useState('all');
   const [filterOwner, setFilterOwner] = useState('all');
@@ -146,7 +147,7 @@ const ProjectsPage = () => {
       console.error('Cannot add project. User is not authenticated.');
       return;
     }
-    if (user?.role !== 'manager') {
+    if (user?.role !== 'manager' && user?.role !== 'admin') {
       return;
     }
 
@@ -156,9 +157,9 @@ const ProjectsPage = () => {
   const handleUpdateField = async (projectId, field, value) => {
     console.log('handleUpdateField called:', { projectId, field, value, userRole: user?.role, availableUsers: users?.length || 0, users: users?.map(u => u.name) });
 
-    // Only managers can update any field except status - all users can update status
-    if (user?.role !== 'manager' && field !== 'status') {
-      console.log('Access denied: user is not manager and field is not status');
+    // Only managers and admins can update any field except status - all users can update status
+    if (user?.role !== 'manager' && user?.role !== 'admin' && field !== 'status') {
+      console.log('Access denied: user is not manager/admin and field is not status');
       return;
     }
 
@@ -174,8 +175,8 @@ const ProjectsPage = () => {
         ...p,
         [field]: value,
         updatedAt: new Date().toISOString(),
-        // Increment change count for user actions (not manager actions)
-        changeCount: user?.role !== 'manager' ? (p.changeCount || 0) + 1 : p.changeCount || 0
+        // Increment change count for user actions (not manager/admin actions)
+        changeCount: user?.role !== 'manager' && user?.role !== 'admin' ? (p.changeCount || 0) + 1 : p.changeCount || 0
       } : p
     );
     setProjects(updatedProjects);
@@ -299,7 +300,7 @@ const ProjectsPage = () => {
   };
 
   const handleDeleteProject = async (projectId) => {
-    if (user?.role !== 'manager') return;
+    if (user?.role !== 'manager' && user?.role !== 'admin') return;
 
     try {
       const response = await fetch(`http://localhost:9000/api/projects/${projectId}`, {
@@ -360,7 +361,7 @@ const ProjectsPage = () => {
   };
 
   const handleEditProject = (project) => {
-    if (user?.role !== 'manager') return;
+    if (user?.role !== 'manager' && user?.role !== 'admin') return;
     setEditingProject(project.id);
     setEditForm({
       name: project.name,
@@ -370,18 +371,75 @@ const ProjectsPage = () => {
     });
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editingProject) return;
-    if (user?.role !== 'manager') return;
+    if (user?.role !== 'manager' && user?.role !== 'admin') return;
 
-    const updatedProjects = projects.map(project =>
-      project.id === editingProject
-        ? { ...project, ...editForm, updatedAt: new Date().toISOString() }
-        : project
-    );
-    setProjects(updatedProjects);
-    setEditingProject(null);
-    setEditForm({});
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Please log in to save changes');
+        return;
+      }
+
+      const response = await fetch(`http://localhost:9000/api/projects/${editingProject}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token
+        },
+        body: JSON.stringify({
+          name: editForm.name,
+          priority: editForm.priority,
+          forPerson: editForm.forPerson,
+          notes: editForm.notes
+        })
+      });
+
+      if (response.ok) {
+        const updatedProject = await response.json();
+        setProjects(prev => prev.map(project =>
+          project.id === editingProject ? updatedProject : project
+        ));
+        
+        // Send notifications if assignment changed
+        const originalProject = projects.find(p => p.id === editingProject);
+        if (editForm.forPerson && editForm.forPerson !== originalProject?.forPerson) {
+          const assignedUsers = editForm.forPerson.split(',').map(name => name.trim());
+          
+          assignedUsers.forEach(assignedUserName => {
+            const assignedUser = users.find(u => {
+              if (u.name.toLowerCase() === assignedUserName.toLowerCase()) return true;
+              if (u.username && u.username.toLowerCase() === assignedUserName.toLowerCase()) return true;
+              return false;
+            });
+
+            if (assignedUser && user) {
+              console.log('Sending notification to assigned user:', assignedUser.name, 'for project:', editForm.name);
+              notifyProjectAssignment(
+                assignedUser._id || assignedUser.id,
+                assignedUser.name,
+                editForm.name,
+                user._id || user.id,
+                user.name
+              ).catch(error => {
+                console.error('Failed to send assignment notification:', error);
+              });
+            }
+          });
+        }
+        
+        setEditingProject(null);
+        setEditForm({});
+        alert('Project updated successfully!');
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        alert(`Failed to update project: ${errorData.message || response.status}`);
+      }
+    } catch (error) {
+      console.error('Error updating project:', error);
+      alert('Failed to update project. Please try again.');
+    }
   };
 
   const handleCancelEdit = () => {
@@ -442,7 +500,7 @@ const ProjectsPage = () => {
   const getStatusClass = (status) => {
     switch (status) {
       case 'In Progress': return 'bg-gray-600 text-white border border-gray-400';
-      case 'Not started': return 'bg-gray-300 text-black border border-gray-400';
+      case 'Not started': return 'bg-gray-300 text-blue-600 border border-gray-400';
       case 'Done': return 'bg-black text-white border border-gray-300';
       default: return 'bg-gray-400 text-white border border-gray-300';
     }
@@ -511,7 +569,7 @@ const ProjectsPage = () => {
     : 'text-gray-600 hover:text-black hover:bg-gradient-to-r hover:from-gray-100 hover:to-slate-100';
 
   return (
-    <div className={`content p-3 sm:p-4 lg:p-8 font-sans min-h-screen ${pageBg}`}>
+    <div className={`content p-2 sm:p-4 lg:p-8 font-sans min-h-screen ${pageBg}`}>
       <style>{`
         select {
           padding-left: 2.5rem !important;
@@ -521,26 +579,30 @@ const ProjectsPage = () => {
           color: black;
           font-weight: bold;
         }
+        select option[value="Not started"] {
+          color: blue !important;
+          background: white !important;
+        }
       `}</style>
       {/* Enhanced Header */}
-      <div className="mb-12">
-        <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
+      <div className="mb-6 sm:mb-12">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
           <div className="flex items-center">
-            <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center mr-4 sm:mr-6 ${isDarkMode ? 'bg-gradient-to-br from-blue-700 via-indigo-700 to-purple-700 shadow-indigo-900/40' : 'bg-gradient-to-br from-black via-gray-800 to-slate-700 shadow-black/20'} shadow-xl`}>
-              <ProjectsIcon className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+            <div className={`w-10 h-10 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl flex items-center justify-center mr-3 sm:mr-6 ${isDarkMode ? 'bg-gradient-to-br from-blue-700 via-indigo-700 to-purple-700 shadow-indigo-900/40' : 'bg-gradient-to-br from-black via-gray-800 to-slate-700 shadow-black/20'} shadow-xl`}>
+              <ProjectsIcon className="w-5 h-5 sm:w-8 sm:h-8 text-white" />
             </div>
             <div>
-              <h1 className={`text-3xl sm:text-4xl font-bold ${isDarkMode ? 'bg-gradient-to-r from-white via-gray-200 to-blue-200' : 'bg-gradient-to-r from-black via-gray-800 to-slate-600'} bg-clip-text text-transparent mb-1 sm:mb-2`}>Projects</h1>
-              <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'} text-sm sm:text-lg font-medium`}>Manage and execute projects from start to finish</p>
+              <h1 className={`text-2xl sm:text-4xl font-bold ${isDarkMode ? 'bg-gradient-to-r from-white via-gray-200 to-blue-200' : 'bg-gradient-to-r from-black via-gray-800 to-slate-600'} bg-clip-text text-transparent mb-1`}>Projects</h1>
+              <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'} text-xs sm:text-lg font-medium`}>Manage and execute projects</p>
             </div>
           </div>
-          <div className="flex items-center space-x-4">
-            {user?.role === 'manager' && (
+          <div className="flex items-center">
+            {(user?.role === 'manager' || user?.role === 'admin') && (
               <button
                 onClick={() => addNewProject()}
-                className={`flex items-center px-4 sm:px-6 py-2.5 sm:py-3 text-sm font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 transform ${isDarkMode ? 'bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-700 hover:from-blue-600 hover:via-indigo-600 hover:to-purple-600' : 'bg-gradient-to-r from-black via-gray-800 to-slate-700 hover:from-gray-800 hover:via-slate-700 hover:to-gray-600'} text-white`}
+                className={`hidden sm:flex items-center px-6 py-3 text-sm font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 transform ${isDarkMode ? 'bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-700 hover:from-blue-600 hover:via-indigo-600 hover:to-purple-600' : 'bg-gradient-to-r from-black via-gray-800 to-slate-700 hover:from-gray-800 hover:via-slate-700 hover:to-gray-600'} text-white`}
               >
-                <Plus size={18} className="mr-2" />
+                <Plus size={16} className="mr-2" />
                 New Project
               </button>
             )}
@@ -549,56 +611,56 @@ const ProjectsPage = () => {
       </div>
 
       {/* Enhanced Statistics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12">
-        <div className={`p-6 rounded-2xl border ${cardBg} hover:shadow-xl transition-all duration-300 group`}>
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-12">
+        <div className={`p-3 sm:p-6 rounded-xl sm:rounded-2xl border ${cardBg} hover:shadow-xl transition-all duration-300 group`}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-3xl font-bold bg-gradient-to-r from-black to-gray-700 bg-clip-text text-transparent mb-2">{stats.total}</p>
-              <p className="text-sm text-gray-600 font-medium">Total Projects</p>
+              <p className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-black to-gray-700 bg-clip-text text-transparent mb-1 sm:mb-2">{stats.total}</p>
+              <p className="text-xs sm:text-sm text-gray-600 font-medium">Total</p>
             </div>
-            <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg group-hover:shadow-xl transition-all duration-300">
-              <BarChart3 className="h-6 w-6 text-white" />
+            <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg group-hover:shadow-xl transition-all duration-300">
+              <BarChart3 className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
             </div>
           </div>
         </div>
-        <div className={`p-6 rounded-2xl border ${cardBg} hover:shadow-xl transition-all duration-300 group`}>
+        <div className={`p-3 sm:p-6 rounded-xl sm:rounded-2xl border ${cardBg} hover:shadow-xl transition-all duration-300 group`}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-2">{stats.completed}</p>
-              <p className="text-sm text-gray-600 font-medium">Completed</p>
+              <p className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-1 sm:mb-2">{stats.completed}</p>
+              <p className="text-xs sm:text-sm text-gray-600 font-medium">Done</p>
             </div>
-            <div className="p-3 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg group-hover:shadow-xl transition-all duration-300">
-              <CheckCircle className="h-6 w-6 text-white" />
+            <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg group-hover:shadow-xl transition-all duration-300">
+              <CheckCircle className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
             </div>
           </div>
         </div>
-        <div className={`p-6 rounded-2xl border ${cardBg} hover:shadow-xl transition-all duration-300 group`}>
+        <div className={`p-3 sm:p-6 rounded-xl sm:rounded-2xl border ${cardBg} hover:shadow-xl transition-all duration-300 group`}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-3xl font-bold bg-gradient-to-r from-yellow-600 to-orange-600 bg-clip-text text-transparent mb-2">{stats.inProgress}</p>
-              <p className="text-sm text-gray-600 font-medium">In Progress</p>
+              <p className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-yellow-600 to-orange-600 bg-clip-text text-transparent mb-1 sm:mb-2">{stats.inProgress}</p>
+              <p className="text-xs sm:text-sm text-gray-600 font-medium">Progress</p>
             </div>
-            <div className="p-3 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-600 shadow-lg group-hover:shadow-xl transition-all duration-300">
-              <Clock className="h-6 w-6 text-white" />
+            <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-br from-yellow-500 to-orange-600 shadow-lg group-hover:shadow-xl transition-all duration-300">
+              <Clock className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
             </div>
           </div>
         </div>
-        <div className={`p-6 rounded-2xl border ${cardBg} hover:shadow-xl transition-all duration-300 group`}>
+        <div className={`p-3 sm:p-6 rounded-xl sm:rounded-2xl border ${cardBg} hover:shadow-xl transition-all duration-300 group`}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-3xl font-bold bg-gradient-to-r from-gray-600 to-slate-600 bg-clip-text text-transparent mb-2">{stats.notStarted}</p>
-              <p className="text-sm text-gray-600 font-medium">Not Started</p>
+              <p className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-gray-600 to-slate-600 bg-clip-text text-transparent mb-1 sm:mb-2">{stats.notStarted}</p>
+              <p className="text-xs sm:text-sm text-gray-600 font-medium">Pending</p>
             </div>
-            <div className="p-3 rounded-xl bg-gradient-to-br from-gray-500 to-slate-600 shadow-lg group-hover:shadow-xl transition-all duration-300">
-              <AlertCircle className="h-6 w-6 text-white" />
+            <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-br from-gray-500 to-slate-600 shadow-lg group-hover:shadow-xl transition-all duration-300">
+              <AlertCircle className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Enhanced Filters */}
-      <div className={`p-6 sm:p-8 rounded-3xl shadow-2xl border mb-10 sm:mb-12 ${cardBg} backdrop-blur-lg hover:shadow-3xl transition-all duration-300`}>
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 sm:gap-4">
+      {/* Enhanced Filters - Hidden on Mobile */}
+      <div className={`hidden sm:block p-8 rounded-3xl shadow-2xl border mb-12 ${cardBg} backdrop-blur-lg hover:shadow-3xl transition-all duration-300`}>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">Search</label>
             <input
@@ -662,8 +724,43 @@ const ProjectsPage = () => {
         </div>
       </div>
 
-      {/* Enhanced View Toggle */}
-      <div className={`flex items-center space-x-2 sm:space-x-4 p-2.5 sm:p-3 rounded-3xl mb-8 sm:mb-12 w-full sm:max-w-lg ${subtleContainer} shadow-xl backdrop-blur-lg hover:shadow-2xl transition-all duration-300`}>
+      {/* Mobile New Project Button - Fixed Position */}
+      {(user?.role === 'manager' || user?.role === 'admin') && (
+        <button
+          onClick={() => addNewProject(mobileStatusFilter)}
+          className={`sm:hidden fixed top-4 right-4 z-50 flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 transform ${isDarkMode ? 'bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-700 hover:from-blue-600 hover:via-indigo-600 hover:to-purple-600' : 'bg-gradient-to-r from-black via-gray-800 to-slate-700 hover:from-gray-800 hover:via-slate-700 hover:to-gray-600'} text-white`}
+        >
+          <Plus size={20} />
+        </button>
+      )}
+
+      {/* Mobile Status Filter */}
+      <div className={`sm:hidden flex items-center space-x-1 p-2 rounded-2xl mb-6 w-full ${subtleContainer} shadow-xl backdrop-blur-lg transition-all duration-300`}>
+        <button
+          onClick={() => setMobileStatusFilter('Not started')}
+          className={`flex items-center px-3 py-2 text-xs font-bold rounded-lg ${mobileStatusFilter === 'Not started' ? selectedToggle : unselectedToggle
+            } transition-all duration-300 shadow-md`}
+        >
+          Not Started
+        </button>
+        <button
+          onClick={() => setMobileStatusFilter('In Progress')}
+          className={`flex items-center px-3 py-2 text-xs font-bold rounded-lg ${mobileStatusFilter === 'In Progress' ? selectedToggle : unselectedToggle
+            } transition-all duration-300 shadow-md`}
+        >
+          In Progress
+        </button>
+        <button
+          onClick={() => setMobileStatusFilter('Done')}
+          className={`flex items-center px-3 py-2 text-xs font-bold rounded-lg ${mobileStatusFilter === 'Done' ? selectedToggle : unselectedToggle
+            } transition-all duration-300 shadow-md`}
+        >
+          Done
+        </button>
+      </div>
+
+      {/* Desktop View Toggle */}
+      <div className={`hidden sm:flex items-center space-x-4 p-3 rounded-3xl mb-12 w-full max-w-lg ${subtleContainer} shadow-xl backdrop-blur-lg hover:shadow-2xl transition-all duration-300`}>
         <button
           onClick={() => setView('By Status')}
           className={`flex items-center px-5 py-2.5 text-sm font-bold rounded-xl ${view === 'By Status' ? selectedToggle : unselectedToggle
@@ -687,33 +784,231 @@ const ProjectsPage = () => {
         </button>
       </div>
 
+      {/* Mobile Single Status View */}
+      <div className="sm:hidden">
+        <div className={`p-4 rounded-2xl border min-h-[400px] ${cardBg} transition-all duration-300 hover:shadow-2xl backdrop-blur-lg`}>
+          <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-200/50">
+            <h2 className="text-lg font-bold text-white">
+              {mobileStatusFilter}
+            </h2>
+            <span className="px-2 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-gray-100 to-slate-100 text-gray-700 shadow-md">
+              {filteredProjects.filter(p => p.status === mobileStatusFilter).length}
+            </span>
+          </div>
+          <div className="space-y-2">
+            {filteredProjects.filter(p => p.status === mobileStatusFilter).length === 0 && (
+              <div className="h-[300px] flex items-center justify-center text-sm text-gray-500 border-2 border-dashed border-gray-300/60 rounded-xl bg-gradient-to-br from-gray-50/50 to-slate-50/50 backdrop-blur-sm">
+                <div className="text-center">
+                  <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gradient-to-br from-gray-200 to-slate-200 flex items-center justify-center">
+                    <ProjectsIcon className="w-6 h-6 text-gray-400" />
+                  </div>
+                  <p className="font-medium text-xs">No projects here yet</p>
+                </div>
+              </div>
+            )}
+            {filteredProjects.filter(p => p.status === mobileStatusFilter).map(project => (
+              <div
+                key={project.id}
+                className={`group relative p-0 rounded-2xl border-2 cursor-pointer transition-all duration-500 hover:shadow-2xl overflow-hidden shadow-xl backdrop-blur-sm ${isDarkMode ? 'bg-gray-900/70 border-gray-800 hover:bg-gradient-to-br hover:from-gray-900/70 hover:to-blue-900/30' : 'bg-white/90 border-gray-200/60 hover:bg-gradient-to-br hover:from-white hover:to-blue-50/30'}`}
+                onClick={(e) => {
+                  const el = e.target;
+                  if (
+                    el.closest && (
+                      el.closest('button') ||
+                      el.closest('input') ||
+                      el.closest('textarea') ||
+                      el.closest('select') ||
+                      el.closest('[contenteditable="true"]')
+                    )
+                  ) {
+                    return;
+                  }
+                  handleOpenProject(project);
+                }}
+              >
+                <div className={`absolute top-0 left-0 right-0 h-1.5 ${project.status === 'Not started' ? 'bg-gradient-to-r from-gray-400 to-slate-500' :
+                  project.status === 'In Progress' ? 'bg-gradient-to-r from-blue-500 to-purple-600' : 'bg-gradient-to-r from-green-500 to-emerald-600'
+                  } shadow-lg`}></div>
+
+                <div className="absolute top-2 right-2 flex items-center gap-1 z-10">
+                  {project.isFavorite && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleFavorite(project.id);
+                      }}
+                      className="flex items-center justify-center w-5 h-5 rounded-full bg-red-500 text-white text-xs font-bold shadow-lg transform transition-all duration-300 hover:scale-110"
+                      title="Remove from favorites"
+                    >
+                      <Heart size={10} className="fill-current" />
+                    </button>
+                  )}
+                  {(user?.role === 'manager' || user?.role === 'admin') && project.changeCount > 0 && (
+                    <div
+                      className="flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-r from-orange-400 to-red-500 text-white text-xs font-bold shadow-lg transform transition-all duration-300 hover:scale-110 cursor-pointer"
+                      title={`${project.changeCount} recent changes`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleUpdateField(project.id, 'changeCount', 0);
+                      }}
+                    >
+                      <div className="relative">
+                        <span className="block text-xs">{project.changeCount}</span>
+                        <div className="absolute inset-0 rounded-full bg-gradient-to-r from-orange-400 to-red-500 animate-ping opacity-75"></div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col space-y-3 relative z-10 p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="relative">
+                        <h3 className={`font-bold text-base ${isDarkMode ? 'text-gray-100' : 'text-black'} truncate mb-2 leading-tight`}>
+                          {project.name}
+                        </h3>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="relative group">
+                      <select
+                        value={project.priority}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleUpdateField(project.id, 'priority', e.target.value);
+                        }}
+                        className={`appearance-none cursor-pointer inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg hover:shadow-xl transition-all duration-300 border-0 outline-none ${getPriorityClass(project.priority)}`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <option value="Critical">Critical</option>
+                        <option value="High">High</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Low">Low</option>
+                      </select>
+                      <Flag size={12} className="absolute left-1.5 top-1/2 transform -translate-y-1/2 pointer-events-none" />
+                    </div>
+                    <div className="relative group">
+                      <select
+                        value={project.status}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleUpdateField(project.id, 'status', e.target.value);
+                        }}
+                        className={`appearance-none cursor-pointer inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg hover:shadow-xl transition-all duration-300 border-0 outline-none ${getStatusClass(project.status)}`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <option value="Not started">Not started</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Done">Done</option>
+                      </select>
+                      {project.status === 'Not started' && <Clock size={12} className="absolute left-1.5 top-1/2 transform -translate-y-1/2 pointer-events-none" />}
+                      {project.status === 'In Progress' && <AlertCircle size={12} className="absolute left-1.5 top-1/2 transform -translate-y-1/2 pointer-events-none" />}
+                      {project.status === 'Done' && <CheckCircle size={12} className="absolute left-1.5 top-1/2 transform -translate-y-1/2 pointer-events-none" />}
+                    </div>
+                  </div>
+
+                  {project.forPerson && (
+                    <div className={`flex items-center gap-2 p-3 rounded-lg border shadow-md hover:shadow-lg transition-all duration-300 ${isDarkMode ? 'bg-gradient-to-r from-gray-800 to-slate-800 border-gray-700' : 'bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200/60'}`}>
+                      <div className={`p-2 rounded-lg shadow-lg ${isDarkMode ? 'bg-gradient-to-br from-blue-700 to-indigo-700' : 'bg-gradient-to-br from-black to-gray-800'}`}>
+                        <Users size={14} className="text-white" />
+                      </div>
+                      <div>
+                        <span className={`text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
+                          Assigned to
+                        </span>
+                        <p className={`text-xs font-bold ${isDarkMode ? 'text-gray-100' : 'text-black'} truncate`}>
+                          {project.forPerson}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className={`flex items-center gap-2 p-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 ${isDarkMode ? 'bg-gradient-to-r from-emerald-900/30 to-emerald-800/30 border border-emerald-800' : 'bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200/60'}`}>
+                      <div className="p-2 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg">
+                        <Calendar size={12} className="text-white" />
+                      </div>
+                      <div>
+                        <p className={`text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-green-300' : 'text-green-600'}`}>Start</p>
+                        <p className={`text-xs font-bold ${isDarkMode ? 'text-gray-100' : 'text-black'}`}>
+                          {project.startDate ? new Date(project.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className={`flex items-center gap-2 p-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 ${isDarkMode ? 'bg-gradient-to-r from-rose-900/30 to-pink-900/30 border border-rose-800' : 'bg-gradient-to-r from-red-50 to-pink-50 border border-red-200/60'}`}>
+                      <div className="p-2 rounded-lg bg-gradient-to-br from-red-500 to-pink-600 shadow-lg">
+                        <Calendar size={12} className="text-white" />
+                      </div>
+                      <div>
+                        <p className={`text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-red-300' : 'text-red-600'}`}>End</p>
+                        <p className={`text-xs font-bold ${isDarkMode ? 'text-gray-100' : 'text-black'}`}>
+                          {project.endDate ? new Date(project.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className={`flex items-center gap-2 p-3 rounded-lg border shadow-md hover:shadow-lg transition-all duration-300 ${isDarkMode ? 'bg-gradient-to-r from-gray-800 to-slate-800 border-gray-700' : 'bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200/60'}`}>
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow-lg ${isDarkMode ? 'bg-gradient-to-br from-blue-700 to-indigo-700' : 'bg-gradient-to-br from-black to-gray-800'}`}>
+                      {project.ownerName?.charAt(0) || 'U'}
+                    </div>
+                    <div>
+                      <span className={`text-xs font-bold ${isDarkMode ? 'text-gray-100' : 'text-black'} truncate`}>
+                        {project.ownerName}
+                      </span>
+                      <div className={`text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                        Owner
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {(user?.role === 'manager' || user?.role === 'admin') && (
+              <button
+                onClick={() => addNewProject(mobileStatusFilter)}
+                className="flex items-center w-full justify-center px-4 py-4 text-xs font-bold border-2 border-dashed rounded-xl text-gray-600 border-gray-300/60 hover:text-black hover:bg-gradient-to-br hover:from-gray-50 hover:to-slate-50 hover:border-gray-400 transition-all duration-500 hover:shadow-xl backdrop-blur-sm"
+              >
+                <div className="w-6 h-6 flex items-center justify-center mr-2 rounded-lg bg-gradient-to-br from-black to-gray-800 shadow-lg">
+                  <Plus size={14} className="text-white" />
+                </div>
+                New Project
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop By Status View */}
       {view === 'By Status' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+        <div className="hidden sm:grid grid-cols-2 lg:grid-cols-3 gap-8">
           {statuses.map(status => (
             <div key={status} className={`p-6 rounded-3xl border min-h-[480px] ${cardBg} transition-all duration-300 hover:shadow-2xl backdrop-blur-lg`}>
-              <div className="flex items-center justify-between mb-6 pb-3 border-b border-gray-200/50">
-                <h2 className="text-xl font-bold text-white">
+              <div className="flex items-center justify-between mb-4 sm:mb-6 pb-2 sm:pb-3 border-b border-gray-200/50">
+                <h2 className="text-lg sm:text-xl font-bold text-balck dark:text-white">
                   {status}
                 </h2>
-                <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-gray-100 to-slate-100 text-gray-700 shadow-md">
+                <span className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-gray-100 to-slate-100 text-gray-700 shadow-md">
                   {filteredProjects.filter(p => p.status === status).length}
                 </span>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-2 sm:space-y-3">
                 {filteredProjects.filter(p => p.status === status).length === 0 && (
-                  <div className="h-[350px] flex items-center justify-center text-sm text-gray-500 border-2 border-dashed border-gray-300/60 rounded-2xl bg-gradient-to-br from-gray-50/50 to-slate-50/50 backdrop-blur-sm">
+                  <div className="h-[300px] sm:h-[350px] flex items-center justify-center text-sm text-gray-500 border-2 border-dashed border-gray-300/60 rounded-xl sm:rounded-2xl bg-gradient-to-br from-gray-50/50 to-slate-50/50 backdrop-blur-sm">
                     <div className="text-center">
-                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-gray-200 to-slate-200 flex items-center justify-center">
-                        <ProjectsIcon className="w-8 h-8 text-gray-400" />
+                      <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 rounded-full bg-gradient-to-br from-gray-200 to-slate-200 flex items-center justify-center">
+                        <ProjectsIcon className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" />
                       </div>
-                      <p className="font-medium">No projects here yet</p>
+                      <p className="font-medium text-xs sm:text-sm">No projects here yet</p>
                     </div>
                   </div>
                 )}
                 {filteredProjects.filter(p => p.status === status).map(project => (
                   <div
                     key={project.id}
-                    className={`group relative p-0 rounded-3xl border-2 cursor-pointer transition-all duration-500 hover:shadow-2xl overflow-hidden shadow-xl backdrop-blur-sm ${isDarkMode ? 'bg-gray-900/70 border-gray-800 hover:bg-gradient-to-br hover:from-gray-900/70 hover:to-blue-900/30' : 'bg-white/90 border-gray-200/60 hover:bg-gradient-to-br hover:from-white hover:to-blue-50/30'}`}
+                    className={`group relative p-0 rounded-2xl sm:rounded-3xl border-2 cursor-pointer transition-all duration-500 hover:shadow-2xl overflow-hidden shadow-xl backdrop-blur-sm ${isDarkMode ? 'bg-gray-900/70 border-gray-800 hover:bg-gradient-to-br hover:from-gray-900/70 hover:to-blue-900/30' : 'bg-white/90 border-gray-200/60 hover:bg-gradient-to-br hover:from-white hover:to-blue-50/30'}`}
                     onClick={(e) => {
                       const el = e.target;
                       if (
@@ -731,12 +1026,12 @@ const ProjectsPage = () => {
                     }}
                   >
                     {/* Enhanced Status indicator */}
-                    <div className={`absolute top-0 left-0 right-0 h-2 ${project.status === 'Not started' ? 'bg-gradient-to-r from-gray-400 to-slate-500' :
+                    <div className={`absolute top-0 left-0 right-0 h-1.5 sm:h-2 ${project.status === 'Not started' ? 'bg-gradient-to-r from-gray-400 to-slate-500' :
                       project.status === 'In progress' ? 'bg-gradient-to-r from-blue-500 to-purple-600' : 'bg-gradient-to-r from-green-500 to-emerald-600'
                       } shadow-lg`}></div>
 
                     {/* Update indicator and Favorite icon in top-right corner */}
-                    <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+                    <div className="absolute top-2 sm:top-4 right-2 sm:right-4 flex items-center gap-1 sm:gap-2 z-10">
                       {/* Favorite icon - only shown when project is favorited */}
                       {project.isFavorite && (
                         <button
@@ -744,17 +1039,17 @@ const ProjectsPage = () => {
                             e.stopPropagation();
                             handleToggleFavorite(project.id);
                           }}
-                          className="flex items-center justify-center w-6 h-6 rounded-full bg-red-500 text-white text-xs font-bold shadow-lg transform transition-all duration-300 hover:scale-110"
+                          className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-red-500 text-white text-xs font-bold shadow-lg transform transition-all duration-300 hover:scale-110"
                           title="Remove from favorites"
                         >
-                          <Heart size={12} className="fill-current" />
+                          <Heart size={10} className="fill-current sm:w-3 sm:h-3" />
                         </button>
                       )}
 
-                      {/* Change indicator - only for managers when there are changes */}
-                      {user?.role === 'manager' && project.changeCount > 0 && (
+                      {/* Change indicator - only for managers/admins when there are changes */}
+                      {(user?.role === 'manager' || user?.role === 'admin') && project.changeCount > 0 && (
                         <div
-                          className="flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-r from-orange-400 to-red-500 text-white text-xs font-bold shadow-lg transform transition-all duration-300 hover:scale-110 cursor-pointer"
+                          className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-gradient-to-r from-orange-400 to-red-500 text-white text-xs font-bold shadow-lg transform transition-all duration-300 hover:scale-110 cursor-pointer"
                           title={`${project.changeCount} recent changes`}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -763,7 +1058,7 @@ const ProjectsPage = () => {
                           }}
                         >
                           <div className="relative">
-                            <span className="block">{project.changeCount}</span>
+                            <span className="block text-xs">{project.changeCount}</span>
                             <div className="absolute inset-0 rounded-full bg-gradient-to-r from-orange-400 to-red-500 animate-ping opacity-75"></div>
                           </div>
                         </div>
@@ -774,12 +1069,12 @@ const ProjectsPage = () => {
                     <div className={`absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-15 transition-all duration-700 ${project.status === 'Not started' ? 'from-gray-500/30 via-slate-500/30 to-gray-600/30' :
                       project.status === 'In progress' ? 'from-blue-500/30 via-purple-500/30 to-pink-500/30' : 'from-green-500/30 via-emerald-500/30 to-teal-500/30'}`}></div>
 
-                    <div className="flex flex-col space-y-5 relative z-10 p-8">
+                    <div className="flex flex-col space-y-3 sm:space-y-5 relative z-10 p-4 sm:p-8">
                       {/* Enhanced header with floating elements */}
                       <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
                           <div className="relative">
-                            <h3 className={`font-bold text-lg sm:text-xl ${isDarkMode ? 'text-gray-100' : 'text-black'} truncate mb-3 leading-tight`}>
+                            <h3 className={`font-bold text-base sm:text-xl ${isDarkMode ? 'text-gray-100' : 'text-black'} truncate mb-2 sm:mb-3 leading-tight`}>
                               {project.name}
                             </h3>
                             {/* Enhanced Floating priority indicator */}
@@ -793,7 +1088,7 @@ const ProjectsPage = () => {
                       </div>
 
                       {/* Enhanced Modern badges - Editable */}
-                      <div className="flex items-center gap-3 flex-wrap">
+                      <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                         <div className="relative group">
                           <select
                             value={project.priority}
@@ -801,7 +1096,7 @@ const ProjectsPage = () => {
                               e.stopPropagation();
                               handleUpdateField(project.id, 'priority', e.target.value);
                             }}
-                            className={`appearance-none cursor-pointer inline-flex items-center px-4 py-2 rounded-xl text-xs font-bold shadow-lg hover:shadow-xl transition-all duration-300 border-0 outline-none ${getPriorityClass(project.priority)}`}
+                            className={`appearance-none cursor-pointer inline-flex items-center px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs font-bold shadow-lg hover:shadow-xl transition-all duration-300 border-0 outline-none ${getPriorityClass(project.priority)}`}
                             onClick={(e) => e.stopPropagation()}
                           >
                             <option value="Critical">Critical</option>
@@ -809,7 +1104,7 @@ const ProjectsPage = () => {
                             <option value="Medium">Medium</option>
                             <option value="Low">Low</option>
                           </select>
-                          <Flag size={14} className="absolute left-2 top-1/2 transform -translate-y-1/2 pointer-events-none" />
+                          <Flag size={12} className="absolute left-1.5 sm:left-2 top-1/2 transform -translate-y-1/2 pointer-events-none" />
                         </div>
                         <div className="relative group">
                           <select
@@ -818,30 +1113,30 @@ const ProjectsPage = () => {
                               e.stopPropagation();
                               handleUpdateField(project.id, 'status', e.target.value);
                             }}
-                            className={`appearance-none cursor-pointer inline-flex items-center px-4 py-2 rounded-xl text-xs font-bold shadow-lg hover:shadow-xl transition-all duration-300 border-0 outline-none ${getStatusClass(project.status)}`}
+                            className={`appearance-none cursor-pointer inline-flex items-center px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs font-bold shadow-lg hover:shadow-xl transition-all duration-300 border-0 outline-none ${getStatusClass(project.status)}`}
                             onClick={(e) => e.stopPropagation()}
                           >
                             <option value="Not started">Not started</option>
                             <option value="In Progress">In Progress</option>
                             <option value="Done">Done</option>
                           </select>
-                          {project.status === 'Not started' && <Clock size={14} className="absolute left-2 top-1/2 transform -translate-y-1/2 pointer-events-none" />}
-                          {project.status === 'In progress' && <AlertCircle size={14} className="absolute left-2 top-1/2 transform -translate-y-1/2 pointer-events-none" />}
-                          {project.status === 'Done' && <CheckCircle size={14} className="absolute left-2 top-1/2 transform -translate-y-1/2 pointer-events-none" />}
+                          {project.status === 'Not started' && <Clock size={12} className="absolute left-1.5 sm:left-2 top-1/2 transform -translate-y-1/2 pointer-events-none" />}
+                          {project.status === 'In progress' && <AlertCircle size={12} className="absolute left-1.5 sm:left-2 top-1/2 transform -translate-y-1/2 pointer-events-none" />}
+                          {project.status === 'Done' && <CheckCircle size={12} className="absolute left-1.5 sm:left-2 top-1/2 transform -translate-y-1/2 pointer-events-none" />}
                         </div>
                       </div>
 
                       {/* Enhanced assignment with better visual hierarchy */}
                       {project.forPerson && (
-                        <div className={`flex items-center gap-4 p-4 rounded-xl border shadow-md hover:shadow-lg transition-all duration-300 ${isDarkMode ? 'bg-gradient-to-r from-gray-800 to-slate-800 border-gray-700' : 'bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200/60'}`}>
-                          <div className={`p-3 rounded-xl shadow-lg ${isDarkMode ? 'bg-gradient-to-br from-blue-700 to-indigo-700' : 'bg-gradient-to-br from-black to-gray-800'}`}>
-                            <Users size={16} className="text-white" />
+                        <div className={`flex items-center gap-2 sm:gap-4 p-3 sm:p-4 rounded-lg sm:rounded-xl border shadow-md hover:shadow-lg transition-all duration-300 ${isDarkMode ? 'bg-gradient-to-r from-gray-800 to-slate-800 border-gray-700' : 'bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200/60'}`}>
+                          <div className={`p-2 sm:p-3 rounded-lg sm:rounded-xl shadow-lg ${isDarkMode ? 'bg-gradient-to-br from-blue-700 to-indigo-700' : 'bg-gradient-to-br from-black to-gray-800'}`}>
+                            <Users size={14} className="text-white" />
                           </div>
                           <div>
                             <span className={`text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
                               Assigned to
                             </span>
-                            <p className={`text-sm font-bold ${isDarkMode ? 'text-gray-100' : 'text-black'}`}>
+                            <p className={`text-xs sm:text-sm font-bold ${isDarkMode ? 'text-gray-100' : 'text-black'} truncate`}>
                               {project.forPerson}
                             </p>
                           </div>
@@ -849,25 +1144,25 @@ const ProjectsPage = () => {
                       )}
 
                       {/* Enhanced Modern date cards */}
-                      <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                        <div className={`flex items-center gap-3 p-4 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 ${isDarkMode ? 'bg-gradient-to-r from-emerald-900/30 to-emerald-800/30 border border-emerald-800' : 'bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200/60'}`}>
-                          <div className="p-3 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg">
-                            <Calendar size={16} className="text-white" />
+                      <div className="grid grid-cols-2 gap-2 sm:gap-4">
+                        <div className={`flex items-center gap-2 sm:gap-3 p-2 sm:p-4 rounded-lg sm:rounded-xl shadow-md hover:shadow-lg transition-all duration-300 ${isDarkMode ? 'bg-gradient-to-r from-emerald-900/30 to-emerald-800/30 border border-emerald-800' : 'bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200/60'}`}>
+                          <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg">
+                            <Calendar size={12} className="text-white sm:w-4 sm:h-4" />
                           </div>
                           <div>
                             <p className={`text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-green-300' : 'text-green-600'}`}>Start</p>
-                            <p className={`text-sm font-bold ${isDarkMode ? 'text-gray-100' : 'text-black'}`}>
+                            <p className={`text-xs sm:text-sm font-bold ${isDarkMode ? 'text-gray-100' : 'text-black'}`}>
                               {project.startDate ? new Date(project.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
                             </p>
                           </div>
                         </div>
-                        <div className={`flex items-center gap-3 p-4 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 ${isDarkMode ? 'bg-gradient-to-r from-rose-900/30 to-pink-900/30 border border-rose-800' : 'bg-gradient-to-r from-red-50 to-pink-50 border border-red-200/60'}`}>
-                          <div className="p-3 rounded-xl bg-gradient-to-br from-red-500 to-pink-600 shadow-lg">
-                            <Calendar size={16} className="text-white" />
+                        <div className={`flex items-center gap-2 sm:gap-3 p-2 sm:p-4 rounded-lg sm:rounded-xl shadow-md hover:shadow-lg transition-all duration-300 ${isDarkMode ? 'bg-gradient-to-r from-rose-900/30 to-pink-900/30 border border-rose-800' : 'bg-gradient-to-r from-red-50 to-pink-50 border border-red-200/60'}`}>
+                          <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-br from-red-500 to-pink-600 shadow-lg">
+                            <Calendar size={12} className="text-white sm:w-4 sm:h-4" />
                           </div>
                           <div>
                             <p className={`text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-red-300' : 'text-red-600'}`}>End</p>
-                            <p className={`text-sm font-bold ${isDarkMode ? 'text-gray-100' : 'text-black'}`}>
+                            <p className={`text-xs sm:text-sm font-bold ${isDarkMode ? 'text-gray-100' : 'text-black'}`}>
                               {project.endDate ? new Date(project.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
                             </p>
                           </div>
@@ -877,16 +1172,16 @@ const ProjectsPage = () => {
 
 
                       {/* Enhanced Project Owner section at bottom */}
-                      <div className={`flex items-center gap-4 p-4 rounded-xl border shadow-md hover:shadow-lg transition-all duration-300 ${isDarkMode ? 'bg-gradient-to-r from-gray-800 to-slate-800 border-gray-700' : 'bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200/60'}`}>
-                        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center text-white text-sm font-bold shadow-lg ${isDarkMode ? 'bg-gradient-to-br from-blue-700 to-indigo-700' : 'bg-gradient-to-br from-black to-gray-800'}`}>
+                      <div className={`flex items-center gap-2 sm:gap-4 p-3 sm:p-4 rounded-lg sm:rounded-xl border shadow-md hover:shadow-lg transition-all duration-300 ${isDarkMode ? 'bg-gradient-to-r from-gray-800 to-slate-800 border-gray-700' : 'bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200/60'}`}>
+                        <div className={`w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center text-white text-xs sm:text-sm font-bold shadow-lg ${isDarkMode ? 'bg-gradient-to-br from-blue-700 to-indigo-700' : 'bg-gradient-to-br from-black to-gray-800'}`}>
                           {project.ownerName?.charAt(0) || 'U'}
                         </div>
                         <div>
-                          <span className={`text-sm font-bold ${isDarkMode ? 'text-gray-100' : 'text-black'}`}>
+                          <span className={`text-xs sm:text-sm font-bold ${isDarkMode ? 'text-gray-100' : 'text-black'} truncate`}>
                             {project.ownerName}
                           </span>
                           <div className={`text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                            Project Owner
+                            Owner
                           </div>
                         </div>
                       </div>
@@ -896,13 +1191,13 @@ const ProjectsPage = () => {
                     </div>
                   </div>
                 ))}
-                {user?.role === 'manager' && (
+                {(user?.role === 'manager' || user?.role === 'admin') && (
                   <button
                     onClick={() => addNewProject(status)}
-                    className="flex items-center w-full justify-center px-8 py-6 text-sm font-bold border-2 border-dashed rounded-2xl text-gray-600 border-gray-300/60 hover:text-black hover:bg-gradient-to-br hover:from-gray-50 hover:to-slate-50 hover:border-gray-400 transition-all duration-500 hover:shadow-xl backdrop-blur-sm"
+                    className="flex items-center w-full justify-center px-4 sm:px-8 py-4 sm:py-6 text-xs sm:text-sm font-bold border-2 border-dashed rounded-xl sm:rounded-2xl text-gray-600 border-gray-300/60 hover:text-black hover:bg-gradient-to-br hover:from-gray-50 hover:to-slate-50 hover:border-gray-400 transition-all duration-500 hover:shadow-xl backdrop-blur-sm"
                   >
-                    <div className="w-8 h-8 flex items-center justify-center mr-4 rounded-xl bg-gradient-to-br from-black to-gray-800 shadow-lg">
-                      <Plus size={16} className="text-white" />
+                    <div className="w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center mr-2 sm:mr-4 rounded-lg sm:rounded-xl bg-gradient-to-br from-black to-gray-800 shadow-lg">
+                      <Plus size={14} className="text-white sm:w-4 sm:h-4" />
                     </div>
                     New Project
                   </button>
@@ -933,7 +1228,7 @@ const ProjectsPage = () => {
                 {filteredProjects.map((project) => (
                   <tr key={project.id} className={`${hoverSubtle} transition-all duration-300 hover:shadow-lg`}>
                     <td className="px-8 py-6 whitespace-nowrap">
-                      {user?.role === 'manager' ? (
+                      {(user?.role === 'manager' || user?.role === 'admin') ? (
                         <EditableField
                           value={project.name}
                           onSave={(value) => handleUpdateField(project.id, 'name', value)}
@@ -975,7 +1270,7 @@ const ProjectsPage = () => {
                       </EditableField>
                     </td>
                     <td className="px-8 py-6 whitespace-nowrap">
-                      {user?.role === 'manager' ? (
+                      {(user?.role === 'manager' || user?.role === 'admin') ? (
                         <EditableField
                           value={project.priority}
                           onSave={(value) => handleUpdateField(project.id, 'priority', value)}
@@ -1010,7 +1305,7 @@ const ProjectsPage = () => {
                       )}
                     </td>
                     <td className={`px-8 py-6 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
-                      {user?.role === 'manager' ? (
+                      {(user?.role === 'manager' || user?.role === 'admin') ? (
                         <EditableField
                           value={project.forPerson || ''}
                           onSave={(value) => handleUpdateField(project.id, 'forPerson', value)}
@@ -1046,7 +1341,7 @@ const ProjectsPage = () => {
                           <Eye size={16} className="mr-2" />
                           View Details
                         </button>
-                        {user?.role === 'manager' && (
+                        {(user?.role === 'manager' || user?.role === 'admin') && (
                           <button
                             onClick={() => handleEditProject(project)}
                             className={`flex items-center px-5 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 ease-in-out hover:scale-110 hover:-translate-y-1 shadow-lg hover:shadow-2xl ${isDarkMode ? 'text-green-400 bg-gradient-to-r from-green-900/30 to-emerald-900/30 hover:from-green-900/40 hover:to-emerald-900/40 border border-green-500/40' : 'text-green-600 bg-gradient-to-r from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 border border-green-200/60'}`}
@@ -1055,7 +1350,7 @@ const ProjectsPage = () => {
                             Edit
                           </button>
                         )}
-                        {user?.role === 'manager' && (
+                        {(user?.role === 'manager' || user?.role === 'admin') && (
                           <button
                             onClick={() => handleDeleteProject(project.id)}
                             className="flex items-center px-5 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-red-500 to-pink-600 rounded-xl hover:from-red-600 hover:to-pink-700 transition-all duration-300 ease-in-out hover:scale-110 hover:-translate-y-1 shadow-lg hover:shadow-2xl"
@@ -1169,7 +1464,7 @@ const ProjectsPage = () => {
                 setViewProject(updatedProject);
               }
             }}
-            isManager={user?.role === 'manager'}
+            isManager={user?.role === 'manager' || user?.role === 'admin'}
             isNewProject={viewProject.id === 'new'}
           />
         )
@@ -1178,8 +1473,8 @@ const ProjectsPage = () => {
       {/* Edit Project Modal */}
       {
         editingProject && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className={`rounded-xl p-6 w-full max-w-md mx-4 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-white'}`}>
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className={`rounded-xl p-4 sm:p-6 w-full max-w-md ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-white'}`}>
               <h3 className="text-lg font-semibold mb-4">Edit Project</h3>
               <div className="space-y-4">
                 <div>
@@ -1205,11 +1500,11 @@ const ProjectsPage = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">For  fuad (person)</label>
+                  <label className="block text-sm font-medium mb-1">For (person)</label>
                   <input
                     type="text"
                     value={editForm.forPerson || editForm.category || ''}
-                    // onChange={(e) => setEditForm({ ...editForm, forPerson: e.target.value })}
+                    onChange={(e) => setEditForm({ ...editForm, forPerson: e.target.value })}
                     placeholder="Who is this for?"
                     className={`w-full px-3 py-2 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${inputClass}`}
                   />

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { ArrowLeft, CheckSquare, Plus, X, MessageSquare, Send, Target, FileText, BarChart3 } from 'lucide-react';
+import { ArrowLeft, CheckSquare, Plus, X, MessageSquare, Send, Target, FileText, BarChart3, Edit3, Trash2, MoreVertical } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
 const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'Project', embedded = false }) => {
@@ -20,6 +20,9 @@ const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'P
   const [showQuickNav, setShowQuickNav] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
+  const [editTaskText, setEditTaskText] = useState('');
+  const [showActionsMenu, setShowActionsMenu] = useState({});
 
 
   const quickNavRef = useRef(null);
@@ -50,6 +53,21 @@ const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'P
 
     loadTasks();
   }, [projectId, projectName]);
+
+  // Close actions menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // Check if the click is outside any actions menu container
+      if (!event.target.closest('.actions-menu-container') && !event.target.closest('[data-actions-button]')) {
+        setShowActionsMenu({});
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, []);
 
 
 
@@ -561,6 +579,106 @@ const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'P
     }
   };
 
+  const startEditTask = (task) => {
+    console.log('startEditTask called for task:', task);
+    setEditingTask(task.id);
+    setEditTaskText(task.text);
+  };
+
+  const cancelEditTask = () => {
+    setEditingTask(null);
+    setEditTaskText('');
+  };
+
+  const saveEditTask = async (taskId) => {
+    try {
+      if (!editTaskText.trim()) {
+        alert('Task text cannot be empty');
+        return;
+      }
+
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Authentication required. Please log in again.');
+        return;
+      }
+
+      if (!projectId) {
+        throw new Error('Project ID is required for task operations');
+      }
+
+      const url = `http://localhost:9000/api/projects/${projectId}/tasks/${taskId}`;
+
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token
+        },
+        body: JSON.stringify({
+          text: editTaskText.trim()
+        })
+      });
+
+      if (!response.ok) {
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (e) {
+          errorData = { message: 'Failed to update task' };
+        }
+        throw new Error(errorData.message || 'Failed to update task');
+      }
+
+      const updatedTask = await response.json();
+      
+      // Update local state
+      setTasks(prevTasks =>
+        prevTasks.map(t =>
+          t.id === taskId
+            ? { ...t, text: updatedTask.text, updatedAt: updatedTask.updatedAt }
+            : t
+        )
+      );
+
+      // Clear editing state
+      setEditingTask(null);
+      setEditTaskText('');
+      
+      console.log('Task updated successfully');
+    } catch (error) {
+      console.error('Error updating task:', error);
+      alert(`Failed to update task: ${error.message}`);
+    }
+  };
+
+  const handleDeleteTask = async (taskId) => {
+    if (!window.confirm('Are you sure you want to delete this task? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await deleteTask(taskId);
+      console.log('Task deleted successfully');
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      alert(`Failed to delete task: ${error.message}`);
+    }
+  };
+
+  const toggleActionsMenu = (taskId) => {
+    console.log('toggleActionsMenu called for taskId:', taskId);
+    console.log('Current showActionsMenu state:', showActionsMenu);
+    setShowActionsMenu(prev => {
+      const newState = {
+        ...prev,
+        [taskId]: !prev[taskId]
+      };
+      console.log('New showActionsMenu state:', newState);
+      return newState;
+    });
+  };
+
 
 
 
@@ -573,21 +691,21 @@ const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'P
     <div className={`${embedded ? '' : `${isDarkMode ? 'bg-black text-gray-100' : 'bg-white text-black'} min-h-screen font-sans`}`}>
       <div className={embedded ? 'p-4' : 'max-w-6xl mx-auto px-4 py-8'}>
         {!embedded && (
-          <div className={`flex items-center justify-between mb-8 p-6 rounded-2xl ${isDarkMode ? 'bg-gradient-to-r from-gray-900/80 to-gray-800/80 border border-gray-700/50' : 'bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border border-blue-100/50'} backdrop-blur-sm shadow-lg`}>
-            <div className="flex items-center gap-4">
+          <div className={`flex items-center justify-between mb-4 sm:mb-8 p-3 sm:p-6 rounded-xl sm:rounded-2xl ${isDarkMode ? 'bg-gradient-to-r from-gray-900/80 to-gray-800/80 border border-gray-700/50' : 'bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border border-blue-100/50'} backdrop-blur-sm shadow-lg`}>
+            <div className="flex items-center gap-2 sm:gap-4">
               <button
                 onClick={() => navigate(-1)}
-                className={`p-3 rounded-xl transition-all duration-200 ${isDarkMode ? 'hover:bg-gray-700/50 hover:scale-105' : 'hover:bg-white/70 hover:scale-105'} shadow-sm`}
+                className={`p-2 sm:p-3 rounded-lg sm:rounded-xl transition-all duration-200 ${isDarkMode ? 'hover:bg-gray-700/50 hover:scale-105' : 'hover:bg-white/70 hover:scale-105'} shadow-sm`}
               >
-                <ArrowLeft className="w-5 h-5" />
+                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
-              <div className="flex items-center gap-4">
-                <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-blue-600/20' : 'bg-blue-500/10'} shadow-sm`}>
-                  <CheckSquare className="w-8 h-8 text-blue-500" />
+              <div className="flex items-center gap-2 sm:gap-4">
+                <div className={`p-2 sm:p-3 rounded-lg sm:rounded-xl ${isDarkMode ? 'bg-blue-600/20' : 'bg-blue-500/10'} shadow-sm`}>
+                  <CheckSquare className="w-5 h-5 sm:w-8 sm:h-8 text-blue-500" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Tasks</h1>
-                  <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Manage your project tasks</p>
+                  <h1 className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Tasks</h1>
+                  <p className={`text-xs sm:text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Manage your project tasks</p>
                 </div>
               </div>
             </div>
@@ -596,48 +714,49 @@ const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'P
         )}
 
         {!embedded && (
-          <div className={`${isDarkMode ? 'bg-gradient-to-br from-gray-900/80 to-gray-800/80 border-gray-700/50' : 'bg-gradient-to-br from-white/90 to-gray-50/90 border-gray-200/50'} backdrop-blur-sm p-8 rounded-3xl border shadow-xl mb-8`}>
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-green-600/20' : 'bg-green-500/10'}`}>
-                  <BarChart3 className="w-5 h-5 text-green-500" />
+          <div className={`hidden sm:block ${isDarkMode ? 'bg-gradient-to-br from-gray-900/80 to-gray-800/80 border-gray-700/50' : 'bg-gradient-to-br from-white/90 to-gray-50/90 border-gray-200/50'} backdrop-blur-sm p-4 sm:p-8 rounded-2xl sm:rounded-3xl border shadow-xl mb-4 sm:mb-8`}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-3 sm:gap-0">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className={`p-1.5 sm:p-2 rounded-lg ${isDarkMode ? 'bg-green-600/20' : 'bg-green-500/10'}`}>
+                  <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
                 </div>
-                <h2 className="text-2xl font-bold">Progress Overview</h2>
+                <h2 className="text-lg sm:text-2xl font-bold">Progress Overview</h2>
               </div>
-              <div className={`px-4 py-2 rounded-full ${isDarkMode ? 'bg-blue-600/20 text-blue-300' : 'bg-blue-500/10 text-blue-600'} font-semibold`}>
+              <div className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-full ${isDarkMode ? 'bg-blue-600/20 text-blue-300' : 'bg-blue-500/10 text-blue-600'} font-semibold text-sm sm:text-base`}>
                 {completedCount}/{tasks.length} completed
               </div>
             </div>
-            <div className={`w-full h-4 rounded-full ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-200/50'} overflow-hidden shadow-inner`}>
+            <div className={`w-full h-3 sm:h-4 rounded-full ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-200/50'} overflow-hidden shadow-inner`}>
               <div
                 className="bg-gradient-to-r from-blue-500 via-purple-500 to-green-500 h-full rounded-full transition-all duration-500 ease-out shadow-sm"
                 style={{ width: `${progressPercentage}%` }}
               ></div>
             </div>
-            <div className="flex items-center justify-between mt-4">
-              <p className={`text-lg font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{Math.round(progressPercentage)}% complete</p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-3 sm:mt-4 gap-2 sm:gap-0">
+              <p className={`text-base sm:text-lg font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{Math.round(progressPercentage)}% complete</p>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-500 to-green-500"></div>
-                <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Task completion</span>
+                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-gradient-to-r from-blue-500 to-green-500"></div>
+                <span className={`text-xs sm:text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Task completion</span>
               </div>
             </div>
           </div>
         )}
 
-        <div className={`${embedded ? '' : `${isDarkMode ? 'bg-gradient-to-br from-gray-900/80 to-gray-800/80 border-gray-700/50' : 'bg-gradient-to-br from-white/90 to-gray-50/90 border-gray-200/50'} backdrop-blur-sm rounded-3xl border shadow-xl`} p-8`}>
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-purple-600/20' : 'bg-purple-500/10'}`}>
-                <CheckSquare className="w-6 h-6 text-purple-500" />
+        <div className={`${embedded ? '' : `${isDarkMode ? 'bg-gradient-to-br from-gray-900/80 to-gray-800/80 border-gray-700/50' : 'bg-gradient-to-br from-white/90 to-gray-50/90 border-gray-200/50'} backdrop-blur-sm rounded-2xl sm:rounded-3xl border shadow-xl`} p-4 sm:p-8`}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-8 gap-3 sm:gap-0">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className={`p-1.5 sm:p-2 rounded-lg ${isDarkMode ? 'bg-purple-600/20' : 'bg-purple-500/10'}`}>
+                <CheckSquare className="w-5 h-5 sm:w-6 sm:h-6 text-purple-500" />
               </div>
-              <h2 className="text-2xl font-bold">{projectId ? 'Project Tasks' : 'All Tasks'}</h2>
+              <h2 className="text-lg sm:text-2xl font-bold">{projectId ? 'Project Tasks' : 'All Tasks'}</h2>
             </div>
             <button
               onClick={() => setShowAddTask(true)}
-              className={`flex items-center gap-3 px-6 py-3 rounded-xl transition-all duration-200 ${isDarkMode ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800' : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700'} text-white font-semibold shadow-lg hover:shadow-xl hover:scale-105`}
+              className={`flex items-center justify-center gap-2 sm:gap-3 px-4 py-2.5 sm:px-6 sm:py-3 rounded-lg sm:rounded-xl transition-all duration-200 ${isDarkMode ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800' : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700'} text-white font-semibold shadow-lg hover:shadow-xl hover:scale-105 text-sm sm:text-base`}
             >
-              <Plus className="w-5 h-5" />
-              Add New Task
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="hidden sm:inline">Add New Task</span>
+              <span className="sm:hidden">Add Task</span>
             </button>
           </div>
 
@@ -648,8 +767,8 @@ const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'P
           )}
 
           {showAddTask && (
-            <div className={`p-4 rounded-lg border mb-4 ${isDarkMode ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-gray-50'}`}>
-              <div className="flex gap-2">
+            <div className={`p-3 sm:p-4 rounded-lg border mb-4 ${isDarkMode ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-gray-50'}`}>
+              <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   type="text"
                   value={newTaskText}
@@ -659,22 +778,24 @@ const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'P
                     if (e.key === 'Escape') { setShowAddTask(false); setNewTaskText(''); }
                   }}
                   placeholder="Enter task description..."
-                  className={`flex-1 px-3 py-2 rounded border focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-100' : 'bg-white border-gray-300 text-gray-900'}`}
+                  className={`flex-1 px-3 py-2.5 sm:py-2 text-sm sm:text-base rounded border focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-100' : 'bg-white border-gray-300 text-gray-900'}`}
                   autoFocus
                 />
-                <button
-                  onClick={addTask}
-                  disabled={saving}
-                  className={`px-4 py-2 rounded transition-colors ${isDarkMode ? 'bg-green-600 hover:bg-green-700 disabled:bg-gray-600' : 'bg-green-500 hover:bg-green-600 disabled:bg-gray-400'} text-white`}
-                >
-                  {saving ? 'Adding...' : 'Add'}
-                </button>
-                <button
-                  onClick={() => { setShowAddTask(false); setNewTaskText(''); }}
-                  className={`px-3 py-2 rounded transition-colors ${isDarkMode ? 'bg-gray-600 hover:bg-gray-700' : 'bg-gray-400 hover:bg-gray-500'} text-white`}
-                >
-                  <X className="w-4 h-4" />
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={addTask}
+                    disabled={saving}
+                    className={`px-4 py-2.5 sm:py-2 rounded transition-colors text-sm sm:text-base ${isDarkMode ? 'bg-green-600 hover:bg-green-700 disabled:bg-gray-600' : 'bg-green-500 hover:bg-green-600 disabled:bg-gray-400'} text-white flex-1 sm:flex-none`}
+                  >
+                    {saving ? 'Adding...' : 'Add'}
+                  </button>
+                  <button
+                    onClick={() => { setShowAddTask(false); setNewTaskText(''); }}
+                    className={`px-3 py-2.5 sm:py-2 rounded transition-colors ${isDarkMode ? 'bg-gray-600 hover:bg-gray-700' : 'bg-gray-400 hover:bg-gray-500'} text-white`}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -692,49 +813,119 @@ const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'P
                 <p className="text-sm">Click "Add Task" to create your first task</p>
               </div>
             ) : (
-              tasks.map(task => (
-                <div key={task.id || task._id} className={`p-6 rounded-2xl border transition-all duration-200 hover:shadow-lg ${isDarkMode ? 'border-gray-700/50 bg-gradient-to-r from-gray-800/60 to-gray-700/60 hover:border-gray-600/50' : 'border-gray-200/50 bg-gradient-to-r from-white/80 to-gray-50/80 hover:border-gray-300/50'} backdrop-blur-sm`}>
-                  <div className="flex items-center gap-3 mb-2">
+              tasks.map(task => {
+                const taskId = task.id || task._id;
+                console.log('Rendering task with ID:', taskId, 'task object:', task);
+                return (
+                <div key={taskId} className={`relative p-3 sm:p-6 rounded-xl sm:rounded-2xl border transition-all duration-200 hover:shadow-lg ${isDarkMode ? 'border-gray-700/50 bg-gradient-to-r from-gray-800/60 to-gray-700/60 hover:border-gray-600/50' : 'border-gray-200/50 bg-gradient-to-r from-white/80 to-gray-50/80 hover:border-gray-300/50'} backdrop-blur-sm`}>
+                  <div className="flex items-start gap-3 mb-2">
                     <input
                       type="checkbox"
                       checked={task.completed}
-                      onChange={() => toggleTask(task.id || task._id)}
-                      className="w-4 h-4"
+                      onChange={() => toggleTask(taskId)}
+                      className="w-5 h-5 sm:w-4 sm:h-4 mt-0.5 flex-shrink-0"
                     />
-                    <div className="flex-1">
-                      <span className={task.completed ? 'line-through text-gray-500' : ''}>
-                        {task.text}
-                      </span>
+                    <div className="flex-1 min-w-0">
+                      {editingTask === taskId ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={editTaskText}
+                            onChange={(e) => setEditTaskText(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') saveEditTask(taskId);
+                              if (e.key === 'Escape') cancelEditTask();
+                            }}
+                            className={`flex-1 px-2 py-1 text-sm sm:text-base rounded border focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-100' : 'bg-white border-gray-300 text-gray-900'}`}
+                            autoFocus
+                          />
+                          <button
+                            onClick={() => saveEditTask(taskId)}
+                            className={`px-2 py-1 rounded text-xs transition-colors ${isDarkMode ? 'bg-green-600 hover:bg-green-700' : 'bg-green-500 hover:bg-green-600'} text-white`}
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={cancelEditTask}
+                            className={`px-2 py-1 rounded text-xs transition-colors ${isDarkMode ? 'bg-gray-600 hover:bg-gray-700' : 'bg-gray-400 hover:bg-gray-500'} text-white`}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <span className={`text-sm sm:text-base break-words ${task.completed ? 'line-through text-gray-500' : ''}`}>
+                          {task.text}
+                        </span>
+                      )}
                     </div>
-
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          console.log('Actions button clicked for task:', taskId);
+                          toggleActionsMenu(taskId);
+                        }}
+                        data-actions-button
+                        className={`p-2 rounded-lg transition-all duration-200 ${isDarkMode ? 'hover:bg-gray-700 hover:scale-105' : 'hover:bg-gray-200 hover:scale-105'} cursor-pointer`}
+                        title="Task actions"
+                      >
+                        <MoreVertical className="w-4 h-4" />
+                      </button>
+                      {showActionsMenu[taskId] && (
+                        <div className={`actions-menu-container absolute right-2 top-12 z-10 py-1 rounded-lg shadow-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              startEditTask(task);
+                              setShowActionsMenu({});
+                            }}
+                            className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-gray-100 text-gray-700'}`}
+                          >
+                            <Edit3 className="w-4 h-4" />
+                            Edit
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteTask(taskId);
+                              setShowActionsMenu({});
+                            }}
+                            className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-red-400' : 'hover:bg-gray-100 text-red-600'}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <button
-                    onClick={() => toggleComments(task.id || task._id)}
-                    className={`flex items-center gap-2 px-3 py-1 rounded text-sm transition-colors ${isDarkMode ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700' : 'text-gray-600 hover:text-gray-800 hover:bg-gray-200'}`}
+                    onClick={() => toggleComments(taskId)}
+                    className={`flex items-center gap-2 px-2 sm:px-3 py-1 rounded text-xs sm:text-sm transition-colors ${isDarkMode ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700' : 'text-gray-600 hover:text-gray-800 hover:bg-gray-200'}`}
                   >
-                    <MessageSquare className="w-4 h-4" />
+                    <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4" />
                     Comments ({task.comments.length})
                   </button>
-                  {showComments[task.id || task._id] && (
-                    <div className={`mt-3 p-3 rounded border ${isDarkMode ? 'border-gray-600 bg-gray-700/50' : 'border-gray-300 bg-white'}`}>
+                  {showComments[taskId] && (
+                    <div className={`mt-3 p-2 sm:p-3 rounded border ${isDarkMode ? 'border-gray-600 bg-gray-700/50' : 'border-gray-300 bg-white'}`}>
                       {Array.isArray(task.comments) && task.comments.map(comment => (
                         <div key={comment._id} className="mb-2 pb-2 border-b border-gray-300 last:border-b-0">
-                          <p className="text-sm">{comment.text}</p>
+                          <p className="text-xs sm:text-sm break-words">{comment.text}</p>
                           <span className="text-xs text-gray-500">{new Date(comment.timestamp).toLocaleString()}</span>
                         </div>
                       ))}
-                      <div className="flex gap-2 mt-2">
+                      <div className="flex gap-1 sm:gap-2 mt-2">
                         <input
                           type="text"
-                          value={newComment[task.id || task._id] || ''}
-                          onChange={(e) => setNewComment(prev => ({ ...prev, [task.id || task._id]: e.target.value }))}
-                          onKeyDown={(e) => e.key === 'Enter' && addComment(task.id || task._id)}
+                          value={newComment[taskId] || ''}
+                          onChange={(e) => setNewComment(prev => ({ ...prev, [taskId]: e.target.value }))}
+                          onKeyDown={(e) => e.key === 'Enter' && addComment(taskId)}
                           placeholder="Add a comment..."
-                          className={`flex-1 px-2 py-1 text-sm rounded border focus:outline-none focus:ring-1 focus:ring-blue-500 ${isDarkMode ? 'bg-gray-600 border-gray-500 text-gray-100' : 'bg-white border-gray-300 text-gray-900'}`}
+                          className={`flex-1 px-2 py-1.5 sm:py-1 text-xs sm:text-sm rounded border focus:outline-none focus:ring-1 focus:ring-blue-500 ${isDarkMode ? 'bg-gray-600 border-gray-500 text-gray-100' : 'bg-white border-gray-300 text-gray-900'}`}
                         />
                         <button
-                          onClick={() => addComment(task.id || task._id)}
-                          className={`px-2 py-1 rounded text-sm transition-colors ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white`}
+                          onClick={() => addComment(taskId)}
+                          className={`px-2 py-1.5 sm:py-1 rounded text-xs sm:text-sm transition-colors ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white flex-shrink-0`}
                         >
                           <Send className="w-3 h-3" />
                         </button>
@@ -742,7 +933,8 @@ const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'P
                     </div>
                   )}
                 </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

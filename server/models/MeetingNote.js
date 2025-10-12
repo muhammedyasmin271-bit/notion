@@ -124,6 +124,10 @@ const meetingNoteSchema = new mongoose.Schema({
     type: String,
     trim: true
   }],
+  isPublic: {
+    type: Boolean,
+    default: false
+  },
   isRecurring: {
     type: Boolean,
     default: false
