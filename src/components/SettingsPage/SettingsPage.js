@@ -38,7 +38,7 @@ const SettingsPage = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-6 py-4 font-medium transition-colors ${
+                  className={`flex items-center gap-1 sm:gap-2 px-3 py-2 sm:px-6 sm:py-4 text-sm sm:text-base font-medium transition-colors ${
                     activeTab === tab.id 
                       ? 'bg-blue-600 text-white' 
                       : isDarkMode
@@ -46,8 +46,8 @@ const SettingsPage = () => {
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
-                  {tab.label}
+                  <Icon className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="text-xs sm:text-base">{tab.label}</span>
                 </button>
               );
             })}

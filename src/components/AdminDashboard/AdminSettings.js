@@ -413,60 +413,6 @@ const AdminSettings = () => {
                         </div>
                     </div>
 
-                    {/* System Tools */}
-                    <div className={`rounded-2xl shadow-lg p-6 mt-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-                        <h2 className="text-2xl font-bold mb-6">System Tools</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                            <div className={`p-6 rounded-xl ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
-                                <div className="flex items-center mb-4">
-                                    <Download className="w-8 h-8 text-blue-500 mr-3" />
-                                    <h3 className="text-lg font-bold">Export Data</h3>
-                                </div>
-                                <p className={`mb-4 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                                    Export all system data
-                                </p>
-                                <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                                    Export
-                                </button>
-                            </div>
-                            <div className={`p-6 rounded-xl ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
-                                <div className="flex items-center mb-4">
-                                    <Upload className="w-8 h-8 text-green-500 mr-3" />
-                                    <h3 className="text-lg font-bold">Import Data</h3>
-                                </div>
-                                <p className={`mb-4 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                                    Import data from backup
-                                </p>
-                                <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
-                                    Import
-                                </button>
-                            </div>
-                            <div className={`p-6 rounded-xl ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
-                                <div className="flex items-center mb-4">
-                                    <RefreshCw className="w-8 h-8 text-purple-500 mr-3" />
-                                    <h3 className="text-lg font-bold">Clear Cache</h3>
-                                </div>
-                                <p className={`mb-4 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                                    Clear system cache
-                                </p>
-                                <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
-                                    Clear
-                                </button>
-                            </div>
-                            <div className={`p-6 rounded-xl ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
-                                <div className="flex items-center mb-4">
-                                    <Trash2 className="w-8 h-8 text-red-500 mr-3" />
-                                    <h3 className="text-lg font-bold">Reset System</h3>
-                                </div>
-                                <p className={`mb-4 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                                    Reset to factory settings
-                                </p>
-                                <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
-                                    Reset
-                                </button>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </RoleGuard>

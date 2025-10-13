@@ -249,13 +249,13 @@ const UserProfilePage = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center px-6 py-3 rounded-xl font-semibold transition-all duration-200 ${activeTab === tab.id
+                className={`flex items-center px-3 py-2 sm:px-6 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base font-semibold transition-all duration-200 ${activeTab === tab.id
                     ? (isDarkMode ? 'bg-white text-black' : 'bg-black text-white')
                     : (isDarkMode ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200')
                   }`}
               >
-                <Icon className="w-4 h-4 mr-2" />
-                {tab.label}
+                <Icon className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                <span className="text-xs sm:text-base">{tab.label}</span>
               </button>
             );
           })}

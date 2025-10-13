@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Home as HomeIcon,
@@ -32,6 +32,7 @@ const NavBar = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const navRef = useRef(null);
 
   // Sync body class with sidebar state so pages can adjust layout instantly
   useEffect(() => {
@@ -66,6 +67,18 @@ const NavBar = () => {
     return () => window.removeEventListener('notifications-updated', update);
   }, [user?.id]);
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (navRef.current && !navRef.current.contains(event.target) && !event.target.closest('.mobile-menu-button')) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+    if (isMobileMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isMobileMenuOpen]);
+
   const navItems = [
     { name: 'Home', icon: HomeIcon, page: 'home', path: '/home', description: 'Dashboard overview' },
     { name: 'Projects', icon: ProjectsIcon, page: 'projects', path: '/projects', description: 'Project management' },
@@ -90,22 +103,9 @@ const NavBar = () => {
   };
 
   const filteredNavItems = navItems.filter(item => {
-    // Filter by search query
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    // Filter by search query only
+    return item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.description.toLowerCase().includes(searchQuery.toLowerCase());
-
-    // Role-based filtering
-    if (item.page === 'user-management') {
-      // User management page visible to managers and admins
-      return matchesSearch && (user?.role === 'manager' || user?.role === 'admin');
-    }
-
-    if (item.page === 'admin') {
-      // Admin page only visible to admins
-      return matchesSearch && user?.role === 'admin';
-    }
-
-    return matchesSearch;
   });
 
   const handleNavClick = (path) => {
@@ -133,20 +133,20 @@ const NavBar = () => {
       )}
 
       {/* Sidebar Navigation */}
-      <nav className={`${navbarBgColor} text-white transition-all duration-300 ease-in-out shadow-2xl border-r border-blue-800/30 ${isCollapsed ? 'w-16' : 'w-64'
-        } min-h-screen p-4 fixed z-50 lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        } flex flex-col backdrop-blur-sm`}>
-        <div className="flex items-center justify-between mb-6">
-          {!isCollapsed && (
-            <div className="flex items-center">
+      <nav ref={navRef} className={`${navbarBgColor} text-white transition-all duration-300 ease-in-out shadow-2xl border-r border-blue-800/30 ${isCollapsed ? 'lg:w-20' : 'lg:w-64'} w-64 min-h-screen ${isCollapsed ? 'lg:p-2' : 'p-3 lg:p-4'} fixed z-50 lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        } flex flex-col backdrop-blur-sm bg-gradient-to-b from-blue-900/95 to-indigo-900/95 overflow-hidden`}>
+        <div className={`flex items-center ${isCollapsed ? 'lg:justify-center' : 'justify-between'} mb-6 lg:mb-6 mb-8 flex-shrink-0`}>
+          <div className={`flex items-center ${isCollapsed ? 'lg:hidden' : ''}`}>
+            <div className="relative">
               <img
                 src="/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png"
                 alt="Mela Note Logo"
-                className="h-12 w-12 mr-3 object-contain filter brightness-0 invert"
+                className="h-10 w-10 lg:h-12 lg:w-12 mr-3 object-contain filter brightness-0 invert"
               />
-              <h1 className="text-xl font-bold">MELA NOTE</h1>
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
             </div>
-          )}
+            <h1 className="text-lg lg:text-xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">MELA NOTE</h1>
+          </div>
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
             className="hidden lg:block p-2 hover:bg-white/20 rounded-lg transition-all duration-200 hover:scale-110 backdrop-blur-sm bg-white/10"
@@ -156,17 +156,33 @@ const NavBar = () => {
           </button>
           <button
             onClick={() => setIsMobileMenuOpen(false)}
-            className="lg:hidden p-2 hover:bg-white/20 rounded-lg transition-all duration-200"
+            className="lg:hidden p-2 hover:bg-white/20 rounded-xl transition-all duration-200 bg-white/10 backdrop-blur-sm"
             title="Close menu"
           >
-            <X size={20} />
+            <X size={22} />
           </button>
         </div>
 
 
 
-        <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent">
-        <ul className="space-y-2 pb-20">
+        <div 
+          className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent"
+          onWheel={(e) => {
+            const target = e.currentTarget;
+            const atTop = target.scrollTop === 0;
+            const atBottom = target.scrollHeight - target.scrollTop === target.clientHeight;
+            
+            // Only allow scrolling within the navbar if not at boundaries
+            if ((e.deltaY < 0 && atTop) || (e.deltaY > 0 && atBottom)) {
+              return; // Allow default behavior if at boundaries
+            }
+            
+            e.stopPropagation();
+            e.preventDefault();
+            target.scrollTop += e.deltaY;
+          }}
+        >
+        <ul className="space-y-1.5 lg:space-y-2 pb-24">
           {/* Notifications Bell */}
           <li>
             <Link
@@ -175,15 +191,24 @@ const NavBar = () => {
                 if (user?.id) markAllNotificationsRead(user.id);
                 setIsMobileMenuOpen(false);
               }}
-              className={`flex items-center w-full px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 group relative transform ${currentPage === 'notifications'
+              className={`flex items-center ${isCollapsed ? 'lg:justify-center' : ''} w-full px-3 py-3 lg:px-4 lg:py-2 text-sm font-medium rounded-xl lg:rounded-lg transition-all duration-200 group relative transform ${currentPage === 'notifications'
                 ? `${buttonColors} text-white shadow-lg border scale-105`
-                : `hover:bg-white/20 active:${buttonColors.split(' ')[0]} active:scale-95 active:shadow-lg backdrop-blur-sm`
+                : `hover:bg-white/15 active:${buttonColors.split(' ')[0]} active:scale-95 active:shadow-lg backdrop-blur-sm`
                 }`}
+              title={isCollapsed ? 'Notifications' : ''}
             >
-              <Bell className={`${isCollapsed ? 'mx-auto' : 'mr-3'}`} size={20} />
-              {!isCollapsed && <span>Notifications</span>}
+              <div className="relative">
+                <Bell className={isCollapsed ? '' : 'mr-3'} size={20} />
+                {unreadCount > 0 && (
+                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                )}
+              </div>
+              <span className={isCollapsed ? 'lg:hidden' : ''}>Notifications</span>
               {unreadCount > 0 && (
-                <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-0.5">{unreadCount}</span>
+                <span className={`ml-auto bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs rounded-full px-2 py-0.5 shadow-lg ${isCollapsed ? 'lg:hidden' : ''}`}>{unreadCount}</span>
+              )}
+              {isCollapsed && unreadCount > 0 && (
+                <span className="hidden lg:block absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs rounded-full px-1.5 py-0.5 shadow-lg">{unreadCount}</span>
               )}
             </Link>
           </li>
@@ -191,61 +216,60 @@ const NavBar = () => {
             <li key={item.name}>
               <Link
                 to={item.path}
-                className={`flex items-center w-full px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 group transform ${currentPage === item.page
-                  ? `${buttonColors} text-white shadow-lg border scale-105`
-                  : `hover:bg-white/20 active:${buttonColors.split(' ')[0]} active:scale-95 active:shadow-lg backdrop-blur-sm`
+                className={`flex items-center ${isCollapsed ? 'lg:justify-center' : ''} w-full px-3 py-3 lg:px-4 lg:py-2 text-sm font-medium rounded-xl lg:rounded-lg transition-all duration-200 group transform ${currentPage === item.page
+                  ? `${buttonColors} text-white shadow-lg border scale-105 bg-gradient-to-r from-blue-600 to-indigo-600`
+                  : `hover:bg-white/15 active:${buttonColors.split(' ')[0]} active:scale-95 active:shadow-lg backdrop-blur-sm hover:shadow-md`
                   }`}
-                title={isCollapsed ? item.name : undefined}
                 onClick={() => setIsMobileMenuOpen(false)}
+                title={isCollapsed ? item.name : ''}
               >
-                <item.icon className={`${isCollapsed ? 'mx-auto' : 'mr-3'}`} size={20} />
-                {!isCollapsed && (
-                  <div className="flex-1 text-left">
-                    <div className="flex items-center justify-between">
-                      <span>{item.name}</span>
-                      {item.description && (
-                        <span className={`text-xs transition-opacity duration-200 ${currentPage === item.page
-                          ? 'text-indigo-200 opacity-100'
-                          : 'text-indigo-200 opacity-0 group-hover:opacity-100'
-                          }`}>
-                          {item.description}
-                        </span>
-                      )}
-                    </div>
+                <item.icon className={`${isCollapsed ? '' : 'mr-3'} ${currentPage === item.page ? 'text-white' : 'text-blue-200'}`} size={20} />
+                <div className={`flex-1 text-left ${isCollapsed ? 'lg:hidden' : ''}`}>
+                  <div className="flex flex-col">
+                    <span className="font-medium">{item.name}</span>
+                    {item.description && (
+                      <span className={`text-xs mt-0.5 transition-opacity duration-200 ${currentPage === item.page
+                        ? 'text-blue-100 opacity-90'
+                        : 'text-blue-300 opacity-60 group-hover:opacity-80'
+                        }`}>
+                        {item.description}
+                      </span>
+                    )}
                   </div>
-                )}
+                </div>
               </Link>
             </li>
           ))}
 
-          <li className="pt-4 border-t border-white/10">
+          <li className="pt-4 border-t border-white/20">
             <button
               onClick={handleLogout}
-              className="flex items-center w-full px-4 py-2 text-sm font-medium rounded-md bg-red-600 hover:bg-red-700 active:bg-red-800 text-white transition-all duration-200 shadow-sm hover:shadow-md"
-              title={isCollapsed ? 'Logout' : undefined}
+              className={`flex items-center ${isCollapsed ? 'lg:justify-center' : ''} w-full px-3 py-3 lg:px-4 lg:py-2 text-sm font-medium rounded-xl lg:rounded-md bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 active:from-red-800 active:to-red-900 text-white transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95`}
+              title={isCollapsed ? 'Logout' : ''}
             >
-              <LogOut className={`${isCollapsed ? 'mx-auto' : 'mr-3'}`} size={20} />
-              {!isCollapsed && 'Logout'}
+              <LogOut className={isCollapsed ? '' : 'mr-3'} size={20} />
+              <span className={isCollapsed ? 'lg:hidden' : ''}>Logout</span>
             </button>
           </li>
         </ul>
         </div>
 
-        {!isCollapsed && (
-          <div className="absolute bottom-4 left-4 right-4">
-            <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm border border-white/10 shadow-lg">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center shadow-md">
-                  <span className="text-sm font-bold">{user?.name?.charAt(0)}</span>
+        <div className={`absolute bottom-4 ${isCollapsed ? 'lg:left-2 lg:right-2' : 'left-3 right-3 lg:left-4 lg:right-4'} flex-shrink-0`}>
+          <div className={`bg-gradient-to-r from-white/20 to-blue-500/20 p-3 rounded-2xl backdrop-blur-md border border-white/20 shadow-xl ${isCollapsed ? 'lg:flex lg:justify-center lg:p-2' : ''}`}>
+            <div className={`flex items-center ${isCollapsed ? 'lg:flex-col lg:space-x-0' : 'space-x-3'}`}>
+              <div className="relative" title={isCollapsed ? `${user?.name} (${user?.role})` : ''}>
+                <div className="w-10 h-10 lg:w-8 lg:h-8 bg-gradient-to-br from-blue-400 to-indigo-600 rounded-full flex items-center justify-center shadow-lg">
+                  <span className="text-sm font-bold text-white">{user?.name?.charAt(0)}</span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white truncate">{user?.name}</p>
-                  <p className="text-xs text-blue-200 capitalize">{user?.role}</p>
-                </div>
+                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-white"></div>
+              </div>
+              <div className={`flex-1 min-w-0 ${isCollapsed ? 'lg:hidden' : ''}`}>
+                <p className="text-sm font-semibold text-white truncate">{user?.name}</p>
+                <p className="text-xs text-blue-200 capitalize font-medium">{user?.role}</p>
               </div>
             </div>
           </div>
-        )}
+        </div>
       </nav>
     </>
   );

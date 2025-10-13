@@ -343,6 +343,40 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
     };
   }, []);
 
+  // Fix textarea height on mobile to show full content
+  useEffect(() => {
+    const adjustTextareaHeights = () => {
+      const textareas = document.querySelectorAll('textarea');
+      textareas.forEach(textarea => {
+        // Always reset height first to get accurate scrollHeight
+        textarea.style.height = 'auto';
+        textarea.style.height = textarea.scrollHeight + 'px';
+      });
+    };
+
+    // Adjust heights immediately
+    adjustTextareaHeights();
+    
+    // Also adjust after a short delay to ensure DOM is fully rendered
+    const timeoutId = setTimeout(adjustTextareaHeights, 100);
+    
+    // Also adjust on window resize (orientation change)
+    window.addEventListener('resize', adjustTextareaHeights);
+    
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener('resize', adjustTextareaHeights);
+    };
+  }, [blocks]);
+
+  // Helper function to adjust textarea height
+  const adjustTextareaHeight = (textarea) => {
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = textarea.scrollHeight + 'px';
+    }
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return 'Not set';
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -1513,17 +1547,26 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
   // Render block based on type
   const renderBlock = (block, index) => {
     const commonProps = {
-      ref: (el) => blockRefs.current[block.id] = el,
-      className: `w-full max-w-none outline-none resize-none border-none bg-transparent py-1 px-0 rounded transition-all duration-200 font-inter leading-relaxed ${isDarkMode ? 'text-gray-100 placeholder-gray-500 focus:bg-gray-800/20' : 'text-gray-800 placeholder-gray-400 focus:bg-gray-50/30'} hover:bg-opacity-30`,
-      style: { minHeight: '24px', lineHeight: '1.6', wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', width: '100%', margin: 0 },
+      ref: (el) => {
+        blockRefs.current[block.id] = el;
+        // Adjust height immediately when ref is set
+        if (el) {
+          requestAnimationFrame(() => {
+            el.style.height = 'auto';
+            el.style.height = el.scrollHeight + 'px';
+          });
+        }
+      },
+      className: `w-full max-w-none outline-none resize-none overflow-hidden border-none bg-transparent py-1 px-0 rounded transition-all duration-200 font-inter leading-relaxed ${isDarkMode ? 'text-gray-100 placeholder-gray-500 focus:bg-gray-800/20' : 'text-gray-800 placeholder-gray-400 focus:bg-gray-50/30'} hover:bg-opacity-30`,
+      style: { minHeight: '24px', lineHeight: '1.6', wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', width: '100%', margin: 0, height: 'auto' },
       value: block.content,
       onChange: (e) => updateBlock(block.id, { content: e.target.value }),
       onKeyDown: (e) => handleBlockKeyDown(block.id, e),
-      onFocus: () => setActiveBlockId(block.id),
-      onInput: (e) => {
-        e.target.style.height = 'auto';
-        e.target.style.height = e.target.scrollHeight + 'px';
+      onFocus: (e) => {
+        setActiveBlockId(block.id);
+        adjustTextareaHeight(e.target);
       },
+      onInput: (e) => adjustTextareaHeight(e.target),
       placeholder: getBlockPlaceholder(block.type, index),
       rows: 1
     };
@@ -1979,6 +2022,14 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
             {isToggleOpen && (
               <div className={`ml-8 mt-2 p-3 border-l-2 rounded ${isDarkMode ? 'border-gray-600 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
                 <textarea
+                  ref={(el) => {
+                    if (el) {
+                      requestAnimationFrame(() => {
+                        el.style.height = 'auto';
+                        el.style.height = el.scrollHeight + 'px';
+                      });
+                    }
+                  }}
                   value={toggleContent[block.id] || ''}
                   onChange={(e) => {
                     setToggleContent(prev => ({ ...prev, [block.id]: e.target.value }));
@@ -1990,9 +2041,11 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                       autoSaveNotes(blocks);
                     }, 1000);
                   }}
+                  onInput={(e) => adjustTextareaHeight(e.target)}
+                  onFocus={(e) => adjustTextareaHeight(e.target)}
                   placeholder="Toggle content..."
-                  className={`w-full p-2 border-none outline-none bg-transparent resize-none ${isDarkMode ? 'text-gray-200 placeholder-gray-400' : 'text-gray-800 placeholder-gray-500'}`}
-                  style={{ wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}
+                  className={`w-full p-2 border-none outline-none bg-transparent resize-none overflow-hidden ${isDarkMode ? 'text-gray-200 placeholder-gray-400' : 'text-gray-800 placeholder-gray-500'}`}
+                  style={{ wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', height: 'auto', minHeight: '72px' }}
                   rows="3"
                 />
               </div>

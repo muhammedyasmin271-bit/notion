@@ -186,6 +186,37 @@ const NotepadPage = () => {
 		};
 	}, []);
 
+	// Fix textarea height on mobile to show full content
+	useEffect(() => {
+		const adjustTextareaHeights = () => {
+			const textareas = document.querySelectorAll('textarea');
+			textareas.forEach(textarea => {
+				if (textarea.scrollHeight > textarea.clientHeight) {
+					textarea.style.height = 'auto';
+					textarea.style.height = textarea.scrollHeight + 'px';
+				}
+			});
+		};
+
+		// Adjust heights after component mounts and when blocks change
+		adjustTextareaHeights();
+		
+		// Also adjust on window resize (orientation change)
+		window.addEventListener('resize', adjustTextareaHeights);
+		
+		return () => {
+			window.removeEventListener('resize', adjustTextareaHeights);
+		};
+	}, [blocks]);
+
+	// Helper function to adjust textarea height
+	const adjustTextareaHeight = (textarea) => {
+		if (textarea) {
+			textarea.style.height = 'auto';
+			textarea.style.height = textarea.scrollHeight + 'px';
+		}
+	};
+
 	// Create new note
 	const createNewNote = async () => {
 		try {
@@ -1280,16 +1311,16 @@ const NotepadPage = () => {
 		const commonProps = {
 			ref: (el) => blockRefs.current[block.id] = el,
 			className: `w-full max-w-none outline-none resize-none border-none bg-transparent py-1 px-2 rounded transition-all duration-200 font-inter leading-relaxed ${isDarkMode ? 'text-gray-100 placeholder-gray-500 focus:bg-gray-800/20' : 'text-gray-800 placeholder-gray-400 focus:bg-gray-50/30'} hover:bg-opacity-30`,
-			style: { minHeight: '24px', lineHeight: '1.6', wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', width: '100%', margin: 0 },
+			style: { minHeight: '24px', lineHeight: '1.6', wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', width: '100%', margin: 0, height: 'auto' },
 			value: block.content,
 			onChange: (e) => updateBlock(block.id, e.target.value),
 			onKeyDown: (e) => handleBlockKeyDown(block.id, e),
-			onFocus: () => setActiveBlockId(block.id),
+			onFocus: (e) => {
+				setActiveBlockId(block.id);
+				adjustTextareaHeight(e.target);
+			},
 			placeholder: getBlockPlaceholder(block.type),
-			onInput: (e) => {
-				e.target.style.height = 'auto';
-				e.target.style.height = e.target.scrollHeight + 'px';
-			}
+			onInput: (e) => adjustTextareaHeight(e.target)
 		};
 
 		switch (block.type) {
@@ -2865,8 +2896,8 @@ const NotepadPage = () => {
 				)}
 
 				{/* Sidebar */}
-				<div className={`${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'} md:translate-x-0 fixed md:relative top-0 right-0 md:left-auto w-64 md:w-80 h-full md:h-auto border-l backdrop-blur-sm ${isDarkMode ? 'bg-gray-900/95 md:bg-gray-900/80 border-gray-700/50' : 'bg-white/95 md:bg-white/80 border-gray-200/50'} flex flex-col shadow-2xl transition-transform duration-300 ease-in-out z-40 md:z-auto`}>
-					<div className="p-4 md:p-6 border-b border-gray-200 dark:border-gray-700 pt-16 md:pt-6">
+				<div className={`${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'} md:translate-x-0 fixed md:relative top-16 md:top-0 right-0 md:left-auto w-64 md:w-80 h-[calc(100vh-4rem)] md:h-auto border-l backdrop-blur-sm ${isDarkMode ? 'bg-gray-900/95 md:bg-gray-900/80 border-gray-700/50' : 'bg-white/95 md:bg-white/80 border-gray-200/50'} flex flex-col shadow-2xl transition-transform duration-300 ease-in-out z-40 md:z-auto`}>
+					<div className="p-4 md:p-6 border-b border-gray-200 dark:border-gray-700">
 						<div className="flex items-center justify-between mb-4 md:mb-6">
 							<div className="flex items-center gap-2 md:gap-4">
 								<div className={`w-8 md:w-12 h-8 md:h-12 rounded-2xl flex items-center justify-center shadow-lg ${isDarkMode ? 'bg-gradient-to-br from-blue-600 to-purple-600' : 'bg-gradient-to-br from-blue-500 to-purple-500'}`}>

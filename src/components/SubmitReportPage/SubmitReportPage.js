@@ -370,6 +370,37 @@ const SubmitReportPage = () => {
     ));
   };
 
+  // Fix textarea height on mobile to show full content
+  useEffect(() => {
+    const adjustTextareaHeights = () => {
+      const textareas = document.querySelectorAll('textarea');
+      textareas.forEach(textarea => {
+        if (textarea.scrollHeight > textarea.clientHeight) {
+          textarea.style.height = 'auto';
+          textarea.style.height = textarea.scrollHeight + 'px';
+        }
+      });
+    };
+
+    // Adjust heights after component mounts and when blocks change
+    adjustTextareaHeights();
+    
+    // Also adjust on window resize (orientation change)
+    window.addEventListener('resize', adjustTextareaHeights);
+    
+    return () => {
+      window.removeEventListener('resize', adjustTextareaHeights);
+    };
+  }, [blocks]);
+
+  // Helper function to adjust textarea height
+  const adjustTextareaHeight = (textarea) => {
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = textarea.scrollHeight + 'px';
+    }
+  };
+
   const renderBlockContent = (block, index) => {
     const updateBlockContent = (newContent) => {
       const newBlocks = [...blocks];
@@ -1235,17 +1266,12 @@ const SubmitReportPage = () => {
           ref={(el) => inputRefs.current[block.id] = el}
           value={block.content}
           onChange={(e) => updateBlockContent(e.target.value)}
-          onInput={(e) => {
-            // Auto-resize textarea with better line break handling
-            e.target.style.height = 'auto';
-            const scrollHeight = e.target.scrollHeight;
-            const lineHeight = parseFloat(getComputedStyle(e.target).lineHeight) || 16;
-            const minHeight = 24;
-            const newHeight = Math.max(minHeight, scrollHeight);
-            e.target.style.height = newHeight + 'px';
-          }}
+          onInput={(e) => adjustTextareaHeight(e.target)}
           onKeyDown={handleKeyDown}
-          onFocus={() => setCurrentBlockId(block.id)}
+          onFocus={(e) => {
+            setCurrentBlockId(block.id);
+            adjustTextareaHeight(e.target);
+          }}
           onBlur={(e) => {
             // Delay hiding toolbar to allow clicking on toolbar buttons
             setTimeout(() => {
@@ -1256,8 +1282,8 @@ const SubmitReportPage = () => {
           }}
           placeholder={index === 0 ? "Start typing your report... (Try markdown shortcuts)" : "Continue typing..."}
           rows={1}
-          className={`${getInputClassName()} resize-none`}
-          style={{ minHeight: '24px', lineHeight: '1.6', wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}
+          className={`${getInputClassName()} resize-none overflow-hidden`}
+          style={{ minHeight: '24px', lineHeight: '1.6', wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', height: 'auto' }}
         />
 
       </div>
