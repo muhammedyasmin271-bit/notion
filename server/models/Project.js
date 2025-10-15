@@ -28,6 +28,11 @@ const projectSchema = new mongoose.Schema({
     ref: 'User',
     required: [true, 'Project owner is required']
   },
+  companyId: {
+    type: String,
+    default: 'default',
+    index: true
+  },
   team: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'

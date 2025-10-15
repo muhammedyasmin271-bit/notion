@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import {
   LayoutGrid, FileText, BarChart3, Plus, ArrowRight, CheckCircle, Clock, Folder,
   Users, Calendar, Target, TrendingUp, Activity, Bell, Zap, Brain,
-  MessageSquare, Settings, Search, Filter, RefreshCw, Award, Sparkles, AlertCircle, CheckSquare
+  MessageSquare, Settings, Search, Filter, RefreshCw, Award, Sparkles, AlertCircle, CheckSquare, BellOff
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
+import { requestNotificationPermission, initializeWebPush } from '../../utils/webPush';
 
 const HomePage = () => {
   const { user } = useAppContext();
@@ -13,8 +14,10 @@ const HomePage = () => {
   const [stats, setStats] = useState({
     projects: 0, documents: 0, completed: 0, meetings: 0
   });
+  const [teamStats, setTeamStats] = useState({ managers: 0, users: 0 });
 
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -35,6 +38,15 @@ const HomePage = () => {
           meetings: meetings.length
         });
 
+        // Fetch team stats only if not super admin
+        if (user?.role !== 'superadmin') {
+          const usersRes = await fetch('http://localhost:9000/api/users', { headers: { 'x-auth-token': token } }).catch(() => ({ json: () => [] }));
+          const users = await usersRes.json();
+          setTeamStats({
+            managers: users.filter(u => u.role === 'manager').length,
+            users: users.filter(u => u.role === 'user').length
+          });
+        }
 
       } catch (error) {
         console.error('Error:', error);
@@ -46,6 +58,45 @@ const HomePage = () => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, [user]);
+
+  // Check notification permission status
+  useEffect(() => {
+    if ('Notification' in window) {
+      setNotificationsEnabled(Notification.permission === 'granted');
+    }
+  }, []);
+
+  const handleToggleNotifications = async () => {
+    if (!('Notification' in window)) {
+      alert('This browser does not support notifications');
+      return;
+    }
+
+    if (Notification.permission === 'granted') {
+      alert('Notifications are enabled. To disable them, please change your browser settings.');
+      return;
+    }
+
+    if (Notification.permission === 'denied') {
+      alert('Notifications are blocked. Please enable them in your browser settings.');
+      return;
+    }
+
+    try {
+      const granted = await requestNotificationPermission();
+      if (granted) {
+        await initializeWebPush();
+        setNotificationsEnabled(true);
+        alert('Notifications enabled successfully!');
+      } else {
+        setNotificationsEnabled(false);
+        alert('Notification permission denied.');
+      }
+    } catch (error) {
+      console.error('Error toggling notifications:', error);
+      alert('Failed to enable notifications. Please try again.');
+    }
+  };
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -94,16 +145,36 @@ const HomePage = () => {
             </div>
           </div>
 
-          {/* Hidden AI Enabled indicator as requested */}
-          <div className="hidden">
-            <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${isDarkMode ? 'bg-purple-500/20 border border-purple-400/30' : 'bg-purple-100 border border-purple-200'
-              }`}>
-              <Brain className={`w-4 h-4 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`} />
-              <span className={`text-xs font-medium ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>
-                AI Enabled
-              </span>
-            </div>
-          </div>
+          {/* Notification Toggle Button */}
+          <button
+            onClick={handleToggleNotifications}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-full transition-all duration-300 hover:scale-105 ${
+              notificationsEnabled
+                ? isDarkMode 
+                  ? 'bg-green-500/20 border border-green-400/30 hover:bg-green-500/30' 
+                  : 'bg-green-100 border border-green-200 hover:bg-green-200'
+                : isDarkMode
+                  ? 'bg-gray-500/20 border border-gray-400/30 hover:bg-gray-500/30'
+                  : 'bg-gray-100 border border-gray-200 hover:bg-gray-200'
+            }`}
+            title={notificationsEnabled ? 'Notifications Enabled' : 'Enable Notifications'}
+          >
+            {notificationsEnabled ? (
+              <Bell className={`w-4 h-4 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
+            ) : (
+              <BellOff className={`w-4 h-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+            )}
+            <span className={`text-xs font-medium ${
+              notificationsEnabled
+                ? isDarkMode ? 'text-green-400' : 'text-green-600'
+                : isDarkMode ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              {notificationsEnabled ? 'Notifications On' : 'Enable Notifications'}
+            </span>
+            {notificationsEnabled && (
+              <span className={`text-xs ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>✓</span>
+            )}
+          </button>
         </div>
 
         {/* Hero Section - Optimized for mobile with AI Assistant card */}
@@ -163,12 +234,17 @@ const HomePage = () => {
 
         {/* Stats Dashboard - Responsive grid for mobile */}
         <div className="grid grid-cols-2 gap-4 mb-8">
-          {[
+          {(user?.role === 'superadmin' ? [
             { label: 'Projects', value: stats.projects, icon: Target, color: 'blue' },
             { label: 'Completed', value: stats.completed, icon: CheckCircle, color: 'green' },
             { label: 'Documents', value: stats.documents, icon: FileText, color: 'purple' },
             { label: 'Meetings', value: stats.meetings, icon: Calendar, color: 'orange' },
-          ].map((stat, index) => (
+          ] : [
+            { label: 'Projects', value: stats.projects, icon: Target, color: 'blue' },
+            { label: 'Completed', value: stats.completed, icon: CheckCircle, color: 'green' },
+            { label: 'Managers', value: teamStats.managers, icon: Users, color: 'purple' },
+            { label: 'Team Members', value: teamStats.users, icon: Users, color: 'orange' },
+          ]).map((stat, index) => (
             <div key={stat.label} className={`group relative overflow-hidden rounded-2xl ${isDarkMode ? 'bg-white/5 border border-white/10 backdrop-blur-sm' : 'bg-white/70 border border-white/20 backdrop-blur-sm'
               } p-4 hover:scale-105 transition-all duration-500 shadow-lg hover:shadow-xl`}>
               <div className="flex items-center justify-between mb-3">

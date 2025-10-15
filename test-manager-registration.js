@@ -6,8 +6,8 @@ async function testManagerRegistration() {
   console.log('🧪 Testing Manager Registration System...\n');
 
   try {
-    // Test 1: Register first manager (should be auto-approved)
-    console.log('1️⃣ Testing first manager registration (should auto-approve)...');
+    // Test 1: Register first manager (should now require approval)
+    console.log('1️⃣ Testing first manager registration (should require approval)...');
     const firstManager = {
       name: 'First Manager',
       username: 'firstmanager',
@@ -17,7 +17,7 @@ async function testManagerRegistration() {
 
     const firstResponse = await axios.post(`${API_BASE}/auth/register`, firstManager);
     console.log('✅ First manager registered:', {
-      status: firstResponse.data.user?.status || 'approved',
+      status: firstResponse.data.user?.status || 'unknown',
       hasToken: !!firstResponse.data.token,
       requiresApproval: firstResponse.data.requiresApproval
     });
@@ -40,7 +40,17 @@ async function testManagerRegistration() {
     });
 
     // Test 3: Try to login with pending manager (should fail)
-    console.log('\n3️⃣ Testing login with pending manager (should fail)...');
+    console.log('\n3️⃣ Testing login with pending managers (should fail)...');
+    try {
+      await axios.post(`${API_BASE}/auth/login`, {
+        username: 'firstmanager',
+        password: 'password123'
+      });
+      console.log('❌ Login should have failed but succeeded');
+    } catch (error) {
+      console.log('✅ First manager login correctly failed:', error.response?.data?.message);
+    }
+    
     try {
       await axios.post(`${API_BASE}/auth/login`, {
         username: 'secondmanager',
@@ -48,13 +58,12 @@ async function testManagerRegistration() {
       });
       console.log('❌ Login should have failed but succeeded');
     } catch (error) {
-      console.log('✅ Login correctly failed:', error.response?.data?.message);
+      console.log('✅ Second manager login correctly failed:', error.response?.data?.message);
     }
 
     console.log('\n🎉 Manager registration system is working correctly!');
     console.log('\n📋 Summary:');
-    console.log('- First manager: Auto-approved ✅');
-    console.log('- Subsequent managers: Require approval ✅');
+    console.log('- All managers: Require approval ✅');
     console.log('- Pending managers cannot login ✅');
 
   } catch (error) {

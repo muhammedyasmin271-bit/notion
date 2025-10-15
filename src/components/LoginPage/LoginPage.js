@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { LogIn, User, Lock, Eye, EyeOff, Loader, Shield, Sparkles } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -8,6 +8,8 @@ const LoginPage = () => {
   const { login, loading, error, clearError, setUser } = useAppContext();
   const { isDarkMode } = useTheme();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const companyId = searchParams.get('company');
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -15,6 +17,31 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [localError, setLocalError] = useState('');
   const [success, setSuccess] = useState('');
+  const [companyData, setCompanyData] = useState(null);
+  const [loadingCompany, setLoadingCompany] = useState(false);
+
+  // Fetch company data if companyId is present
+  React.useEffect(() => {
+    if (companyId) {
+      fetchCompanyData();
+    }
+  }, [companyId]);
+
+  const fetchCompanyData = async () => {
+    setLoadingCompany(true);
+    try {
+      const res = await fetch(`http://localhost:9000/api/auth/company/${companyId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setCompanyData(data);
+        console.log('✅ Company data loaded:', data);
+      }
+    } catch (error) {
+      console.error('❌ Error loading company data:', error);
+    } finally {
+      setLoadingCompany(false);
+    }
+  };
 
 
   const handleInputChange = (e) => {
@@ -57,7 +84,8 @@ const LoginPage = () => {
     }
 
     try {
-      await login(formData.username, formData.password);
+      // Pass companyId to login if available
+      await login(formData.username, formData.password, companyId);
       navigate('/home');
     } catch (err) {
       setLocalError(err.message || 'Login failed');
@@ -86,19 +114,32 @@ const LoginPage = () => {
       <div className="max-w-lg w-full relative z-10">
         {/* Logo and Title Section */}
         <div className="text-center mb-8">
-          <img
-            src="/darul-kubra-logo.png"
-            alt="Darul Kubra Logo"
-            className={`mx-auto h-72 w-72 object-contain mb-8 transition-all duration-300 hover:scale-110 ${
-              isDarkMode ? 'mix-blend-screen' : 'mix-blend-multiply'
-            }`}
-          />
-          <h1 className={`text-3xl font-black tracking-tight mb-2 ${
-            isDarkMode ? 'text-white' : 'text-black'
-          }`}>DARUL KUBRA WORK SPACE</h1>
-          <p className={`text-lg font-medium ${
-            isDarkMode ? 'text-gray-400' : 'text-gray-600'
-          }`}>Welcome to your digital workspace</p>
+          {loadingCompany ? (
+            <div className="flex justify-center py-8">
+              <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : (
+            <>
+              <img
+                src={companyData?.branding?.logo || "/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png"}
+                alt={`${companyData?.name || 'Mela Note'} Logo`}
+                className={`mx-auto h-72 w-72 object-contain mb-8 transition-all duration-300 hover:scale-110 ${
+                  isDarkMode && !companyData?.branding?.logo ? 'filter brightness-0 invert' : ''
+                }`}
+              />
+              <h1 className={`text-3xl font-black tracking-tight mb-2 ${
+                isDarkMode ? 'text-white' : 'text-black'
+              }`}>{companyData?.branding?.companyName || companyData?.name || 'MELA NOTE WORK SPACE'}</h1>
+              {companyData && (
+                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-2`}>
+                  Company Login
+                </p>
+              )}
+              <p className={`text-lg font-medium ${
+                isDarkMode ? 'text-gray-400' : 'text-gray-600'
+              }`}>Welcome to your digital workspace</p>
+            </>
+          )}
         </div>
 
         {/* Login Form */}
@@ -264,7 +305,7 @@ const LoginPage = () => {
                   isDarkMode ? 'text-gray-500' : 'text-gray-400'
                 }`}>
                   Need an account?{' '}
-                  <a href="/register" className={`font-bold hover:underline transition-colors duration-200 ${
+                  <a href={companyId ? `/register?company=${companyId}` : '/register'} className={`font-bold hover:underline transition-colors duration-200 ${
                     isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'
                   }`}>
                     Create Account

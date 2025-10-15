@@ -206,7 +206,10 @@ const MeetingNotesPage = () => {
     return (
       <div 
         className={`border-b last:border-b-0 transition-all duration-200 cursor-pointer ${isDarkMode ? 'border-gray-700/50' : 'border-gray-200/60'}`}
-        onClick={() => navigate(`/meeting-editor/${meeting.id}`)}
+        onClick={() => {
+          const companyId = user?.companyId || 'default';
+          navigate(`/${companyId}/meeting-editor/${meeting.id}`);
+        }}
       >
         <div className={`p-3 sm:p-5 hover:bg-gradient-to-r ${isDarkMode ? 'hover:from-gray-800/30 hover:to-gray-800/10' : 'hover:from-blue-50/30 hover:to-purple-50/20'} group transition-all duration-200`}>
           {/* Mobile Layout */}
@@ -378,7 +381,10 @@ const MeetingNotesPage = () => {
           {/* Conditionally show Create Meeting button only for managers and admins */}
           {isManager() && (
             <button
-              onClick={() => navigate('/meeting-editor/new')}
+              onClick={() => {
+                const companyId = user?.companyId || 'default';
+                navigate(`/${companyId}/meeting-new`);
+              }}
               className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-all w-full sm:w-auto ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
             >
               <Plus className="w-4 h-4" />
@@ -387,8 +393,8 @@ const MeetingNotesPage = () => {
           )}
         </div>
 
-        {/* Search and Filters */}
-        <div className="flex flex-col gap-4 mb-6">
+        {/* Search */}
+        <div className="mb-6">
           <div className="relative">
             <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
             <input
@@ -398,40 +404,6 @@ const MeetingNotesPage = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
               className={`w-full pl-10 pr-4 py-2 rounded-lg border transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-400 focus:border-blue-500' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500'} focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
             />
-          </div>
-          <div className="hidden sm:flex items-center gap-2">
-            <Filter className={`w-4 h-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className={`px-3 py-2 rounded-lg border transition-colors text-sm ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-100' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
-            >
-              <option value="all">All Status</option>
-              <option value="scheduled">Scheduled</option>
-              <option value="in-progress">In Progress</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className={`px-3 py-2 rounded-lg border transition-colors text-sm ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-100' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
-            >
-              <option value="all">All Types</option>
-              <option value="Standup">Standup</option>
-              <option value="Planning">Planning</option>
-              <option value="Review">Review</option>
-              <option value="Retro">Retro</option>
-            </select>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className={`px-3 py-2 rounded-lg border transition-colors text-sm ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-100' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
-            >
-              <option value="date">Sort by Date</option>
-              <option value="title">Sort by Title</option>
-              <option value="status">Sort by Status</option>
-            </select>
           </div>
         </div>
 
@@ -489,7 +461,10 @@ const MeetingNotesPage = () => {
             {/* Conditionally show Create Meeting button in empty state only for managers and admins */}
             {!searchTerm && filterStatus === 'all' && filterType === 'all' && isManager() && (
               <button
-                onClick={() => navigate('/meeting-editor/new')}
+                onClick={() => {
+                  const companyId = user?.companyId || 'default';
+                  navigate(`/${companyId}/meeting-new`);
+                }}
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
               >
                 Create Meeting

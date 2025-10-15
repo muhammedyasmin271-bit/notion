@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
 import { User, Lock, LogIn, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { login, loading, error } = useAppContext();
+  const [searchParams] = useSearchParams();
+  const { login, loading, error, isAuthenticated } = useAppContext();
   const { isDarkMode } = useTheme();
   
   const [formData, setFormData] = useState({
@@ -17,6 +18,37 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [companyData, setCompanyData] = useState(null);
+  const [loadingCompany, setLoadingCompany] = useState(false);
+  const companyId = searchParams.get('company');
+  const isSuperAdmin = searchParams.get('superadmin') !== null;
+
+  useEffect(() => {
+    // If already authenticated and no company parameter, redirect to home
+    if (isAuthenticated && !companyId && !isSuperAdmin) {
+      navigate('/home');
+      return;
+    }
+    
+    if (companyId) {
+      fetchCompanyData();
+    }
+  }, [companyId, isSuperAdmin, isAuthenticated, navigate]);
+
+  const fetchCompanyData = async () => {
+    setLoadingCompany(true);
+    try {
+      const res = await fetch(`http://localhost:9000/api/auth/company/${companyId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setCompanyData(data);
+      }
+    } catch (error) {
+      console.error('Failed to load company data:', error);
+    } finally {
+      setLoadingCompany(false);
+    }
+  };
 
   const validateForm = () => {
     const errors = {};
@@ -61,9 +93,16 @@ const LoginPage = () => {
     setValidationErrors({});
     
     try {
-      await login(formData.username.toLowerCase().trim(), formData.password);
-      // Login successful, redirect to dashboard
-      navigate('/');
+      const response = await login(formData.username.toLowerCase().trim(), formData.password, companyId);
+      
+      // Redirect based on user role
+      if (response?.user?.role === 'superadmin') {
+        navigate('/super-admin');
+      } else if (companyId) {
+        navigate(`/home?company=${companyId}`);
+      } else {
+        navigate('/home');
+      }
     } catch (err) {
       console.error('Login error:', err);
       // Error is handled by AppContext
@@ -83,18 +122,37 @@ const LoginPage = () => {
         <div className={`px-4 sm:px-8 py-6 sm:py-8 text-center ${
           isDarkMode ? 'bg-gray-800' : 'bg-gray-50'
         }`}>
-          <div className="mx-auto mb-4 sm:mb-6">
-            <img 
-              src="/darul-kubra-logo.png" 
-              alt="Darul Kubra Logo" 
-              className="w-20 h-20 sm:w-32 sm:h-32 mx-auto object-contain"
-            />
-          </div>
-          <h1 className={`text-xl sm:text-3xl font-black mb-2 leading-tight ${
-            isDarkMode ? 'text-white' : 'text-gray-900'
-          }`}>
-            DARUL KUBRA WORK SPACE
-          </h1>
+          {loadingCompany ? (
+            <div className="flex justify-center py-8">
+              <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : (
+            <>
+              <div className="mx-auto mb-4 sm:mb-6">
+                <img 
+                  src={companyData?.branding?.logo || "/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png"}
+                  alt={`${companyData?.name || 'Mela Note'} Logo`}
+                  className={`w-20 h-20 sm:w-32 sm:h-32 mx-auto object-contain transition-all duration-300 ${
+                    isDarkMode && !companyData?.branding?.logo ? 'filter brightness-0 invert' : ''
+                  }`}
+                />
+              </div>
+              <h1 className={`text-xl sm:text-3xl font-black mb-2 leading-tight ${
+                isDarkMode ? 'text-white' : 'text-gray-900'
+              }`}>
+                {isSuperAdmin ? 'SUPER ADMIN LOGIN' : (companyData?.branding?.companyName || companyData?.name || 'MELA NOTE WORK SPACE')}
+              </h1>
+              {isSuperAdmin ? (
+                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Platform Administration
+                </p>
+              ) : companyData && (
+                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Company Workspace
+                </p>
+              )}
+            </>
+          )}
         </div>
 
         {/* Form */}
@@ -219,7 +277,7 @@ const LoginPage = () => {
             }`}>
               Don't have an account?{' '}
               <Link
-                to="/register"
+                to={companyId ? `/register?company=${companyId}` : '/register'}
                 className={`font-bold hover:underline transition-colors duration-200 ${
                   isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'
                 }`}

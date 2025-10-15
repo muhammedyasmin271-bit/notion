@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
-import { User, Lock, UserPlus, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react';
+import { User, Lock, UserPlus, Eye, EyeOff, CheckCircle, AlertCircle, Phone } from 'lucide-react';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { register, loading, error } = useAppContext();
   const { isDarkMode } = useTheme();
   
   const [formData, setFormData] = useState({
     name: '',
     username: '',
+    email: '',
+    phone: '',
     password: '',
     confirmPassword: '',
     role: 'user'
@@ -21,6 +24,34 @@ const RegisterPage = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [companyData, setCompanyData] = useState(null);
+  const [loadingCompany, setLoadingCompany] = useState(false);
+  const companyId = searchParams.get('company');
+
+  // Fetch company data if companyId is present
+  React.useEffect(() => {
+    if (companyId) {
+      fetchCompanyData();
+    }
+  }, [companyId]);
+
+  const fetchCompanyData = async () => {
+    setLoadingCompany(true);
+    try {
+      const res = await fetch(`http://localhost:9000/api/auth/company/${companyId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setCompanyData(data);
+        console.log('✅ Company data loaded:', data);
+      } else {
+        console.error('❌ Failed to load company data');
+      }
+    } catch (error) {
+      console.error('❌ Error loading company data:', error);
+    } finally {
+      setLoadingCompany(false);
+    }
+  };
 
 
   const validateForm = () => {
@@ -36,6 +67,28 @@ const RegisterPage = () => {
       errors.username = 'Username must be at least 3 characters';
     } else if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
       errors.username = 'Username can only contain letters, numbers, and underscores';
+    }
+
+    // Email validation (optional, but must be valid if provided)
+    if (formData.email && formData.email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        errors.email = 'Please enter a valid email address';
+      }
+    }
+
+    // Phone validation (optional, but must be valid if provided)
+    if (formData.phone && formData.phone.trim()) {
+      const cleanedPhone = formData.phone.replace(/[\s\-()]/g, '');
+      
+      // Accept Ethiopian format: 09XXXXXXXX (9 digits starting with 09)
+      // Or international: +251XXXXXXXXX or 251XXXXXXXXX
+      const ethiopianFormat = /^09\d{8}$/;
+      const internationalFormat = /^(\+?251)9\d{8}$/;
+      
+      if (!ethiopianFormat.test(cleanedPhone) && !internationalFormat.test(cleanedPhone)) {
+        errors.phone = 'Please enter a valid Ethiopian phone number (e.g., 0912345678)';
+      }
     }
     
     if (!formData.password) {
@@ -82,17 +135,26 @@ const RegisterPage = () => {
     setValidationErrors({});
     
     try {
+      // Ensure companyId is always provided
+      const userCompanyId = companyId || 'melanote'; // Default to melanote if no company specified
+      console.log('📝 Registering user with companyId:', userCompanyId);
+      
       const response = await register({
         name: formData.name.trim(),
         username: formData.username.toLowerCase().trim(),
+        email: formData.email.trim() || undefined,
+        phone: formData.phone.trim() || undefined,
         password: formData.password,
-        role: formData.role
+        role: formData.role,
+        companyId: userCompanyId
       });
+      
+      console.log('✅ Registration successful:', response);
       
       // Always redirect to pending approval for new registrations
       navigate('/pending-approval');
     } catch (err) {
-      console.error('Registration error:', err);
+      console.error('❌ Registration error:', err);
       // Error is handled by AppContext
     } finally {
       setIsSubmitting(false);
@@ -121,23 +183,36 @@ const RegisterPage = () => {
       }`}>
         {/* Header */}
         <div className="px-4 sm:px-10 py-6 sm:py-10 text-center">
-          <img 
-            src="/darul-kubra-logo.png" 
-            alt="Darul Kubra Logo" 
-            className={`w-24 h-24 sm:w-32 sm:h-32 mx-auto object-contain mb-4 sm:mb-6 transition-all duration-300 hover:scale-110 ${
-              isDarkMode ? 'mix-blend-screen' : 'mix-blend-multiply'
-            }`}
-          />
-          <h1 className={`text-xl sm:text-3xl font-black mb-2 leading-tight ${
-            isDarkMode ? 'text-white' : 'text-black'
-          }`}>
-            DARUL KUBRA WORK SPACE
-          </h1>
-          <p className={`text-sm sm:text-lg font-medium ${
-            isDarkMode ? 'text-gray-400' : 'text-gray-600'
-          }`}>
-            Create your account to get started
-          </p>
+          {loadingCompany ? (
+            <div className="flex justify-center py-8">
+              <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : (
+            <>
+              <img 
+                src={companyData?.branding?.logo || "/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png"} 
+                alt={`${companyData?.name || 'Mela Note'} Logo`} 
+                className={`w-24 h-24 sm:w-32 sm:h-32 mx-auto object-contain mb-4 sm:mb-6 transition-all duration-300 hover:scale-110 ${
+                  isDarkMode && !companyData?.branding?.logo ? 'filter brightness-0 invert' : ''
+                }`}
+              />
+              <h1 className={`text-xl sm:text-3xl font-black mb-2 leading-tight ${
+                isDarkMode ? 'text-white' : 'text-black'
+              }`}>
+                {companyData?.branding?.companyName || companyData?.name || 'MELA NOTE WORK SPACE'}
+              </h1>
+              {companyData && (
+                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-2`}>
+                  Company Registration
+                </p>
+              )}
+              <p className={`text-sm sm:text-lg font-medium ${
+                isDarkMode ? 'text-gray-400' : 'text-gray-600'
+              }`}>
+                Create your account to get started
+              </p>
+            </>
+          )}
         </div>
 
         {/* Form */}
@@ -222,6 +297,86 @@ const RegisterPage = () => {
                 isDarkMode ? 'text-gray-500' : 'text-gray-500'
               }`}>
                 Letters, numbers, and underscores only. Minimum 3 characters.
+              </p>
+            </div>
+
+            {/* Email Field */}
+            <div>
+              <label className={`block text-sm font-bold mb-2 sm:mb-3 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                Email (Optional)
+              </label>
+              <div className="relative">
+                <svg className={`absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-400'
+                }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className={`w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 border-2 rounded-lg sm:rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${
+                    validationErrors.email 
+                      ? (isDarkMode ? 'border-red-600 bg-red-900/10' : 'border-red-400 bg-red-50')
+                      : (isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500')
+                  }`}
+                  placeholder="your.email@example.com"
+                  disabled={isSubmitting}
+                />
+              </div>
+              {validationErrors.email && (
+                <p className={`mt-2 text-sm font-medium ${
+                  isDarkMode ? 'text-red-400' : 'text-red-600'
+                }`}>
+                  {validationErrors.email}
+                </p>
+              )}
+              <p className={`mt-2 text-xs ${
+                isDarkMode ? 'text-gray-500' : 'text-gray-500'
+              }`}>
+                For email notifications and password recovery
+              </p>
+            </div>
+
+            {/* Phone Number Field */}
+            <div>
+              <label className={`block text-sm font-bold mb-2 sm:mb-3 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                Phone Number (Optional)
+              </label>
+              <div className="relative">
+                <Phone className={`absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-400'
+                }`} />
+                <input
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  className={`w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 border-2 rounded-lg sm:rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${
+                    validationErrors.phone 
+                      ? (isDarkMode ? 'border-red-600 bg-red-900/10' : 'border-red-400 bg-red-50')
+                      : (isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500')
+                  }`}
+                  placeholder="0912345678"
+                  disabled={isSubmitting}
+                />
+              </div>
+              {validationErrors.phone && (
+                <p className={`mt-2 text-sm font-medium ${
+                  isDarkMode ? 'text-red-400' : 'text-red-600'
+                }`}>
+                  {validationErrors.phone}
+                </p>
+              )}
+              <p className={`mt-2 text-xs ${
+                isDarkMode ? 'text-gray-500' : 'text-gray-500'
+              }`}>
+                For SMS notifications. Ethiopian format (e.g., 0912345678)
               </p>
             </div>
 
@@ -378,7 +533,7 @@ const RegisterPage = () => {
             }`}>
               Already have an account?{' '}
               <Link
-                to="/login"
+                to={companyId ? `/login?company=${companyId}` : '/login'}
                 className={`font-bold hover:underline transition-colors duration-200 ${
                   isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'
                 }`}

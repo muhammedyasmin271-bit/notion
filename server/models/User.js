@@ -24,7 +24,13 @@ const userSchema = new mongoose.Schema({
     unique: true,
     sparse: true,
     lowercase: true,
-    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email']
+    validate: {
+      validator: function(v) {
+        // Only validate if email is provided (not empty or undefined)
+        return !v || /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(v);
+      },
+      message: 'Please enter a valid email'
+    }
   },
   password: {
     type: String,
@@ -32,9 +38,14 @@ const userSchema = new mongoose.Schema({
     minlength: [4, 'Password must be at least 4 characters'],
     select: false
   },
+  companyId: {
+    type: String,
+    default: 'default',
+    index: true
+  },
   role: {
     type: String,
-    enum: ['user', 'manager', 'admin'],
+    enum: ['user', 'manager', 'admin', 'superadmin'],
     default: 'user'
   },
   status: {
@@ -92,7 +103,13 @@ const userSchema = new mongoose.Schema({
     },
     notifications: {
       email: { type: Boolean, default: true },
-      push: { type: Boolean, default: true }
+      push: { type: Boolean, default: true },
+      sms: { type: Boolean, default: false }
+    },
+    quietHours: {
+      enabled: { type: Boolean, default: true },
+      start: { type: String, default: '22:00' },
+      end: { type: String, default: '08:00' }
     }
   }
 }, {
@@ -100,11 +117,13 @@ const userSchema = new mongoose.Schema({
 });
 
 // Index for better query performance
-userSchema.index({ email: 1 });
+// Compound index: email must be unique per company (not globally)
+userSchema.index({ email: 1, companyId: 1 }, { unique: true, sparse: true });
 userSchema.index({ username: 1 });
 userSchema.index({ role: 1 });
 userSchema.index({ isActive: 1 });
 userSchema.index({ status: 1 });
+userSchema.index({ companyId: 1 });
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {
@@ -139,6 +158,21 @@ userSchema.virtual('initials').get(function () {
     .join('')
     .toUpperCase()
     .slice(0, 2);
+});
+
+// Virtual for email notifications preference
+userSchema.virtual('emailNotifications').get(function () {
+  return this.preferences?.notifications?.email !== false;
+});
+
+// Virtual for push notifications preference
+userSchema.virtual('pushNotifications').get(function () {
+  return this.preferences?.notifications?.push !== false;
+});
+
+// Virtual for SMS notifications preference
+userSchema.virtual('smsNotifications').get(function () {
+  return this.preferences?.notifications?.sms === true;
 });
 
 // Static method to find users by role

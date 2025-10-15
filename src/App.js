@@ -4,7 +4,6 @@ import { AppProvider, useAppContext } from './context/AppContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import NavBar from './components/NavBar/NavBar';
 import HomePage from './components/HomePage/HomePage';
-import NotificationsPage from './components/NotificationsPage/NotificationsPage';
 import ProjectsPage from './components/ProjectsPage/ProjectsPage';
 import ProjectDetailPage from './components/ProjectDetailPage/ProjectDetailPage';
 
@@ -28,13 +27,17 @@ import UserProfilePage from './components/UserProfilePage/UserProfilePage';
 import WelcomePage from './components/WelcomePage/WelcomePage';
 import ManagerRoute from './components/ManagerRoute/ManagerRoute';
 import AdminRoute from './components/AdminRoute/AdminRoute';
+import SuperAdminRoute from './components/SuperAdminRoute/SuperAdminRoute';
+import SuperAdminPage from './components/SuperAdminPage/SuperAdminPage';
 import AdminDashboard from './components/AdminDashboard/AdminDashboard';
-import AdminSettings from './components/AdminDashboard/AdminSettings';
+import CompanySettings from './components/AdminDashboard/CompanySettings';
 import AdminReports from './components/AdminDashboard/AdminReports';
 import AdminAuditLog from './components/AdminDashboard/AdminAuditLog';
-import AdminSecurityCenter from './components/AdminDashboard/AdminSecurityCenter';
 import AdminUserAnalytics from './components/AdminDashboard/AdminUserAnalytics';
 import AdminDataManagement from './components/AdminDashboard/AdminDataManagement'; // Add this line
+import PaymentSubmission from './components/AdminDashboard/PaymentSubmission';
+import PaymentVerification from './components/SuperAdminPage/PaymentVerification';
+import SuperAdminSettings from './components/SuperAdminPage/SuperAdminSettings';
 import SavedNotesPage from './components/SavedNotesPage/SavedNotesPage';
 
 import TasksPage from './components/TasksPage/TasksPage';
@@ -52,6 +55,12 @@ import './App.css';
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAppContext();
   return isAuthenticated ? children : <Navigate to="/login" replace />;
+};
+
+// Super Admin Redirect Component
+const SuperAdminRedirect = ({ children }) => {
+  const { user } = useAppContext();
+  return user?.role === 'superadmin' ? <Navigate to="/super-admin" replace /> : children;
 };
 
 // Layout Component for authenticated pages
@@ -82,7 +91,7 @@ const AppContent = () => {
         {/* Auth Routes */}
         <Route
           path="/login"
-          element={isAuthenticated ? <Navigate to="/home" replace /> : <LoginPage />}
+          element={<LoginPage />}
         />
         <Route
           path="/register"
@@ -106,17 +115,11 @@ const AppContent = () => {
 
         <Route path="/home" element={
           <ProtectedRoute>
-            <Layout>
-              <HomePage />
-            </Layout>
-          </ProtectedRoute>
-        } />
-
-        <Route path="/notifications" element={
-          <ProtectedRoute>
-            <Layout>
-              <NotificationsPage />
-            </Layout>
+            <SuperAdminRedirect>
+              <Layout>
+                <HomePage />
+              </Layout>
+            </SuperAdminRedirect>
           </ProtectedRoute>
         } />
 
@@ -128,6 +131,23 @@ const AppContent = () => {
           </ProtectedRoute>
         } />
 
+        <Route path="/:companyId/projects/new" element={
+          <ProtectedRoute>
+            <Layout>
+              <ProjectDetailPage isNewProject={true} />
+            </Layout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/:companyId/projects/:projectId" element={
+          <ProtectedRoute>
+            <Layout>
+              <ProjectDetailPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+
+        {/* Legacy routes without companyId - redirect */}
         <Route path="/projects/new" element={
           <ProtectedRoute>
             <Layout>
@@ -229,6 +249,23 @@ const AppContent = () => {
           </ProtectedRoute>
         } />
 
+        <Route path="/:companyId/meeting-new" element={
+          <ProtectedRoute>
+            <Layout>
+              <MeetingEditorPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/:companyId/meeting-editor/:meetingId" element={
+          <ProtectedRoute>
+            <Layout>
+              <MeetingEditorPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+
+        {/* Legacy routes */}
         <Route path="/meeting-new" element={
           <ProtectedRoute>
             <Layout>
@@ -328,6 +365,15 @@ const AppContent = () => {
           </ProtectedRoute>
         } />
 
+        <Route path="/:companyId/submit-report" element={
+          <ProtectedRoute>
+            <Layout>
+              <SubmitReportPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+
+        {/* Legacy route */}
         <Route path="/submit-report" element={
           <ProtectedRoute>
             <Layout>
@@ -360,7 +406,7 @@ const AppContent = () => {
         <Route path="/admin/settings" element={
           <AdminRoute>
             <Layout>
-              <AdminSettings />
+              <CompanySettings />
             </Layout>
           </AdminRoute>
         } />
@@ -381,14 +427,6 @@ const AppContent = () => {
           </AdminRoute>
         } />
 
-        <Route path="/admin/security" element={
-          <AdminRoute>
-            <Layout>
-              <AdminSecurityCenter />
-            </Layout>
-          </AdminRoute>
-        } />
-
         <Route path="/admin/analytics" element={
           <AdminRoute>
             <Layout>
@@ -404,6 +442,40 @@ const AppContent = () => {
             </Layout>
           </AdminRoute>
         } />
+
+        <Route path="/admin/payments" element={
+          <AdminRoute>
+            <Layout>
+              <PaymentSubmission />
+            </Layout>
+          </AdminRoute>
+        } />
+
+        {/* Super Admin Routes */}
+        <Route path="/super-admin" element={
+          <SuperAdminRoute>
+            <Layout>
+              <SuperAdminPage />
+            </Layout>
+          </SuperAdminRoute>
+        } />
+
+        <Route path="/super-admin/payments" element={
+          <SuperAdminRoute>
+            <Layout>
+              <PaymentVerification />
+            </Layout>
+          </SuperAdminRoute>
+        } />
+
+        <Route path="/super-admin/settings" element={
+          <SuperAdminRoute>
+            <Layout>
+              <SuperAdminSettings />
+            </Layout>
+          </SuperAdminRoute>
+        } />
+
         {/* Catch all route - redirect to home */}
         <Route path="*" element={
           <ProtectedRoute>

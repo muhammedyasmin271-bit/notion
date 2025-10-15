@@ -13,7 +13,6 @@ import {
   Users,
   Menu,
   X,
-  Bell,
   UsersIcon,
   User as ProfileIcon,
   BarChart3 as ReportsIcon,
@@ -21,18 +20,21 @@ import {
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
-import { getUnreadCount, markAllNotificationsRead } from '../../utils/notifications';
 
 const NavBar = () => {
-  const { user, logout } = useAppContext();
+  const { user, logout, company } = useAppContext();
   const { navbarBgColor, buttonColors } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [unreadCount, setUnreadCount] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navRef = useRef(null);
+  
+  // Get companyId from URL or localStorage
+  const urlParams = new URLSearchParams(location.search);
+  const companyIdFromUrl = urlParams.get('company');
+  const currentCompanyId = companyIdFromUrl || localStorage.getItem('currentCompanyId');
 
   // Sync body class with sidebar state so pages can adjust layout instantly
   useEffect(() => {
@@ -59,15 +61,6 @@ const NavBar = () => {
   const currentPage = getCurrentPage();
 
   useEffect(() => {
-    const update = () => {
-      setUnreadCount(user?.id ? getUnreadCount(user.id) : 0);
-    };
-    update();
-    window.addEventListener('notifications-updated', update);
-    return () => window.removeEventListener('notifications-updated', update);
-  }, [user?.id]);
-
-  useEffect(() => {
     const handleClickOutside = (event) => {
       if (navRef.current && !navRef.current.contains(event.target) && !event.target.closest('.mobile-menu-button')) {
         setIsMobileMenuOpen(false);
@@ -79,7 +72,9 @@ const NavBar = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isMobileMenuOpen]);
 
-  const navItems = [
+  const navItems = user?.role === 'superadmin' ? [
+    { name: 'Super Admin', icon: Shield, page: 'super-admin', path: '/super-admin', description: 'Manage companies' },
+  ] : [
     { name: 'Home', icon: HomeIcon, page: 'home', path: '/home', description: 'Dashboard overview' },
     { name: 'Projects', icon: ProjectsIcon, page: 'projects', path: '/projects', description: 'Project management' },
     { name: 'Documents', icon: DocumentsIcon, page: 'documents', path: '/documents', description: 'Document hub' },
@@ -95,7 +90,12 @@ const NavBar = () => {
     console.log('Logout button clicked');
     try {
       logout();
-      navigate('/login');
+      // Navigate to login with companyId if available
+      if (currentCompanyId) {
+        navigate(`/login?company=${currentCompanyId}`);
+      } else {
+        navigate('/login');
+      }
       console.log('Logout function called successfully');
     } catch (error) {
       console.error('Error during logout:', error);
@@ -103,7 +103,22 @@ const NavBar = () => {
   };
 
   const filteredNavItems = navItems.filter(item => {
-    // Filter by search query only
+    // Super admin only sees super admin page
+    if (user?.role === 'superadmin') {
+      return true;
+    }
+    
+    // Filter out Admin button for non-admin users
+    if (item.page === 'admin' && user?.role !== 'admin') {
+      return false;
+    }
+    
+    // Filter out User Management for regular users (only show to admin and manager)
+    if (item.page === 'user-management' && !['admin', 'manager'].includes(user?.role)) {
+      return false;
+    }
+    
+    // Filter by search query
     return item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.description.toLowerCase().includes(searchQuery.toLowerCase());
   });
@@ -139,13 +154,15 @@ const NavBar = () => {
           <div className={`flex items-center ${isCollapsed ? 'lg:hidden' : ''}`}>
             <div className="relative">
               <img
-                src="/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png"
-                alt="Mela Note Logo"
+                src={company?.branding?.logo || "/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png"}
+                alt={`${company?.name || 'Mela Note'} Logo`}
                 className="h-10 w-10 lg:h-12 lg:w-12 mr-3 object-contain filter brightness-0 invert"
               />
               <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
             </div>
-            <h1 className="text-lg lg:text-xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">MELA NOTE</h1>
+            <h1 className="text-lg lg:text-xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+              {company?.branding?.companyName || company?.name || 'MELA NOTE'}
+            </h1>
           </div>
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
@@ -183,39 +200,10 @@ const NavBar = () => {
           }}
         >
         <ul className="space-y-1.5 lg:space-y-2 pb-24">
-          {/* Notifications Bell */}
-          <li>
-            <Link
-              to="/notifications"
-              onClick={() => {
-                if (user?.id) markAllNotificationsRead(user.id);
-                setIsMobileMenuOpen(false);
-              }}
-              className={`flex items-center ${isCollapsed ? 'lg:justify-center' : ''} w-full px-3 py-3 lg:px-4 lg:py-2 text-sm font-medium rounded-xl lg:rounded-lg transition-all duration-200 group relative transform ${currentPage === 'notifications'
-                ? `${buttonColors} text-white shadow-lg border scale-105`
-                : `hover:bg-white/15 active:${buttonColors.split(' ')[0]} active:scale-95 active:shadow-lg backdrop-blur-sm`
-                }`}
-              title={isCollapsed ? 'Notifications' : ''}
-            >
-              <div className="relative">
-                <Bell className={isCollapsed ? '' : 'mr-3'} size={20} />
-                {unreadCount > 0 && (
-                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                )}
-              </div>
-              <span className={isCollapsed ? 'lg:hidden' : ''}>Notifications</span>
-              {unreadCount > 0 && (
-                <span className={`ml-auto bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs rounded-full px-2 py-0.5 shadow-lg ${isCollapsed ? 'lg:hidden' : ''}`}>{unreadCount}</span>
-              )}
-              {isCollapsed && unreadCount > 0 && (
-                <span className="hidden lg:block absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs rounded-full px-1.5 py-0.5 shadow-lg">{unreadCount}</span>
-              )}
-            </Link>
-          </li>
           {filteredNavItems.map((item) => (
             <li key={item.name}>
               <Link
-                to={item.path}
+                to={currentCompanyId ? `${item.path}?company=${currentCompanyId}` : item.path}
                 className={`flex items-center ${isCollapsed ? 'lg:justify-center' : ''} w-full px-3 py-3 lg:px-4 lg:py-2 text-sm font-medium rounded-xl lg:rounded-lg transition-all duration-200 group transform ${currentPage === item.page
                   ? `${buttonColors} text-white shadow-lg border scale-105 bg-gradient-to-r from-blue-600 to-indigo-600`
                   : `hover:bg-white/15 active:${buttonColors.split(' ')[0]} active:scale-95 active:shadow-lg backdrop-blur-sm hover:shadow-md`
@@ -265,7 +253,9 @@ const NavBar = () => {
               </div>
               <div className={`flex-1 min-w-0 ${isCollapsed ? 'lg:hidden' : ''}`}>
                 <p className="text-sm font-semibold text-white truncate">{user?.name}</p>
-                <p className="text-xs text-blue-200 capitalize font-medium">{user?.role}</p>
+                <p className="text-xs text-blue-200 capitalize font-medium">
+                  {user?.role === 'superadmin' ? 'Super Admin' : user?.role}
+                </p>
               </div>
             </div>
           </div>

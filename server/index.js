@@ -50,6 +50,7 @@ const connectDB = async () => {
     // Ensure initial admin user exists
     await ensureInitialAdmin();
     await ensureEmailIndexIsSparse();
+    await ensureSystemSettings();
   } catch (error) {
     console.error('MongoDB connection failed:', error.message);
     console.log('Server will continue without database connection');
@@ -127,6 +128,8 @@ const aiRoutes = require('./routes/ai');
 const uploadRoutes = require('./routes/upload');
 const taskRoutes = require('./routes/tasks');
 const reportRoutes = require('./routes/reports');
+const adminRoutes = require('./routes/admin');
+const companyRoutes = require('./routes/company');
 
 // Database status middleware (must be before routes)
 app.use('/api', (req, res, next) => {
@@ -154,6 +157,12 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/admin', adminRoutes);
+const paymentRoutes = require('./routes/payments');
+app.use('/api/payments', paymentRoutes);
+const settingsRoutes = require('./routes/settings');
+app.use('/api/settings', settingsRoutes);
+app.use('/api/company', companyRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -179,10 +188,64 @@ app.use('*', (req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
 
+// Configuration validation functions
+function validateEmailConfig() {
+  const required = ['EMAIL_USER', 'EMAIL_PASS'];
+  const missing = required.filter(key => !process.env[key]);
+  
+  if (missing.length > 0) {
+    console.warn(`⚠️  Email notifications disabled - Missing: ${missing.join(', ')}`);
+    console.warn('   Set EMAIL_USER and EMAIL_PASS in .env to enable email notifications');
+    return false;
+  }
+  
+  console.log('✅ Email service configured');
+  console.log(`   Provider: ${process.env.EMAIL_SERVICE || process.env.EMAIL_HOST || 'smtp.gmail.com'}`);
+  console.log(`   From: ${process.env.EMAIL_FROM_NAME || 'Notion App'} <${process.env.EMAIL_USER}>`);
+  return true;
+}
+
+function validateSMSConfig() {
+  const required = ['SMS_API', 'SMS_TOKEN', 'SENDER_NAME'];
+  const missing = required.filter(key => !process.env[key]);
+  
+  if (missing.length > 0) {
+    console.warn(`⚠️  SMS notifications disabled - Missing: ${missing.join(', ')}`);
+    console.warn('   Set AfroMessage credentials in .env to enable SMS notifications');
+    console.warn('   See SMS_SETUP_GUIDE.md for setup instructions');
+    return false;
+  }
+  
+  console.log('✅ SMS service configured (AfroMessage)');
+  console.log(`   Sender: ${process.env.SENDER_NAME}`);
+  console.log(`   API: ${process.env.SMS_API}`);
+  return true;
+}
+
+function validateConfiguration() {
+  console.log('\n📋 Configuration Status:');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  
+  const emailConfigured = validateEmailConfig();
+  const smsConfigured = validateSMSConfig();
+  
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  
+  if (!emailConfigured && !smsConfigured) {
+    console.warn('\n⚠️  WARNING: No notification services configured!');
+    console.warn('   Users will only receive in-app notifications.');
+  }
+  
+  console.log('');
+}
+
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`API available at: http://localhost:${PORT}/api`);
+  console.log(`\n🚀 Server running on port ${PORT}`);
+  console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🌐 API available at: http://localhost:${PORT}/api`);
+  
+  // Validate configuration after server starts
+  validateConfiguration();
 });
 
 // Ensure the email index is unique and sparse to allow multiple null/undefined emails
@@ -204,5 +267,16 @@ async function ensureEmailIndexIsSparse() {
     console.log('Ensured email_1 index is unique & sparse');
   } catch (e) {
     console.error('Failed to ensure email index:', e.message);
+  }
+}
+
+// Ensure system settings exist
+async function ensureSystemSettings() {
+  try {
+    const SystemSettings = require('./models/SystemSettings');
+    await SystemSettings.ensureDefaults();
+    console.log('✅ System settings initialized');
+  } catch (e) {
+    console.error('Failed to initialize system settings:', e.message);
   }
 }

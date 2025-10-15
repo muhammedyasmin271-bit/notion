@@ -105,7 +105,6 @@ const NotepadPage = () => {
 	const [showTagModal, setShowTagModal] = useState(false);
 	const [newTag, setNewTag] = useState('');
 	const [availableUsers, setAvailableUsers] = useState([]);
-	const [shareInput, setShareInput] = useState('');
 	const [lastSaved, setLastSaved] = useState(null);
 	const [tableData, setTableData] = useState({});
 	const [aiInputBlock, setAiInputBlock] = useState(null);
@@ -133,24 +132,8 @@ const NotepadPage = () => {
 				const allTags = [...new Set(data.flatMap(note => note.tags || []))];
 				setTags(allTags);
 
-				// Fetch available users for sharing
-				try {
-					const usersData = await get('/users');
-					console.log('Fetched users:', usersData);
-					const filteredUsers = Array.isArray(usersData) ? usersData.filter(u => u._id !== user?.id) : [];
-					setAvailableUsers(filteredUsers);
-				} catch (err) {
-					console.error('Error fetching users:', err);
-					// Fallback: try alternative endpoint
-					try {
-						const altUsersData = await get('/auth/users');
-						console.log('Fetched users from alt endpoint:', altUsersData);
-						const altFilteredUsers = Array.isArray(altUsersData) ? altUsersData.filter(u => u._id !== user?.id) : [];
-						setAvailableUsers(altFilteredUsers);
-					} catch (altErr) {
-						console.error('Error fetching users from alternative endpoint:', altErr);
-					}
-				}
+				// Don't fetch users here, fetch when share modal opens
+				setAvailableUsers([]);
 			} catch (err) {
 				console.error('Error fetching notes:', err);
 				setError('Failed to load notes');
@@ -168,6 +151,39 @@ const NotepadPage = () => {
 			titleInputRef.current.focus();
 		}
 	}, [isEditingTitle]);
+
+	// Fetch users when share modal opens
+	useEffect(() => {
+		if (showShareModal && availableUsers.length === 0) {
+			fetchUsersForSharing();
+		}
+	}, [showShareModal]);
+
+	const fetchUsersForSharing = async () => {
+		try {
+			console.log('🔄 Fetching users for sharing...');
+			const usersData = await get('/users');
+			console.log('📝 Fetched users response:', usersData);
+			
+			// Handle both array and object responses
+			const usersList = usersData.users || usersData;
+			console.log('📝 Users list extracted:', usersList);
+			
+			const filteredUsers = Array.isArray(usersList) 
+				? usersList.filter(u => u && u._id && u._id !== user?.id) 
+				: [];
+			
+			setAvailableUsers(filteredUsers);
+			console.log('✅ Available users for sharing:', filteredUsers.length);
+			
+			if (filteredUsers.length === 0) {
+				console.warn('⚠️ No users available for sharing. Response:', usersData);
+			}
+		} catch (err) {
+			console.error('❌ Error fetching users for sharing:', err);
+			setAvailableUsers([]);
+		}
+	};
 
 	// Handle click outside formatting menu
 	useEffect(() => {
@@ -1014,32 +1030,10 @@ const NotepadPage = () => {
 	// Share note
 	const shareNote = async () => {
 		if (!currentNote) return;
+		if (shareSettings.sharedWith.length === 0) return;
 
-		let sharedWithUsers = [];
-
-		if (user?.role === 'manager') {
-			if (shareSettings.sharedWith.length === 0) return;
-			sharedWithUsers = shareSettings.sharedWith;
-		} else {
-			if (!shareInput.trim()) return;
-			// For non-managers, we need to convert usernames to user IDs
-			const usernames = shareInput.split(',').map(name => name.trim()).filter(name => name);
-			console.log('Sharing with usernames:', usernames);
-
-			// Try to find user IDs for these usernames
-			if (availableUsers.length > 0) {
-				sharedWithUsers = usernames.map(username => {
-					const foundUser = availableUsers.find(u =>
-						u.username === username || u.name === username || u.email === username
-					);
-					return foundUser ? foundUser._id : username; // Use ID if found, otherwise use username
-				});
-			} else {
-				// If no available users, just use the usernames as-is
-				sharedWithUsers = usernames;
-			}
-			console.log('Final sharedWithUsers:', sharedWithUsers);
-		}
+		const sharedWithUsers = shareSettings.sharedWith;
+		console.log('🔄 Sharing note with users:', sharedWithUsers);
 
 		try {
 			// First save the current note content
@@ -1059,7 +1053,7 @@ const NotepadPage = () => {
 				note._id === currentNote._id ? updatedNote : note
 			));
 
-			console.log('Note shared successfully:', response);
+			console.log('✅ Note shared successfully:', response);
 
 			// Show success message
 			addNotification({
@@ -1073,7 +1067,6 @@ const NotepadPage = () => {
 
 			setShowShareModal(false);
 			setShareSettings({ shareType: 'private', sharedWith: [] });
-			setShareInput('');
 		} catch (err) {
 			console.error('Error sharing note:', err);
 			addNotification({
@@ -2480,15 +2473,16 @@ const NotepadPage = () => {
 		const currentUserId = user?.id || user?._id;
 		
 		// Check if note is shared with current user
-		const isSharedWithMe = note.sharedWith && note.sharedWith.some(share => 
-			(typeof share === 'object' ? share.user : share) === currentUserId
-		);
+		const isSharedWithMe = note.sharedWith && note.sharedWith.some(share => {
+			const shareUserId = typeof share === 'object' ? (share.user?._id || share.user) : share;
+			return String(shareUserId) === String(currentUserId);
+		});
 		
 		const matchesTag = selectedTag === 'all' ||
 			(selectedTag === 'favorites' && favorites.includes(note._id)) ||
-			(selectedTag === 'saved' && noteAuthorId === currentUserId && !isSharedWithMe) ||
-			(selectedTag === 'shared' && noteAuthorId === currentUserId && note.sharedWith && note.sharedWith.length > 0) ||
-			(selectedTag === 'received' && (noteAuthorId !== currentUserId || isSharedWithMe)) ||
+			(selectedTag === 'saved' && String(noteAuthorId) === String(currentUserId) && !isSharedWithMe) ||
+			(selectedTag === 'shared' && String(noteAuthorId) === String(currentUserId) && note.sharedWith && note.sharedWith.length > 0) ||
+			(selectedTag === 'received' && isSharedWithMe) ||
 			(note.tags && note.tags.includes(selectedTag));
 
 		return matchesSearch && matchesTag;
@@ -2749,32 +2743,59 @@ const NotepadPage = () => {
 																		);
 																	})}
 																</>
-															) : (
-																<div className={`p-4 ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg`}>
+															) : availableUsers.length > 0 ? (
+																<>
 																	<div className={`text-sm font-medium mb-3 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-																		Type usernames to share with:
+																		Select users from your company:
 																	</div>
-																	<div className={`border rounded-lg overflow-hidden ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}>
-																		<table className="w-full">
-																			<thead className={`${isDarkMode ? 'bg-gray-600' : 'bg-gray-100'}`}>
-																				<tr>
-																					<th className={`px-4 py-2 text-left text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>Usernames (separated by commas)</th>
-																				</tr>
-																			</thead>
-																			<tbody>
-																				<tr className={`${isDarkMode ? 'bg-gray-700/30' : 'bg-white'}`}>
-																					<td className={`px-4 py-3 border-b ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
-																						<input
-																							type="text"
-																							value={shareInput}
-																							onChange={(e) => setShareInput(e.target.value)}
-																							placeholder="john, mary, alex"
-																							className={`w-full px-3 py-2 text-sm rounded border ${isDarkMode ? 'bg-gray-600 border-gray-500 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
-																						/>
-																					</td>
-																				</tr>
-																			</tbody>
-																		</table>
+																	{availableUsers.map(userItem => {
+																		const isSelected = shareSettings.sharedWith.includes(userItem._id);
+																		const isAlreadyShared = currentNote?.sharedWith?.some(share => {
+																			const userId = typeof share === 'object' ? share.user : share;
+																			return String(userId) === String(userItem._id);
+																		});
+
+																		return (
+																			<button
+																				key={userItem._id}
+																				onClick={() => selectUserForSharing(userItem._id)}
+																				disabled={isAlreadyShared}
+																				className={`w-full mb-2 p-3 rounded-lg transition-all duration-200 text-left ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'
+																					} ${isSelected
+																						? (isDarkMode ? 'bg-blue-600/20 border-2 border-blue-500' : 'bg-blue-50 border-2 border-blue-400')
+																						: (isDarkMode ? 'bg-gray-700/50 border border-gray-600' : 'bg-white border border-gray-300')
+																					} ${isAlreadyShared ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+																			>
+																				<div className="flex items-center justify-between">
+																					<div className="flex items-center">
+																						<div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-semibold mr-3">
+																							{(userItem?.name && typeof userItem.name === 'string' ? userItem.name.charAt(0).toUpperCase() : null) || (userItem?.username && typeof userItem.username === 'string' ? userItem.username.charAt(0).toUpperCase() : null) || 'U'}
+																						</div>
+																						<div>
+																							<div className="font-medium">{userItem?.name || userItem?.username || 'Unknown User'}</div>
+																							<div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{userItem?.email || 'No email'} • {userItem?.role || 'User'}</div>
+																						</div>
+																					</div>
+																					{isAlreadyShared ? (
+																						<div className="flex items-center text-green-500">
+																							<CheckCircle className="w-4 h-4 mr-1" />
+																							<span className="text-xs">Already shared</span>
+																						</div>
+																					) : isSelected ? (
+																						<div className="text-blue-500">
+																							<Users className="w-4 h-4" />
+																						</div>
+																					) : null}
+																				</div>
+																			</button>
+																		);
+																	})}
+																</>
+															) : (
+																<div className={`p-4 ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg text-center`}>
+																	<Users className={`w-12 h-12 mx-auto mb-2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+																	<div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+																		No users available to share with
 																	</div>
 																</div>
 															)}
@@ -2787,11 +2808,36 @@ const NotepadPage = () => {
 																</div>
 																<div className="flex flex-wrap gap-1">
 																	{currentNote.sharedWith.map((share, index) => {
-																		const userId = typeof share === 'object' ? share.user : share;
-																		const sharedUser = availableUsers.find(u => u._id === userId);
+																		const userObj = typeof share === 'object' && share.user ? share.user : null;
+																		const displayName = userObj?.name || userObj?.username || userObj?.email || 'User';
+																		const userId = userObj?._id || (typeof share === 'object' ? share.user : share);
 																		return (
-																			<span key={index} className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
-																				{sharedUser?.name || sharedUser?.username || (typeof userId === 'string' ? userId : 'Unknown')}
+																			<span key={index} className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+																				{displayName}
+																				<button
+																					onClick={async (e) => {
+																						e.stopPropagation();
+																						if (window.confirm(`Remove ${displayName} from shared users?`)) {
+																							try {
+																								const updatedSharedWith = currentNote.sharedWith.filter(s => {
+																									const sUserId = (typeof s === 'object' && s.user?._id) || (typeof s === 'object' ? s.user : s);
+																									return sUserId !== userId;
+																								});
+																								await put(`/notepad/${currentNote._id}`, { sharedWith: updatedSharedWith });
+																								const updatedNote = await get(`/notepad/${currentNote._id}`);
+																								setCurrentNote(updatedNote);
+																								setNotes(prev => prev.map(n => n._id === currentNote._id ? updatedNote : n));
+																								addNotification({ type: 'success', title: 'Success', message: `Removed ${displayName} from shared users` });
+																							} catch (err) {
+																								console.error('Error removing user:', err);
+																								addNotification({ type: 'error', title: 'Error', message: 'Failed to remove user' });
+																							}
+																						}
+																					}}
+																					className="hover:bg-blue-200 rounded-full p-0.5 transition-colors"
+																				>
+																					<X className="w-3 h-3" />
+																				</button>
 																			</span>
 																		);
 																	})}
@@ -2799,23 +2845,21 @@ const NotepadPage = () => {
 															</div>
 														)}
 														
-														{/* Share button - always show for all users */}
+														{/* Share button */}
 														<div className="mt-3 p-2 bg-green-500/20 rounded-lg">
 															<div className="text-sm text-green-600 font-medium">
 																{shareSettings.sharedWith.length > 0
 																	? `Share with ${shareSettings.sharedWith.length} selected user${shareSettings.sharedWith.length === 1 ? '' : 's'}`
-																	: shareInput.trim()
-																		? 'Share with entered usernames'
-																		: availableUsers.length > 0
-																			? 'Select users to share with'
-																			: 'Enter usernames to share with'
+																	: availableUsers.length > 0
+																		? 'Select users to share with'
+																		: 'No users available to share with'
 																}
 															</div>
 															<button
 																onClick={shareNote}
-																disabled={!shareInput.trim() && shareSettings.sharedWith.length === 0}
+																disabled={shareSettings.sharedWith.length === 0}
 																className={`mt-2 w-full px-4 py-2 rounded-lg transition-colors ${
-																	(!shareInput.trim() && shareSettings.sharedWith.length === 0)
+																	shareSettings.sharedWith.length === 0
 																		? 'bg-gray-400 text-gray-200 cursor-not-allowed'
 																		: 'bg-green-500 text-white hover:bg-green-600'
 																}`}

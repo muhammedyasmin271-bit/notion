@@ -29,7 +29,7 @@ import { notifyProjectAssignment, notifyProjectUpdate } from '../../utils/notifi
 import ProjectDetailsPage from '../ProjectDetailPage/ProjectDetailPage';
 
 const ProjectsPage = () => {
-  const { user, users, setUsers } = useAppContext();
+  const { user, users, setUsers, canCreateProjects } = useAppContext();
   const { isDarkMode } = useTheme();
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
@@ -147,11 +147,9 @@ const ProjectsPage = () => {
       console.error('Cannot add project. User is not authenticated.');
       return;
     }
-    if (user?.role !== 'manager' && user?.role !== 'admin') {
-      return;
-    }
-
-    navigate('/projects/new');
+    // All authenticated users can create projects now
+    const companyId = user?.companyId || 'default';
+    navigate(`/${companyId}/projects/new`);
   };
 
   const handleUpdateField = async (projectId, field, value) => {
@@ -448,7 +446,8 @@ const ProjectsPage = () => {
   };
 
   const handleOpenProject = (project) => {
-    navigate(`/projects/${project.id}`);
+    const companyId = user?.companyId || 'default';
+    navigate(`/${companyId}/projects/${project.id}`);
   };
 
   const handleCloseProject = () => setViewProject(null);
@@ -480,7 +479,8 @@ const ProjectsPage = () => {
         setProjects(prev => [...prev, created]);
         setViewProject(null);
         // Navigate to the newly created project
-        navigate(`/projects/${created.id}`);
+        const companyId = user?.companyId || 'default';
+        navigate(`/${companyId}/projects/${created.id}`);
       }
     } catch (error) {
       console.error('Error creating project:', error);
@@ -597,7 +597,7 @@ const ProjectsPage = () => {
             </div>
           </div>
           <div className="flex items-center">
-            {(user?.role === 'manager' || user?.role === 'admin') && (
+            {canCreateProjects() && (
               <button
                 onClick={() => addNewProject()}
                 className={`hidden sm:flex items-center px-6 py-3 text-sm font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 transform ${isDarkMode ? 'bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-700 hover:from-blue-600 hover:via-indigo-600 hover:to-purple-600' : 'bg-gradient-to-r from-black via-gray-800 to-slate-700 hover:from-gray-800 hover:via-slate-700 hover:to-gray-600'} text-white`}
@@ -685,16 +685,19 @@ const ProjectsPage = () => {
               <option value="Low">Low</option>
             </select>
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">For (person)</label>
-            <input
-              type="text"
-              placeholder="Filter by person..."
-              value={filterFor}
-              onChange={(e) => setFilterFor(e.target.value)}
-              className={`w-full px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 ${inputClass}`}
-            />
-          </div>
+          {/* Only show assignment filter to managers and admins */}
+          {(user?.role === 'manager' || user?.role === 'admin') && (
+            <div>
+              <label className="block text-sm font-medium mb-1">For (person)</label>
+              <input
+                type="text"
+                placeholder="Filter by person..."
+                value={filterFor}
+                onChange={(e) => setFilterFor(e.target.value)}
+                className={`w-full px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 ${inputClass}`}
+              />
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium mb-1">Owner</label>
             <select
@@ -725,7 +728,7 @@ const ProjectsPage = () => {
       </div>
 
       {/* Mobile New Project Button - Fixed Position */}
-      {(user?.role === 'manager' || user?.role === 'admin') && (
+      {canCreateProjects() && (
         <button
           onClick={() => addNewProject(mobileStatusFilter)}
           className={`sm:hidden fixed top-4 right-4 z-50 flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 transform ${isDarkMode ? 'bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-700 hover:from-blue-600 hover:via-indigo-600 hover:to-purple-600' : 'bg-gradient-to-r from-black via-gray-800 to-slate-700 hover:from-gray-800 hover:via-slate-700 hover:to-gray-600'} text-white`}
@@ -966,7 +969,7 @@ const ProjectsPage = () => {
                 </div>
               </div>
             ))}
-            {(user?.role === 'manager' || user?.role === 'admin') && (
+            {canCreateProjects() && (
               <button
                 onClick={() => addNewProject(mobileStatusFilter)}
                 className="flex items-center w-full justify-center px-4 py-4 text-xs font-bold border-2 border-dashed rounded-xl text-gray-600 border-gray-300/60 hover:text-black hover:bg-gradient-to-br hover:from-gray-50 hover:to-slate-50 hover:border-gray-400 transition-all duration-500 hover:shadow-xl backdrop-blur-sm"
@@ -1191,7 +1194,7 @@ const ProjectsPage = () => {
                     </div>
                   </div>
                 ))}
-                {(user?.role === 'manager' || user?.role === 'admin') && (
+                {canCreateProjects() && (
                   <button
                     onClick={() => addNewProject(status)}
                     className="flex items-center w-full justify-center px-4 sm:px-8 py-4 sm:py-6 text-xs sm:text-sm font-bold border-2 border-dashed rounded-xl sm:rounded-2xl text-gray-600 border-gray-300/60 hover:text-black hover:bg-gradient-to-br hover:from-gray-50 hover:to-slate-50 hover:border-gray-400 transition-all duration-500 hover:shadow-xl backdrop-blur-sm"
@@ -1499,16 +1502,19 @@ const ProjectsPage = () => {
                     <option value="Low">Low</option>
                   </select>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">For (person)</label>
-                  <input
-                    type="text"
-                    value={editForm.forPerson || editForm.category || ''}
-                    onChange={(e) => setEditForm({ ...editForm, forPerson: e.target.value })}
-                    placeholder="Who is this for?"
-                    className={`w-full px-3 py-2 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${inputClass}`}
-                  />
-                </div>
+                {/* Only show assignment field to managers and admins */}
+                {(user?.role === 'manager' || user?.role === 'admin') && (
+                  <div>
+                    <label className="block text-sm font-medium mb-1">For (person)</label>
+                    <input
+                      type="text"
+                      value={editForm.forPerson || editForm.category || ''}
+                      onChange={(e) => setEditForm({ ...editForm, forPerson: e.target.value })}
+                      placeholder="Who is this for?"
+                      className={`w-full px-3 py-2 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${inputClass}`}
+                    />
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium mb-1">Notes</label>
                   <textarea

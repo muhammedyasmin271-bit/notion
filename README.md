@@ -48,6 +48,7 @@ A comprehensive, full-stack application built with React frontend and Node.js ba
 - **Role-Based Access**: Manager, user, and admin role management
 - **RESTful API**: Complete CRUD operations for all entities
 - **Security Features**: Rate limiting, CORS, input validation, password hashing
+- **SMS Notifications**: Twilio integration for SMS alerts and notifications
 
 ## 🚀 Quick Start
 
@@ -141,6 +142,7 @@ npm run dev
 - **Input Validation**: Comprehensive request validation
 - **Rate Limiting**: DDoS protection and abuse prevention
 - **CORS Protection**: Cross-origin resource sharing control
+- **SMS Security**: Secure SMS notifications via Twilio
 
 ## 🎨 Design System
 

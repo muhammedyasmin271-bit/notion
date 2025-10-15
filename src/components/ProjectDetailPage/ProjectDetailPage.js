@@ -738,7 +738,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
 
   const handleSave = async () => {
     if (!canCreateProjects()) {
-      alert('You do not have permission to save projects. Only managers can create and edit projects.');
+      alert('You do not have permission to save projects.');
       return;
     }
     
@@ -919,13 +919,15 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
   const fetchUsers = async () => {
     setLoadingUsers(true);
     try {
-      // Fetch users from database API
-      const response = await fetch('http://localhost:9000/api/auth/users', {
+      // Fetch users from company-filtered API endpoint
+      const response = await fetch('http://localhost:9000/api/users', {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
       
       if (response.ok) {
-        const allUsers = await response.json();
+        const data = await response.json();
+        const allUsers = data.users || data;
+        console.log('📝 Users fetched for sharing:', allUsers.length);
         // Filter out current user and demo users
         const filteredUsers = allUsers.filter(u => 
           u.email !== 'john@company.com' &&
@@ -2888,7 +2890,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
               </p>
               {!canCreateProjects() && project.id !== 'new' && (
                 <div className={`mt-1 px-2 py-1 rounded text-xs ${isDarkMode ? 'bg-blue-900/20 text-blue-300 border border-blue-800/30' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
-                  <span className="font-medium">View Mode:</span> You can view this project and update its status, but only managers can edit project details.
+                  <span className="font-medium">View Mode:</span> You can view this project and update its status.
                 </div>
               )}
             </div>
@@ -3004,84 +3006,89 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                       )}
                     </div>
 
-                    <div className="flex items-center">
-                      <div className="flex items-center gap-3 w-32">
-                        <User className="h-4 w-4 text-gray-500" />
-                        <span className="text-gray-600 font-medium">Assign To</span>
-                      </div>
-                      {canCreateProjects() ? (
-                        <div className="flex items-center gap-2">
-                          <div className="flex flex-wrap gap-1 min-w-[100px]">
-                            {project.forPerson && project.forPerson !== 'None' ? (
-                              project.forPerson.split(', ').map((person, index) => (
-                                <span key={index} className={`${isFullscreen ? 'px-2 py-1 text-xs' : 'px-1.5 py-0.5 text-xs'} bg-blue-100 text-blue-800 rounded`}>
-                                  {person}
-                                </span>
-                              ))
-                            ) : (
-                              <span className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} text-gray-500`}>None</span>
-                            )}
+                    {/* Only show assignment fields to managers and admins */}
+                    {(user?.role === 'manager' || user?.role === 'admin') && (
+                      <>
+                        <div className="flex items-center">
+                          <div className="flex items-center gap-3 w-32">
+                            <User className="h-4 w-4 text-gray-500" />
+                            <span className="text-gray-600 font-medium">Assign To</span>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => handlePickUser('assign')}
-                            className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors`}
-                          >
-                            Pick
-                          </button>
+                          {canCreateProjects() ? (
+                            <div className="flex items-center gap-2">
+                              <div className="flex flex-wrap gap-1 min-w-[100px]">
+                                {project.forPerson && project.forPerson !== 'None' ? (
+                                  project.forPerson.split(', ').map((person, index) => (
+                                    <span key={index} className={`${isFullscreen ? 'px-2 py-1 text-xs' : 'px-1.5 py-0.5 text-xs'} bg-blue-100 text-blue-800 rounded`}>
+                                      {person}
+                                    </span>
+                                  ))
+                                ) : (
+                                  <span className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} text-gray-500`}>None</span>
+                                )}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handlePickUser('assign')}
+                                className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors`}
+                              >
+                                Pick
+                              </button>
+                            </div>
+                          ) : (
+                            <span className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} rounded ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                              {project.forPerson || 'None'}
+                            </span>
+                          )}
                         </div>
-                      ) : (
-                        <span className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} rounded ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                          {project.forPerson || 'None'}
-                        </span>
-                      )}
-                    </div>
 
-                    <div className="flex items-center">
-                      <div className="flex items-center gap-3 w-32">
-                        <Eye className="h-4 w-4 text-gray-500" />
-                        <span className="text-gray-600 font-medium">Viewers</span>
-                      </div>
-                      {canCreateProjects() ? (
-                        <div className="flex items-center gap-2">
-                          <div className="flex flex-wrap gap-1 min-w-[100px]">
-                            {(() => {
-                              console.log('Viewers value:', project.viewers);
-                              return project.viewers && project.viewers !== 'None' && project.viewers.trim() !== '' ? (
+                        <div className="flex items-center">
+                          <div className="flex items-center gap-3 w-32">
+                            <Eye className="h-4 w-4 text-gray-500" />
+                            <span className="text-gray-600 font-medium">Viewers</span>
+                          </div>
+                          {canCreateProjects() ? (
+                            <div className="flex items-center gap-2">
+                              <div className="flex flex-wrap gap-1 min-w-[100px]">
+                                {(() => {
+                                  console.log('Viewers value:', project.viewers);
+                                  return project.viewers && project.viewers !== 'None' && project.viewers.trim() !== '' ? (
+                                    project.viewers.split(', ').filter(v => v.trim()).map((viewer, index) => (
+                                      <span key={index} className={`${isFullscreen ? 'px-2 py-1 text-xs' : 'px-1.5 py-0.5 text-xs'} bg-green-100 text-green-800 rounded`}>
+                                        {viewer.trim()}
+                                      </span>
+                                    ))
+                                  ) : (
+                                    <span className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} text-gray-500`}>None</span>
+                                  );
+                                })()}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handlePickUser('viewer')}
+                                className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors`}
+                              >
+                                Pick
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap gap-1">
+                              {project.viewers && project.viewers !== 'None' && project.viewers.trim() !== '' ? (
                                 project.viewers.split(', ').filter(v => v.trim()).map((viewer, index) => (
                                   <span key={index} className={`${isFullscreen ? 'px-2 py-1 text-xs' : 'px-1.5 py-0.5 text-xs'} bg-green-100 text-green-800 rounded`}>
                                     {viewer.trim()}
                                   </span>
                                 ))
                               ) : (
-                                <span className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} text-gray-500`}>None</span>
-                              );
-                            })()}
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => handlePickUser('viewer')}
-                            className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors`}
-                          >
-                            Pick
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex flex-wrap gap-1">
-                          {project.viewers && project.viewers !== 'None' && project.viewers.trim() !== '' ? (
-                            project.viewers.split(', ').filter(v => v.trim()).map((viewer, index) => (
-                              <span key={index} className={`${isFullscreen ? 'px-2 py-1 text-xs' : 'px-1.5 py-0.5 text-xs'} bg-green-100 text-green-800 rounded`}>
-                                {viewer.trim()}
-                              </span>
-                            ))
-                          ) : (
-                            <span className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} rounded ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                              None
-                            </span>
+                                <span className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} rounded ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                                  None
+                                </span>
+                              )}
+                            </div>
                           )}
                         </div>
-                      )}
-                    </div>
+                      </>
+                    )}
 
                     <div className="flex items-center">
                       <div className="flex items-center gap-3 w-32">

@@ -303,11 +303,14 @@ const DocumentsPage = () => {
     const fetchUsersForPicker = async () => {
         setLoadingUsers(true);
         try {
-            const allUsers = await get('/auth/users');
+            // Use /api/users which is already filtered by companyId via tenantFilter
+            const response = await get('/users');
+            const allUsers = response.users || response;
             const filteredUsers = allUsers.filter(u => 
                 u._id !== user?._id && u.isActive
             );
             setAvailableUsers(filteredUsers);
+            console.log('📝 Available users for sharing:', filteredUsers.length);
         } catch (error) {
             console.error('Error fetching users:', error);
             setAvailableUsers([]);

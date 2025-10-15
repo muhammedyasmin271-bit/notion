@@ -12,8 +12,13 @@ const notificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['chat', 'meeting', 'document', 'note', 'project', 'goal'],
+    enum: ['chat', 'meeting', 'document', 'note', 'project', 'goal', 'task', 'task_urgent', 'meeting_reminder', 'deadline', 'system'],
     required: true
+  },
+  priority: {
+    type: String,
+    enum: ['low', 'normal', 'high', 'urgent'],
+    default: 'normal'
   },
   title: {
     type: String,
@@ -44,7 +49,20 @@ const notificationSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  deletedAt: Date
+  deletedAt: Date,
+  smsStatus: {
+    sent: { type: Boolean, default: false },
+    delivered: { type: Boolean, default: false },
+    sid: String,
+    error: String,
+    sentAt: Date
+  },
+  emailStatus: {
+    sent: { type: Boolean, default: false },
+    sid: String,
+    error: String,
+    sentAt: Date
+  }
 }, { timestamps: true });
 
 notificationSchema.index({ recipient: 1, read: 1, createdAt: -1 });

@@ -25,6 +25,11 @@ const documentSchema = new mongoose.Schema({
     ref: 'User',
     required: [true, 'Document author is required']
   },
+  companyId: {
+    type: String,
+    default: 'default',
+    index: true
+  },
   status: {
     type: String,
     default: 'Draft'

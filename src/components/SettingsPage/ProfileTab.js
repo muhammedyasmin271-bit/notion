@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Save } from 'lucide-react';
+import { Save, Phone, Check, X } from 'lucide-react';
+import axios from 'axios';
 
 const ProfileTab = () => {
   const [profile, setProfile] = useState({
@@ -11,6 +12,10 @@ const ProfileTab = () => {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [phoneValidation, setPhoneValidation] = useState({
+    isValid: null,
+    message: ''
+  });
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -38,7 +43,46 @@ const ProfileTab = () => {
     fetchProfile();
   }, []);
 
+  // Validate phone number when it changes
+  useEffect(() => {
+    const validatePhone = async () => {
+      if (!profile.phoneNumber || profile.phoneNumber.trim() === '') {
+        setPhoneValidation({ isValid: null, message: '' });
+        return;
+      }
+
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.post(
+          'http://localhost:9000/api/notifications/validate-phone',
+          { phone: profile.phoneNumber },
+          { headers: { 'x-auth-token': token } }
+        );
+
+        setPhoneValidation({
+          isValid: response.data.valid,
+          message: response.data.message
+        });
+      } catch (error) {
+        console.error('Error validating phone:', error);
+        setPhoneValidation({
+          isValid: false,
+          message: 'Unable to validate phone number'
+        });
+      }
+    };
+
+    const debounce = setTimeout(validatePhone, 500);
+    return () => clearTimeout(debounce);
+  }, [profile.phoneNumber]);
+
   const handleSave = async () => {
+    // Check phone validation before saving
+    if (profile.phoneNumber && phoneValidation.isValid === false) {
+      alert('Please enter a valid phone number in international format (+1234567890)');
+      return;
+    }
+
     setSaving(true);
     try {
       const token = localStorage.getItem('token');
@@ -113,6 +157,7 @@ const ProfileTab = () => {
             className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="Enter your email"
           />
+          <p className="text-xs text-gray-400 mt-1">Required for email notifications</p>
         </div>
         
         <div>
@@ -138,14 +183,40 @@ const ProfileTab = () => {
         </div>
         
         <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-300 mb-2">Phone Number</label>
-          <input
-            type="tel"
-            value={profile.phoneNumber}
-            onChange={(e) => setProfile({...profile, phoneNumber: e.target.value})}
-            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="Enter your phone number"
-          />
+          <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
+            <Phone className="w-4 h-4" />
+            Phone Number (for SMS notifications)
+          </label>
+          <div className="relative">
+            <input
+              type="tel"
+              value={profile.phoneNumber}
+              onChange={(e) => setProfile({...profile, phoneNumber: e.target.value})}
+              className={`w-full px-3 py-2 pr-10 bg-gray-700 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                phoneValidation.isValid === true ? 'border-green-500' :
+                phoneValidation.isValid === false ? 'border-red-500' :
+                'border-gray-600'
+              }`}
+              placeholder="0912345678"
+              pattern="^09\d{8}$"
+            />
+            {phoneValidation.isValid !== null && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                {phoneValidation.isValid ? (
+                  <Check className="w-5 h-5 text-green-500" />
+                ) : (
+                  <X className="w-5 h-5 text-red-500" />
+                )}
+              </div>
+            )}
+          </div>
+          <p className={`text-xs mt-1 ${
+            phoneValidation.isValid === true ? 'text-green-400' :
+            phoneValidation.isValid === false ? 'text-red-400' :
+            'text-gray-400'
+          }`}>
+            {phoneValidation.message || 'Use Ethiopian format (e.g., 0912345678)'}
+          </p>
         </div>
       </div>
       

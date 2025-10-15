@@ -19,6 +19,7 @@ export const AppProvider = ({ children }) => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [company, setCompany] = useState(null);
 
   // Initialize authentication state on app load
   useEffect(() => {
@@ -33,10 +34,14 @@ export const AppProvider = ({ children }) => {
           const userData = JSON.parse(storedUser);
           setUser(userData);
           setIsAuthenticated(true);
+          // Load company branding
+          await loadCompanyBranding();
         } else if (apiService.isAuthenticated()) {
           const userData = await apiService.getCurrentUser();
           setUser(userData);
           setIsAuthenticated(true);
+          // Load company branding
+          await loadCompanyBranding();
         } else {
           setIsAuthenticated(false);
         }
@@ -55,6 +60,27 @@ export const AppProvider = ({ children }) => {
     initializeAuth();
   }, []);
 
+  // Load company branding
+  const loadCompanyBranding = async () => {
+    try {
+      const response = await apiService.get('/auth/my-company');
+      setCompany(response);
+      console.log('✅ Company branding loaded:', response);
+    } catch (error) {
+      console.error('Failed to load company branding:', error);
+      // Set default branding
+      setCompany({
+        companyId: 'melanote',
+        name: 'Mela Note',
+        branding: {
+          logo: '/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png',
+          companyName: 'Mela Note',
+          primaryColor: '#3B82F6'
+        }
+      });
+    }
+  };
+
   // Auto-refresh token before expiration
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -71,13 +97,27 @@ export const AppProvider = ({ children }) => {
     return () => clearInterval(refreshInterval);
   }, [isAuthenticated]);
 
-  const login = async (email, password) => {
+  const login = async (email, password, companyId = null) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await apiService.login(email, password);
-      setUser(response.user);
+      const response = await apiService.login(email, password, companyId);
+      
+      // Ensure user object has companyId
+      const userWithCompany = {
+        ...response.user,
+        companyId: response.user.companyId || companyId || 'melanote'
+      };
+      
+      // Store user with companyId in localStorage
+      localStorage.setItem('user', JSON.stringify(userWithCompany));
+      
+      setUser(userWithCompany);
       setIsAuthenticated(true);
+      
+      // Load company branding
+      await loadCompanyBranding();
+      
       return response;
     } catch (error) {
       setError(error.message || 'Login failed');
@@ -139,9 +179,11 @@ export const AppProvider = ({ children }) => {
       // Even if server logout fails, clear local state
       setUser(null);
       setIsAuthenticated(false);
+      setCompany(null);
       apiService.setAuthToken(null);
       localStorage.removeItem('user');
       localStorage.removeItem('token');
+      localStorage.removeItem('currentCompanyId');
     } finally {
       setLoading(false);
     }
@@ -183,7 +225,7 @@ export const AppProvider = ({ children }) => {
   
   const canApproveManagers = () => isAdmin();
   const canApproveUsers = () => isManager();
-  const canCreateProjects = () => isManager();
+  const canCreateProjects = () => isUser(); // Allow all authenticated users to create projects
   const canViewAllProjects = () => isAdmin();
   const canCreateNotepad = () => isUser();
   const canShareContent = () => isUser(); // Allow all users to share content
@@ -197,6 +239,7 @@ export const AppProvider = ({ children }) => {
     isAuthenticated,
     loading,
     error,
+    company,
     login,
     register,
     logout,

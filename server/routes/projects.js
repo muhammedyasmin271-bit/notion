@@ -2,13 +2,18 @@ const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
 const auth = require('../middleware/auth');
+const { tenantFilter } = require('../middleware/tenantFilter');
 const Project = require('../models/Project');
 const { requireManager } = require('../middleware/roleAuth');
+
+// Apply auth to all routes first, then tenant filtering
+router.use(auth);
+router.use(tenantFilter);
 
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-
+const emailService = require('../services/emailService');
 // Setup Multer for project file uploads
 const uploadsDir = path.join(__dirname, '..', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -69,35 +74,46 @@ function mapProject(p) {
 }
 
 // GET /api/projects - Get all projects (auth required)
-router.get('/', auth, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const userId = req.user.id;
     const userName = req.user.username;
     const userRole = req.user.role;
     
-    let projects;
+    console.log('🔵 GET /api/projects - User:', userName, 'Role:', userRole, 'CompanyId:', req.companyId);
     
-    if (userRole === 'admin') {
-      // Admin can see: all assigned/viewer projects + own projects
-      projects = await Project.find({
-        archived: false,
-        $or: [
-          { owner: userId },
-          { assignedTo: { $exists: true, $ne: [] } },
-          { viewers: { $exists: true, $ne: [] } }
-        ]
-      })
+    let projects;
+    const baseQuery = { archived: false };
+    
+    // Add company filter (skip for superadmin)
+    if (userRole !== 'superadmin') {
+      baseQuery.companyId = req.companyId;
+    }
+    
+    console.log('🔵 Query filter:', JSON.stringify(baseQuery));
+    
+    if (userRole === 'admin' || userRole === 'superadmin') {
+      // Admin can see: all company projects
+      projects = await Project.find(baseQuery)
         .populate('owner', 'name email')
         .sort({ createdAt: -1 });
-    } else {
-      // Regular users can see: own projects + assigned projects + viewer projects
+    } else if (userRole === 'manager') {
+      // Managers can see: own projects + assigned projects + viewer projects
       projects = await Project.find({
-        archived: false,
+        ...baseQuery,
         $or: [
           { owner: userId },
           { assignedTo: { $in: [userName, req.user.name] } },
           { viewers: { $in: [userName, req.user.name] } }
         ]
+      })
+        .populate('owner', 'name email')
+        .sort({ createdAt: -1 });
+    } else {
+      // Regular users can ONLY see their own projects
+      projects = await Project.find({
+        ...baseQuery,
+        owner: userId
       })
         .populate('owner', 'name email')
         .sort({ createdAt: -1 });
@@ -111,8 +127,8 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// POST /api/projects - Create new project (manager only)
-router.post('/', requireManager, async (req, res) => {
+// POST /api/projects - Create new project (all authenticated users)
+router.post('/', async (req, res) => {
   try {
     const { name, title, status, priority, forPerson, viewers, notes, description, startDate, endDate, blocks, content, blockData, tableData, toggleStates, toggleContent } = req.body || {};
 
@@ -124,12 +140,17 @@ router.post('/', requireManager, async (req, res) => {
         ? notes
         : 'Project description will be added here.';
 
-    // Parse assigned users and viewers (using usernames)
-    const assignedUsers = forPerson ? forPerson.split(',').map(u => u.trim()).filter(u => u) : [];
-    const viewerUsers = viewers ? viewers.split(',').map(u => u.trim()).filter(u => u) : [];
+    // Only managers/admins can assign projects to others
+    const canAssignToOthers = ['admin', 'manager'].includes(req.user.role);
     
-    console.log('Creating project with assigned users:', assignedUsers);
-    console.log('Creating project with viewers:', viewerUsers);
+    // Parse assigned users and viewers (using usernames) - only if user has permission
+    const assignedUsers = (canAssignToOthers && forPerson) ? forPerson.split(',').map(u => u.trim()).filter(u => u) : [];
+    const viewerUsers = (canAssignToOthers && viewers) ? viewers.split(',').map(u => u.trim()).filter(u => u) : [];
+    
+    console.log('🔵 Creating project:', safeName);
+    console.log('🔵 User:', req.user.username, 'CompanyId:', req.companyId);
+    console.log('🔵 Assigned users:', assignedUsers);
+    console.log('🔵 Viewers:', viewerUsers);
 
     const project = new Project({
       title: safeName,
@@ -137,6 +158,7 @@ router.post('/', requireManager, async (req, res) => {
       status: status || 'Not started',
       priority: priority || 'Medium',
       owner: req.user.id,
+      companyId: req.companyId,
       startDate: startDate ? new Date(startDate) : undefined,
       dueDate: endDate ? new Date(endDate) : undefined,
       assignedTo: assignedUsers,
@@ -186,6 +208,36 @@ router.post('/', requireManager, async (req, res) => {
             });
             
             await notification.save();
+            
+            // Send email notification
+            if (assignedUser.email && assignedUser.emailNotifications) {
+              try {
+                await emailService.sendEmail({
+                  to: assignedUser.email,
+                  subject: `New Project Assignment: ${project.title}`,
+                  html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                      <h2 style="color: #667eea;">📊 New Project Assignment</h2>
+                      <p>Hello ${assignedUser.name},</p>
+                      <p><strong>${req.user.name}</strong> has assigned you to a new project:</p>
+                      <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                        <h3 style="margin-top: 0; color: #333;">${project.title}</h3>
+                        <p>${project.description}</p>
+                        <p><strong>Priority:</strong> ${project.priority}</p>
+                        <p><strong>Status:</strong> ${project.status}</p>
+                        ${project.dueDate ? `<p><strong>Due Date:</strong> ${new Date(project.dueDate).toLocaleDateString()}</p>` : ''}
+                      </div>
+                      <p>Please check your Notion App to view the project details and start working on it.</p>
+                      <p>Best regards,<br>Notion App Team</p>
+                    </div>
+                  `
+                });
+                console.log(`Project assignment email sent to ${assignedUser.email}`);
+              } catch (emailError) {
+                console.error(`Error sending project assignment email to ${assignedUser.email}:`, emailError.message);
+              }
+            }
+            
             console.log(`Assignment notification created for ${assignedUser.name}`);
           }
         } catch (notificationError) {
@@ -202,7 +254,7 @@ router.post('/', requireManager, async (req, res) => {
 });
 
 // GET /api/projects/:id - Get project by ID (auth required)
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const userId = req.user.id;
     const userName = req.user.username;
@@ -231,7 +283,7 @@ router.get('/:id', auth, async (req, res) => {
 });
 
 // PUT /api/projects/:id/status - Update project status (all users)
-router.put('/:id/status', auth, async (req, res) => {
+router.put('/:id/status', async (req, res) => {
   try {
     const { status } = req.body || {};
     const User = require('../models/User');
@@ -276,6 +328,41 @@ router.put('/:id/status', auth, async (req, res) => {
             
             await notification.save();
             console.log(`Status update notification created successfully for ${assignedUser.name}`);
+            
+            // Send email notification for status update
+            if (assignedUser.email && assignedUser.emailNotifications) {
+              try {
+                const statusColors = {
+                  'Not started': '#999',
+                  'In Progress': '#2196F3',
+                  'Done': '#4CAF50',
+                  'On hold': '#FF9800',
+                  'Cancelled': '#F44336'
+                };
+                const statusColor = statusColors[status] || '#667eea';
+                
+                await emailService.sendEmail({
+                  to: assignedUser.email,
+                  subject: `Project Status Updated: ${p.title}`,
+                  html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                      <h2 style="color: #667eea;">📊 Project Status Updated</h2>
+                      <p>Hello ${assignedUser.name},</p>
+                      <p><strong>${req.user.name}</strong> updated the status of <strong>${p.title}</strong>:</p>
+                      <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                        <p><strong>Previous Status:</strong> <span style="color: ${statusColors[previousStatus] || '#999'}">${previousStatus}</span></p>
+                        <p><strong>New Status:</strong> <span style="color: ${statusColor}; font-weight: bold;">${status}</span></p>
+                      </div>
+                      <p>Please check your Notion App for more details.</p>
+                      <p>Best regards,<br>Notion App Team</p>
+                    </div>
+                  `
+                });
+                console.log(`Status update email sent to ${assignedUser.email}`);
+              } catch (emailError) {
+                console.error(`Error sending status update email to ${assignedUser.email}:`, emailError.message);
+              }
+            }
           }
         } catch (notificationError) {
           console.error(`Error creating status update notification for ${assignedUserName}:`, notificationError);
@@ -293,7 +380,7 @@ router.put('/:id/status', auth, async (req, res) => {
 });
 
 // PUT /api/projects/:id - Update project
-router.put('/:id', auth, async (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     const p = await Project.findById(req.params.id);
     if (!p) return res.status(404).json({ message: 'Project not found' });
@@ -403,7 +490,7 @@ router.put('/:id', auth, async (req, res) => {
 });
 
 // PATCH /api/projects/:id/goal - Update project goal
-router.patch('/:id/goal', auth, async (req, res) => {
+router.patch('/:id/goal', async (req, res) => {
   try {
     const { goal } = req.body;
 
@@ -427,7 +514,7 @@ router.patch('/:id/goal', auth, async (req, res) => {
 });
 
 // PATCH /api/projects/:id/notes - Update project notes
-router.patch('/:id/notes', auth, async (req, res) => {
+router.patch('/:id/notes', async (req, res) => {
   try {
     const { notes, blockData, tableData, toggleStates, toggleContent } = req.body;
     console.log('PATCH /api/projects/:id/notes - Received data:');
@@ -464,7 +551,7 @@ router.patch('/:id/notes', auth, async (req, res) => {
 });
 
 // PATCH /api/projects/:id/goal - Update project goal
-router.patch('/:id/goal', auth, async (req, res) => {
+router.patch('/:id/goal', async (req, res) => {
   try {
     const { goal } = req.body;
 
@@ -500,7 +587,7 @@ router.delete('/:id', requireManager, async (req, res) => {
 });
 
 // GET /api/projects/:id/data - Get project tasks, comments, activities
-router.get('/:id/data', auth, async (req, res) => {
+router.get('/:id/data', async (req, res) => {
   try {
     console.log('Loading project data for ID:', req.params.id);
 
@@ -536,7 +623,7 @@ router.get('/:id/data', auth, async (req, res) => {
 });
 
 // POST /api/projects/:id/tasks - Create a new task
-router.post('/:id/tasks', auth, async (req, res) => {
+router.post('/:id/tasks', async (req, res) => {
   try {
     const { id: projectId } = req.params;
     const { text, priority = 'medium', dueDate } = req.body;
@@ -589,6 +676,71 @@ router.post('/:id/tasks', auth, async (req, res) => {
     await newTask.populate('createdBy', 'name email');
     await newTask.populate('projectId', 'name');
 
+    // Send email notification to project owner and assigned users
+    try {
+      const User = require('../models/User');
+      const projectWithOwner = await Project.findById(projectId).populate('owner', 'name email emailNotifications');
+      
+      // Notify project owner if they're not the task creator
+      if (projectWithOwner.owner && projectWithOwner.owner._id.toString() !== userId) {
+        if (projectWithOwner.owner.email && projectWithOwner.owner.emailNotifications) {
+          await emailService.sendEmail({
+            to: projectWithOwner.owner.email,
+            subject: `New Task Created: ${newTask.text}`,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #667eea;">📋 New Task Created</h2>
+                <p>Hello ${projectWithOwner.owner.name},</p>
+                <p><strong>${req.user.name}</strong> created a new task in project <strong>${project.title}</strong>:</p>
+                <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                  <h3 style="margin-top: 0; color: #333;">${newTask.text}</h3>
+                  <p><strong>Priority:</strong> ${newTask.priority}</p>
+                  <p><strong>Due Date:</strong> ${newTask.dueDate ? new Date(newTask.dueDate).toLocaleDateString() : 'Not set'}</p>
+                </div>
+                <p>Best regards,<br>Notion App Team</p>
+              </div>
+            `
+          });
+        }
+      }
+
+      // Notify assigned users about the new task
+      if (project.assignedTo && project.assignedTo.length > 0) {
+        const assignedUsers = await User.find({
+          $or: [
+            { username: { $in: project.assignedTo } },
+            { name: { $in: project.assignedTo } }
+          ],
+          emailNotifications: true,
+          _id: { $ne: userId }
+        }).select('name email emailNotifications');
+
+        for (const user of assignedUsers) {
+          if (user.email && user.emailNotifications) {
+            await emailService.sendEmail({
+              to: user.email,
+              subject: `New Task in ${project.title}`,
+              html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                  <h2 style="color: #667eea;">📋 New Task</h2>
+                  <p>Hello ${user.name},</p>
+                  <p>A new task was created in <strong>${project.title}</strong>:</p>
+                  <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                    <h3 style="margin-top: 0; color: #333;">${newTask.text}</h3>
+                    <p><strong>Priority:</strong> ${newTask.priority}</p>
+                    <p><strong>Due Date:</strong> ${newTask.dueDate ? new Date(newTask.dueDate).toLocaleDateString() : 'Not set'}</p>
+                  </div>
+                  <p>Best regards,<br>Notion App Team</p>
+                </div>
+              `
+            });
+          }
+        }
+      }
+    } catch (emailError) {
+      console.error('Error sending task creation email:', emailError.message);
+    }
+
     console.log(`Task created successfully: ${newTask._id}`);
     res.status(201).json(newTask);
   } catch (e) {
@@ -601,7 +753,7 @@ router.post('/:id/tasks', auth, async (req, res) => {
 });
 
 // PUT /api/projects/:id/tasks/:taskId - Update task
-router.put('/:id/tasks/:taskId', auth, async (req, res) => {
+router.put('/:id/tasks/:taskId', async (req, res) => {
   try {
     const { id: projectId, taskId } = req.params;
     const { text, completed, priority, dueDate } = req.body;
@@ -642,6 +794,7 @@ router.put('/:id/tasks/:taskId', auth, async (req, res) => {
     }
 
     // Update task fields
+    const wasCompleted = task.completed;
     if (text !== undefined) task.text = text.trim();
     if (completed !== undefined) task.completed = Boolean(completed);
     if (priority !== undefined) task.priority = ['low', 'medium', 'high'].includes(priority) ? priority : 'medium';
@@ -650,6 +803,59 @@ router.put('/:id/tasks/:taskId', auth, async (req, res) => {
     await task.save();
     await task.populate('createdBy', 'name email');
     await task.populate('projectId', 'name');
+
+    // Send email notification when task is completed
+    if (!wasCompleted && task.completed) {
+      try {
+        const User = require('../models/User');
+        const projectWithOwner = await Project.findById(projectId).populate('owner', 'name email emailNotifications');
+        
+        // Notify project owner
+        if (projectWithOwner.owner && projectWithOwner.owner._id.toString() !== userId) {
+          if (projectWithOwner.owner.email && projectWithOwner.owner.emailNotifications) {
+            await emailService.sendEmail({
+              to: projectWithOwner.owner.email,
+              subject: `Task Completed: ${task.text}`,
+              html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                  <h2 style="color: #4CAF50;">✅ Task Completed</h2>
+                  <p>Hello ${projectWithOwner.owner.name},</p>
+                  <p><strong>${req.user.name}</strong> completed a task in <strong>${project.title}</strong>:</p>
+                  <div style="background-color: #e8f5e9; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #4CAF50;">
+                    <h3 style="margin-top: 0; color: #333;">${task.text}</h3>
+                    <p style="color: #4CAF50; font-weight: bold;">✓ Completed</p>
+                  </div>
+                  <p>Best regards,<br>Notion App Team</p>
+                </div>
+              `
+            });
+          }
+        }
+
+        // Notify task creator if different from updater
+        if (task.createdBy && task.createdBy._id.toString() !== userId) {
+          if (task.createdBy.email && task.createdBy.emailNotifications) {
+            await emailService.sendEmail({
+              to: task.createdBy.email,
+              subject: `Your Task Was Completed: ${task.text}`,
+              html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                  <h2 style="color: #4CAF50;">✅ Task Completed</h2>
+                  <p>Hello ${task.createdBy.name},</p>
+                  <p><strong>${req.user.name}</strong> completed your task:</p>
+                  <div style="background-color: #e8f5e9; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #4CAF50;">
+                    <h3 style="margin-top: 0; color: #333;">${task.text}</h3>
+                  </div>
+                  <p>Best regards,<br>Notion App Team</p>
+                </div>
+              `
+            });
+          }
+        }
+      } catch (emailError) {
+        console.error('Error sending task completion email:', emailError.message);
+      }
+    }
 
     console.log(`Task ${taskId} updated successfully`);
     res.json(task);
@@ -663,7 +869,7 @@ router.put('/:id/tasks/:taskId', auth, async (req, res) => {
 });
 
 // DELETE /api/projects/:id/tasks/:taskId - Delete task
-router.delete('/:id/tasks/:taskId', auth, async (req, res) => {
+router.delete('/:id/tasks/:taskId', async (req, res) => {
   try {
     const { id: projectId, taskId } = req.params;
     const userId = req.user.id;
@@ -721,7 +927,7 @@ router.delete('/:id/tasks/:taskId', auth, async (req, res) => {
 });
 
 // POST /api/projects/:id/upload - Upload file to project
-router.post('/:id/upload', auth, upload.single('file'), async (req, res) => {
+router.post('/:id/upload', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: 'No file uploaded' });
@@ -776,7 +982,7 @@ router.post('/:id/upload', auth, upload.single('file'), async (req, res) => {
 });
 
 // POST /api/projects/:projectId/tasks/:taskId/comments - Add comment to task
-router.post('/:projectId/tasks/:taskId/comments', auth, async (req, res) => {
+router.post('/:projectId/tasks/:taskId/comments', async (req, res) => {
   try {
     const { text } = req.body;
     
@@ -810,7 +1016,7 @@ router.post('/:projectId/tasks/:taskId/comments', auth, async (req, res) => {
 module.exports = router;
 
 // PUT /api/projects/:id/content - Update project content/blocks
-router.put('/:id/content', auth, async (req, res) => {
+router.put('/:id/content', async (req, res) => {
   try {
     const { blocks, content } = req.body || {};
     

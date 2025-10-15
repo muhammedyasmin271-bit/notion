@@ -54,6 +54,12 @@ const ReportSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  companyId: {
+    type: String,
+    default: 'default',
+    index: true,
+    required: true
+  },
   sharedWith: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'

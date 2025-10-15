@@ -7,6 +7,7 @@ const { requireManager, requireAdmin } = require('../middleware/roleAuth');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const emailService = require('../services/emailService');
 
 const router = express.Router();
 
@@ -43,6 +44,7 @@ router.post('/register', upload.array('files'), [
   body('name', 'Name is required').not().isEmpty().trim().escape(),
   body('username', 'Username is required').not().isEmpty().trim(),
   body('password', 'Please enter a password with 6 or more characters').isLength({ min: 6 }),
+  body('phone').optional().trim(),
   // App supports user, manager, and admin roles
   body('role').optional().isIn(['user', 'manager', 'admin'])
 ], async (req, res) => {
@@ -53,8 +55,11 @@ router.post('/register', upload.array('files'), [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, username, password, role } = req.body;
+    const { name, username, email, password, role, phone } = req.body;
     const normalizedUsername = String(username).toLowerCase();
+
+    console.log('🔵 Registration Request Body:', JSON.stringify(req.body, null, 2));
+    console.log('🔵 CompanyId from request:', req.body.companyId);
 
     // Check if user already exists
     let user = await User.findOne({ username: normalizedUsername });
@@ -62,14 +67,52 @@ router.post('/register', upload.array('files'), [
       return res.status(400).json({ message: 'Username already exists' });
     }
 
+    // Check if email already exists (only if provided)
+    if (email && email.trim()) {
+      const normalizedEmail = String(email).toLowerCase().trim();
+      const existingEmail = await User.findOne({ email: normalizedEmail });
+      if (existingEmail) {
+        return res.status(400).json({ message: 'Email already exists' });
+      }
+    }
+
+    // Get companyId from request body or default to melanote
+    const userCompanyId = req.body.companyId || 'melanote';
+    console.log('🔵 User will be assigned companyId:', userCompanyId);
+
+    // Check if company exists and is active
+    const Company = require('../models/Company');
+    const company = await Company.findOne({ companyId: userCompanyId });
+    
+    if (!company) {
+      return res.status(404).json({ message: 'Company not found. Please check your registration link.' });
+    }
+
+    if (company.status === 'paused') {
+      return res.status(403).json({ message: 'This company is currently paused and not accepting new registrations.' });
+    }
+
+    // Check if company has reached its user limit
+    const currentUserCount = await User.countDocuments({ 
+      companyId: userCompanyId,
+      status: { $ne: 'declined' } // Don't count declined users
+    });
+
+    const maxUsers = company.limits?.maxUsers || 50;
+    if (currentUserCount >= maxUsers) {
+      return res.status(403).json({ 
+        message: `This company has reached its maximum user limit (${maxUsers} users). Please contact your administrator.` 
+      });
+    }
+    
     // Determine role with bootstrap rule: allow first manager if none exists
     let finalRole = 'user';
     let finalStatus = 'pending';
     let finalIsActive = false;
 
     if (role === 'admin') {
-      // Special case for admin - check if admin already exists
-      const adminCount = await User.countDocuments({ role: 'admin' });
+      // Special case for admin - check if admin already exists in this company
+      const adminCount = await User.countDocuments({ role: 'admin', companyId: userCompanyId });
       if (adminCount === 0) {
         // First admin gets auto-approved
         finalRole = 'admin';
@@ -82,18 +125,10 @@ router.post('/register', upload.array('files'), [
         finalIsActive = false;
       }
     } else if (role === 'manager') {
-      const managersCount = await User.countDocuments({ role: 'manager', status: 'approved' });
-      if (managersCount === 0) {
-        // First manager gets auto-approved
-        finalRole = 'manager';
-        finalStatus = 'approved';
-        finalIsActive = true;
-      } else {
-        // Subsequent managers need approval from existing managers
-        finalRole = 'manager';
-        finalStatus = 'pending';
-        finalIsActive = false;
-      }
+      // All managers need approval - no auto-approval even for first manager
+      finalRole = 'manager';
+      finalStatus = 'pending';
+      finalIsActive = false;
     }
 
     // Map uploaded files (if any) to model structure
@@ -105,18 +140,30 @@ router.post('/register', upload.array('files'), [
       uploadedAt: new Date()
     })) : [];
 
-    // Create new user, attach uploaded files
+    // Create new user, attach uploaded files and companyId
     user = new User({
       name,
       username: normalizedUsername,
       password,
+      email: email && email.trim() ? email.toLowerCase().trim() : undefined, // Normalize email or set undefined
+      phone: phone || '',
       role: finalRole,
+      companyId: userCompanyId,
       files: uploadedFiles,
       status: finalStatus,
       isActive: finalIsActive
     });
 
     await user.save();
+
+    console.log('✅ User saved successfully:', {
+      name: user.name,
+      username: user.username,
+      role: user.role,
+      companyId: user.companyId,
+      status: user.status,
+      isActive: user.isActive
+    });
 
     // If user needs approval, don't create token - redirect to pending page
     if (user.status === 'pending') {
@@ -127,8 +174,10 @@ router.post('/register', upload.array('files'), [
           id: user.id,
           name: user.name,
           username: user.username,
+          phone: user.phone,
           role: user.role,
-          status: user.status
+          status: user.status,
+          companyId: user.companyId
         }
       });
     }
@@ -156,6 +205,7 @@ router.post('/register', upload.array('files'), [
             name: user.name,
             username: user.username,
             email: user.email,
+            phone: user.phone,
             role: user.role
           }
         });
@@ -168,6 +218,63 @@ router.post('/register', upload.array('files'), [
       const field = Object.keys(err.keyPattern || {})[0] || 'field';
       return res.status(400).json({ message: `${field} already exists` });
     }
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   GET /api/auth/company/:companyId
+// @desc    Get company branding info
+// @access  Public
+router.get('/company/:companyId', async (req, res) => {
+  try {
+    const Company = require('../models/Company');
+    const company = await Company.findOne({ companyId: req.params.companyId });
+    if (!company) {
+      return res.status(404).json({ message: 'Company not found' });
+    }
+    res.json({
+      companyId: company.companyId,
+      name: company.name,
+      branding: company.branding
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   GET /api/auth/my-company
+// @desc    Get current user's company branding
+// @access  Private
+router.get('/my-company', auth, async (req, res) => {
+  try {
+    const Company = require('../models/Company');
+    const company = await Company.findOne({ companyId: req.user.companyId });
+    
+    if (!company) {
+      // Return default branding if no company found
+      return res.json({
+        companyId: req.user.companyId || 'melanote',
+        name: 'Mela Note',
+        branding: {
+          logo: '/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png',
+          companyName: 'Mela Note',
+          primaryColor: '#3B82F6'
+        }
+      });
+    }
+    
+    res.json({
+      companyId: company.companyId,
+      name: company.name,
+      branding: company.branding || {
+        logo: '/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png',
+        companyName: company.name,
+        primaryColor: '#3B82F6'
+      }
+    });
+  } catch (err) {
+    console.error('Error fetching company:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -186,13 +293,34 @@ router.post('/login', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { username, password } = req.body;
+    const { username, password, companyId } = req.body;
     const normalizedUsername = String(username).toLowerCase();
 
-    // Check if user exists by username
-    const user = await User.findOne({ username: normalizedUsername }).select('+password');
+    // Build query - if companyId provided, filter by it
+    const query = { username: normalizedUsername };
+    if (companyId) {
+      query.companyId = companyId;
+    }
+
+    // Check if user exists by username and companyId
+    const user = await User.findOne(query).select('+password');
     if (!user) {
       return res.status(400).json({ message: 'Invalid credentials' });
+    }
+
+    // Skip company validation for super admins
+    if (user.role !== 'superadmin') {
+      // Check if company exists and is active
+      const Company = require('../models/Company');
+      const company = await Company.findOne({ companyId: user.companyId });
+      
+      if (!company) {
+        return res.status(404).json({ message: 'Company not found. Please contact support.' });
+      }
+
+      if (company.status === 'paused') {
+        return res.status(403).json({ message: 'This company is currently paused. Please contact the super administrator.' });
+      }
     }
 
     // Check approval status first
@@ -223,7 +351,7 @@ router.post('/login', [
         id: user.id,
         role: user.role,
         username: user.username,
-
+        companyId: user.companyId
       }
     };
 
@@ -239,9 +367,10 @@ router.post('/login', [
             id: user.id,
             name: user.name,
             username: user.username,
-
             email: user.email,
+            phone: user.phone,
             role: user.role,
+            companyId: user.companyId,
             preferences: user.preferences
           }
         });
@@ -406,11 +535,30 @@ router.post('/register-user', requireManager, [
       return res.status(400).json({ message: 'Username already exists' });
     }
 
+    // Check if company has reached its user limit
+    const Company = require('../models/Company');
+    const company = await Company.findOne({ companyId: req.user.companyId });
+    
+    if (company) {
+      const currentUserCount = await User.countDocuments({ 
+        companyId: req.user.companyId,
+        status: { $ne: 'declined' }
+      });
+
+      const maxUsers = company.limits?.maxUsers || 50;
+      if (currentUserCount >= maxUsers) {
+        return res.status(403).json({ 
+          message: `Your company has reached its maximum user limit (${maxUsers} users). Please contact the super administrator to increase the limit.` 
+        });
+      }
+    }
+
     // Create new user
     user = new User({
       name,
       username: normalizedUsername,
       password,
+      email: undefined, // Explicitly set to undefined to avoid empty string
       role: role || 'user',
       status: 'approved',
       isActive: true,
@@ -418,6 +566,16 @@ router.post('/register-user', requireManager, [
     });
 
     await user.save();
+
+    // Send welcome email if user has email
+    if (user.email) {
+      try {
+        await emailService.sendWelcomeEmail(user);
+        console.log(`Welcome email sent to ${user.email}`);
+      } catch (emailError) {
+        console.error(`Error sending welcome email to ${user.email}:`, emailError.message);
+      }
+    }
 
     // Return user info without token (manager creates, user logs in separately)
     res.status(201).json({
@@ -449,7 +607,7 @@ router.get('/users', requireManager, async (req, res) => {
   try {
     const { role, isActive, search } = req.query;
 
-    let query = {};
+    let query = { role: { $ne: 'superadmin' } };
 
     // Apply filters
     if (role && role !== 'all') query.role = role;
@@ -523,6 +681,27 @@ router.put('/users/:id/approve', requireManager, async (req, res) => {
 
     if (user.status === 'approved') {
       return res.status(400).json({ message: 'User is already approved' });
+    }
+
+    // Check if company has reached its user limit (only if approving from pending status)
+    if (user.status === 'pending') {
+      const Company = require('../models/Company');
+      const company = await Company.findOne({ companyId: user.companyId });
+      
+      if (company) {
+        const currentUserCount = await User.countDocuments({ 
+          companyId: user.companyId,
+          status: 'approved',
+          isActive: true
+        });
+
+        const maxUsers = company.limits?.maxUsers || 50;
+        if (currentUserCount >= maxUsers) {
+          return res.status(403).json({ 
+            message: `Cannot approve user. Company has reached its maximum user limit (${maxUsers} users). Please contact the super administrator to increase the limit.` 
+          });
+        }
+      }
     }
 
     user.status = 'approved';
@@ -604,7 +783,7 @@ router.get('/admin/users', requireAdmin, async (req, res) => {
   try {
     const { role, isActive, search } = req.query;
 
-    let query = {};
+    let query = { role: { $ne: 'superadmin' } };
 
     // Apply filters
     if (role && role !== 'all') query.role = role;
@@ -641,6 +820,27 @@ router.put('/admin/users/:id/approve', requireAdmin, async (req, res) => {
 
     if (user.status === 'approved') {
       return res.status(400).json({ message: 'User is already approved' });
+    }
+
+    // Check if company has reached its user limit (only if approving from pending status)
+    if (user.status === 'pending') {
+      const Company = require('../models/Company');
+      const company = await Company.findOne({ companyId: user.companyId });
+      
+      if (company) {
+        const currentUserCount = await User.countDocuments({ 
+          companyId: user.companyId,
+          status: 'approved',
+          isActive: true
+        });
+
+        const maxUsers = company.limits?.maxUsers || 50;
+        if (currentUserCount >= maxUsers) {
+          return res.status(403).json({ 
+            message: `Cannot approve user. Company has reached its maximum user limit (${maxUsers} users). Please contact the super administrator to increase the limit.` 
+          });
+        }
+      }
     }
 
     user.status = 'approved';

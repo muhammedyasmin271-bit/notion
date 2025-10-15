@@ -57,6 +57,11 @@ const meetingNoteSchema = new mongoose.Schema({
     ref: 'User',
     required: [true, 'Meeting creator is required']
   },
+  companyId: {
+    type: String,
+    default: 'default',
+    index: true
+  },
   sharedWith: [{
     user: {
       type: mongoose.Schema.Types.ObjectId,

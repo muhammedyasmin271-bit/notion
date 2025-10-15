@@ -4,7 +4,12 @@ const Document = require('../models/Document');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 const auth = require('../middleware/auth');
+const { tenantFilter } = require('../middleware/tenantFilter');
 const { getVisibilityFilter } = require('../middleware/visibility');
+
+// Apply auth to all routes first, then tenant filtering
+router.use(auth);
+router.use(tenantFilter);
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -42,7 +47,7 @@ function isOwnerOrManager(req, document) {
 // @route   GET /api/documents
 // @desc    Get all documents for authenticated user
 // @access  Private
-router.get('/', auth, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { type, category, status, search, sortBy = 'updatedAt', sortOrder = 'desc' } = req.query;
     const userId = req.user.id;
@@ -51,6 +56,11 @@ router.get('/', auth, async (req, res) => {
     // Apply visibility filter based on role
     const visibilityFilter = getVisibilityFilter(userId, userRole);
     const andFilters = [{ deleted: false }, visibilityFilter];
+    
+    // Add company filter (skip for superadmin)
+    if (userRole !== 'superadmin') {
+      andFilters.push({ companyId: req.companyId });
+    }
 
     // Apply additional filters
     if (type && type !== 'all') andFilters.push({ type });
@@ -93,12 +103,16 @@ router.get('/', auth, async (req, res) => {
 // @route   GET /api/documents/trash/all
 // @desc    Get all deleted documents for user
 // @access  Private
-router.get('/trash/all', auth, async (req, res) => {
+router.get('/trash/all', async (req, res) => {
   try {
-    const deletedDocuments = await Document.find({
+    const query = {
       author: req.user.id,
       deleted: true
-    }).sort({ deletedAt: -1 });
+    };
+    if (req.user.role !== 'superadmin') {
+      query.companyId = req.companyId;
+    }
+    const deletedDocuments = await Document.find(query).sort({ deletedAt: -1 });
 
     res.json(deletedDocuments);
   } catch (error) {
@@ -110,7 +124,7 @@ router.get('/trash/all', auth, async (req, res) => {
 // @route   POST /api/documents/upload
 // @desc    Upload a file (for general use)
 // @access  Private
-router.post('/upload', auth, upload.single('file'), async (req, res) => {
+router.post('/upload', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: 'No file uploaded' });
@@ -136,7 +150,7 @@ router.post('/upload', auth, upload.single('file'), async (req, res) => {
 // @route   POST /api/documents/:id/attachments
 // @desc    Upload an attachment for a document
 // @access  Private
-router.post('/:id/attachments', auth, upload.single('file'), async (req, res) => {
+router.post('/:id/attachments', upload.single('file'), async (req, res) => {
   try {
     const document = await Document.findOne({ _id: req.params.id, deleted: false });
 
@@ -183,7 +197,7 @@ router.post('/:id/attachments', auth, upload.single('file'), async (req, res) =>
 // @route   GET /api/documents/:id
 // @desc    Get document by ID
 // @access  Private
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const document = await Document.findOne({ _id: req.params.id, deleted: false })
       .populate('author', 'name email')
@@ -218,7 +232,7 @@ router.get('/:id', auth, async (req, res) => {
 // @route   POST /api/documents
 // @desc    Create a new document with file upload and sharing
 // @access  Private
-router.post('/', auth, upload.single('file'), async (req, res) => {
+router.post('/', upload.single('file'), async (req, res) => {
   try {
     const { title, content, type, category, tags, isPublic, isTemplate, sendTo, forGroup } = req.body;
 
@@ -251,6 +265,7 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
       isPublic: isPublic || false,
       isTemplate: isTemplate || false,
       author: req.user.id,
+      companyId: req.companyId,
       attachments
     });
 
@@ -261,39 +276,59 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
     if (sendTo && sendTo !== '') {
       let usersToShareWith = [];
       
+      console.log('🔵 Document sharing - sendTo:', sendTo, 'CompanyId:', req.companyId);
+      
       // Only managers/admins can share with groups
       if (req.user.role === 'manager' || req.user.role === 'admin') {
+        const shareQuery = { isActive: true, _id: { $ne: req.user.id } };
+        // Filter by company (except superadmin)
+        if (req.user.role !== 'superadmin') {
+          shareQuery.companyId = req.companyId;
+        }
+        
         if (sendTo === 'all') {
-          usersToShareWith = await User.find({ isActive: true, _id: { $ne: req.user.id } });
+          usersToShareWith = await User.find(shareQuery);
         } else if (sendTo === 'managers') {
-          usersToShareWith = await User.find({ role: 'manager', isActive: true, _id: { $ne: req.user.id } });
+          usersToShareWith = await User.find({ ...shareQuery, role: 'manager' });
         } else if (sendTo === 'users') {
-          usersToShareWith = await User.find({ role: 'user', isActive: true, _id: { $ne: req.user.id } });
+          usersToShareWith = await User.find({ ...shareQuery, role: 'user' });
         } else if (sendTo === 'specific' && forGroup) {
           const userNames = forGroup.split(',').map(name => name.trim()).filter(name => name);
-          usersToShareWith = await User.find({
+          const specificQuery = {
             $or: [
               { name: { $in: userNames } },
               { username: { $in: userNames } }
             ],
             isActive: true,
             _id: { $ne: req.user.id }
-          });
+          };
+          // Add company filter
+          if (req.user.role !== 'superadmin') {
+            specificQuery.companyId = req.companyId;
+          }
+          usersToShareWith = await User.find(specificQuery);
         }
       } else {
-        // Regular users can only share with specific users
+        // Regular users can only share with specific users in their company
         if (forGroup) {
           const userNames = forGroup.split(',').map(name => name.trim()).filter(name => name);
-          usersToShareWith = await User.find({
+          const specificQuery = {
             $or: [
               { name: { $in: userNames } },
               { username: { $in: userNames } }
             ],
             isActive: true,
             _id: { $ne: req.user.id }
-          });
+          };
+          // Add company filter
+          if (req.user.role !== 'superadmin') {
+            specificQuery.companyId = req.companyId;
+          }
+          usersToShareWith = await User.find(specificQuery);
         }
       }
+      
+      console.log('✅ Sharing document with', usersToShareWith.length, 'users from company');
 
       // Add users to sharedWith and collaborators
       if (usersToShareWith.length > 0) {
@@ -496,7 +531,7 @@ router.patch('/:id/archive', auth, async (req, res) => {
 // @route   POST /api/documents/:id/collaborators
 // @desc    Add collaborator to document
 // @access  Private
-router.post('/:id/collaborators', auth, async (req, res) => {
+router.post('/:id/collaborators', async (req, res) => {
   try {
     const { userId, role = 'Viewer' } = req.body;
 
@@ -562,7 +597,7 @@ router.delete('/:id/collaborators/:collaboratorId', auth, async (req, res) => {
 // @route   POST /api/documents/:id/review
 // @desc    Add review to document
 // @access  Private
-router.post('/:id/review', auth, async (req, res) => {
+router.post('/:id/review', async (req, res) => {
   try {
     const { status, comments } = req.body;
 
@@ -608,7 +643,7 @@ router.post('/:id/review', auth, async (req, res) => {
 // @route   POST /api/documents/:id/share
 // @desc    Share document with specific user groups
 // @access  Private
-router.post('/:id/share', auth, async (req, res) => {
+router.post('/:id/share', async (req, res) => {
   try {
     const { shareType } = req.body; // 'all-managers', 'all-users', 'all'
 
@@ -629,13 +664,23 @@ router.post('/:id/share', auth, async (req, res) => {
 
     let usersToShareWith = [];
 
-    if (shareType === 'all-managers') {
-      usersToShareWith = await User.find({ role: 'manager', isActive: true });
-    } else if (shareType === 'all-users') {
-      usersToShareWith = await User.find({ role: 'user', isActive: true });
-    } else if (shareType === 'all') {
-      usersToShareWith = await User.find({ isActive: true });
+    const userQuery = { isActive: true };
+    if (req.user.role !== 'superadmin') {
+      userQuery.companyId = req.companyId;
     }
+    
+    console.log('🔵 Sharing document with shareType:', shareType);
+    console.log('🔵 User query for sharing:', JSON.stringify(userQuery));
+    
+    if (shareType === 'all-managers') {
+      usersToShareWith = await User.find({ ...userQuery, role: 'manager' });
+    } else if (shareType === 'all-users') {
+      usersToShareWith = await User.find({ ...userQuery, role: 'user' });
+    } else if (shareType === 'all') {
+      usersToShareWith = await User.find(userQuery);
+    }
+    
+    console.log('✅ Found users to share with:', usersToShareWith.length, 'users in company');
 
     // Add all users to sharedWith array
     const userIds = usersToShareWith.map(user => user._id);

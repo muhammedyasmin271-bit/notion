@@ -55,6 +55,11 @@ const noteSchema = new mongoose.Schema({
     ref: 'User',
     required: [true, 'Note author is required']
   },
+  companyId: {
+    type: String,
+    default: 'default',
+    index: true
+  },
   tags: [{
     type: String,
     trim: true

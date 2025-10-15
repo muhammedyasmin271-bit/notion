@@ -17,6 +17,11 @@ const goalSchema = new mongoose.Schema({
     ref: 'User',
     required: [true, 'Goal owner is required']
   },
+  companyId: {
+    type: String,
+    default: 'default',
+    index: true
+  },
   status: {
     type: String,
     enum: ['Not started', 'In progress', 'Done', 'On hold', 'Cancelled'],

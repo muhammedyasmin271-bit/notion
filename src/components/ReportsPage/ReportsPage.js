@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
+import { useAppContext } from '../../context/AppContext';
 import { FileText, BarChart3, Plus, Grid, LayoutList, Star, TrendingUp, Clock, Eye, CheckCircle, Calendar, Users, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const ReportsPage = () => {
   const { isDarkMode } = useTheme();
+  const { user } = useAppContext();
   const navigate = useNavigate();
   const [reports, setReports] = useState([]);
   const [sharedReports, setSharedReports] = useState([]);
@@ -116,7 +118,10 @@ const ReportsPage = () => {
               </div>
             </div>
             <button
-              onClick={() => navigate('/submit-report')}
+              onClick={() => {
+                const companyId = user?.companyId || 'melanote';
+                navigate(`/${companyId}/submit-report`);
+              }}
               className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg sm:rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2"
             >
               <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -241,7 +246,10 @@ const ReportsPage = () => {
               }
             </p>
             <button
-              onClick={() => navigate('/submit-report')}
+              onClick={() => {
+                const companyId = user?.companyId || 'melanote';
+                navigate(`/${companyId}/submit-report`);
+              }}
               className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg sm:rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
             >
               Create Your First Report
@@ -284,7 +292,10 @@ const ReportsPage = () => {
                       </div>
                     </div>
                   </div>
-                  <div onClick={() => navigate(`/submit-report?edit=${reportId}`)} className="cursor-pointer">
+                  <div onClick={() => {
+                    const companyId = user?.companyId || 'melanote';
+                    navigate(`/${companyId}/submit-report?edit=${reportId}`);
+                  }} className="cursor-pointer">
                   <h3 className={`text-base sm:text-lg font-bold mb-3 sm:mb-4 group-hover:text-blue-400 transition-colors line-clamp-2 ${
                     isDarkMode ? 'text-white' : 'text-gray-900'
                   }`}>{report.title}</h3>
@@ -309,7 +320,10 @@ const ReportsPage = () => {
                   </div>
                 </div>
               ) : (
-                <div key={reportId} onClick={() => navigate(`/submit-report?edit=${reportId}`)} className={`group flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 rounded-lg sm:rounded-xl border hover:border-blue-500/30 transition-all duration-200 cursor-pointer gap-3 sm:gap-4 ${
+                <div key={reportId} onClick={() => {
+                  const companyId = user?.companyId || 'melanote';
+                  navigate(`/${companyId}/submit-report?edit=${reportId}`);
+                }} className={`group flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 rounded-lg sm:rounded-xl border hover:border-blue-500/30 transition-all duration-200 cursor-pointer gap-3 sm:gap-4 ${
                   isDarkMode 
                     ? 'bg-gray-800/30 border-gray-700/50 hover:bg-gray-800/50' 
                     : 'bg-white border-gray-200 hover:bg-gray-50'

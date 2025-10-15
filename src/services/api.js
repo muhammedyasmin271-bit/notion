@@ -64,12 +64,17 @@ class ApiService {
     }
 
     // Authentication methods
-    async login(username, password) {
+    async login(username, password, companyId = null) {
         try {
             // First try server authentication
+            const body = { username, password };
+            if (companyId) {
+                body.companyId = companyId;
+            }
+            
             const response = await this.request('/auth/login', {
                 method: 'POST',
-                body: JSON.stringify({ username, password }),
+                body: JSON.stringify(body),
                 includeAuth: false,
             });
 

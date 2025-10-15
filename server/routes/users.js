@@ -2,8 +2,12 @@ const express = require('express');
 const { body, query, param, validationResult } = require('express-validator');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const { tenantFilter } = require('../middleware/tenantFilter');
 const rateLimit = require('express-rate-limit');
 const router = express.Router();
+
+// Apply tenant filtering to all routes
+router.use(tenantFilter);
 
 // Lightweight in-file cache with TTL (avoids external dependency)
 class SimpleCache {
@@ -106,15 +110,34 @@ router.post('/',
         }
       }
 
-      // Create new user
+      // Check if company has reached its user limit
+      const Company = require('../models/Company');
+      const company = await Company.findOne({ companyId: req.user.companyId });
+      
+      if (company) {
+        const currentUserCount = await User.countDocuments({ 
+          companyId: req.user.companyId,
+          status: { $ne: 'declined' }
+        });
+
+        const maxUsers = company.limits?.maxUsers || 50;
+        if (currentUserCount >= maxUsers) {
+          return res.status(403).json({ 
+            message: `Your company has reached its maximum user limit (${maxUsers} users). Please contact the super administrator to increase the limit.` 
+          });
+        }
+      }
+
+      // Create new user with companyId
       const user = new User({
         name,
         username: normalizedUsername,
         password,
-        email,
+        email: email || undefined, // Convert empty string to undefined
         role: role || 'user',
         phone,
         department,
+        companyId: req.user.companyId,
         createdBy: req.user.id
       });
 
@@ -176,16 +199,25 @@ router.get('/',
 
       const { role, isActive, search } = req.query;
       const page = Number(req.query.page) || 1;
-      const limit = Math.min(Number(req.query.limit) || 10, 100);
-      const cacheKey = `users_${role}_${isActive}_${search}_${page}_${limit}`;
+      const limit = Math.min(Number(req.query.limit) || 100, 100);
+      const cacheKey = `users_${role}_${isActive}_${search}_${page}_${limit}_${req.user.companyId}`;
 
-      // Check cache
-      const cachedUsers = cache.get(cacheKey);
-      if (cachedUsers) {
-        return res.json(cachedUsers);
+      // Disable cache for now to ensure fresh data
+      // const cachedUsers = cache.get(cacheKey);
+      // if (cachedUsers) {
+      //   return res.json(cachedUsers);
+      // }
+
+      let query = { role: { $ne: 'superadmin' }, status: { $ne: 'declined' } };
+      
+      // Add company filter (skip for superadmin)
+      if (req.user.role !== 'superadmin') {
+        query.companyId = req.user.companyId;
       }
-
-      let query = {};
+      
+      console.log('GET /api/users - Query:', JSON.stringify(query));
+      console.log('GET /api/users - User role:', req.user.role);
+      console.log('GET /api/users - CompanyId:', req.user.companyId);
 
       // Apply filters
       if (role && role !== 'all') query.role = role;
@@ -205,6 +237,12 @@ router.get('/',
         .lean();
 
       const total = await User.countDocuments(query);
+      
+      console.log('GET /api/users - Found users:', users.length);
+      console.log('GET /api/users - Total count:', total);
+      if (users.length > 0) {
+        console.log('GET /api/users - First user:', JSON.stringify(users[0]));
+      }
 
       const response = {
         users,
@@ -216,8 +254,8 @@ router.get('/',
         }
       };
 
-      // Cache the response
-      cache.set(cacheKey, response);
+      // Disable cache for now
+      // cache.set(cacheKey, response);
 
       res.json(response);
     } catch (err) {
@@ -499,6 +537,27 @@ router.put('/:id/approve',
       if (!user) return res.status(404).json({ message: 'User not found' });
       if (user._id.toString() === req.user.id) {
         return res.status(400).json({ message: 'Cannot approve own account' });
+      }
+
+      // Check if company has reached its user limit (only if approving from pending status)
+      if (user.status === 'pending') {
+        const Company = require('../models/Company');
+        const company = await Company.findOne({ companyId: user.companyId });
+        
+        if (company) {
+          const currentUserCount = await User.countDocuments({ 
+            companyId: user.companyId,
+            status: 'approved', // Only count approved users
+            isActive: true
+          });
+
+          const maxUsers = company.limits?.maxUsers || 50;
+          if (currentUserCount >= maxUsers) {
+            return res.status(403).json({ 
+              message: `Cannot approve user. Company has reached its maximum user limit (${maxUsers} users). Please contact the super administrator to increase the limit.` 
+            });
+          }
+        }
       }
 
       user.status = 'approved';
@@ -882,8 +941,12 @@ router.get('/team-members',
   auth,
   async (req, res) => {
     try {
-      // Use same query as main users endpoint
-      const users = await User.find({})
+      // Use same query as main users endpoint, exclude superadmin
+      const query = { role: { $ne: 'superadmin' } };
+      if (req.user.role !== 'superadmin') {
+        query.companyId = req.user.companyId;
+      }
+      const users = await User.find(query)
         .select('-password')
         .sort({ createdAt: -1 })
         .lean();

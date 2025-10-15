@@ -44,9 +44,11 @@ const WelcomePage = () => {
           }`}>
             <div className="mx-auto mb-6">
               <img 
-                src="/darul-kubra-logo.png" 
-                alt="Darul Kubra Logo" 
-                className="w-24 h-24 mx-auto object-contain"
+                src="/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png" 
+                alt="Mela Note Logo" 
+                className={`w-24 h-24 mx-auto object-contain transition-all duration-300 ${
+                  isDarkMode ? 'filter brightness-0 invert' : ''
+                }`}
               />
             </div>
             <h1 className={`text-5xl font-black mb-4 ${

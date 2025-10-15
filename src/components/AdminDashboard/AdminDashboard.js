@@ -7,7 +7,7 @@ import {
   Download, Upload, RefreshCw, AlertTriangle,
   Activity, Database, Server, Zap, PieChart,
   BarChart, LineChart, MapPin, Mail, Phone,
-  Lock, Unlock, Ban, Award, Target, CalendarDays
+  Lock, Unlock, Ban, Award, Target, CalendarDays, DollarSign
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAppContext } from '../../context/AppContext';
@@ -272,16 +272,10 @@ const AdminDashboard = () => {
         <div className="max-w-7xl mx-auto">
           <div className="mb-6 sm:mb-8">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
-              <div className="flex items-center min-w-0 flex-1">
-                <Shield className="w-6 h-6 sm:w-8 sm:h-8 mr-2 sm:mr-3 text-blue-500 flex-shrink-0" />
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold truncate">Admin Dashboard</h1>
-              </div>
-              <button
-                onClick={() => navigate('/admin/settings')}
-                className="px-3 py-2 text-sm bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 flex-shrink-0"
-              >
-                Settings
-              </button>
+            <div className="flex items-center min-w-0 flex-1">
+              <Shield className="w-6 h-6 sm:w-8 sm:h-8 mr-2 sm:mr-3 text-blue-500 flex-shrink-0" />
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold truncate">Admin Dashboard</h1>
+            </div>
             </div>
             <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} text-sm sm:text-base`}>Welcome back, {user?.name || 'Admin'}.</p>
           </div>
@@ -500,27 +494,13 @@ const AdminDashboard = () => {
           </div>
 
           {/* Additional Admin Tools */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+          <div className="grid grid-cols-1 gap-4 sm:gap-6 mb-6 sm:mb-8 max-w-md">
             <button
-              onClick={() => navigate('/admin/settings')}
+              onClick={() => navigate('/admin/payments')}
               className={`p-6 rounded-2xl shadow-lg flex flex-col items-center justify-center transition-transform hover:scale-105 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
             >
-              <Settings className="w-8 h-8 text-blue-500 mb-3" />
-              <span className="font-medium">System Settings</span>
-            </button>
-            <button
-              onClick={() => navigate('/admin/audit-log')}
-              className={`p-6 rounded-2xl shadow-lg flex flex-col items-center justify-center transition-transform hover:scale-105 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
-            >
-              <FileText className="w-8 h-8 text-green-500 mb-3" />
-              <span className="font-medium">Audit Log</span>
-            </button>
-            <button
-              onClick={() => navigate('/admin/security')}
-              className={`p-6 rounded-2xl shadow-lg flex flex-col items-center justify-center transition-transform hover:scale-105 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
-            >
-              <Shield className="w-8 h-8 text-purple-500 mb-3" />
-              <span className="font-medium">Security Center</span>
+              <DollarSign className="w-8 h-8 text-green-500 mb-3" />
+              <span className="font-medium">Payment</span>
             </button>
           </div>
 

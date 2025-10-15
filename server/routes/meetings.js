@@ -2,18 +2,29 @@ const express = require('express');
 const router = express.Router();
 const MeetingNote = require('../models/MeetingNote');
 const auth = require('../middleware/auth');
+const { tenantFilter } = require('../middleware/tenantFilter');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
+const emailService = require('../services/emailService');
+const { sendNotificationSMS } = require('../services/smsService');
+
+// Apply auth to all routes first, then tenant filtering
+router.use(auth);
+router.use(tenantFilter);
 
 // @route   GET /api/meetings/stats
 // @desc    Get meeting statistics for dashboard cards
 // @access  Private
-router.get('/stats', auth, async (req, res) => {
+router.get('/stats', async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Get all meetings for user
-    const allMeetings = await MeetingNote.find({ createdBy: userId, deleted: false });
+    // Get all meetings for user in their company
+    const allMeetings = await MeetingNote.find({ 
+      createdBy: userId, 
+      deleted: false,
+      companyId: req.companyId 
+    });
 
     // Calculate statistics
     const totalMeetings = allMeetings.length;
@@ -55,7 +66,7 @@ router.get('/stats', auth, async (req, res) => {
 // @route   GET /api/meetings
 // @desc    Get all meeting notes for authenticated user (created by user or shared with user)
 // @access  Private
-router.get('/', auth, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { status, type, search, sortBy = 'date', sortOrder = 'desc' } = req.query;
     const userId = req.user.id;
@@ -108,6 +119,11 @@ router.get('/', auth, async (req, res) => {
       sort.createdAt = sortOrder === 'asc' ? 1 : -1;
     }
 
+    // Add company filter
+    if (req.user.role !== 'superadmin') {
+      query.companyId = req.companyId;
+    }
+    
     const meetings = await MeetingNote.find(query)
       .sort(sort)
       .populate('createdBy', 'name email')
@@ -124,7 +140,7 @@ router.get('/', auth, async (req, res) => {
 // @route   GET /api/meetings/:id
 // @desc    Get meeting note by ID
 // @access  Private
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const meeting = await MeetingNote.findOne({ _id: req.params.id, deleted: false })
       .populate('createdBy', 'name email')
@@ -173,7 +189,7 @@ router.get('/:id', auth, async (req, res) => {
 // @route   POST /api/meetings
 // @desc    Create a new meeting note
 // @access  Private
-router.post('/', auth, async (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const {
       title, type, date, time, duration, attendees, notes,
@@ -191,15 +207,21 @@ router.post('/', auth, async (req, res) => {
     let sharedWithUsers = [];
     if (attendees && attendees.length > 0) {
       try {
-        // Find users by name or username to handle both cases
-        const users = await User.find({
+        // Find users by name or username - ONLY from same company
+        const userQuery = {
           $or: [
             { name: { $in: attendees } },
             { username: { $in: attendees } }
           ],
           isActive: true,
           _id: { $ne: req.user.id }
-        }).select('_id name username');
+        };
+        // Add company filter
+        if (req.user.role !== 'superadmin') {
+          userQuery.companyId = req.companyId;
+        }
+        
+        const users = await User.find(userQuery).select('_id name username');
 
         sharedWithUsers = users.map(user => ({
           user: user._id,
@@ -207,7 +229,7 @@ router.post('/', auth, async (req, res) => {
           sharedAt: new Date()
         }));
 
-        console.log('Found users for sharing:', users.map(u => ({ id: u._id, name: u.name, username: u.username })));
+        console.log('✅ Found users for sharing in company:', users.map(u => ({ id: u._id, name: u.name, username: u.username })));
       } catch (err) {
         console.error('Error finding users for sharing:', err);
       }
@@ -224,6 +246,7 @@ router.post('/', auth, async (req, res) => {
       actionItems: actionItems || [],
       summary: summary || '',
       location: location || '',
+      companyId: req.companyId,
       meetingLink: meetingLink || '',
       agenda: agenda || [],
       blocks: blocks || [],
@@ -236,9 +259,16 @@ router.post('/', auth, async (req, res) => {
     const meeting = await newMeeting.save();
     await meeting.populate('createdBy', 'name email');
 
-    // Notify all managers and users
+    // Notify all managers and users IN THE SAME COMPANY
     try {
-      const recipients = await User.find({ role: { $in: ['manager', 'user'] }, isActive: true }).select('_id');
+      const recipientQuery = { role: { $in: ['manager', 'user'] }, isActive: true };
+      // Filter by company
+      if (req.user.role !== 'superadmin') {
+        recipientQuery.companyId = req.companyId;
+      }
+      
+      const recipients = await User.find(recipientQuery).select('_id phone preferences');
+      console.log('🔵 Notifying users in company:', recipients.length);
       const notifications = recipients.map(r => ({
         recipient: r._id,
         sender: req.user.id,
@@ -251,9 +281,87 @@ router.post('/', auth, async (req, res) => {
       }));
       if (notifications.length > 0) {
         await Notification.insertMany(notifications);
+        
+        // Send SMS notifications to users with SMS enabled
+        for (const recipient of recipients) {
+          if (recipient.phone && recipient.preferences?.notifications?.sms === true) {
+            const smsNotification = {
+              title: 'New Meeting Scheduled',
+              message: `${title}\nDate: ${new Date(date).toLocaleDateString()}\nTime: ${time}`
+            };
+            await sendNotificationSMS(recipient, smsNotification);
+          }
+        }
       }
     } catch (notifyErr) {
       console.error('Error creating meeting notifications:', notifyErr);
+    }
+
+    // Send email and SMS notifications to attendees
+    try {
+      if (sharedWithUsers && sharedWithUsers.length > 0) {
+        const attendeeIds = sharedWithUsers.map(u => u.user);
+        const attendeeUsers = await User.find({
+          _id: { $in: attendeeIds }
+        }).select('name email phone preferences');
+
+        for (const user of attendeeUsers) {
+          // Send email notification
+          if (user.email && user.preferences?.notifications?.email !== false) {
+            await emailService.sendMeetingInvitationEmail(user, {
+              title: meeting.title,
+              date: meeting.date,
+              time: meeting.time,
+              agenda: Array.isArray(meeting.agenda) && meeting.agenda.length > 0 
+                ? meeting.agenda.map(a => a.topic || a).join(', ') 
+                : meeting.notes || 'No agenda provided'
+            }, req.user);
+          }
+          
+          // Send SMS notification
+          if (user.phone && user.preferences?.notifications?.sms === true) {
+            const smsNotification = {
+              title: `Meeting Invitation: ${meeting.title}`,
+              message: `Date: ${new Date(meeting.date).toLocaleDateString()}\nTime: ${meeting.time}\nDuration: ${meeting.duration} minutes`
+            };
+            await sendNotificationSMS(user, smsNotification);
+          }
+        }
+      }
+
+      // Also notify all managers
+      const managers = await User.find({
+        role: { $in: ['manager', 'admin'] },
+        emailNotifications: true,
+        _id: { $ne: req.user.id }
+      }).select('name email');
+
+      for (const manager of managers) {
+        if (manager.email) {
+          await emailService.sendEmail({
+            to: manager.email,
+            subject: `New Meeting Scheduled: ${meeting.title}`,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #667eea;">📅 New Meeting Scheduled</h2>
+                <p>Hello ${manager.name},</p>
+                <p><strong>${req.user.name}</strong> scheduled a new meeting:</p>
+                <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                  <h3 style="margin-top: 0; color: #333;">${meeting.title}</h3>
+                  <p><strong>Date:</strong> ${new Date(meeting.date).toLocaleDateString()}</p>
+                  <p><strong>Time:</strong> ${meeting.time}</p>
+                  <p><strong>Duration:</strong> ${meeting.duration} minutes</p>
+                  ${meeting.location ? `<p><strong>Location:</strong> ${meeting.location}</p>` : ''}
+                  ${attendees && attendees.length > 0 ? `<p><strong>Attendees:</strong> ${attendees.join(', ')}</p>` : ''}
+                </div>
+                <p>Best regards,<br>Notion App Team</p>
+              </div>
+            `
+          });
+        }
+      }
+    } catch (emailError) {
+      console.error('Error sending meeting email notifications:', emailError.message);
     }
 
     res.status(201).json(meeting);
@@ -266,7 +374,7 @@ router.post('/', auth, async (req, res) => {
 // @route   PUT /api/meetings/:id
 // @desc    Update a meeting note
 // @access  Private
-router.put('/:id', auth, async (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     const meeting = await MeetingNote.findOne({ _id: req.params.id, deleted: false });
 
@@ -328,7 +436,7 @@ router.put('/:id', auth, async (req, res) => {
 // @route   DELETE /api/meetings/:id
 // @desc    Soft delete a meeting note (move to trash)
 // @access  Private
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
     const meeting = await MeetingNote.findOne({ _id: req.params.id, deleted: false });
 
@@ -359,7 +467,7 @@ router.delete('/:id', auth, async (req, res) => {
 // @route   PATCH /api/meetings/:id/restore
 // @desc    Restore a deleted meeting note
 // @access  Private
-router.patch('/:id/restore', auth, async (req, res) => {
+router.patch('/:id/restore', async (req, res) => {
   try {
     const meeting = await MeetingNote.findOne({ _id: req.params.id, deleted: true });
 
@@ -391,7 +499,7 @@ router.patch('/:id/restore', auth, async (req, res) => {
 // @route   PATCH /api/meetings/:id/complete
 // @desc    Mark meeting as complete
 // @access  Private
-router.patch('/:id/complete', auth, async (req, res) => {
+router.patch('/:id/complete', async (req, res) => {
   try {
     const meeting = await MeetingNote.findOne({ _id: req.params.id, deleted: false });
 
@@ -420,7 +528,7 @@ router.patch('/:id/complete', auth, async (req, res) => {
 // @route   POST /api/meetings/:id/action-items
 // @desc    Add action item to meeting
 // @access  Private
-router.post('/:id/action-items', auth, async (req, res) => {
+router.post('/:id/action-items', async (req, res) => {
   try {
     const { description, assignee, dueDate } = req.body;
 
@@ -461,7 +569,7 @@ router.post('/:id/action-items', auth, async (req, res) => {
 // @route   PATCH /api/meetings/:id/action-items/:actionItemId/complete
 // @desc    Mark action item as complete
 // @access  Private
-router.patch('/:id/action-items/:actionItemId/complete', auth, async (req, res) => {
+router.patch('/:id/action-items/:actionItemId/complete', async (req, res) => {
   try {
     const meeting = await MeetingNote.findOne({ _id: req.params.id, deleted: false });
 
@@ -490,11 +598,12 @@ router.patch('/:id/action-items/:actionItemId/complete', auth, async (req, res) 
 // @route   GET /api/meetings/trash/all
 // @desc    Get all deleted meeting notes for user
 // @access  Private
-router.get('/trash/all', auth, async (req, res) => {
+router.get('/trash/all', async (req, res) => {
   try {
     const deletedMeetings = await MeetingNote.find({
       createdBy: req.user.id,
-      deleted: true
+      deleted: true,
+      companyId: req.companyId
     }).sort({ deletedAt: -1 });
 
     res.json(deletedMeetings);
@@ -507,7 +616,7 @@ router.get('/trash/all', auth, async (req, res) => {
 // @route   DELETE /api/meetings/trash/:id
 // @desc    Permanently delete a meeting note from trash
 // @access  Private
-router.delete('/trash/:id', auth, async (req, res) => {
+router.delete('/trash/:id', async (req, res) => {
   try {
     const meeting = await MeetingNote.findOne({ _id: req.params.id, deleted: true });
 

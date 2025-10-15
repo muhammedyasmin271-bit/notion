@@ -1,14 +1,19 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
+const { tenantFilter } = require('../middleware/tenantFilter');
 const Report = require('../models/Report');
 const User = require('../models/User');
 const SharedReport = require('../models/SharedReport');
 
+// Apply auth to all routes first, then tenant filtering
+router.use(auth);
+router.use(tenantFilter);
+
 // @route   POST /api/reports
 // @desc    Create or update report
 // @access  Private
-router.post('/', auth, async (req, res) => {
+router.post('/', async (req, res) => {
   try {
     console.log('📝 Report submission request:', {
       user: req.user.id,
@@ -132,12 +137,14 @@ router.post('/', auth, async (req, res) => {
         tableData: tableData || {},
         attachments: attachments || [],
         owner: req.user.id,
+        companyId: req.companyId,
         sharedWith: Array.isArray(sharedWith) ? sharedWith : [],
         status: 'submitted'
       };
       
       console.log('🆕 Creating new report with data:', {
         title: reportData.title,
+        companyId: reportData.companyId,
         sharedWithCount: reportData.sharedWith.length,
         sharedWith: reportData.sharedWith
       });
@@ -200,9 +207,14 @@ router.post('/', auth, async (req, res) => {
 // @route   GET /api/reports
 // @desc    Get user's reports
 // @access  Private
-router.get('/', auth, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const reports = await Report.find({ owner: req.user.id })
+    const query = { owner: req.user.id };
+    if (req.user.role !== 'superadmin') {
+      query.companyId = req.companyId;
+    }
+    
+    const reports = await Report.find(query)
       .populate('sharedWith', 'name email')
       .sort({ createdAt: -1 });
     
@@ -221,9 +233,9 @@ router.get('/', auth, async (req, res) => {
 });
 
 // @route   GET /api/reports/shared/with-me
-// @desc    Get reports shared with current user
+// @desc    Get reports shared with current user (NOT owned by them)
 // @access  Private
-router.get('/shared/with-me', auth, async (req, res) => {
+router.get('/shared/with-me', async (req, res) => {
   try {
     let query;
     
@@ -231,17 +243,31 @@ router.get('/shared/with-me', auth, async (req, res) => {
     const currentUser = await User.findById(req.user.id).select('role');
     
     if (currentUser.role === 'admin') {
-      // Admins can see all reports that have been shared with anyone
+      // Admins can see all reports that have been shared with anyone IN THEIR COMPANY
       query = { 
         $and: [
           { sharedWith: { $exists: true, $ne: [] } }, // Has shared users
           { owner: { $ne: req.user.id } } // Not owned by admin
         ]
       };
+      // Add company filter
+      if (req.user.role !== 'superadmin') {
+        query.$and.push({ companyId: req.companyId });
+      }
     } else {
-      // Regular users and managers only see reports shared with them
-      query = { sharedWith: req.user.id };
+      // Regular users and managers only see reports shared with them (NOT owned by them)
+      query = { 
+        $and: [
+          { sharedWith: req.user.id },
+          { owner: { $ne: req.user.id } }
+        ]
+      };
+      if (req.user.role !== 'superadmin') {
+        query.$and.push({ companyId: req.companyId });
+      }
     }
+    
+    console.log('🔵 Fetching shared reports with query:', JSON.stringify(query));
     
     const reports = await Report.find(query)
       .populate('owner', 'name email')
@@ -265,7 +291,7 @@ router.get('/shared/with-me', auth, async (req, res) => {
 // @route   DELETE /api/reports/:id
 // @desc    Delete report permanently from database
 // @access  Private
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
     console.log('🗑️ Delete report request:', {
       reportId: req.params.id,
@@ -312,7 +338,7 @@ router.delete('/:id', auth, async (req, res) => {
 // @route   GET /api/reports/:id
 // @desc    Get single report
 // @access  Private
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     console.log('📖 Fetching report:', req.params.id, 'for user:', req.user.id);
     
@@ -364,7 +390,7 @@ router.get('/:id', auth, async (req, res) => {
 // @route   POST /api/reports/:id/share
 // @desc    Share report with users
 // @access  Private
-router.post('/:id/share', auth, async (req, res) => {
+router.post('/:id/share', async (req, res) => {
   try {
     const { userIds } = req.body;
     
@@ -381,11 +407,18 @@ router.post('/:id/share', auth, async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to share this report' });
     }
 
-    // Validate that all user IDs exist
-    const validUsers = await User.find({ _id: { $in: userIds } }).select('_id name');
-    if (validUsers.length !== userIds.length) {
-      return res.status(400).json({ message: 'Some user IDs are invalid' });
+    // Validate that all user IDs exist IN THE SAME COMPANY
+    const userQuery = { _id: { $in: userIds } };
+    if (req.user.role !== 'superadmin') {
+      userQuery.companyId = req.companyId;
     }
+    
+    const validUsers = await User.find(userQuery).select('_id name');
+    if (validUsers.length !== userIds.length) {
+      return res.status(400).json({ message: 'Some users do not exist in your company' });
+    }
+    
+    console.log('✅ Sharing report with', validUsers.length, 'users from company');
 
     // Add users to sharedWith array (avoid duplicates)
     const currentSharedIds = report.sharedWith.map(id => id.toString());

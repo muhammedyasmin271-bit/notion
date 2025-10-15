@@ -26,10 +26,20 @@ const TaskSchema = new mongoose.Schema({
     type: Date,
     validate: {
       validator: function(v) {
-        // Allow null/undefined or a valid date in the future
-        return !v || (v instanceof Date && v > new Date());
+        if (!v) return true; // Allow null/undefined
+        
+        // Get today's date at midnight
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        // Get the due date at midnight
+        const dueDate = new Date(v);
+        dueDate.setHours(0, 0, 0, 0);
+        
+        // Allow today or future dates
+        return dueDate >= today;
       },
-      message: 'Due date must be in the future'
+      message: 'Due date cannot be in the past'
     }
   },
   comments: [{
@@ -53,6 +63,11 @@ const TaskSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: [true, 'Task creator is required'],
+    index: true
+  },
+  companyId: {
+    type: String,
+    default: 'default',
     index: true
   },
   projectId: {

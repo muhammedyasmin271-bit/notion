@@ -3,12 +3,17 @@ const router = express.Router();
 const Note = require('../models/Note');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const { tenantFilter } = require('../middleware/tenantFilter');
 const Notification = require('../models/Notification');
+
+// Apply auth to all routes first, then tenant filtering
+router.use(auth);
+router.use(tenantFilter);
 
 // @route   GET /api/notepad
 // @desc    Get all notes for authenticated user
 // @access  Private
-router.get('/', auth, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { category, search, isPinned, isArchived, sortBy = 'updatedAt', sortOrder = 'desc' } = req.query;
 
@@ -20,6 +25,11 @@ router.get('/', auth, async (req, res) => {
       ],
       deleted: false
     };
+    
+    // Add company filter (skip for superadmin)
+    if (req.user.role !== 'superadmin') {
+      query.companyId = req.companyId;
+    }
 
     if (category && category !== 'all') query.category = category;
     if (isPinned !== undefined) query.isPinned = isPinned === 'true';
@@ -78,17 +88,21 @@ router.get('/', auth, async (req, res) => {
 // @route   GET /api/notepad/users
 // @desc    Get all users for sharing (managers and admins only)
 // @access  Private
-router.get('/users', auth, async (req, res) => {
+router.get('/users', async (req, res) => {
   try {
     // Check if user is manager or admin
     if (req.user.role !== 'manager' && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Only managers and admins can access user list for sharing' });
     }
 
-    const users = await User.find({ 
+    const userQuery = { 
       isActive: true, 
       _id: { $ne: req.user.id } 
-    }).select('name username email').lean();
+    };
+    if (req.user.role !== 'superadmin') {
+      userQuery.companyId = req.companyId;
+    }
+    const users = await User.find(userQuery).select('name username email').lean();
     
     const usersWithFallback = users.map(user => ({
       ...user,
@@ -105,7 +119,7 @@ router.get('/users', auth, async (req, res) => {
 // @route   POST /api/notepad/:id/share
 // @desc    Share a note with users (managers and admins only)
 // @access  Private
-router.post('/:id/share', auth, async (req, res) => {
+router.post('/:id/share', async (req, res) => {
   try {
     // Check if user is manager or admin
     if (req.user.role !== 'manager' && req.user.role !== 'admin') {
@@ -130,26 +144,49 @@ router.post('/:id/share', auth, async (req, res) => {
     // Handle both userIds and usernames
     let validUserIds = [];
     
+    console.log('🔵 Sharing note with userIds:', userIds);
+    console.log('🔵 CompanyId:', req.companyId);
+    
     for (const identifier of userIds) {
       // Check if it's already a valid ObjectId
       if (identifier.match(/^[0-9a-fA-F]{24}$/)) {
-        validUserIds.push(identifier);
+        // Verify user exists and is in same company
+        const userQuery = { _id: identifier, isActive: true };
+        if (req.user.role !== 'superadmin') {
+          userQuery.companyId = req.companyId;
+        }
+        const user = await User.findOne(userQuery).select('_id');
+        if (user) {
+          validUserIds.push(identifier);
+        } else {
+          console.warn('⚠️ User not found or not in same company:', identifier);
+        }
       } else {
-        // Try to find user by username, name, or email
-        const user = await User.findOne({
+        // Try to find user by username, name, or email - ONLY in same company
+        const userQuery = {
           $or: [
             { username: identifier },
             { name: identifier },
             { email: identifier }
           ],
           isActive: true
-        }).select('_id');
+        };
+        // Add company filter
+        if (req.user.role !== 'superadmin') {
+          userQuery.companyId = req.companyId;
+        }
+        
+        const user = await User.findOne(userQuery).select('_id');
         
         if (user) {
           validUserIds.push(user._id.toString());
+        } else {
+          console.warn('⚠️ User not found in company:', identifier);
         }
       }
     }
+    
+    console.log('✅ Valid users to share with:', validUserIds.length);
 
     if (validUserIds.length === 0) {
       return res.status(400).json({ message: 'No valid users found to share with' });
@@ -168,6 +205,35 @@ router.post('/:id/share', auth, async (req, res) => {
     note.sharedWith.push(...newShares);
     await note.save();
     
+    // Create notifications for each newly shared user
+    const noteAuthor = await User.findById(req.user.id).select('name username');
+    const authorName = noteAuthor?.name || noteAuthor?.username || 'Someone';
+    
+    for (const userId of newUserIds) {
+      try {
+        const notification = new Notification({
+          recipient: userId,
+          sender: req.user.id,
+          type: 'note',
+          priority: 'normal',
+          title: 'Note Shared With You',
+          message: `${authorName} shared a note "${note.title}" with you`,
+          entityType: 'Note',
+          entityId: note._id,
+          metadata: {
+            noteTitle: note.title,
+            noteId: note._id,
+            sharedBy: req.user.id,
+            sharedByName: authorName
+          }
+        });
+        await notification.save();
+        console.log(`✅ Notification created for user ${userId}`);
+      } catch (notifError) {
+        console.error(`❌ Failed to create notification for user ${userId}:`, notifError);
+      }
+    }
+    
     res.json({ 
       success: true,
       message: `Note shared with ${newShares.length} user(s)`
@@ -181,7 +247,7 @@ router.post('/:id/share', auth, async (req, res) => {
 // @route   GET /api/notepad/:id
 // @desc    Get note by ID
 // @access  Private
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const note = await Note.findOne({ _id: req.params.id, deleted: false })
       .populate('author', 'name email username')
@@ -222,7 +288,7 @@ router.get('/:id', auth, async (req, res) => {
 // @route   POST /api/notepad
 // @desc    Create a new note
 // @access  Private
-router.post('/', auth, async (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { title, content, blocks, category, tags, isPublic } = req.body;
 
@@ -241,7 +307,8 @@ router.post('/', auth, async (req, res) => {
       category: category || 'General',
       tags: tags || [],
       isPublic: isPublic || false,
-      author: req.user.id
+      author: req.user.id,
+      companyId: req.companyId
     });
 
     const note = await newNote.save();
@@ -267,7 +334,7 @@ router.post('/', auth, async (req, res) => {
 // @route   PUT /api/notepad/:id
 // @desc    Update a note
 // @access  Private
-router.put('/:id', auth, async (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     const { title, content, blocks, category, tags, isPublic, sharedWith } = req.body;
 
@@ -329,7 +396,7 @@ router.put('/:id', auth, async (req, res) => {
 // @route   DELETE /api/notepad/:id
 // @desc    Soft delete a note
 // @access  Private
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
     const note = await Note.findOne({ _id: req.params.id, deleted: false });
     

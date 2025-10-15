@@ -18,6 +18,7 @@ const ShareReportSection = ({ reportData, selectedUsers, setSelectedUsers }) => 
           return;
         }
 
+        // Use /api/users which is already filtered by companyId
         const response = await fetch('http://localhost:9000/api/users', {
           method: 'GET',
           headers: {
@@ -28,11 +29,11 @@ const ShareReportSection = ({ reportData, selectedUsers, setSelectedUsers }) => 
         
         if (response.ok) {
           const data = await response.json();
-          console.log('👥 Received users data:', data);
+          console.log('👥 Received users data (company filtered):', data);
           // Filter out current user
           const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-          const teamMembers = (data.users || []).filter(user => user._id !== currentUser.id);
-          console.log('📝 Team members count:', teamMembers.length);
+          const teamMembers = (data.users || data).filter(user => user._id !== currentUser.id);
+          console.log('✅ Team members in company:', teamMembers.length);
           setUsers(teamMembers);
         } else {
           console.error('Failed to fetch users:', response.status, response.statusText);

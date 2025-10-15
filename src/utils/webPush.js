@@ -24,15 +24,18 @@ export const requestNotificationPermission = async () => {
     console.log('This browser does not support notifications');
     return false;
   }
-
+  
   if (Notification.permission === 'granted') {
     return true;
   }
-
-  if (Notification.permission !== 'denied') {
-    const permission = await Notification.requestPermission();
-    return permission === 'granted';
-  }
+  
+  
+  
+  const permission = await Notification.requestPermission();
+  console.log('Notification permission:', permission);
+  return permission === 'granted';
+  // if (Notification.permission !== 'denied') {
+  // }
 
   return false;
 };

@@ -2,6 +2,10 @@ const express = require('express');
 const router = express.Router();
 const Task = require('../models/Task');
 const auth = require('../middleware/auth');
+const { tenantFilter } = require('../middleware/tenantFilter');
+
+// Apply tenant filtering to all routes
+router.use(tenantFilter);
 
 // Get all tasks (DISABLED - tasks are project-specific)
 router.get('/', auth, async (req, res) => {
