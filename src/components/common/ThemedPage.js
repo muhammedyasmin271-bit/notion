@@ -10,11 +10,11 @@ const ThemedPage = ({ children, className = '', gradient = true }) => {
 
   const backgroundClasses = gradient
     ? isDarkMode
-      ? 'bg-gradient-to-br from-slate-900 via-gray-900 to-black'
-      : 'bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50'
+      ? 'bg-black'
+      : 'bg-white'
     : isDarkMode
       ? 'bg-black'
-      : 'bg-gray-50';
+      : 'bg-white';
 
   return (
     <div className={`${baseClasses} ${backgroundClasses} ${className}`}>

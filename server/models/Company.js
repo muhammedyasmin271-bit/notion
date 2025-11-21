@@ -23,6 +23,16 @@ const companySchema = new mongoose.Schema({
     currency: { type: String, default: 'ETB' }
   },
   companyLink: String,
+  selectedPlan: { type: String, enum: ['free_trial', 'one_month', 'three_month', 'six_month'], default: 'free_trial' },
+  pricePerUserPerMonth: { type: Number, default: 1 }, // Price per user per month in ETB
+  hasPaid: { type: Boolean, default: false }, // Whether company has paid
+  paymentMode: { type: String, enum: ['paid', 'free'], default: 'paid' }, // 'paid' = needs payment, 'free' = no payment required
+  pausedAt: Date, // When company was paused
+  unpausedAt: Date, // When company was unpaused (gives another 24 hours)
+  paymentDeadline: Date, // Deadline for payment (24 hours for paid plans, 7 days for free trial)
+  gracePeriodDeadline: Date, // Grace period deadline (7 days after payment deadline for paid plans)
+  lastPaymentDate: Date, // Date of last approved payment
+  paymentPeriodEnd: Date, // When the current payment period ends (calculated from last payment + plan duration)
   createdAt: { type: Date, default: Date.now },
   expiresAt: Date
 });

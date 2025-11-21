@@ -1,6 +1,6 @@
 .App {
-  background-color: #000000;
-  color: #ffffff;
+  background-color: #ffffff;
+  color: #000000;
   min-height: 100vh;
   transition: all 0.3s ease;
 }
@@ -34,16 +34,17 @@ body.sidebar-collapsed .app-content {
 }
 
 .App-header {
-  background: linear-gradient(135deg, #000000 0%, #1f2937 100%);
+  background: #ffffff;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   font-size: calc(10px + 2vmin);
-  color: white;
+  color: #000000;
   position: relative;
   overflow: hidden;
+  border: 2px solid #000000;
 }
 
 .App-header::before {
@@ -53,17 +54,18 @@ body.sidebar-collapsed .app-content {
   left: 0;
   right: 0;
   bottom: 0;
-  background: radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 50%);
+  background: radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.05) 0%, transparent 50%);
   pointer-events: none;
 }
 
 .App-link {
-  color: #3b82f6;
+  color: #000000;
   transition: color 0.3s ease;
+  border-bottom: 2px solid #000000;
 }
 
 .App-link:hover {
-  color: #60a5fa;
+  color: #333333;
 }
 
 @keyframes App-logo-spin {

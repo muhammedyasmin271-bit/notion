@@ -25,12 +25,12 @@ const paymentSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    enum: ['bank_transfer', 'mobile_money', 'cash', 'check', 'other'],
+    enum: ['bank_transfer', 'mobile_money', 'cash', 'check', 'other', 'chapa'],
     default: 'bank_transfer'
   },
   screenshotUrl: {
     type: String,
-    required: true
+    required: false
   },
   note: {
     type: String,
@@ -54,6 +54,13 @@ const paymentSchema = new mongoose.Schema({
   period: {
     months: [Number], // Changed to array to support multiple months
     year: Number
+  },
+  chapaTxRef: {
+    type: String,
+    index: true
+  },
+  chapaCheckoutUrl: {
+    type: String
   }
 }, {
   timestamps: true

@@ -7,7 +7,7 @@ const AdminRoute = ({ children }) => {
   const { user, isAuthenticated } = useAppContext();
   
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/super-admin/login" replace />;
   }
   
   if (user?.role !== 'admin') {

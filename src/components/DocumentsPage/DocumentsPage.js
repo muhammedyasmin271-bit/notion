@@ -480,13 +480,14 @@ const DocumentsPage = () => {
     };
 
     const getFileTypeIcon = (type, size = "w-5 h-5") => {
+        const colorClass = isDarkMode ? 'text-white' : 'text-black';
         switch (type?.toLowerCase()) {
-            case 'pdf': return <FileText className={`${size} text-red-500`} />;
-            case 'image': return <Image className={`${size} text-purple-500`} />;
-            case 'video': return <Video className={`${size} text-pink-500`} />;
+            case 'pdf': return <FileText className={`${size} ${colorClass}`} />;
+            case 'image': return <Image className={`${size} ${colorClass}`} />;
+            case 'video': return <Video className={`${size} ${colorClass}`} />;
             case 'excel':
-            case 'spreadsheet': return <FileSpreadsheet className={`${size} text-green-500`} />;
-            default: return <FileText className={`${size} text-blue-500`} />;
+            case 'spreadsheet': return <FileSpreadsheet className={`${size} ${colorClass}`} />;
+            default: return <FileText className={`${size} ${colorClass}`} />;
         }
     };
 
@@ -611,14 +612,9 @@ const DocumentsPage = () => {
     };
 
     const getFileTypeColor = (type) => {
-        switch (type?.toLowerCase()) {
-            case 'pdf': return 'bg-red-100 text-red-800 border-red-200';
-            case 'image': return 'bg-purple-100 text-purple-800 border-purple-200';
-            case 'video': return 'bg-pink-100 text-pink-800 border-pink-200';
-            case 'excel':
-            case 'spreadsheet': return 'bg-green-100 text-green-800 border-green-200';
-            default: return 'bg-blue-100 text-blue-800 border-blue-200';
-        }
+        return isDarkMode 
+            ? 'bg-white/10 text-white border-white/20' 
+            : 'bg-black/10 text-black border-black/20';
     };
 
     return (
@@ -635,8 +631,8 @@ const DocumentsPage = () => {
             <div className="p-6 lg:p-8">
                 {dragOver && canUpload && (
                     <div className="fixed inset-0 z-50 bg-black bg-opacity-70 flex items-center justify-center">
-                        <div className={`p-12 rounded-2xl border-2 border-dashed ${isDarkMode ? 'bg-gray-800 border-blue-500' : 'bg-white border-blue-400'}`}>
-                            <Upload className={`w-16 h-16 mx-auto mb-4 ${isDarkMode ? 'text-blue-400' : 'text-blue-500'}`} />
+                        <div className={`p-12 rounded-2xl border-2 border-dashed ${isDarkMode ? 'bg-gray-800 border-white' : 'bg-white border-black'}`}>
+                            <Upload className={`w-16 h-16 mx-auto mb-4 ${isDarkMode ? 'text-white' : 'text-black'}`} />
                             <h3 className="text-2xl font-bold text-center mb-2">Drop files here</h3>
                             <p className="text-center">Release to upload your documents</p>
                         </div>
@@ -651,8 +647,8 @@ const DocumentsPage = () => {
                                 : 'bg-gray-100 border border-gray-300'
                             }`}>
                                 <FolderOpen className={`w-8 h-8 sm:w-10 sm:h-10 ${isDarkMode ? 'text-white' : 'text-black'}`} />
-                                <div className="absolute -top-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 bg-green-500 rounded-full flex items-center justify-center">
-                                    <span className="text-xs font-bold text-white">{filteredDocuments.length}</span>
+                                <div className={`absolute -top-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 ${isDarkMode ? 'bg-white text-black' : 'bg-black text-white'} rounded-full flex items-center justify-center`}>
+                                    <span className="text-xs font-bold">{filteredDocuments.length}</span>
                                 </div>
                             </div>
                             <div className="space-y-2 flex-1">
@@ -700,7 +696,7 @@ const DocumentsPage = () => {
                                     <button
                                         onClick={() => setFilter('all')}
                                         className={`px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 whitespace-nowrap ${filter === 'all'
-                                            ? (isDarkMode ? 'bg-blue-600 text-white shadow-lg' : 'bg-blue-500 text-white shadow-lg')
+                                            ? (isDarkMode ? 'bg-white text-black shadow-lg' : 'bg-black text-white shadow-lg')
                                             : (isDarkMode ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100')
                                         }`}
                                     >
@@ -710,7 +706,7 @@ const DocumentsPage = () => {
                                     <button
                                         onClick={() => setFilter('owned')}
                                         className={`px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 whitespace-nowrap ${filter === 'owned'
-                                            ? (isDarkMode ? 'bg-blue-600 text-white shadow-lg' : 'bg-blue-500 text-white shadow-lg')
+                                            ? (isDarkMode ? 'bg-white text-black shadow-lg' : 'bg-black text-white shadow-lg')
                                             : (isDarkMode ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100')
                                         }`}
                                     >
@@ -720,7 +716,7 @@ const DocumentsPage = () => {
                                     <button
                                         onClick={() => setFilter('shared')}
                                         className={`px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 whitespace-nowrap ${filter === 'shared'
-                                            ? (isDarkMode ? 'bg-blue-600 text-white shadow-lg' : 'bg-blue-500 text-white shadow-lg')
+                                            ? (isDarkMode ? 'bg-white text-black shadow-lg' : 'bg-black text-white shadow-lg')
                                             : (isDarkMode ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100')
                                         }`}
                                     >
@@ -735,7 +731,7 @@ const DocumentsPage = () => {
                                     <button
                                         onClick={() => setViewMode('grid')}
                                         className={`p-2 sm:p-3 rounded-xl transition-all duration-200 ${viewMode === 'grid'
-                                            ? (isDarkMode ? 'bg-blue-600 text-white shadow-lg' : 'bg-blue-500 text-white shadow-lg')
+                                            ? (isDarkMode ? 'bg-white text-black shadow-lg' : 'bg-black text-white shadow-lg')
                                             : (isDarkMode ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100')
                                         }`}
                                     >
@@ -744,7 +740,7 @@ const DocumentsPage = () => {
                                     <button
                                         onClick={() => setViewMode('list')}
                                         className={`p-2 sm:p-3 rounded-xl transition-all duration-200 ${viewMode === 'list'
-                                            ? (isDarkMode ? 'bg-blue-600 text-white shadow-lg' : 'bg-blue-500 text-white shadow-lg')
+                                            ? (isDarkMode ? 'bg-white text-black shadow-lg' : 'bg-black text-white shadow-lg')
                                             : (isDarkMode ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100')
                                         }`}
                                     >
@@ -756,8 +752,8 @@ const DocumentsPage = () => {
                                     <button
                                         onClick={handleBulkDelete}
                                         className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm ${isDarkMode
-                                            ? 'bg-red-900 text-red-200 hover:bg-red-800'
-                                            : 'bg-red-100 text-red-700 hover:bg-red-200'
+                                            ? 'bg-gray-700 text-white hover:bg-gray-600'
+                                            : 'bg-gray-200 text-black hover:bg-gray-300'
                                         }`}
                                     >
                                         <Trash2 className="w-4 h-4" />
@@ -777,11 +773,11 @@ const DocumentsPage = () => {
                 )}
 
                 {error && (
-                    <div className={`p-6 rounded-xl mb-6 flex items-center gap-4 ${isDarkMode ? 'bg-red-900/30 border border-red-800' : 'bg-red-50 border border-red-200'}`}>
-                        <AlertCircle className={`w-6 h-6 ${isDarkMode ? 'text-red-400' : 'text-red-600'}`} />
+                    <div className={`p-6 rounded-xl mb-6 flex items-center gap-4 ${isDarkMode ? 'bg-gray-800/50 border border-gray-700' : 'bg-gray-100 border border-gray-300'}`}>
+                        <AlertCircle className={`w-6 h-6 ${isDarkMode ? 'text-white' : 'text-black'}`} />
                         <div>
                             <h3 className="font-semibold">Error loading documents</h3>
-                            <p className={`text-sm ${isDarkMode ? 'text-red-300' : 'text-red-700'}`}>{error}</p>
+                            <p className={`text-sm ${isDarkMode ? 'text-white' : 'text-black'}`}>{error}</p>
                         </div>
                     </div>
                 )}
@@ -799,8 +795,8 @@ const DocumentsPage = () => {
                                     <button
                                         onClick={() => setShowUploadModal(true)}
                                         className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all duration-200 hover:scale-105 ${isDarkMode
-                                            ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
-                                            : 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
+                                            ? 'bg-white hover:bg-gray-200 text-black'
+                                            : 'bg-black hover:bg-gray-800 text-white'
                                         }`}
                                     >
                                         <Upload className="w-5 h-5" />
@@ -831,7 +827,7 @@ const DocumentsPage = () => {
                                                                 e.stopPropagation();
                                                                 handleDeleteDocument(doc._id);
                                                             }}
-                                                            className={`p-1.5 rounded-lg transition-all duration-200 hover:scale-110 ${isDarkMode ? 'hover:bg-red-900 text-red-400 hover:text-red-300' : 'hover:bg-red-50 text-red-600 hover:text-red-700'}`}
+                                                            className={`p-1.5 rounded-lg transition-all duration-200 hover:scale-110 ${isDarkMode ? 'hover:bg-gray-700 text-gray-400 hover:text-white' : 'hover:bg-gray-200 text-gray-600 hover:text-black'}`}
                                                             title="Delete document"
                                                         >
                                                             <Trash2 className="w-3.5 h-3.5" />
@@ -856,7 +852,7 @@ const DocumentsPage = () => {
                                             
                                             {/* Show sharing info */}
                                             {doc.author && doc.author._id !== user?.id && (
-                                                <div className={`text-xs mb-2 flex items-center gap-1 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                                                <div className={`text-xs mb-2 flex items-center gap-1 ${isDarkMode ? 'text-white' : 'text-black'}`}>
                                                     <Share2 className="w-2.5 h-2.5 flex-shrink-0" />
                                                     <span className="truncate font-medium">Shared by {doc.author.name}</span>
                                                 </div>
@@ -907,7 +903,7 @@ const DocumentsPage = () => {
                                                             setShowUserPicker(!showUserPicker);
                                                             if (!showUserPicker) fetchUsersForPicker();
                                                         }}
-                                                        className={`px-3 py-1 text-sm rounded ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white`}
+                                                        className={`px-3 py-1 text-sm rounded ${isDarkMode ? 'bg-white hover:bg-gray-200 text-black' : 'bg-black hover:bg-gray-800 text-white'}`}
                                                     >
                                                         Add Recipients
                                                     </button>
@@ -916,12 +912,12 @@ const DocumentsPage = () => {
                                             <div className="flex flex-wrap gap-2">
                                                 {previewDoc.sharedWith && previewDoc.sharedWith.length > 0 ? (
                                                     previewDoc.sharedWith.map((shared, index) => (
-                                                        <div key={index} className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm ${isDarkMode ? 'bg-blue-900/30 text-blue-300' : 'bg-blue-100 text-blue-800'}`}>
+                                                        <div key={index} className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm ${isDarkMode ? 'bg-white/10 text-white' : 'bg-black/10 text-black'}`}>
                                                             <span>{shared.user?.name || 'Unknown User'}</span>
                                                             {canManage && (
                                                                 <button
                                                                     onClick={() => removeRecipient(shared.user?._id)}
-                                                                    className="ml-1 text-red-500 hover:text-red-700"
+                                                                    className={`ml-1 ${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}`}
                                                                 >
                                                                     ×
                                                                 </button>
@@ -957,7 +953,7 @@ const DocumentsPage = () => {
                                                                         onClick={() => selectUserForSharing(user)}
                                                                         className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors ${isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-50'}`}
                                                                     >
-                                                                        <div className="w-9 h-9 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+                                                                        <div className={`w-9 h-9 ${isDarkMode ? 'bg-white text-black' : 'bg-black text-white'} rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0`}>
                                                                             {userName.charAt(0).toUpperCase()}
                                                                         </div>
                                                                         <div className="flex-1 min-w-0">
@@ -1007,7 +1003,7 @@ const DocumentsPage = () => {
                                                         </div>
                                                         <button
                                                             onClick={() => handleDownload(attachment)}
-                                                            className={`px-3 py-1 rounded text-sm font-medium ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white`}
+                                                            className={`px-3 py-1 rounded text-sm font-medium ${isDarkMode ? 'bg-white hover:bg-gray-200 text-black' : 'bg-black hover:bg-gray-800 text-white'}`}
                                                         >
                                                             Download
                                                         </button>
@@ -1095,7 +1091,7 @@ const DocumentsPage = () => {
                                                         <div className="flex flex-wrap gap-1 flex-1 min-h-[48px] px-4 py-3 rounded-lg border items-center" style={{backgroundColor: isDarkMode ? '#1f2937' : '#ffffff', borderColor: isDarkMode ? '#374151' : '#d1d5db'}}>
                                                             {uploadForm.forGroup ? (
                                                                 uploadForm.forGroup.split(', ').filter(p => p).map((person, index) => (
-                                                                    <span key={index} className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
+                                                                    <span key={index} className={`px-2 py-1 text-xs ${isDarkMode ? 'bg-white/10 text-white' : 'bg-black/10 text-black'} rounded`}>
                                                                         {person}
                                                                     </span>
                                                                 ))
@@ -1109,7 +1105,7 @@ const DocumentsPage = () => {
                                                                 setShowUserPicker(!showUserPicker);
                                                                 if (!showUserPicker) fetchUsersForPicker();
                                                             }}
-                                                            className="px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium"
+                                                            className={`px-4 py-3 ${isDarkMode ? 'bg-white hover:bg-gray-200 text-black' : 'bg-black hover:bg-gray-800 text-white'} rounded-lg transition-colors text-sm font-medium`}
                                                         >
                                                             Pick
                                                         </button>
@@ -1140,11 +1136,11 @@ const DocumentsPage = () => {
                                                                                 onClick={() => selectUserForSharing(user)}
                                                                                 className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors ${
                                                                                     isSelected 
-                                                                                        ? (isDarkMode ? 'bg-blue-900/30 border-l-4 border-blue-500' : 'bg-blue-50 border-l-4 border-blue-500')
+                                                                                        ? (isDarkMode ? 'bg-white/10 border-l-4 border-white' : 'bg-black/10 border-l-4 border-black')
                                                                                         : (isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-50')
                                                                                 }`}
                                                                             >
-                                                                                <div className="w-9 h-9 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+                                                                                <div className={`w-9 h-9 ${isDarkMode ? 'bg-white text-black' : 'bg-black text-white'} rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0`}>
                                                                                     {userName.charAt(0).toUpperCase()}
                                                                                 </div>
                                                                                 <div className="flex-1 min-w-0">
@@ -1156,7 +1152,7 @@ const DocumentsPage = () => {
                                                                                     </div>
                                                                                 </div>
                                                                                 {isSelected && (
-                                                                                    <div className="text-blue-500">
+                                                                                    <div className={isDarkMode ? 'text-white' : 'text-black'}>
                                                                                         <CheckCircle className="w-4 h-4" />
                                                                                     </div>
                                                                                 )}
@@ -1169,7 +1165,7 @@ const DocumentsPage = () => {
                                                                         </div>
                                                                         <button
                                                                             onClick={() => setShowUserPicker(false)}
-                                                                            className={`px-3 py-1 text-xs rounded ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white transition-colors`}
+                                                                            className={`px-3 py-1 text-xs rounded ${isDarkMode ? 'bg-white hover:bg-gray-200 text-black' : 'bg-black hover:bg-gray-800 text-white'} transition-colors`}
                                                                         >
                                                                             Confirm
                                                                         </button>
@@ -1213,7 +1209,7 @@ const DocumentsPage = () => {
                                                     <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{formatFileSize(uploadForm.file.size)}</p>
                                                     <button
                                                         onClick={() => fileInputRef.current?.click()}
-                                                        className="text-blue-500 hover:text-blue-600 text-sm font-medium"
+                                                        className={`${isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-700'} text-sm font-medium`}
                                                     >
                                                         Change file
                                                     </button>
@@ -1224,7 +1220,7 @@ const DocumentsPage = () => {
                                                     <p className={`font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>Choose a file to upload</p>
                                                     <button
                                                         onClick={() => fileInputRef.current?.click()}
-                                                        className="text-blue-500 hover:text-blue-600 font-medium"
+                                                        className={`${isDarkMode ? 'text-white hover:text-gray-300' : 'text-black hover:text-gray-700'} font-medium`}
                                                     >
                                                         Browse files
                                                     </button>
@@ -1244,7 +1240,7 @@ const DocumentsPage = () => {
                                     <button
                                         onClick={handleUploadSubmit}
                                         disabled={uploading || !uploadForm.file || !uploadForm.title.trim()}
-                                        className={`flex-1 px-6 py-3 rounded-lg font-medium text-white ${uploading || !uploadForm.file || !uploadForm.title.trim() ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600'}`}
+                                        className={`flex-1 px-6 py-3 rounded-lg font-medium ${uploading || !uploadForm.file || !uploadForm.title.trim() ? 'bg-gray-400 text-gray-200 cursor-not-allowed' : isDarkMode ? 'bg-white hover:bg-gray-200 text-black' : 'bg-black hover:bg-gray-800 text-white'}`}
                                     >
                                         {uploading ? 'Uploading...' : 'Upload Document'}
                                     </button>

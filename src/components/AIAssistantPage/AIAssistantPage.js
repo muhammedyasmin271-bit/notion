@@ -135,12 +135,12 @@ I have access to all your pages, data, and can move between sections. Just ask m
   }, [messages]);
 
   return (
-    <div className={`min-h-screen ${isDarkMode ? 'bg-gradient-to-br from-gray-900 via-black to-gray-900' : 'bg-gradient-to-br from-white via-blue-50 to-purple-50'
+    <div className={`min-h-screen ${isDarkMode ? 'bg-black' : 'bg-white'
       }`}>
 
       {/* Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className={`absolute -top-40 -right-40 w-80 h-80 ${isDarkMode ? 'bg-gradient-to-br from-purple-400/20 to-blue-600/20' : 'bg-gradient-to-br from-purple-300/30 to-blue-500/30'
+        <div className={`absolute -top-40 -right-40 w-80 h-80 ${isDarkMode ? 'bg-white/5' : 'bg-black/5'
           } rounded-full blur-3xl animate-pulse`}></div>
       </div>
 
@@ -156,12 +156,12 @@ I have access to all your pages, data, and can move between sections. Just ask m
             <ArrowLeft className={`w-5 h-5 sm:w-6 sm:h-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`} />
           </button>
           <div className="flex items-center space-x-3 sm:space-x-4">
-            <div className="p-3 sm:p-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-600">
-              <Brain className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+            <div className={`p-3 sm:p-4 rounded-xl ${isDarkMode ? 'bg-white' : 'bg-black'}`}>
+              <Brain className={`w-6 h-6 sm:w-8 sm:h-8 ${isDarkMode ? 'text-black' : 'text-white'}`} />
             </div>
             <div>
-              <h1 className={`text-2xl sm:text-4xl font-black ${isDarkMode ? 'bg-gradient-to-r from-white via-purple-400 to-blue-400 bg-clip-text text-transparent'
-                  : 'bg-gradient-to-r from-gray-900 via-purple-600 to-blue-600 bg-clip-text text-transparent'
+              <h1 className={`text-2xl sm:text-4xl font-black ${isDarkMode ? 'text-white'
+                  : 'text-gray-900'
                 }`}>
                 AI Assistant
               </h1>
@@ -181,17 +181,17 @@ I have access to all your pages, data, and can move between sections. Just ask m
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'} animate-fadeIn`}>
                 <div className={`max-w-full sm:max-w-3xl p-3 sm:p-4 rounded-2xl transition-all duration-300 hover:scale-[1.02] ${msg.type === 'user'
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
+                    ? isDarkMode ? 'bg-white text-black shadow-lg' : 'bg-black text-white shadow-lg'
                     : isDarkMode
                       ? 'bg-gray-800/80 text-gray-200 border border-gray-700/50'
                       : 'bg-white/90 text-gray-800 border border-gray-200/50 shadow-md'
                   }`}>
                   {msg.type === 'ai' && (
                     <div className="flex items-center space-x-2 mb-2 sm:mb-3">
-                      <div className="p-1 rounded-full bg-gradient-to-r from-purple-400 to-blue-500">
-                        <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
+                      <div className={`p-1 rounded-full ${isDarkMode ? 'bg-white' : 'bg-black'}`}>
+                        <Sparkles className={`w-2.5 h-2.5 sm:w-3 sm:h-3 ${isDarkMode ? 'text-black' : 'text-white'}`} />
                       </div>
-                      <span className="text-xs sm:text-sm font-medium bg-gradient-to-r from-purple-400 to-blue-500 bg-clip-text text-transparent">
+                      <span className={`text-xs sm:text-sm font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>
                         MELA AI - Full App
                       </span>
                       {msg.content.includes('Taking you to') && (
@@ -271,7 +271,7 @@ I have access to all your pages, data, and can move between sections. Just ask m
             <button
               onClick={handleSendMessage}
               disabled={!message.trim() || isLoading}
-              className="p-3 sm:p-4 rounded-xl bg-gradient-to-r from-purple-500 to-blue-600 text-white hover:from-purple-600 hover:to-blue-700 transition-all duration-300 disabled:opacity-50 hover:scale-105 active:scale-95"
+              className={`p-3 sm:p-4 rounded-xl ${isDarkMode ? 'bg-white text-black hover:bg-gray-200' : 'bg-black text-white hover:bg-gray-800'} transition-all duration-300 disabled:opacity-50 hover:scale-105 active:scale-95`}
             >
               <Send className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>

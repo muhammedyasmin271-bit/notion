@@ -3,10 +3,10 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AppProvider, useAppContext } from './context/AppContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import NavBar from './components/NavBar/NavBar';
+import LandingPage from './components/LandingPage/LandingPage';
 import HomePage from './components/HomePage/HomePage';
 import ProjectsPage from './components/ProjectsPage/ProjectsPage';
 import ProjectDetailPage from './components/ProjectDetailPage/ProjectDetailPage';
-
 
 import ProjectReportPage from './components/ReportPage/ReportPage';
 
@@ -21,6 +21,10 @@ import LoginPage from './components/auth/LoginPage';
 import RegisterPage from './components/auth/RegisterPage';
 import PendingApprovalPage from './components/auth/PendingApprovalPage';
 import HowItWorksPage from './components/HowItWorksPage/HowItWorksPage';
+import CreateCompanyPage from './components/CreateCompanyPage/CreateCompanyPage';
+import CompanyCreatedPage from './components/CompanyCreatedPage/CompanyCreatedPage';
+import PaymentReminder from './components/PaymentReminder/PaymentReminder';
+import PaymentRestriction from './components/PaymentRestriction/PaymentRestriction';
 import AIAssistantPage from './components/AIAssistantPage/AIAssistantPage';
 import UserManagementPage from './components/UserManagementPage/UserManagementPage';
 import UserProfilePage from './components/UserProfilePage/UserProfilePage';
@@ -34,10 +38,11 @@ import CompanySettings from './components/AdminDashboard/CompanySettings';
 import AdminReports from './components/AdminDashboard/AdminReports';
 import AdminAuditLog from './components/AdminDashboard/AdminAuditLog';
 import AdminUserAnalytics from './components/AdminDashboard/AdminUserAnalytics';
-import AdminDataManagement from './components/AdminDashboard/AdminDataManagement'; // Add this line
+import AdminDataManagement from './components/AdminDashboard/AdminDataManagement';
 import PaymentSubmission from './components/AdminDashboard/PaymentSubmission';
 import PaymentVerification from './components/SuperAdminPage/PaymentVerification';
 import SuperAdminSettings from './components/SuperAdminPage/SuperAdminSettings';
+import SuperAdminLogin from './components/SuperAdminPage/SuperAdminLogin';
 import SavedNotesPage from './components/SavedNotesPage/SavedNotesPage';
 
 import TasksPage from './components/TasksPage/TasksPage';
@@ -60,7 +65,7 @@ const ProtectedRoute = ({ children }) => {
 // Super Admin Redirect Component
 const SuperAdminRedirect = ({ children }) => {
   const { user } = useAppContext();
-  return user?.role === 'superadmin' ? <Navigate to="/super-admin" replace /> : children;
+  return user?.role === 'superadmin' ? <Navigate to="/super-admin/dashboard" replace /> : children;
 };
 
 // Layout Component for authenticated pages
@@ -70,7 +75,7 @@ const Layout = ({ children, hideNav = false }) => {
   return (
     <div className={`min-h-screen transition-colors duration-300 ${isDarkMode
       ? 'bg-black text-white'
-      : 'bg-gray-50 text-gray-900'
+      : 'bg-white text-gray-900'
       }`}>
       {!hideNav && <NavBar />}
       <div className="app-content">
@@ -88,10 +93,20 @@ const AppContent = () => {
   return (
     <Router>
       <Routes>
+        {/* Public Landing Page */}
+        <Route
+          path="/"
+          element={<LandingPage />}
+        />
+        
         {/* Auth Routes */}
         <Route
           path="/login"
           element={<LoginPage />}
+        />
+        <Route
+          path="/super-admin/login"
+          element={<SuperAdminLogin />}
         />
         <Route
           path="/register"
@@ -105,29 +120,41 @@ const AppContent = () => {
           path="/pending-approval"
           element={<PendingApprovalPage />}
         />
+        
+        {/* Company Creation Flow */}
+        <Route
+          path="/create-company"
+          element={<CreateCompanyPage />}
+        />
+        <Route
+          path="/company-created"
+          element={<CompanyCreatedPage />}
+        />
+        <Route
+          path="/payment-reminder"
+          element={<PaymentReminder />}
+        />
 
         {/* Protected Routes */}
-        <Route path="/" element={
-          <ProtectedRoute>
-            <Navigate to="/home" replace />
-          </ProtectedRoute>
-        } />
-
         <Route path="/home" element={
           <ProtectedRoute>
             <SuperAdminRedirect>
-              <Layout>
-                <HomePage />
-              </Layout>
+              <PaymentRestriction>
+                <Layout>
+                  <HomePage />
+                </Layout>
+              </PaymentRestriction>
             </SuperAdminRedirect>
           </ProtectedRoute>
         } />
 
         <Route path="/projects" element={
           <ProtectedRoute>
-            <Layout>
-              <ProjectsPage />
-            </Layout>
+            <PaymentRestriction>
+              <Layout>
+                <ProjectsPage />
+              </Layout>
+            </PaymentRestriction>
           </ProtectedRoute>
         } />
 
@@ -164,10 +191,6 @@ const AppContent = () => {
           </ProtectedRoute>
         } />
 
-
-
-
-
         <Route path="/projects/:projectId/report" element={
           <ProtectedRoute>
             <Layout>
@@ -192,8 +215,6 @@ const AppContent = () => {
             </Layout>
           </ProtectedRoute>
         } />
-
-
 
         <Route path="/documents" element={
           <ProtectedRoute>
@@ -290,7 +311,6 @@ const AppContent = () => {
           </ProtectedRoute>
         } />
 
-
         <Route path="/how-it-works" element={
           <ProtectedRoute>
             <Layout>
@@ -338,8 +358,6 @@ const AppContent = () => {
             </Layout>
           </ProtectedRoute>
         } />
-
-
 
         <Route path="/projects/:projectId/tasks" element={
           <ProtectedRoute>
@@ -389,10 +407,6 @@ const AppContent = () => {
             </Layout>
           </ProtectedRoute>
         } />
-
-
-
-
 
         {/* Admin Routes */}
         <Route path="/admin" element={
@@ -453,6 +467,12 @@ const AppContent = () => {
 
         {/* Super Admin Routes */}
         <Route path="/super-admin" element={
+          <SuperAdminRoute>
+            <Navigate to="/super-admin/dashboard" replace />
+          </SuperAdminRoute>
+        } />
+        
+        <Route path="/super-admin/dashboard" element={
           <SuperAdminRoute>
             <Layout>
               <SuperAdminPage />

@@ -454,7 +454,7 @@ const UserProfilePage = () => {
                 <button
                   onClick={handleProfileSave}
                   disabled={loading}
-                  className="flex items-center px-6 py-3 text-base font-bold text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`flex items-center px-6 py-3 text-base font-bold ${isDarkMode ? 'bg-white hover:bg-gray-200 text-black' : 'bg-black hover:bg-gray-800 text-white'} rounded-2xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   {loading ? (
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
@@ -552,7 +552,7 @@ const UserProfilePage = () => {
                 <button
                   onClick={handlePasswordChange}
                   disabled={loading || !passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword}
-                  className="w-full py-3 text-base font-bold text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`w-full py-3 text-base font-bold ${isDarkMode ? 'bg-white hover:bg-gray-200 text-black' : 'bg-black hover:bg-gray-800 text-white'} rounded-2xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   {loading ? (
                     <div className="flex items-center justify-center">
@@ -626,51 +626,6 @@ const UserProfilePage = () => {
                           </span>
                         </span>
                       </button>
-                    </div>
-                  </div>
-
-                  {/* Navbar Background Color */}
-                  <div className={`p-4 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
-                    }`}>
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-4">
-                        <div className={`w-6 h-6 rounded ${navbarBgColor}`}></div>
-                        <div>
-                          <p className={`font-semibold ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                            Navbar Background
-                          </p>
-                          <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                            Customize your navigation bar color
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-3">
-                      {[
-                        { name: 'Default Blue', class: 'bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900' },
-                        { name: 'Dark Gray', class: 'bg-gradient-to-br from-gray-800 via-gray-700 to-slate-800' },
-                        { name: 'Dark', class: 'bg-gradient-to-br from-gray-900 via-slate-800 to-black' }
-                      ].map((color) => (
-                        <button
-                          key={color.name}
-                          onClick={() => {
-                            updateNavbarBgColor(color.class);
-                            showMessage('success', `Navbar color changed to ${color.name}!`);
-                          }}
-                          className={`p-3 rounded-lg border-2 transition-all duration-200 hover:scale-105 ${navbarBgColor === color.class
-                              ? 'border-blue-500 ring-2 ring-blue-500/20'
-                              : (isDarkMode ? 'border-gray-600 hover:border-gray-500' : 'border-gray-300 hover:border-gray-400')
-                            }`}
-                          title={color.name}
-                        >
-                          <div className={`w-full h-8 rounded ${color.class}`}></div>
-                          <p className={`text-xs mt-2 font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                            }`}>
-                            {color.name}
-                          </p>
-                        </button>
-                      ))}
                     </div>
                   </div>
                 </div>

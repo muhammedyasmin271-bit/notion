@@ -3,6 +3,7 @@ const router = express.Router();
 const Company = require('../models/Company');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const smsService = require('../services/smsService');
 
 // Super admin check
 const isSuperAdmin = (req, res, next) => {
@@ -18,7 +19,14 @@ router.get('/companies', auth, isSuperAdmin, async (req, res) => {
     const companies = await Company.find().sort({ createdAt: -1 });
     const companiesWithStats = await Promise.all(companies.map(async (company) => {
       const userCount = await User.countDocuments({ companyId: company.companyId });
-      return { ...company.toObject(), userCount };
+      const companyObj = company.toObject();
+      // Ensure paymentMode defaults to 'paid' if not set (for existing companies)
+      if (!companyObj.paymentMode) {
+        companyObj.paymentMode = 'paid';
+        // Update the company in database to set paymentMode
+        await Company.findByIdAndUpdate(company._id, { paymentMode: 'paid' }, { new: true });
+      }
+      return { ...companyObj, userCount };
     }));
     res.json(companiesWithStats);
   } catch (error) {
@@ -66,15 +74,23 @@ router.post('/companies', auth, isSuperAdmin, async (req, res) => {
     // Generate company link
     const companyLink = `${process.env.APP_URL || 'http://localhost:3000'}/login?company=${companyId}`;
     
+    // Ensure logo has proper data URL format if it's base64
+    let processedLogo = logo;
+    if (logo && !logo.startsWith('data:')) {
+      processedLogo = `data:image/png;base64,${logo}`;
+    }
+    
+
+    
     const company = new Company({
       companyId,
       name,
       adminEmail,
       adminPhone,
-      subdomain: subdomain || undefined, // Use undefined instead of empty string
+      subdomain: subdomain || undefined,
       adminUserId: adminUser._id,
       limits: { maxUsers, maxStorage },
-      branding: { logo, companyName: name },
+      branding: { logo: processedLogo, companyName: name },
       companyLink
     });
     
@@ -84,7 +100,11 @@ router.post('/companies', auth, isSuperAdmin, async (req, res) => {
     console.log(`   Admin: ${adminUsername}`);
     console.log(`   Company Link: ${companyLink}`);
     
-    res.status(201).json({ company, adminUsername, companyLink });
+    // Send SMS with credentials
+    const smsMessage = `Welcome to ${name}!\n\nUsername: ${normalizedUsername}\nPassword: ${adminPassword}\nCompany ID: ${companyId}\n\nLogin: ${companyLink}`;
+    await smsService.sendSMS(adminPhone, smsMessage);
+    
+    res.status(201).json({ company, adminUsername: normalizedUsername, companyLink });
   } catch (error) {
     console.error(`❌ Error creating company:`, error.message);
     res.status(400).json({ message: error.message });
@@ -218,7 +238,39 @@ router.get('/companies/:companyId', auth, async (req, res) => {
     if (!company) {
       return res.status(404).json({ message: 'Company not found' });
     }
-    res.json(company);
+    const companyObj = company.toObject();
+    // Ensure paymentMode defaults to 'paid' if not set (for existing companies)
+    if (!companyObj.paymentMode) {
+      companyObj.paymentMode = 'paid';
+      // Update the company in database to set paymentMode
+      await Company.findByIdAndUpdate(company._id, { paymentMode: 'paid' }, { new: true });
+    }
+    res.json(companyObj);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Update company payment mode
+router.patch('/companies/:companyId/payment-mode', auth, isSuperAdmin, async (req, res) => {
+  try {
+    const { paymentMode } = req.body;
+    
+    if (!paymentMode || !['paid', 'free'].includes(paymentMode)) {
+      return res.status(400).json({ message: 'Invalid payment mode. Must be "paid" or "free"' });
+    }
+
+    const company = await Company.findOneAndUpdate(
+      { companyId: req.params.companyId },
+      { paymentMode: paymentMode },
+      { new: true }
+    );
+
+    if (!company) {
+      return res.status(404).json({ message: 'Company not found' });
+    }
+
+    res.json({ message: 'Payment mode updated successfully', company });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -231,6 +283,48 @@ router.get('/companies/:companyId/stats', auth, isSuperAdmin, async (req, res) =
     const activeUsers = await User.countDocuments({ companyId: req.params.companyId, isActive: true });
     res.json({ userCount, activeUsers });
   } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Unpause company (Super Admin only)
+router.patch('/companies/:companyId/unpause', auth, isSuperAdmin, async (req, res) => {
+  try {
+    const company = await Company.findOne({ companyId: req.params.companyId });
+    
+    if (!company) {
+      return res.status(404).json({ message: 'Company not found' });
+    }
+
+    if (company.status !== 'paused') {
+      return res.status(400).json({ message: 'Company is not paused' });
+    }
+
+    // Unpause the company
+    company.status = 'active';
+    company.unpausedAt = new Date();
+    
+    // Give 24 hours to pay after unpause
+    const now = new Date();
+    company.paymentDeadline = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    company.gracePeriodDeadline = new Date(company.paymentDeadline.getTime() + 7 * 24 * 60 * 60 * 1000);
+    
+    await company.save();
+
+    console.log(`✅ Company unpaused: ${company.companyId} - New payment deadline: ${company.paymentDeadline}`);
+
+    res.json({ 
+      message: 'Company unpaused successfully. Company has 24 hours to complete payment.',
+      company: {
+        companyId: company.companyId,
+        name: company.name,
+        status: company.status,
+        paymentDeadline: company.paymentDeadline,
+        gracePeriodDeadline: company.gracePeriodDeadline
+      }
+    });
+  } catch (error) {
+    console.error('Error unpausing company:', error);
     res.status(500).json({ message: error.message });
   }
 });

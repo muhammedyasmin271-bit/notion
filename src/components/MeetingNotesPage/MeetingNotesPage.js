@@ -87,23 +87,11 @@ const MeetingNotesPage = () => {
   });
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-      case 'scheduled': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
-      case 'in-progress': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
-      case 'cancelled': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
-    }
+    return isDarkMode ? 'bg-white/10 text-white' : 'bg-black/10 text-black';
   };
 
   const getTypeColor = (type) => {
-    switch (type) {
-      case 'Standup': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400';
-      case 'Planning': return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400';
-      case 'Review': return 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-400';
-      case 'Retro': return 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
-    }
+    return isDarkMode ? 'bg-white/10 text-white' : 'bg-black/10 text-black';
   };
 
   const handleDeleteMeeting = async (meetingId) => {
@@ -211,12 +199,12 @@ const MeetingNotesPage = () => {
           navigate(`/${companyId}/meeting-editor/${meeting.id}`);
         }}
       >
-        <div className={`p-3 sm:p-5 hover:bg-gradient-to-r ${isDarkMode ? 'hover:from-gray-800/30 hover:to-gray-800/10' : 'hover:from-blue-50/30 hover:to-purple-50/20'} group transition-all duration-200`}>
+        <div className={`p-3 sm:p-5 ${isDarkMode ? 'hover:bg-white/5' : 'hover:bg-black/5'} group transition-all duration-200`}>
           {/* Mobile Layout */}
           <div className="block sm:hidden">
             <div className="flex items-center gap-2 mb-3">
-              <div className={`w-3 h-3 rounded-full flex-shrink-0 ${getStatusColor(meeting.status).includes('green') ? 'bg-emerald-500' : getStatusColor(meeting.status).includes('blue') ? 'bg-blue-500' : getStatusColor(meeting.status).includes('yellow') ? 'bg-amber-500' : 'bg-gray-500'}`}></div>
-              <span className={`font-semibold text-base ${isDarkMode ? 'text-gray-100' : 'text-gray-900'} group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors`}>
+              <div className={`w-3 h-3 rounded-full flex-shrink-0 ${isDarkMode ? 'bg-white' : 'bg-black'}`}></div>
+              <span className={`font-semibold text-base ${isDarkMode ? 'text-gray-100' : 'text-gray-900'} transition-colors`}>
                 {meeting.title}
               </span>
             </div>
@@ -289,7 +277,7 @@ const MeetingNotesPage = () => {
               <div className={`w-3 h-3 rounded-full flex-shrink-0 ${getStatusColor(meeting.status).includes('green') ? 'bg-emerald-500' : getStatusColor(meeting.status).includes('blue') ? 'bg-blue-500' : getStatusColor(meeting.status).includes('yellow') ? 'bg-amber-500' : 'bg-gray-500'}`}></div>
               <div className="flex-1 min-w-0">
                 <div className={`flex items-center text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  <span className={`font-semibold text-lg mr-20 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'} group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors`}>
+                  <span className={`font-semibold text-lg mr-20 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'} transition-colors`}>
                     {meeting.title}
                   </span>
                   <select
@@ -368,11 +356,11 @@ const MeetingNotesPage = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 sm:mb-8 gap-4">
           <div className="flex items-center">
-            <div className={`w-10 h-10 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl flex items-center justify-center mr-3 sm:mr-6 ${isDarkMode ? 'bg-gradient-to-br from-blue-700 via-indigo-700 to-purple-700 shadow-indigo-900/40' : 'bg-gradient-to-br from-black via-gray-800 to-slate-700 shadow-black/20'} shadow-xl`}>
-              <MeetingNotesIcon className="w-5 h-5 sm:w-8 sm:h-8 text-white" />
+            <div className={`w-10 h-10 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl flex items-center justify-center mr-3 sm:mr-6 ${isDarkMode ? 'bg-white' : 'bg-black'} shadow-xl`}>
+              <MeetingNotesIcon className={`w-5 h-5 sm:w-8 sm:h-8 ${isDarkMode ? 'text-black' : 'text-white'}`} />
             </div>
             <div>
-              <h1 className={`text-2xl sm:text-3xl font-bold ${isDarkMode ? 'bg-gradient-to-r from-white via-gray-200 to-blue-200' : 'bg-gradient-to-r from-black via-gray-800 to-slate-600'} bg-clip-text text-transparent mb-1`}>Meeting Notes</h1>
+              <h1 className={`text-2xl sm:text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-black'} mb-1`}>Meeting Notes</h1>
               <p className={`text-sm sm:text-base ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} font-medium`}>
                 Manage your meeting notes and schedules
               </p>
@@ -410,25 +398,25 @@ const MeetingNotesPage = () => {
         {/* Stats - Hidden on mobile */}
         <div className="hidden sm:grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <div className={`rounded-lg p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-            <div className={`text-2xl font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+            <div className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>
               {meetings.length}
             </div>
             <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Meetings</div>
           </div>
           <div className={`rounded-lg p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-            <div className={`text-2xl font-bold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
+            <div className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>
               {meetings.filter(m => m.status === 'completed').length}
             </div>
             <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Completed</div>
           </div>
           <div className={`rounded-lg p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-            <div className={`text-2xl font-bold ${isDarkMode ? 'text-yellow-400' : 'text-yellow-600'}`}>
+            <div className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>
               {meetings.filter(m => m.status === 'scheduled').length}
             </div>
             <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Scheduled</div>
           </div>
           <div className={`rounded-lg p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-            <div className={`text-2xl font-bold ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>
+            <div className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>
               {stats.percentage}%
             </div>
             <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Action Items Done</div>

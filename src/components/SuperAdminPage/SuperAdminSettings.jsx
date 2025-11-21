@@ -10,12 +10,7 @@ const SuperAdminSettings = () => {
   const [message, setMessage] = useState({ type: '', text: '' });
   
   const [paymentSettings, setPaymentSettings] = useState({
-    monthlyAmount: 1000,
-    bankName: 'Commercial Bank of Ethiopia',
-    accountName: 'Mela Note Services',
-    accountNumber: '1000123456789',
-    teleBirrPhone: '+251912345678',
-    currency: 'ETB'
+    pricePerUserPerMonth: 1
   });
 
   useEffect(() => {
@@ -31,11 +26,12 @@ const SuperAdminSettings = () => {
       });
       const data = await response.json();
       
-      // Convert settings array to object
-      const settings = {};
+      // Convert settings array to object - only get pricePerUserPerMonth
+      const settings = { pricePerUserPerMonth: 1 };
       data.forEach(setting => {
-        const key = setting.settingKey.replace('payment.', '');
-        settings[key] = setting.value;
+        if (setting.settingKey === 'payment.pricePerUserPerMonth') {
+          settings.pricePerUserPerMonth = setting.value;
+        }
       });
       
       setPaymentSettings(settings);
@@ -51,13 +47,14 @@ const SuperAdminSettings = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:9000/api/settings/payment/bulk', {
+      // Only save pricePerUserPerMonth
+      const response = await fetch('http://localhost:9000/api/settings/payment.pricePerUserPerMonth', {
         method: 'PUT',
         headers: {
           'x-auth-token': token,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(paymentSettings)
+        body: JSON.stringify({ value: parseFloat(paymentSettings.pricePerUserPerMonth) })
       });
 
       const data = await response.json();
@@ -81,16 +78,16 @@ const SuperAdminSettings = () => {
   };
 
   return (
-    <div className={`min-h-screen p-6 ${isDarkMode ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' : 'bg-gradient-to-br from-blue-50 via-white to-purple-50'}`}>
+    <div className={`min-h-screen p-6 ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <div className={`p-3 rounded-2xl ${isDarkMode ? 'bg-gradient-to-br from-blue-500/20 to-purple-500/20' : 'bg-gradient-to-br from-blue-500 to-purple-500'} shadow-lg`}>
-              <Settings className={`w-8 h-8 ${isDarkMode ? 'text-blue-400' : 'text-white'}`} />
+            <div className={`p-3 rounded-2xl ${isDarkMode ? 'bg-white' : 'bg-black'} shadow-lg`}>
+              <Settings className={`w-8 h-8 ${isDarkMode ? 'text-black' : 'text-white'}`} />
             </div>
             <div>
-              <h1 className={`text-4xl font-bold ${isDarkMode ? 'bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent' : 'text-gray-900'}`}>
+              <h1 className={`text-4xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                 Super Admin Settings
               </h1>
               <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -104,8 +101,8 @@ const SuperAdminSettings = () => {
         {message.text && (
           <div className={`mb-6 p-4 rounded-xl shadow-lg ${
             message.type === 'success'
-              ? 'bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-400 border border-green-500/50'
-              : 'bg-gradient-to-r from-red-500/20 to-pink-500/20 text-red-400 border border-red-500/50'
+              ? isDarkMode ? 'bg-white/10 text-white border border-white/50' : 'bg-black/10 text-black border border-black/50'
+              : isDarkMode ? 'bg-gray-700/50 text-white border border-gray-500/50' : 'bg-gray-300/50 text-black border border-gray-500/50'
           }`}>
             <div className="flex items-center gap-2">
               {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
@@ -124,131 +121,51 @@ const SuperAdminSettings = () => {
               <h2 className="text-2xl font-bold">Payment Settings</h2>
             </div>
             <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              These settings will be displayed to all company admins in the "How to Pay" section
+              Configure the price per user per month for payment calculations
             </p>
           </div>
 
           <div className="p-6 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-semibold mb-2">
-                  Monthly Subscription Amount *
+            {/* Price Per User Per Month - Prominent Section */}
+            <div className={`p-5 rounded-xl border-2 ${isDarkMode ? 'bg-white/10 border-white/30' : 'bg-black/10 border-black/30'}`}>
+              <div className="flex items-center gap-2 mb-4">
+                <DollarSign className={`w-5 h-5 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+                <label className="block text-lg font-bold">
+                  Price Per User Per Month (ETB) *
                 </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={paymentSettings.monthlyAmount}
-                    onChange={(e) => setPaymentSettings({ ...paymentSettings, monthlyAmount: e.target.value })}
-                    className={`w-full px-4 py-3 rounded-lg border ${
-                      isDarkMode
-                        ? 'bg-gray-700 border-gray-600 text-white'
-                        : 'bg-white border-gray-300 text-gray-900'
-                    }`}
-                    required
-                  />
-                  <span className={`absolute right-4 top-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    {paymentSettings.currency || 'ETB'}
-                  </span>
-                </div>
               </div>
-
-              <div>
-                <label className="block text-sm font-semibold mb-2">Currency</label>
+              <div className="relative mb-2">
                 <input
-                  type="text"
-                  value={paymentSettings.currency}
-                  onChange={(e) => setPaymentSettings({ ...paymentSettings, currency: e.target.value })}
-                  className={`w-full px-4 py-3 rounded-lg border ${
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={paymentSettings.pricePerUserPerMonth}
+                  onChange={(e) => setPaymentSettings({ ...paymentSettings, pricePerUserPerMonth: e.target.value })}
+                  className={`w-full px-4 py-3 rounded-lg border-2 text-lg font-semibold ${
                     isDarkMode
-                      ? 'bg-gray-700 border-gray-600 text-white'
-                      : 'bg-white border-gray-300 text-gray-900'
+                      ? 'bg-gray-700 border-blue-500/50 text-white focus:border-blue-400'
+                      : 'bg-white border-blue-300 text-gray-900 focus:border-blue-500'
                   }`}
-                  placeholder="ETB"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold mb-2">Bank Name *</label>
-              <input
-                type="text"
-                value={paymentSettings.bankName}
-                onChange={(e) => setPaymentSettings({ ...paymentSettings, bankName: e.target.value })}
-                className={`w-full px-4 py-3 rounded-lg border ${
-                  isDarkMode
-                    ? 'bg-gray-700 border-gray-600 text-white'
-                    : 'bg-white border-gray-300 text-gray-900'
-                }`}
-                placeholder="e.g., Commercial Bank of Ethiopia"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold mb-2">Account Name *</label>
-              <input
-                type="text"
-                value={paymentSettings.accountName}
-                onChange={(e) => setPaymentSettings({ ...paymentSettings, accountName: e.target.value })}
-                className={`w-full px-4 py-3 rounded-lg border ${
-                  isDarkMode
-                    ? 'bg-gray-700 border-gray-600 text-white'
-                    : 'bg-white border-gray-300 text-gray-900'
-                }`}
-                placeholder="e.g., Mela Note Services"
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-semibold mb-2">Bank Account Number *</label>
-                <input
-                  type="text"
-                  value={paymentSettings.accountNumber}
-                  onChange={(e) => setPaymentSettings({ ...paymentSettings, accountNumber: e.target.value })}
-                  className={`w-full px-4 py-3 rounded-lg border font-mono text-lg ${
-                    isDarkMode
-                      ? 'bg-gray-700 border-gray-600 text-green-400'
-                      : 'bg-white border-gray-300 text-green-600'
-                  }`}
-                  placeholder="e.g., 1000123456789"
+                  placeholder="1"
                   required
                 />
+                <span className={`absolute right-4 top-3 font-semibold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                  ETB/user/month
+                </span>
               </div>
-
-              <div>
-                <label className="block text-sm font-semibold mb-2">Tele Birr Phone Number *</label>
-                <input
-                  type="text"
-                  value={paymentSettings.teleBirrPhone}
-                  onChange={(e) => setPaymentSettings({ ...paymentSettings, teleBirrPhone: e.target.value })}
-                  className={`w-full px-4 py-3 rounded-lg border font-mono text-lg ${
-                    isDarkMode
-                      ? 'bg-gray-700 border-gray-600 text-blue-400'
-                      : 'bg-white border-gray-300 text-blue-600'
-                  }`}
-                  placeholder="e.g., +251912345678"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className={`p-4 rounded-xl border ${isDarkMode ? 'bg-blue-500/10 border-blue-500/30' : 'bg-blue-50 border-blue-200'}`}>
-              <div className="flex items-start gap-2">
-                <AlertCircle className={`w-5 h-5 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'} flex-shrink-0 mt-0.5`} />
-                <div className={`text-sm ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>
-                  <strong>Note:</strong> These settings will be displayed to all company admins when they click "How to Pay" on the payment submission page.
-                </div>
-              </div>
+              <p className={`text-sm ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>
+                💡 This is used to calculate payment: <strong>(User Limit × Price Per User × Months) - Discount</strong>
+              </p>
+              <p className={`text-xs mt-2 ${isDarkMode ? 'text-blue-400/80' : 'text-blue-600/80'}`}>
+                Example: If user limit is 10 and price per user is {paymentSettings.pricePerUserPerMonth} ETB, then 1 month = 10 × {paymentSettings.pricePerUserPerMonth} = {10 * parseFloat(paymentSettings.pricePerUserPerMonth || 1)} ETB
+              </p>
             </div>
 
             <div className="flex gap-3 pt-4">
               <button
                 onClick={handleSave}
                 disabled={loading}
-                className="flex-1 md:flex-none px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2"
+                className={`flex-1 md:flex-none px-8 py-3 ${isDarkMode ? 'bg-white hover:bg-gray-200 text-black' : 'bg-black hover:bg-gray-800 text-white'} rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2`}
               >
                 {loading ? (
                   <>

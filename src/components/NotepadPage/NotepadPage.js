@@ -1373,7 +1373,7 @@ const NotepadPage = () => {
 									<hr className="my-1 border-gray-200 dark:border-gray-700" />
 									<button
 										onClick={() => deleteBlock(block.id)}
-										className="flex items-center w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+										className={`flex items-center w-full px-4 py-2 text-left ${isDarkMode ? 'text-white hover:bg-gray-800' : 'text-black hover:bg-gray-100'}`}
 									>
 										<Trash2 className="w-4 h-4 mr-2" />
 										Delete
@@ -1439,7 +1439,7 @@ const NotepadPage = () => {
 									<hr className="my-1 border-gray-200 dark:border-gray-700" />
 									<button
 										onClick={() => deleteBlock(block.id)}
-										className="flex items-center w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+										className={`flex items-center w-full px-4 py-2 text-left ${isDarkMode ? 'text-white hover:bg-gray-800' : 'text-black hover:bg-gray-100'}`}
 									>
 										<Trash2 className="w-4 h-4 mr-2" />
 										Delete
@@ -1505,7 +1505,7 @@ const NotepadPage = () => {
 									<hr className="my-1 border-gray-200 dark:border-gray-700" />
 									<button
 										onClick={() => deleteBlock(block.id)}
-										className="flex items-center w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+										className={`flex items-center w-full px-4 py-2 text-left ${isDarkMode ? 'text-white hover:bg-gray-800' : 'text-black hover:bg-gray-100'}`}
 									>
 										<Trash2 className="w-4 h-4 mr-2" />
 										Delete
@@ -1570,7 +1570,7 @@ const NotepadPage = () => {
 									<hr className="my-1 border-gray-200 dark:border-gray-700" />
 									<button
 										onClick={() => deleteBlock(block.id)}
-										className="flex items-center w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+										className={`flex items-center w-full px-4 py-2 text-left ${isDarkMode ? 'text-white hover:bg-gray-800' : 'text-black hover:bg-gray-100'}`}
 									>
 										<Trash2 className="w-4 h-4 mr-2" />
 										Delete
@@ -1647,7 +1647,7 @@ const NotepadPage = () => {
 									<hr className="my-1 border-gray-200 dark:border-gray-700" />
 									<button
 										onClick={() => deleteBlock(block.id)}
-										className="flex items-center w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+										className={`flex items-center w-full px-4 py-2 text-left ${isDarkMode ? 'text-white hover:bg-gray-800' : 'text-black hover:bg-gray-100'}`}
 									>
 										<Trash2 className="w-4 h-4 mr-2" />
 										Delete
@@ -1712,7 +1712,7 @@ const NotepadPage = () => {
 									<hr className="my-1 border-gray-200 dark:border-gray-700" />
 									<button
 										onClick={() => deleteBlock(block.id)}
-										className="flex items-center w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+										className={`flex items-center w-full px-4 py-2 text-left ${isDarkMode ? 'text-white hover:bg-gray-800' : 'text-black hover:bg-gray-100'}`}
 									>
 										<Trash2 className="w-4 h-4 mr-2" />
 										Delete
@@ -1776,7 +1776,7 @@ const NotepadPage = () => {
 									<hr className="my-1 border-gray-200 dark:border-gray-700" />
 									<button
 										onClick={() => deleteBlock(block.id)}
-										className="flex items-center w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+										className={`flex items-center w-full px-4 py-2 text-left ${isDarkMode ? 'text-white hover:bg-gray-800' : 'text-black hover:bg-gray-100'}`}
 									>
 										<Trash2 className="w-4 h-4 mr-2" />
 										Delete
@@ -1838,7 +1838,7 @@ const NotepadPage = () => {
 									<hr className="my-1 border-gray-200 dark:border-gray-700" />
 									<button
 										onClick={() => deleteBlock(block.id)}
-										className="flex items-center w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+										className={`flex items-center w-full px-4 py-2 text-left ${isDarkMode ? 'text-white hover:bg-gray-800' : 'text-black hover:bg-gray-100'}`}
 									>
 										<Trash2 className="w-4 h-4 mr-2" />
 										Delete
@@ -1901,7 +1901,7 @@ const NotepadPage = () => {
 									<hr className="my-1 border-gray-200 dark:border-gray-700" />
 									<button
 										onClick={() => deleteBlock(block.id)}
-										className="flex items-center w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+										className={`flex items-center w-full px-4 py-2 text-left ${isDarkMode ? 'text-white hover:bg-gray-800' : 'text-black hover:bg-gray-100'}`}
 									>
 										<Trash2 className="w-4 h-4 mr-2" />
 										Delete
@@ -1971,7 +1971,7 @@ const NotepadPage = () => {
 									<hr className="my-1 border-gray-200 dark:border-gray-700" />
 									<button
 										onClick={() => deleteBlock(block.id)}
-										className="flex items-center w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+										className={`flex items-center w-full px-4 py-2 text-left ${isDarkMode ? 'text-white hover:bg-gray-800' : 'text-black hover:bg-gray-100'}`}
 									>
 										<Trash2 className="w-4 h-4 mr-2" />
 										Delete
@@ -2425,7 +2425,7 @@ const NotepadPage = () => {
 									<hr className="my-1 border-gray-200 dark:border-gray-700" />
 									<button
 										onClick={() => deleteBlock(block.id)}
-										className="flex items-center w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+										className={`flex items-center w-full px-4 py-2 text-left ${isDarkMode ? 'text-white hover:bg-gray-800' : 'text-black hover:bg-gray-100'}`}
 									>
 										<Trash2 className="w-4 h-4 mr-2" />
 										Delete
@@ -2489,7 +2489,7 @@ const NotepadPage = () => {
 	});
 
 	return (
-		<div className={`min-h-screen ${isDarkMode ? 'bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white' : 'bg-white text-gray-900'}`}>
+		<div className={`min-h-screen ${isDarkMode ? 'bg-black text-white' : 'bg-white text-gray-900'}`}>
 			<div className="flex h-screen relative">
 				{/* Mobile Header */}
 				<div className={`md:hidden fixed top-0 left-0 right-0 z-40 p-4 border-b backdrop-blur-sm ${isDarkMode ? 'bg-gray-900/95 border-gray-700' : 'bg-white/95 border-gray-200'}`}>
@@ -2720,7 +2720,7 @@ const NotepadPage = () => {
 																			>
 																				<div className="flex items-center justify-between">
 																					<div className="flex items-center">
-																						<div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-semibold mr-3">
+																						<div className={`w-8 h-8 ${isDarkMode ? 'bg-white text-black' : 'bg-black text-white'} rounded-full flex items-center justify-center text-sm font-semibold mr-3`}>
 																							{(userItem?.name && typeof userItem.name === 'string' ? userItem.name.charAt(0).toUpperCase() : null) || (userItem?.username && typeof userItem.username === 'string' ? userItem.username.charAt(0).toUpperCase() : null) || 'U'}
 																						</div>
 																						<div>
@@ -2768,7 +2768,7 @@ const NotepadPage = () => {
 																			>
 																				<div className="flex items-center justify-between">
 																					<div className="flex items-center">
-																						<div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-semibold mr-3">
+																						<div className={`w-8 h-8 ${isDarkMode ? 'bg-white text-black' : 'bg-black text-white'} rounded-full flex items-center justify-center text-sm font-semibold mr-3`}>
 																							{(userItem?.name && typeof userItem.name === 'string' ? userItem.name.charAt(0).toUpperCase() : null) || (userItem?.username && typeof userItem.username === 'string' ? userItem.username.charAt(0).toUpperCase() : null) || 'U'}
 																						</div>
 																						<div>
@@ -2944,11 +2944,11 @@ const NotepadPage = () => {
 					<div className="p-4 md:p-6 border-b border-gray-200 dark:border-gray-700">
 						<div className="flex items-center justify-between mb-4 md:mb-6">
 							<div className="flex items-center gap-2 md:gap-4">
-								<div className={`w-8 md:w-12 h-8 md:h-12 rounded-2xl flex items-center justify-center shadow-lg ${isDarkMode ? 'bg-gradient-to-br from-blue-600 to-purple-600' : 'bg-gradient-to-br from-blue-500 to-purple-500'}`}>
-									<FileText className="w-4 md:w-6 h-4 md:h-6 text-white" />
+								<div className={`w-8 md:w-12 h-8 md:h-12 rounded-2xl flex items-center justify-center shadow-lg ${isDarkMode ? 'bg-white' : 'bg-black'}`}>
+									<FileText className={`w-4 md:w-6 h-4 md:h-6 ${isDarkMode ? 'text-black' : 'text-white'}`} />
 								</div>
 								<div>
-									<h1 className="text-xl md:text-2xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+									<h1 className={`text-xl md:text-2xl font-black ${isDarkMode ? 'text-white' : 'text-black'}`}>
 										Notes
 									</h1>
 									<p className={`text-xs md:text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Create and organize your thoughts</p>
@@ -2956,7 +2956,7 @@ const NotepadPage = () => {
 							</div>
 							<button
 								onClick={createNewNote}
-								className={`p-2 md:p-3 rounded-2xl font-bold transition-all duration-300 hover:scale-105 shadow-xl ${isDarkMode ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700' : 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600'}`}
+								className="p-2 md:p-3 rounded-2xl font-bold transition-all duration-300 hover:scale-105 shadow-xl bg-black text-white hover:bg-gray-800"
 							>
 								<Plus className="w-4 md:w-5 h-4 md:h-5" />
 							</button>

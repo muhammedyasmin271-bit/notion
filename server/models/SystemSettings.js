@@ -65,6 +65,12 @@ systemSettingsSchema.statics.ensureDefaults = async function() {
       category: 'payment',
       value: 'ETB',
       description: 'Currency code'
+    },
+    {
+      settingKey: 'payment.pricePerUserPerMonth',
+      category: 'payment',
+      value: 1,
+      description: 'Price per user per month in ETB'
     }
   ];
 

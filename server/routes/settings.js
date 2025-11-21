@@ -12,9 +12,9 @@ const isSuperAdmin = (req, res, next) => {
 };
 
 // @route   GET /api/settings/payment
-// @desc    Get payment settings (public - for "How to Pay" display)
-// @access  Public (any authenticated user can view)
-router.get('/payment', auth, async (req, res) => {
+// @desc    Get payment settings (public - for landing page and "How to Pay" display)
+// @access  Public (no auth required for landing page)
+router.get('/payment', async (req, res) => {
   try {
     const settings = await SystemSettings.find({ category: 'payment' });
     
@@ -86,7 +86,7 @@ router.put('/:settingKey', auth, isSuperAdmin, async (req, res) => {
 // @access  Private (Super Admin)
 router.put('/payment/bulk', auth, isSuperAdmin, async (req, res) => {
   try {
-    const { monthlyAmount, bankName, accountName, accountNumber, teleBirrPhone, currency } = req.body;
+    const { monthlyAmount, pricePerUserPerMonth, bankName, accountName, accountNumber, teleBirrPhone, currency } = req.body;
 
     const updates = [];
 
@@ -129,6 +129,13 @@ router.put('/payment/bulk', auth, isSuperAdmin, async (req, res) => {
       updates.push({
         settingKey: 'payment.currency',
         value: currency
+      });
+    }
+
+    if (pricePerUserPerMonth !== undefined) {
+      updates.push({
+        settingKey: 'payment.pricePerUserPerMonth',
+        value: parseFloat(pricePerUserPerMonth)
       });
     }
 

@@ -92,8 +92,8 @@ const ReportsPage = () => {
   return (
     <div className={`min-h-screen transition-colors duration-200 ${
       isDarkMode 
-        ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white' 
-        : 'bg-gradient-to-br from-gray-50 via-white to-gray-100 text-gray-900'
+        ? 'bg-black text-white' 
+        : 'bg-white text-gray-900'
     }`}>
       <div className={`backdrop-blur-sm border-b shadow-2xl ${
         isDarkMode 
@@ -103,11 +103,11 @@ const ReportsPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3 sm:gap-6">
-              <div className="p-2 sm:p-4 rounded-xl sm:rounded-2xl bg-gradient-to-r from-blue-500 to-purple-600 shadow-lg">
-                <BarChart3 className="w-6 h-6 sm:w-10 sm:h-10 text-white" />
+              <div className={`p-2 sm:p-4 rounded-xl sm:rounded-2xl ${isDarkMode ? 'bg-white' : 'bg-black'} shadow-lg`}>
+                <BarChart3 className={`w-6 h-6 sm:w-10 sm:h-10 ${isDarkMode ? 'text-black' : 'text-white'}`} />
               </div>
               <div>
-                <h1 className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                <h1 className={`text-2xl sm:text-4xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>
                   Reports Dashboard
                 </h1>
                 <p className={`mt-1 sm:mt-2 text-sm sm:text-lg ${
@@ -122,7 +122,7 @@ const ReportsPage = () => {
                 const companyId = user?.companyId || 'melanote';
                 navigate(`/${companyId}/submit-report`);
               }}
-              className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg sm:rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2"
+              className={`w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 ${isDarkMode ? 'bg-white hover:bg-gray-200 text-black' : 'bg-black hover:bg-gray-800 text-white'} rounded-lg sm:rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2`}
             >
               <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
               <span className="sm:inline">New Report</span>
@@ -223,7 +223,7 @@ const ReportsPage = () => {
               ? 'bg-gray-800/30 border-gray-700/50' 
               : 'bg-white/50 border-gray-200/50'
           }`}>
-            <div className={`w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-6 sm:mb-8 rounded-full bg-gradient-to-r from-blue-500/20 to-purple-500/20 flex items-center justify-center border ${
+            <div className={`w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-6 sm:mb-8 rounded-full ${isDarkMode ? 'bg-white/10' : 'bg-black/10'} flex items-center justify-center border ${
               isDarkMode ? 'border-gray-600' : 'border-gray-300'
             }`}>
               <FileText className={`w-8 h-8 sm:w-12 sm:h-12 ${
@@ -250,7 +250,7 @@ const ReportsPage = () => {
                 const companyId = user?.companyId || 'melanote';
                 navigate(`/${companyId}/submit-report`);
               }}
-              className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg sm:rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+              className={`px-6 sm:px-8 py-3 sm:py-4 ${isDarkMode ? 'bg-white hover:bg-gray-200 text-black' : 'bg-black hover:bg-gray-800 text-white'} rounded-lg sm:rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105`}
             >
               Create Your First Report
             </button>

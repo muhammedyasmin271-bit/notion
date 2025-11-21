@@ -106,21 +106,21 @@ const HomePage = () => {
   };
 
   const quickActions = [
-    { name: 'Create Project', desc: 'Start a new project', icon: Plus, path: '/projects', bg: 'from-blue-500 to-indigo-600' },
-    { name: 'How it Works', desc: 'Learn the system', icon: Brain, path: '/how-it-works', bg: 'from-purple-500 to-pink-600' },
-    { name: 'Analytics', desc: 'View insights', icon: BarChart3, path: '/reports', bg: 'from-emerald-500 to-teal-600' },
-    { name: 'Quick Notes', desc: 'Capture ideas', icon: Zap, path: '/notepad', bg: 'from-orange-500 to-red-600' }
+    { name: 'Create Project', desc: 'Start a new project', icon: Plus, path: '/projects', bg: isDarkMode ? 'from-white to-gray-300' : 'from-gray-900 to-black' },
+    { name: 'How it Works', desc: 'Learn the system', icon: Brain, path: '/how-it-works', bg: isDarkMode ? 'from-white to-gray-300' : 'from-gray-900 to-black' },
+    { name: 'Analytics', desc: 'View insights', icon: BarChart3, path: '/reports', bg: isDarkMode ? 'from-white to-gray-300' : 'from-gray-900 to-black' },
+    { name: 'Quick Notes', desc: 'Capture ideas', icon: Zap, path: '/notepad', bg: isDarkMode ? 'from-white to-gray-300' : 'from-gray-900 to-black' }
   ];
 
   return (
-    <div className={`min-h-screen transition-all duration-1000 ${isDarkMode ? 'bg-gradient-to-br from-slate-900 via-gray-900 to-black' : 'bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50'
+    <div className={`min-h-screen transition-all duration-1000 ${isDarkMode ? 'bg-black' : 'bg-white'
       }`}>
 
       {/* Animated Background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className={`absolute -top-40 -right-40 w-80 h-80 ${isDarkMode ? 'bg-gradient-to-br from-blue-400/20 to-purple-600/20' : 'bg-gradient-to-br from-blue-300/30 to-purple-500/30'
+        <div className={`absolute -top-40 -right-40 w-80 h-80 ${isDarkMode ? 'bg-white/5' : 'bg-black/5'
           } rounded-full blur-3xl animate-pulse`}></div>
-        <div className={`absolute -bottom-40 -left-40 w-96 h-96 ${isDarkMode ? 'bg-gradient-to-br from-emerald-400/15 to-teal-600/15' : 'bg-gradient-to-br from-emerald-300/25 to-teal-500/25'
+        <div className={`absolute -bottom-40 -left-40 w-96 h-96 ${isDarkMode ? 'bg-white/3' : 'bg-black/3'
           } rounded-full blur-3xl animate-pulse`} style={{ animationDelay: '2s' }}></div>
       </div>
 
@@ -130,15 +130,15 @@ const HomePage = () => {
         <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 p-4 rounded-2xl ${isDarkMode ? 'bg-white/5 border border-white/10 backdrop-blur-sm' : 'bg-white/70 border border-white/20 backdrop-blur-sm'
           } shadow-xl`}>
           <div className="flex items-center space-x-3">
-            <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${isDarkMode ? 'bg-green-500/20 border border-green-400/30' : 'bg-green-100 border border-green-200'
+            <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${isDarkMode ? 'bg-white/20 border border-white/30' : 'bg-black/10 border border-black/20'
               }`}>
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className={`text-xs font-medium ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
+              <div className={`w-2 h-2 ${isDarkMode ? 'bg-white' : 'bg-black'} rounded-full animate-pulse`}></div>
+              <span className={`text-xs font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>
                 Online
               </span>
             </div>
             <div className="flex items-center space-x-2">
-              <Clock className={`w-4 h-4 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`} />
+              <Clock className={`w-4 h-4 ${isDarkMode ? 'text-white' : 'text-black'}`} />
               <span className={`text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                 {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
@@ -151,8 +151,8 @@ const HomePage = () => {
             className={`flex items-center space-x-2 px-4 py-2 rounded-full transition-all duration-300 hover:scale-105 ${
               notificationsEnabled
                 ? isDarkMode 
-                  ? 'bg-green-500/20 border border-green-400/30 hover:bg-green-500/30' 
-                  : 'bg-green-100 border border-green-200 hover:bg-green-200'
+                  ? 'bg-white/20 border border-white/30 hover:bg-white/30' 
+                  : 'bg-black/10 border border-black/20 hover:bg-black/20'
                 : isDarkMode
                   ? 'bg-gray-500/20 border border-gray-400/30 hover:bg-gray-500/30'
                   : 'bg-gray-100 border border-gray-200 hover:bg-gray-200'
@@ -160,19 +160,19 @@ const HomePage = () => {
             title={notificationsEnabled ? 'Notifications Enabled' : 'Enable Notifications'}
           >
             {notificationsEnabled ? (
-              <Bell className={`w-4 h-4 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
+              <Bell className={`w-4 h-4 ${isDarkMode ? 'text-white' : 'text-black'}`} />
             ) : (
               <BellOff className={`w-4 h-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
             )}
             <span className={`text-xs font-medium ${
               notificationsEnabled
-                ? isDarkMode ? 'text-green-400' : 'text-green-600'
+                ? isDarkMode ? 'text-white' : 'text-black'
                 : isDarkMode ? 'text-gray-400' : 'text-gray-600'
             }`}>
               {notificationsEnabled ? 'Notifications On' : 'Enable Notifications'}
             </span>
             {notificationsEnabled && (
-              <span className={`text-xs ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>✓</span>
+              <span className={`text-xs ${isDarkMode ? 'text-white' : 'text-black'}`}>✓</span>
             )}
           </button>
         </div>
@@ -180,8 +180,8 @@ const HomePage = () => {
         {/* Hero Section - Optimized for mobile with AI Assistant card */}
         <div className="flex flex-col mb-8 relative">
           <div className="mb-6">
-            <h1 className={`text-4xl sm:text-5xl font-black mb-3 ${isDarkMode ? 'bg-gradient-to-r from-white via-blue-400 to-purple-400 bg-clip-text text-transparent'
-                : 'bg-gradient-to-r from-gray-900 via-blue-600 to-purple-600 bg-clip-text text-transparent'
+            <h1 className={`text-4xl sm:text-5xl font-black mb-3 ${isDarkMode ? 'text-white'
+                : 'text-gray-900'
               }`}>
               {getGreeting()},<br />
               <span className="text-3xl sm:text-4xl">{user?.name?.split(' ')[0] || 'User'}</span>
@@ -197,11 +197,11 @@ const HomePage = () => {
           {/* AI Assistant Card - Desktop version in top right */}
           <button
             onClick={() => window.location.href = '/ai-assistant'}
-            className={`hidden sm:block absolute top-0 right-0 p-8 rounded-3xl ${isDarkMode ? 'bg-gradient-to-br from-blue-600/40 to-purple-600/40 border border-blue-500/50 hover:bg-blue-600/50'
-                : 'bg-gradient-to-br from-blue-600/30 to-purple-600/30 border border-blue-300/50 hover:bg-blue-600/40'
+            className={`hidden sm:block absolute top-0 right-0 p-8 rounded-3xl ${isDarkMode ? 'bg-white/10 border border-white/20 hover:bg-white/20'
+                : 'bg-black/10 border border-black/20 hover:bg-black/20'
               } backdrop-blur-sm transition-all duration-300 cursor-pointer hover:scale-105 shadow-2xl`}>
             <div className="flex items-center space-x-5">
-              <Sparkles className={`w-12 h-12 ${isDarkMode ? 'text-blue-300' : 'text-blue-600'} animate-pulse`} />
+              <Sparkles className={`w-12 h-12 ${isDarkMode ? 'text-white' : 'text-black'} animate-pulse`} />
               <div className="text-left">
                 <div className={`text-lg font-medium ${isDarkMode ? 'text-gray-100' : 'text-gray-800'}`}>
                   AI Assistant
@@ -216,10 +216,10 @@ const HomePage = () => {
           {/* AI Assistant Button - Mobile version */}
           <button
             onClick={() => window.location.href = '/ai-assistant'}
-            className={`flex sm:hidden items-center space-x-4 w-full ${isDarkMode ? 'bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-blue-500/30'
-                : 'bg-gradient-to-br from-blue-600/10 to-purple-600/10 border border-blue-300/30'
+            className={`flex sm:hidden items-center space-x-4 w-full ${isDarkMode ? 'bg-white/10 border border-white/20'
+                : 'bg-black/10 border border-black/20'
               } rounded-2xl p-4 backdrop-blur-sm hover:scale-[1.02] transition-all duration-300 cursor-pointer`}>
-            <Sparkles className={`w-8 h-8 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'} animate-pulse`} />
+            <Sparkles className={`w-8 h-8 ${isDarkMode ? 'text-white' : 'text-black'} animate-pulse`} />
             <div className="text-left">
               <div className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                 AI Assistant
@@ -274,7 +274,7 @@ const HomePage = () => {
               <button
                 key={action.name}
                 onClick={() => window.location.href = action.path}
-                className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${action.bg} p-5 text-white shadow-xl hover:shadow-2xl transition-all duration-700 hover:scale-[1.02]`}
+                className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${action.bg} p-5 ${isDarkMode ? 'text-black' : 'text-white'} shadow-xl hover:shadow-2xl transition-all duration-700 hover:scale-[1.02]`}
               >
                 <div className="relative z-10">
                   <div className="flex items-start justify-between mb-4">
@@ -300,7 +300,7 @@ const HomePage = () => {
           <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl ${isDarkMode ? 'bg-white/5 border border-white/10 backdrop-blur-sm' : 'bg-white/70 border border-white/20 backdrop-blur-sm'
             } shadow-xl`}>
             <div className="flex items-center">
-              <Activity className={`w-5 h-5 mr-2 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+              <Activity className={`w-5 h-5 mr-2 ${isDarkMode ? 'text-white' : 'text-black'}`} />
               <span className={`text-sm sm:text-base font-bold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                 Updated: {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>

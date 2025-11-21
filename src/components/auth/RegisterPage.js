@@ -190,7 +190,13 @@ const RegisterPage = () => {
           ) : (
             <>
               <img 
-                src={companyData?.branding?.logo || "/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png"} 
+                src={
+                  companyData?.branding?.logo 
+                    ? (companyData.branding.logo.startsWith('data:') || companyData.branding.logo.startsWith('http') || companyData.branding.logo.startsWith('/ChatGPT')
+                        ? companyData.branding.logo 
+                        : `http://localhost:9000${companyData.branding.logo}`)
+                    : "/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png"
+                } 
                 alt={`${companyData?.name || 'Mela Note'} Logo`} 
                 className={`w-24 h-24 sm:w-32 sm:h-32 mx-auto object-contain mb-4 sm:mb-6 transition-all duration-300 hover:scale-110 ${
                   isDarkMode && !companyData?.branding?.logo ? 'filter brightness-0 invert' : ''

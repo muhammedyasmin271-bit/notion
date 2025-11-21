@@ -3,6 +3,10 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const { requireAdmin } = require('../middleware/roleAuth');
 const Company = require('../models/Company');
+const User = require('../models/User');
+const SystemSettings = require('../models/SystemSettings');
+const { sendSMS } = require('../services/smsService');
+const { schedulePaymentReminders, cancelPaymentReminders } = require('../services/paymentReminder');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -26,7 +30,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit for logos
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowedTypes = /jpeg|jpg|png|gif|svg/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
@@ -39,9 +43,6 @@ const upload = multer({
   }
 });
 
-// @route   GET /api/company/my-company
-// @desc    Get current company details
-// @access  Private (Admin)
 router.get('/my-company', auth, requireAdmin, async (req, res) => {
   try {
     const company = await Company.findOne({ companyId: req.user.companyId });
@@ -49,6 +50,11 @@ router.get('/my-company', auth, requireAdmin, async (req, res) => {
     if (!company) {
       return res.status(404).json({ message: 'Company not found' });
     }
+    
+    const Payment = require('../models/Payment');
+    const payments = await Payment.find({ companyId: company.companyId })
+      .sort({ createdAt: -1 })
+      .select('_id amount paymentDate status period createdAt');
     
     res.json({
       companyId: company.companyId,
@@ -59,7 +65,18 @@ router.get('/my-company', auth, requireAdmin, async (req, res) => {
       limits: company.limits || {},
       status: company.status,
       subscriptionStatus: company.subscriptionStatus,
-      createdAt: company.createdAt
+      selectedPlan: company.selectedPlan,
+      hasPaid: company.hasPaid,
+      paymentMode: company.paymentMode || 'paid',
+      pricePerUserPerMonth: company.pricePerUserPerMonth,
+      createdAt: company.createdAt,
+      paymentDeadline: company.paymentDeadline,
+      gracePeriodDeadline: company.gracePeriodDeadline,
+      paymentPeriodEnd: company.paymentPeriodEnd,
+      lastPaymentDate: company.lastPaymentDate,
+      pausedAt: company.pausedAt,
+      unpausedAt: company.unpausedAt,
+      payments: payments || []
     });
   } catch (error) {
     console.error('Error fetching company:', error);
@@ -67,58 +84,36 @@ router.get('/my-company', auth, requireAdmin, async (req, res) => {
   }
 });
 
-// @route   PUT /api/company/branding
-// @desc    Update company branding (logo, name, colors)
-// @access  Private (Admin)
 router.put('/branding', auth, requireAdmin, upload.single('logo'), async (req, res) => {
   try {
     console.log('🎨 Branding update request received');
-    console.log('User companyId:', req.user.companyId);
-    console.log('Request body:', req.body);
-    console.log('File uploaded:', req.file ? req.file.filename : 'No file');
-    
     const company = await Company.findOne({ companyId: req.user.companyId });
     
     if (!company) {
-      console.log('❌ Company not found:', req.user.companyId);
       return res.status(404).json({ message: 'Company not found' });
     }
     
-    console.log('✅ Company found:', company.name);
-    console.log('Current branding:', company.branding);
-    
-    // Update branding fields
     if (!company.branding) {
       company.branding = {};
     }
     
     if (req.body.companyName) {
-      console.log('Updating company name from', company.branding.companyName, 'to', req.body.companyName);
       company.branding.companyName = req.body.companyName;
     }
     
     if (req.body.primaryColor) {
-      console.log('Updating primary color from', company.branding.primaryColor, 'to', req.body.primaryColor);
       company.branding.primaryColor = req.body.primaryColor;
     }
     
-    // If logo was uploaded, update it
     if (req.file) {
-      const logoUrl = `/uploads/company-logos/${req.file.filename}`;
-      console.log('Updating logo to:', logoUrl);
+      // Store full URL for consistency
+      const baseUrl = process.env.BACKEND_URL || process.env.API_URL || 'http://localhost:9000';
+      const logoUrl = `${baseUrl}/uploads/company-logos/${req.file.filename}`;
       company.branding.logo = logoUrl;
     }
     
-    console.log('New branding data:', company.branding);
-    console.log('Saving to database...');
-    
     await company.save();
-    
-    console.log('✅ Company branding saved successfully to database');
-    
-    // Verify the save by fetching again
-    const updatedCompany = await Company.findOne({ companyId: req.user.companyId });
-    console.log('Verification - branding after save:', updatedCompany.branding);
+    console.log('✅ Company branding saved successfully');
     
     res.json({
       message: 'Company branding updated successfully',
@@ -130,55 +125,33 @@ router.put('/branding', auth, requireAdmin, upload.single('logo'), async (req, r
   }
 });
 
-// @route   PUT /api/company/contact
-// @desc    Update company contact information
-// @access  Private (Admin)
 router.put('/contact', auth, requireAdmin, async (req, res) => {
   try {
-    console.log('📧 Contact info update request received');
-    console.log('User companyId:', req.user.companyId);
-    console.log('Request body:', req.body);
-    
     const { adminEmail, adminPhone } = req.body;
-    
     const company = await Company.findOne({ companyId: req.user.companyId });
     
     if (!company) {
-      console.log('❌ Company not found:', req.user.companyId);
       return res.status(404).json({ message: 'Company not found' });
     }
     
-    console.log('✅ Company found:', company.name);
-    console.log('Current contact info - Email:', company.adminEmail, 'Phone:', company.adminPhone);
-    
     if (adminEmail) {
-      // Check if email is already used by another company
       const existingCompany = await Company.findOne({
         adminEmail,
         companyId: { $ne: req.user.companyId }
       });
       
       if (existingCompany) {
-        console.log('❌ Email already in use by another company');
         return res.status(400).json({ message: 'This email is already in use by another company' });
       }
       
-      console.log('Updating admin email from', company.adminEmail, 'to', adminEmail);
       company.adminEmail = adminEmail;
     }
     
     if (adminPhone) {
-      console.log('Updating admin phone from', company.adminPhone, 'to', adminPhone);
       company.adminPhone = adminPhone;
     }
     
-    console.log('Saving to database...');
     await company.save();
-    console.log('✅ Contact information saved successfully to database');
-    
-    // Verify the save by fetching again
-    const updatedCompany = await Company.findOne({ companyId: req.user.companyId });
-    console.log('Verification - Email:', updatedCompany.adminEmail, 'Phone:', updatedCompany.adminPhone);
     
     res.json({
       message: 'Contact information updated successfully',
@@ -191,9 +164,6 @@ router.put('/contact', auth, requireAdmin, async (req, res) => {
   }
 });
 
-// @route   GET /api/company/stats
-// @desc    Get company statistics
-// @access  Private (Admin)
 router.get('/stats', auth, requireAdmin, async (req, res) => {
   try {
     const company = await Company.findOne({ companyId: req.user.companyId });
@@ -202,7 +172,6 @@ router.get('/stats', auth, requireAdmin, async (req, res) => {
       return res.status(404).json({ message: 'Company not found' });
     }
     
-    // Get user count
     const User = require('../models/User');
     const totalUsers = await User.countDocuments({
       companyId: req.user.companyId,
@@ -220,11 +189,9 @@ router.get('/stats', auth, requireAdmin, async (req, res) => {
       status: 'pending'
     });
     
-    // Get projects count
     const Project = require('../models/Project');
     const projectCount = await Project.countDocuments({ companyId: req.user.companyId });
     
-    // Get documents count
     const Document = require('../models/Document');
     const documentCount = await Document.countDocuments({ companyId: req.user.companyId });
     
@@ -252,5 +219,156 @@ router.get('/stats', auth, requireAdmin, async (req, res) => {
   }
 });
 
-module.exports = router;
+router.post('/create', upload.single('logo'), async (req, res) => {
+  try {
+    const {
+      companyName,
+      companyEmail,
+      companyPhone,
+      companyAddress,
+      selectedPlan,
+      adminFirstName,
+      adminLastName,
+      adminEmail,
+      adminPhone,
+      adminPassword,
+      adminUsername,
+      maxUsers,
+      logo
+    } = req.body;
 
+    if (!companyName || !companyEmail || !adminEmail || !adminPassword || !adminPhone) {
+      return res.status(400).json({ message: 'Missing required fields. Phone number is required.' });
+    }
+
+    const companyId = `comp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    const existingCompany = await Company.findOne({ adminEmail });
+    if (existingCompany) {
+      return res.status(400).json({ message: 'Admin email already in use' });
+    }
+
+    const finalAdminUsername = (adminUsername || adminEmail.split('@')[0] + '_admin').toLowerCase();
+
+    const existingUser = await User.findOne({ username: finalAdminUsername });
+    if (existingUser) {
+      return res.status(400).json({ message: 'Admin username already exists' });
+    }
+
+    const pricePerUserSetting = await SystemSettings.findOne({ settingKey: 'payment.pricePerUserPerMonth' });
+    const pricePerUserPerMonth = pricePerUserSetting ? pricePerUserSetting.value : 1;
+
+    const now = new Date();
+    let paymentDeadline;
+    let hasPaid = false;
+    let gracePeriodDeadline = null;
+    
+    if (selectedPlan === 'free_trial') {
+      paymentDeadline = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      hasPaid = false;
+    } else {
+      paymentDeadline = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      gracePeriodDeadline = new Date(paymentDeadline.getTime() + 7 * 24 * 60 * 60 * 1000);
+      hasPaid = false;
+    }
+
+    const adminUser = new User({
+      name: `${adminFirstName || 'Admin'} ${adminLastName || 'User'}`,
+      username: finalAdminUsername,
+      password: adminPassword,
+      email: adminEmail,
+      phone: adminPhone,
+      role: 'admin',
+      companyId,
+      isActive: true,
+      status: 'approved'
+    });
+
+    await adminUser.save();
+    console.log(`✅ Admin user created: ${adminUser.name}`);
+
+    let logoUrl = null;
+    if (logo && logo.startsWith('data:image')) {
+      logoUrl = logo;
+    } else if (req.file) {
+      const baseUrl = process.env.BACKEND_URL || process.env.API_URL || 'http://localhost:9000';
+      logoUrl = `${baseUrl}/uploads/company-logos/${req.file.filename}`;
+    }
+
+    const companyLink = `${process.env.APP_URL || 'http://localhost:3000'}/login?company=${companyId}`;
+
+    const company = new Company({
+      companyId,
+      name: companyName,
+      adminEmail,
+      adminPhone: companyPhone,
+      adminUserId: adminUser._id,
+      selectedPlan: selectedPlan || 'free_trial',
+      paymentDeadline,
+      gracePeriodDeadline,
+      pricePerUserPerMonth: pricePerUserPerMonth,
+      hasPaid: hasPaid,
+      paymentMode: 'paid',
+      subscriptionStatus: selectedPlan === 'free_trial' ? 'trial' : 'trial',
+      branding: {
+        logo: logoUrl,
+        companyName: companyName
+      },
+      limits: {
+        maxUsers: maxUsers ? parseInt(maxUsers) : 50,
+        maxStorage: 5368709120
+      },
+      pricing: {
+        monthlyAmount: 1000,
+        currency: 'ETB'
+      },
+      companyLink,
+      status: 'active'
+    });
+
+    await company.save();
+    console.log(`✅ Company created: ${company.name}`);
+
+    if (adminPhone && process.env.SMS_API && process.env.SMS_TOKEN) {
+      try {
+        let smsMessage;
+        
+        if (selectedPlan === 'free_trial') {
+          smsMessage = `Welcome to ${companyName}!\n\nYour login credentials:\nUsername: ${finalAdminUsername}\nPassword: ${adminPassword}\nCompany ID: ${companyId}\n\nYou have 7 days free trial.\n\nLogin: ${companyLink}`;
+        } else {
+          smsMessage = `Welcome to ${companyName}!\n\nYour login credentials:\nUsername: ${finalAdminUsername}\nPassword: ${adminPassword}\nCompany ID: ${companyId}\n\nComplete payment within 24 hours.\n\nLogin: ${companyLink}`;
+        }
+
+        const smsResult = await sendSMS(adminPhone, smsMessage);
+        
+        if (smsResult.success) {
+          console.log(`✅ SMS sent successfully with credentials to ${adminPhone}`);
+        } else {
+          console.log(`⚠️ SMS failed: ${smsResult.message}`);
+        }
+      } catch (smsError) {
+        console.error('❌ SMS Error:', smsError.message);
+      }
+    }
+
+    if (selectedPlan !== 'free_trial' && adminPhone && process.env.SMS_API && process.env.SMS_TOKEN) {
+      schedulePaymentReminders(companyId, adminPhone, companyName, paymentDeadline);
+    }
+
+    res.status(201).json({
+      message: 'Company created successfully',
+      companyId: company.companyId,
+      companyName: company.name,
+      adminEmail: adminEmail,
+      adminUsername: finalAdminUsername,
+      companyLink: companyLink,
+      paymentDeadline: paymentDeadline,
+      selectedPlan: selectedPlan
+    });
+  } catch (error) {
+    console.error('❌ Error creating company:', error);
+    res.status(500).json({ message: 'Failed to create company', error: error.message });
+  }
+});
+
+module.exports = router;

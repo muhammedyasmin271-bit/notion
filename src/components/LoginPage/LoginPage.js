@@ -121,7 +121,13 @@ const LoginPage = () => {
           ) : (
             <>
               <img
-                src={companyData?.branding?.logo || "/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png"}
+                src={
+                  companyData?.branding?.logo 
+                    ? (companyData.branding.logo.startsWith('data:') || companyData.branding.logo.startsWith('http') || companyData.branding.logo.startsWith('/ChatGPT')
+                        ? companyData.branding.logo 
+                        : `http://localhost:9000${companyData.branding.logo}`)
+                    : "/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png"
+                }
                 alt={`${companyData?.name || 'Mela Note'} Logo`}
                 className={`mx-auto h-72 w-72 object-contain mb-8 transition-all duration-300 hover:scale-110 ${
                   isDarkMode && !companyData?.branding?.logo ? 'filter brightness-0 invert' : ''
@@ -129,7 +135,7 @@ const LoginPage = () => {
               />
               <h1 className={`text-3xl font-black tracking-tight mb-2 ${
                 isDarkMode ? 'text-white' : 'text-black'
-              }`}>{companyData?.branding?.companyName || companyData?.name || 'MELA NOTE WORK SPACE'}</h1>
+              }`}>{companyData?.name || 'MELA NOTE WORK SPACE'}</h1>
               {companyData && (
                 <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-2`}>
                   Company Login

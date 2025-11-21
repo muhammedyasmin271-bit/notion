@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const fetch = require('node-fetch');
 const Payment = require('../models/Payment');
 const Company = require('../models/Company');
 const auth = require('../middleware/auth');
@@ -47,9 +48,10 @@ router.post('/submit', auth, upload.single('screenshot'), async (req, res) => {
       return res.status(403).json({ message: 'Only company admins can submit payments' });
     }
 
-    if (!req.file) {
-      return res.status(400).json({ message: 'Payment screenshot is required' });
-    }
+    // Screenshot is optional (not needed for Chapa payments)
+    // if (!req.file) {
+    //   return res.status(400).json({ message: 'Payment screenshot is required' });
+    // }
 
     const { amount, paymentDate, paymentMethod, note, months, year } = req.body;
 
@@ -91,7 +93,7 @@ router.post('/submit', auth, upload.single('screenshot'), async (req, res) => {
       amount: parseFloat(amount),
       paymentDate: new Date(paymentDate),
       paymentMethod: paymentMethod || 'bank_transfer',
-      screenshotUrl: `/uploads/payments/${req.file.filename}`,
+      screenshotUrl: req.file ? `/uploads/payments/${req.file.filename}` : '',
       note: note || '',
       status: 'pending',
       period: {
@@ -207,6 +209,65 @@ router.put('/:id/verify', auth, async (req, res) => {
 
     await payment.save();
 
+    // If payment is approved, update company payment status and extend payment period
+    if (status === 'approved') {
+      const company = await Company.findOne({ companyId: payment.companyId });
+      
+      if (company) {
+        const now = new Date();
+        company.hasPaid = true;
+        company.lastPaymentDate = now;
+        company.status = 'active'; // Ensure company is active after payment
+        
+        // Calculate payment period end based on plan
+        let monthsToAdd = 0;
+        if (payment.period?.months && payment.period.months.length > 0) {
+          // Sum all months in the period array
+          monthsToAdd = payment.period.months.length;
+        } else {
+          // Fallback: determine from selected plan
+          switch (company.selectedPlan) {
+            case 'one_month':
+              monthsToAdd = 1;
+              break;
+            case 'three_month':
+              monthsToAdd = 3;
+              break;
+            case 'six_month':
+              monthsToAdd = 6;
+              break;
+            default:
+              monthsToAdd = 1;
+          }
+        }
+        
+        // If there's an existing paymentPeriodEnd, extend from there, otherwise from now
+        const baseDate = company.paymentPeriodEnd && company.paymentPeriodEnd > now 
+          ? company.paymentPeriodEnd 
+          : now;
+        
+        // Extend payment period
+        const newPeriodEnd = new Date(baseDate);
+        newPeriodEnd.setMonth(newPeriodEnd.getMonth() + monthsToAdd);
+        company.paymentPeriodEnd = newPeriodEnd;
+        
+        // Update payment deadline to match new period end
+        company.paymentDeadline = newPeriodEnd;
+        
+        // Clear grace period deadline since payment is made
+        company.gracePeriodDeadline = null;
+        
+        await company.save();
+        
+        console.log(`✅ Company payment updated:`, {
+          companyId: company.companyId,
+          companyName: company.name,
+          paymentPeriodEnd: company.paymentPeriodEnd,
+          monthsAdded: monthsToAdd
+        });
+      }
+    }
+
     await payment.populate('submittedBy', 'name username email');
     await payment.populate('verifiedBy', 'name username');
 
@@ -215,7 +276,7 @@ router.put('/:id/verify', auth, async (req, res) => {
       companyId: payment.companyId,
       companyName: payment.companyName,
       status: status,
-      verifiedBy: req.user.name
+      verifiedBy: req.user.username || req.user.id
     });
 
     res.json({
@@ -267,6 +328,264 @@ router.delete('/:id', auth, async (req, res) => {
   } catch (error) {
     console.error('Error deleting payment:', error);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST /api/payments/chapa/initialize
+// @desc    Initialize Chapa payment (Admin only)
+// @access  Private (Admin)
+router.post('/chapa/initialize', auth, async (req, res) => {
+  try {
+    // Only admins can initialize payments
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Only company admins can initialize payments' });
+    }
+
+    const { amount, months, year, planName } = req.body;
+
+    console.log('📥 Chapa payment request received:', {
+      amount,
+      months,
+      year,
+      planName,
+      userId: req.user.id,
+      companyId: req.user.companyId
+    });
+
+    if (!amount || parseFloat(amount) <= 0) {
+      return res.status(400).json({ message: 'Valid amount is required' });
+    }
+
+    // Months are automatically calculated from plan, so we'll generate them if not provided
+    let monthsToUse = months;
+    if (!monthsToUse || !Array.isArray(monthsToUse) || monthsToUse.length === 0) {
+      // Auto-generate months based on current date (fallback)
+      const currentMonth = new Date().getMonth() + 1;
+      monthsToUse = [currentMonth];
+    }
+
+    // Get company info
+    const company = await Company.findOne({ companyId: req.user.companyId });
+    if (!company) {
+      return res.status(404).json({ message: 'Company not found' });
+    }
+
+    // Get user info for payment
+    const User = require('../models/User');
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Chapa API configuration
+    const CHAPA_TOKEN = process.env.CHAPA_TOKEN || process.env.CHAPA_SECRET_KEY;
+    const CHAPA_API = process.env.CHAPA_API || 'https://api.chapa.co/v1';
+    const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
+    
+    if (!CHAPA_TOKEN) {
+      console.error('❌ Chapa token not found in environment variables');
+      return res.status(500).json({ 
+        message: 'Payment gateway not configured. Please contact administrator.',
+        error: 'CHAPA_TOKEN not found'
+      });
+    }
+    
+    console.log('🔧 Chapa Configuration:', {
+      hasToken: !!CHAPA_TOKEN,
+      tokenPrefix: CHAPA_TOKEN?.substring(0, 15) + '...',
+      apiBase: CHAPA_API,
+      baseUrl: BASE_URL
+    });
+    
+    // Generate short transaction reference (max 50 chars)
+    const txRef = `pay-${req.user.companyId}-${Date.now().toString().slice(-8)}`;
+
+    // Ensure minimum amount for Chapa
+    const chapaAmount = Math.max(parseFloat(amount), 10); // Minimum 10 ETB for Chapa
+    
+    // Prepare payment data for Chapa
+    const paymentData = {
+      amount: chapaAmount,
+      currency: 'ETB',
+      email: user.email || `${user.username}@gmail.com`,
+      first_name: user.name?.split(' ')[0] || user.username || 'User',
+      last_name: user.name?.split(' ').slice(1).join(' ') || 'Customer',
+      phone_number: user.phone || '+251911123456',
+      tx_ref: txRef,
+      callback_url: `http://localhost:9000/api/payments/chapa/callback`,
+      return_url: `${BASE_URL}/admin/payments?status=success&tx_ref=${txRef}`,
+      customization: {
+        title: planName?.substring(0, 16) || 'Subscription', // Max 16 chars
+        description: `Payment for ${planName || 'Monthly Subscription'}`
+      },
+      meta: {
+        companyId: req.user.companyId,
+        companyName: company.name,
+        userId: req.user.id,
+        months: JSON.stringify(monthsToUse),
+        year: year.toString(),
+        planName: planName || 'Monthly Subscription'
+      }
+    };
+
+    console.log('💳 Preparing Chapa payment:', {
+      amount: paymentData.amount,
+      currency: paymentData.currency,
+      tx_ref: paymentData.tx_ref,
+      email: paymentData.email,
+      phone: paymentData.phone_number
+    });
+
+    // Initialize payment with Chapa
+    try {
+      const chapaUrl = `${CHAPA_API}/transaction/initialize`;
+      console.log('🌐 Calling Chapa API:', chapaUrl);
+      
+      const chapaResponse = await fetch(chapaUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${CHAPA_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(paymentData)
+      });
+
+      const chapaData = await chapaResponse.json();
+
+      console.log('📡 Chapa API Response Status:', chapaResponse.status);
+      console.log('📡 Chapa API Response:', JSON.stringify(chapaData, null, 2));
+
+      if (!chapaResponse.ok) {
+        console.error('❌ Chapa API Error Details:', {
+          status: chapaResponse.status,
+          statusText: chapaResponse.statusText,
+          responseData: chapaData,
+          requestData: paymentData
+        });
+        return res.status(400).json({ 
+          message: chapaData.message || chapaData.data?.message || 'Failed to initialize payment with Chapa',
+          error: chapaData,
+          details: `Chapa API returned ${chapaResponse.status}: ${chapaResponse.statusText}`,
+          requestData: paymentData // Include request data for debugging
+        });
+      }
+
+      if (!chapaData.data || !chapaData.data.checkout_url) {
+        console.error('❌ Chapa response missing checkout URL:', chapaData);
+        return res.status(400).json({
+          message: 'Invalid response from payment gateway',
+          error: 'No checkout URL received from Chapa',
+          response: chapaData
+        });
+      }
+
+      // Create pending payment record
+      const payment = new Payment({
+        companyId: req.user.companyId,
+        companyName: company.name,
+        submittedBy: req.user.id,
+        amount: chapaAmount, // Use the adjusted amount
+        paymentDate: new Date(),
+        paymentMethod: 'chapa',
+        screenshotUrl: '', // Not needed for Chapa
+        note: `Chapa payment for ${planName || 'subscription'}`,
+        status: 'pending',
+        period: {
+          months: monthsToUse,
+          year: parseInt(year)
+        },
+        chapaTxRef: txRef,
+        chapaCheckoutUrl: chapaData.data?.checkout_url || null
+      });
+
+      await payment.save();
+      console.log('💾 Payment record created:', payment._id);
+
+      res.json({
+        message: 'Payment initialized successfully',
+        checkoutUrl: chapaData.data?.checkout_url,
+        txRef: txRef,
+        paymentId: payment._id,
+        success: true
+      });
+    } catch (chapaError) {
+      console.error('❌ Chapa integration error:', chapaError);
+      return res.status(500).json({ 
+        message: 'Failed to connect to payment gateway',
+        error: chapaError.message,
+        details: 'Please check your internet connection and try again'
+      });
+    }
+  } catch (error) {
+    console.error('❌ Error initializing Chapa payment:', error);
+    res.status(500).json({ 
+      message: 'Server error while initializing payment', 
+      error: error.message 
+    });
+  }
+});
+
+// @route   POST /api/payments/chapa/callback
+// @desc    Handle Chapa payment callback
+// @access  Public (called by Chapa)
+router.post('/chapa/callback', async (req, res) => {
+  try {
+    const { tx_ref, status } = req.body;
+
+    if (!tx_ref) {
+      return res.status(400).json({ message: 'Transaction reference is required' });
+    }
+
+    // Find payment by Chapa transaction reference
+    const payment = await Payment.findOne({ chapaTxRef: tx_ref });
+    if (!payment) {
+      return res.status(404).json({ message: 'Payment not found' });
+    }
+
+    // Verify payment with Chapa
+    const CHAPA_TOKEN = process.env.CHAPA_TOKEN || process.env.CHAPA_SECRET_KEY || 'CHASECK_TEST-xxxxxxxxxxxxx';
+    const CHAPA_API = process.env.CHAPA_API || 'https://api.chapa.co/v1';
+    
+    try {
+      const verifyUrl = `${CHAPA_API}/transaction/verify/${tx_ref}`;
+      const verifyResponse = await fetch(verifyUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${CHAPA_TOKEN}`
+        }
+      });
+
+      const verifyData = await verifyResponse.json();
+
+      if (verifyData.status === 'success' && verifyData.data?.status === 'successful') {
+        // Payment successful - auto-approve
+        payment.status = 'approved';
+        payment.verifiedAt = new Date();
+        payment.paymentDate = new Date(verifyData.data.created_at || Date.now());
+        await payment.save();
+
+        return res.json({ 
+          message: 'Payment verified and approved',
+          payment: payment 
+        });
+      } else {
+        // Payment failed
+        payment.status = 'rejected';
+        payment.rejectionReason = verifyData.message || 'Payment verification failed';
+        await payment.save();
+
+        return res.json({ 
+          message: 'Payment verification failed',
+          payment: payment 
+        });
+      }
+    } catch (verifyError) {
+      console.error('Chapa verification error:', verifyError);
+      return res.status(500).json({ message: 'Failed to verify payment' });
+    }
+  } catch (error) {
+    console.error('Error handling Chapa callback:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 

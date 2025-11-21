@@ -44,21 +44,7 @@ const AdminDashboard = () => {
     password: '',
     role: 'user'
   });
-  const [systemStats, setSystemStats] = useState({
-    cpuUsage: 45,
-    memoryUsage: 68,
-    diskUsage: 32,
-    uptime: '12 days',
-    activeSessions: 24
-  });
-  const [recentActivity, setRecentActivity] = useState([
-    { id: 1, user: 'John Doe', action: 'Created new project', time: '2 minutes ago', type: 'project' },
-    { id: 2, user: 'Jane Smith', action: 'Completed meeting', time: '15 minutes ago', type: 'meeting' },
-    { id: 3, user: 'Mike Johnson', action: 'Uploaded document', time: '1 hour ago', type: 'document' },
-    { id: 4, user: 'Sarah Wilson', action: 'Added team member', time: '3 hours ago', type: 'user' }
-  ]);
 
-  // Load users and stats
   useEffect(() => {
     loadUsers();
     loadStats();
@@ -221,354 +207,392 @@ const AdminDashboard = () => {
     return matchesSearch && matchesRole && matchesStatus;
   });
 
-  const StatCard = ({ title, value, icon: Icon, color, change }) => (
-    <div className={`p-6 rounded-2xl shadow-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-      <div className="flex items-center justify-between">
-        <div>
-          <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{title}</p>
-          <p className={`text-3xl font-bold mt-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{value}</p>
-          {change && (
-            <p className={`text-sm mt-1 ${change > 0 ? 'text-green-500' : 'text-red-500'}`}>
-              {change > 0 ? '↑' : '↓'} {Math.abs(change)}% from last month
-            </p>
-          )}
-        </div>
-        <div className={`p-3 rounded-xl ${color}`}>
-          <Icon className="w-8 h-8 text-white" />
+  const StatCard = ({ title, value, icon: Icon, gradient, change }) => (
+    <div className="group relative overflow-hidden rounded-3xl bg-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+      <div className={`absolute inset-0 ${isDarkMode ? 'bg-white/5' : 'bg-black/5'} group-hover:opacity-20 transition-opacity`}></div>
+      <div className="relative p-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-600 mb-2">{title}</p>
+            <p className="text-4xl font-black text-gray-900 mb-1">{value}</p>
+            {change && (
+              <p className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                {change > 0 ? '↗' : '↘'} {Math.abs(change)}% from last month
+              </p>
+            )}
+          </div>
+          <div className={`p-4 rounded-2xl ${isDarkMode ? 'bg-white' : 'bg-black'} shadow-lg`}>
+            <Icon className={`w-8 h-8 ${isDarkMode ? 'text-black' : 'text-white'}`} />
+          </div>
         </div>
       </div>
-    </div>
-  );
-
-  const SystemStatCard = ({ title, value, icon: Icon, color, percentage }) => (
-    <div className={`p-4 rounded-xl ${isDarkMode ? 'bg-gray-800' : 'bg-white'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-      <div className="flex items-center justify-between mb-2">
-        <div className={`p-2 rounded-lg ${color}`}>
-          <Icon className="w-5 h-5 text-white" />
-        </div>
-        <span className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{value}</span>
-      </div>
-      <h3 className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{title}</h3>
-      {percentage && (
-        <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
-          <div
-            className={`h-2 rounded-full ${percentage > 80 ? 'bg-red-500' : percentage > 60 ? 'bg-yellow-500' : 'bg-green-500'}`}
-            style={{ width: `${percentage}%` }}
-          ></div>
-        </div>
-      )}
     </div>
   );
 
   return (
     <RoleGuard requiredRole="admin" fallback={
-      <div className="p-8 text-center">
-        <Shield className="w-16 h-16 mx-auto mb-4 text-red-500" />
-        <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
-        <p className="text-gray-600">You need admin privileges to access this page.</p>
+      <div className={`min-h-screen ${isDarkMode ? 'bg-black' : 'bg-white'} flex items-center justify-center p-8`}>
+        <div className={`text-center ${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-3xl shadow-2xl p-12 max-w-md`}>
+          <Shield className={`w-20 h-20 mx-auto mb-6 ${isDarkMode ? 'text-white' : 'text-black'}`} />
+          <h2 className="text-3xl font-black mb-4 text-gray-900">Access Denied</h2>
+          <p className="text-gray-600 text-lg">You need admin privileges to access this page.</p>
+        </div>
       </div>
     }>
-      <div className={`min-h-screen p-3 sm:p-6 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-6 sm:mb-8">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
-            <div className="flex items-center min-w-0 flex-1">
-              <Shield className="w-6 h-6 sm:w-8 sm:h-8 mr-2 sm:mr-3 text-blue-500 flex-shrink-0" />
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold truncate">Admin Dashboard</h1>
+      <div className={`min-h-screen ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
+        {/* Fixed Payment Button */}
+        <div className="fixed top-6 right-6 z-50">
+          <button
+            onClick={() => navigate('/admin/payments')}
+            className={`flex items-center gap-3 px-6 py-4 ${isDarkMode ? 'bg-white hover:bg-gray-200 text-black' : 'bg-black hover:bg-gray-800 text-white'} rounded-full font-bold shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-110`}
+          >
+            <DollarSign className="w-6 h-6" />
+            <span className="hidden sm:inline">Payments</span>
+          </button>
+        </div>
+
+        <div className="max-w-7xl mx-auto p-6">
+          {/* Header */}
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-4 mb-6">
+              <div className={`p-4 rounded-full ${isDarkMode ? 'bg-white' : 'bg-black'} shadow-xl`}>
+                <Shield className={`w-12 h-12 ${isDarkMode ? 'text-black' : 'text-white'}`} />
+              </div>
+              <div>
+                <h1 className={`text-6xl font-black ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                  Admin Center
+                </h1>
+                <p className="text-xl text-gray-600 mt-2">
+                  Welcome back, {user?.name || 'Admin'}
+                </p>
+              </div>
             </div>
-            </div>
-            <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} text-sm sm:text-base`}>Welcome back, {user?.name || 'Admin'}.</p>
+          </div>
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+            <StatCard
+              title="Total Users"
+              value={stats.totalUsers}
+              icon={Users}
+              gradient="from-blue-500 to-blue-600"
+              change={stats.growthMetrics.monthly}
+            />
+            <StatCard
+              title="Active Users"
+              value={stats.activeUsers}
+              icon={CheckCircle}
+              gradient="from-green-500 to-emerald-600"
+              change={5}
+            />
+            <StatCard
+              title="Pending Users"
+              value={stats.pendingUsers}
+              icon={Clock}
+              gradient="from-yellow-500 to-orange-500"
+            />
+            <StatCard
+              title="Managers"
+              value={stats.managers}
+              icon={Crown}
+              gradient="from-purple-500 to-indigo-600"
+            />
           </div>
 
           {/* User Management Section */}
-          <div className={`rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 mb-6 sm:mb-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-              <h2 className="text-2xl font-bold mb-4 md:mb-0">User Management</h2>
-              <div className="flex space-x-3">
-                <button
-                  onClick={() => setShowBulkActions(!showBulkActions)}
-                  className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-                >
-                  <Settings className="w-4 h-4 mr-2" />
-                  Bulk Actions
-                </button>
-                <button
-                  onClick={() => setShowCreateForm(true)}
-                  className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add New User
-                </button>
-              </div>
-            </div>
-
-            {/* Bulk Actions Panel */}
-            {showBulkActions && (
-              <div className={`p-4 rounded-lg mb-6 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
-                <div className="flex flex-wrap items-center justify-between">
-                  <div className="mb-2 md:mb-0">
-                    <span className="font-medium">{selectedUsers.length} users selected</span>
+          <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-3xl shadow-2xl overflow-hidden mb-8`}>
+            <div className={`${isDarkMode ? 'bg-white text-black' : 'bg-black text-white'} p-8`}>
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex items-center gap-4 mb-6 lg:mb-0">
+                  <div className="p-3 rounded-full bg-white/20 backdrop-blur-sm">
+                    <Users className="w-8 h-8 text-white" />
                   </div>
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={handleBulkActivate}
-                      className="flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                    >
-                      <Unlock className="w-4 h-4 mr-1" />
-                      Activate
-                    </button>
-                    <button
-                      onClick={handleBulkDelete}
-                      className="flex items-center px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                    >
-                      <Trash2 className="w-4 h-4 mr-1" />
-                      Delete
-                    </button>
-                    <button
-                      onClick={() => setSelectedUsers([])}
-                      className="px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-                    >
-                      Clear
-                    </button>
+                  <div>
+                    <h2 className={`text-3xl font-bold ${isDarkMode ? 'text-black' : 'text-white'}`}>User Management</h2>
+                    <p className={isDarkMode ? 'text-black/80' : 'text-white/80'}>Manage your team members and permissions</p>
                   </div>
                 </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowBulkActions(!showBulkActions)}
+                    className="flex items-center gap-2 px-6 py-3 bg-white/20 backdrop-blur-sm text-white rounded-2xl hover:bg-white/30 transition-all duration-300 font-semibold"
+                  >
+                    <Settings className="w-5 h-5" />
+                    Bulk Actions
+                  </button>
+                  <button
+                    onClick={() => setShowCreateForm(true)}
+                    className="flex items-center gap-2 px-6 py-3 bg-white text-indigo-600 rounded-2xl hover:bg-gray-50 transition-all duration-300 font-bold shadow-lg"
+                  >
+                    <Plus className="w-5 h-5" />
+                    Add User
+                  </button>
+                </div>
               </div>
-            )}
-
-            {/* Filters */}
-            <div className="flex flex-col md:flex-row gap-4 mb-6">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <input
-                  type="text"
-                  placeholder="Search users..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className={`pl-10 pr-4 py-2 w-full rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
-                />
-              </div>
-              <select
-                value={filterRole}
-                onChange={(e) => setFilterRole(e.target.value)}
-                className={`px-4 py-2 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
-              >
-                <option value="all">All Roles</option>
-                <option value="user">User</option>
-                <option value="manager">Manager</option>
-                <option value="admin">Admin</option>
-              </select>
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className={`px-4 py-2 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
-              >
-                <option value="all">All Statuses</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="pending">Pending</option>
-              </select>
             </div>
 
-            {/* Users Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className={`border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                    <th className="text-left py-3 px-4">
-                      <input
-                        type="checkbox"
-                        checked={selectedUsers.length > 0 && selectedUsers.length === filteredUsers.length}
-                        onChange={handleSelectAll}
-                        className="rounded"
-                      />
-                    </th>
-                    <th className="text-left py-3 px-4">User</th>
-                    <th className="text-left py-3 px-4">Contact</th>
-                    <th className="text-left py-3 px-4">Role</th>
-                    <th className="text-left py-3 px-4">Status</th>
-                    <th className="text-left py-3 px-4">Joined</th>
-                    <th className="text-left py-3 px-4">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredUsers.map((u) => (
-                    <tr key={u._id} className={`border-b ${isDarkMode ? 'border-gray-700 hover:bg-gray-750' : 'border-gray-200 hover:bg-gray-100'}`}>
-                      <td className="py-3 px-4">
-                        <input
-                          type="checkbox"
-                          checked={selectedUsers.includes(u._id)}
-                          onChange={() => handleUserSelection(u._id)}
-                          className="rounded"
-                        />
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 ${isDarkMode ? 'bg-gray-600' : 'bg-gray-200'}`}>
-                            {u.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <div className="font-medium">{u.name}</div>
-                            <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>@{u.username}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex flex-col">
-                          {u.email && (
-                            <div className="flex items-center text-sm">
-                              <Mail className="w-4 h-4 mr-2" />
-                              {u.email}
+            <div className="p-8">
+              {/* Bulk Actions Panel */}
+              {showBulkActions && (
+                <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'} rounded-2xl p-6 mb-8 border ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
+                  <div className="flex flex-wrap items-center justify-between">
+                    <div className="mb-4 lg:mb-0">
+                      <span className="text-lg font-bold text-gray-800">{selectedUsers.length} users selected</span>
+                    </div>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={handleBulkActivate}
+                        className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors font-semibold"
+                      >
+                        <Unlock className="w-4 h-4" />
+                        Activate
+                      </button>
+                      <button
+                        onClick={handleBulkDelete}
+                        className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors font-semibold"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Delete
+                      </button>
+                      <button
+                        onClick={() => setSelectedUsers([])}
+                        className="px-4 py-2 bg-gray-500 text-white rounded-xl hover:bg-gray-600 transition-colors font-semibold"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Filters */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    placeholder="Search users..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-12 pr-4 py-4 w-full rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 transition-all text-gray-900 font-medium"
+                  />
+                </div>
+                <select
+                  value={filterRole}
+                  onChange={(e) => setFilterRole(e.target.value)}
+                  className="px-4 py-4 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 transition-all text-gray-900 font-medium"
+                >
+                  <option value="all">All Roles</option>
+                  <option value="user">User</option>
+                  <option value="manager">Manager</option>
+                  <option value="admin">Admin</option>
+                </select>
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="px-4 py-4 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 transition-all text-gray-900 font-medium"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                  <option value="pending">Pending</option>
+                </select>
+              </div>
+
+              {/* Users Table */}
+              <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className={isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}>
+                      <tr>
+                        <th className="text-left py-4 px-6">
+                          <input
+                            type="checkbox"
+                            checked={selectedUsers.length > 0 && selectedUsers.length === filteredUsers.length}
+                            onChange={handleSelectAll}
+                            className="rounded-lg w-5 h-5 text-indigo-600"
+                          />
+                        </th>
+                        <th className="text-left py-4 px-6 font-bold text-gray-900">User</th>
+                        <th className="text-left py-4 px-6 font-bold text-gray-900">Contact</th>
+                        <th className="text-left py-4 px-6 font-bold text-gray-900">Role</th>
+                        <th className="text-left py-4 px-6 font-bold text-gray-900">Status</th>
+                        <th className="text-left py-4 px-6 font-bold text-gray-900">Joined</th>
+                        <th className="text-left py-4 px-6 font-bold text-gray-900">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredUsers.map((u) => (
+                        <tr key={u._id} className={`border-t ${isDarkMode ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-100 hover:bg-gray-50'} transition-all duration-200`}>
+                          <td className="py-4 px-6">
+                            <input
+                              type="checkbox"
+                              checked={selectedUsers.includes(u._id)}
+                              onChange={() => handleUserSelection(u._id)}
+                              className="rounded-lg w-5 h-5 text-indigo-600"
+                            />
+                          </td>
+                          <td className="py-4 px-6">
+                            <div className="flex items-center">
+                              <div className={`w-12 h-12 rounded-2xl ${isDarkMode ? 'bg-white text-black' : 'bg-black text-white'} flex items-center justify-center mr-4 shadow-lg`}>
+                                <span className="text-lg font-bold">{u.name.charAt(0).toUpperCase()}</span>
+                              </div>
+                              <div>
+                                <div className="font-bold text-gray-900">{u.name}</div>
+                                <div className="text-sm text-gray-600">@{u.username}</div>
+                              </div>
                             </div>
-                          )}
-                          {u.phone && (
-                            <div className="flex items-center text-sm mt-1">
-                              <Phone className="w-4 h-4 mr-2" />
-                              {u.phone}
+                          </td>
+                          <td className="py-4 px-6">
+                            <div className="space-y-1">
+                              {u.email && (
+                                <div className="flex items-center text-sm text-gray-600">
+                                  <Mail className="w-4 h-4 mr-2" />
+                                  {u.email}
+                                </div>
+                              )}
+                              {u.phone && (
+                                <div className="flex items-center text-sm text-gray-600">
+                                  <Phone className="w-4 h-4 mr-2" />
+                                  {u.phone}
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${u.role === 'admin' ? 'bg-red-100 text-red-800' :
-                            u.role === 'manager' ? 'bg-purple-100 text-purple-800' :
+                          </td>
+                          <td className="py-4 px-6">
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                              u.role === 'admin' ? 'bg-red-100 text-red-800' :
+                              u.role === 'manager' ? 'bg-purple-100 text-purple-800' :
                               'bg-blue-100 text-blue-800'
-                          }`}>
-                          {u.role === 'admin' ? 'Admin' : u.role === 'manager' ? 'Manager' : 'User'}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${u.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                            u.isActive ? 'bg-green-100 text-green-800' :
+                            }`}>
+                              {u.role === 'admin' ? 'Admin' : u.role === 'manager' ? 'Manager' : 'User'}
+                            </span>
+                          </td>
+                          <td className="py-4 px-6">
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                              u.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                              u.isActive ? 'bg-green-100 text-green-800' :
                               'bg-red-100 text-red-800'
-                          }`}>
-                          {u.status === 'pending' ? 'Pending' : u.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-sm">
-                        {new Date(u.createdAt).toLocaleDateString()}
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex space-x-2">
-                          {u.role === 'user' && (
-                            <button
-                              onClick={() => handleMakeManager(u._id)}
-                              className="p-2 rounded-lg bg-purple-100 text-purple-700 hover:bg-purple-200"
-                              title="Make Manager"
-                            >
-                              <Crown className="w-4 h-4" />
-                            </button>
-                          )}
-                          {u.role === 'manager' && (
-                            <button
-                              onClick={() => handleMakeUser(u._id)}
-                              className="p-2 rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200"
-                              title="Make User"
-                            >
-                              <User className="w-4 h-4" />
-                            </button>
-                          )}
-                          <button
-                            onClick={() => handleToggleUserStatus(u._id)}
-                            className={`p-2 rounded-lg ${u.isActive
-                                ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                                : 'bg-green-100 text-green-700 hover:bg-green-200'
-                              }`}
-                            title={u.isActive ? 'Deactivate User' : 'Activate User'}
-                          >
-                            {u.isActive ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </button>
-                          <button
-                            onClick={() => handleDeleteUser(u._id)}
-                            className="p-2 rounded-lg bg-red-100 text-red-700 hover:bg-red-200"
-                            title="Delete User"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                            }`}>
+                              {u.status === 'pending' ? 'Pending' : u.isActive ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                          <td className="py-4 px-6 text-sm text-gray-600">
+                            {new Date(u.createdAt).toLocaleDateString()}
+                          </td>
+                          <td className="py-4 px-6">
+                            <div className="flex gap-2">
+                              {u.role === 'user' && (
+                                <button
+                                  onClick={() => handleMakeManager(u._id)}
+                                  className="p-2 rounded-xl bg-purple-100 text-purple-700 hover:bg-purple-200 transition-colors"
+                                  title="Make Manager"
+                                >
+                                  <Crown className="w-4 h-4" />
+                                </button>
+                              )}
+                              {u.role === 'manager' && (
+                                <button
+                                  onClick={() => handleMakeUser(u._id)}
+                                  className="p-2 rounded-xl bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
+                                  title="Make User"
+                                >
+                                  <User className="w-4 h-4" />
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleToggleUserStatus(u._id)}
+                                className={`p-2 rounded-xl transition-colors ${
+                                  u.isActive
+                                    ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                                    : 'bg-green-100 text-green-700 hover:bg-green-200'
+                                }`}
+                                title={u.isActive ? 'Deactivate User' : 'Activate User'}
+                              >
+                                {u.isActive ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              </button>
+                              <button
+                                onClick={() => handleDeleteUser(u._id)}
+                                className="p-2 rounded-xl bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                                title="Delete User"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
-
-          {/* Additional Admin Tools */}
-          <div className="grid grid-cols-1 gap-4 sm:gap-6 mb-6 sm:mb-8 max-w-md">
-            <button
-              onClick={() => navigate('/admin/payments')}
-              className={`p-6 rounded-2xl shadow-lg flex flex-col items-center justify-center transition-transform hover:scale-105 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
-            >
-              <DollarSign className="w-8 h-8 text-green-500 mb-3" />
-              <span className="font-medium">Payment</span>
-            </button>
-          </div>
-
         </div>
 
         {/* Create User Modal */}
         {showCreateForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className={`rounded-2xl w-full max-w-md ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
-              <div className="p-6 border-b border-gray-200">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-3xl shadow-2xl w-full max-w-md`}>
+              <div className={`${isDarkMode ? 'bg-white text-black' : 'bg-black text-white'} p-6 rounded-t-3xl`}>
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xl font-bold">Create New User</h3>
+                  <h3 className="text-2xl font-bold text-white">Create New User</h3>
                   <button
                     onClick={() => setShowCreateForm(false)}
-                    className="p-2 rounded-lg hover:bg-gray-200"
+                    className="p-2 rounded-xl bg-white/20 hover:bg-white/30 transition-colors"
                   >
-                    <XCircle className="w-5 h-5" />
+                    <XCircle className="w-6 h-6 text-white" />
                   </button>
                 </div>
               </div>
-              <form onSubmit={handleCreateUser} className="p-6">
-                <div className="space-y-4">
+              <form onSubmit={handleCreateUser} className="p-8">
+                <div className="space-y-6">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Full Name</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Full Name</label>
                     <input
                       type="text"
                       required
                       value={newUser.name}
                       onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-                      className={`w-full px-3 py-2 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                      className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 transition-all"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Username</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Username</label>
                     <input
                       type="text"
                       required
                       value={newUser.username}
                       onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-                      className={`w-full px-3 py-2 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                      className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 transition-all"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Email</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Email</label>
                     <input
                       type="email"
                       value={newUser.email}
                       onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                      className={`w-full px-3 py-2 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                      className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 transition-all"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Password</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Password</label>
                     <input
                       type="password"
                       required
                       minLength="6"
                       value={newUser.password}
                       onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                      className={`w-full px-3 py-2 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                      className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 transition-all"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Role</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Role</label>
                     <select
                       value={newUser.role}
                       onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-                      className={`w-full px-3 py-2 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'}`}
+                      className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 transition-all"
                     >
                       <option value="user">User</option>
                       <option value="manager">Manager</option>
@@ -576,17 +600,17 @@ const AdminDashboard = () => {
                     </select>
                   </div>
                 </div>
-                <div className="flex justify-end space-x-3 mt-6">
+                <div className="flex gap-4 mt-8">
                   <button
                     type="button"
                     onClick={() => setShowCreateForm(false)}
-                    className={`px-4 py-2 rounded-lg ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`}
+                    className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-2xl hover:bg-gray-200 transition-colors font-bold"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    className={`flex-1 px-6 py-3 ${isDarkMode ? 'bg-white hover:bg-gray-200 text-black' : 'bg-black hover:bg-gray-800 text-white'} rounded-2xl transition-all font-bold shadow-lg`}
                   >
                     Create User
                   </button>

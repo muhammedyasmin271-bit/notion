@@ -620,7 +620,7 @@ const MeetingEditorPage = () => {
         case 'heading3':
           return `${baseClass} ${styleClass} text-lg sm:text-xl font-medium`;
         case 'code':
-          return `${baseClass} ${styleClass} font-mono rounded px-2 py-1 ${isDarkMode ? 'bg-gray-800 text-green-400' : 'bg-gray-200 text-green-700'}`;
+          return `${baseClass} ${styleClass} font-mono rounded px-2 py-1 ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-gray-200 text-black'}`;
         default:
           return `${baseClass} ${styleClass} text-base`;
       }
@@ -722,7 +722,7 @@ const MeetingEditorPage = () => {
                                 placeholder={rowIndex === 0 ? `Column ${colIndex + 1}` : ''}
                                 rows={Math.max(1, cell.split('\n').length)}
                                 className={`w-full h-full min-h-[32px] border-none outline-none bg-transparent text-sm resize-none overflow-hidden p-0 sm:p-3 ${rowIndex === 0 ? (isDarkMode ? 'font-semibold text-gray-200' : 'font-semibold text-gray-800') : (isDarkMode ? 'text-gray-300' : 'text-gray-700')
-                                  } ${isDarkMode ? 'focus:bg-blue-900/20' : 'focus:bg-blue-100/30'}`}
+                                  } ${isDarkMode ? 'focus:bg-white/10' : 'focus:bg-black/10'}`}
                                 style={{
                                   height: savedHeight + 'px',
                                   minHeight: '32px',
@@ -759,18 +759,18 @@ const MeetingEditorPage = () => {
             </div>
             {/* Column controls - Right side */}
             <div className="absolute top-1/2 -right-6 transform -translate-y-1/2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button onClick={addColumn} className={`w-5 h-5 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`} title="Add column">
+              <button onClick={addColumn} className={`w-5 h-5 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all ${isDarkMode ? 'bg-white hover:bg-gray-200 text-black' : 'bg-black hover:bg-gray-800 text-white'}`} title="Add column">
                 <Plus className="w-3 h-3" />
               </button>
               {table.cols > 1 && (
-                <button onClick={deleteColumn} className={`w-5 h-5 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all ${isDarkMode ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-red-500 hover:bg-red-600 text-white'}`} title="Remove column">
+                <button onClick={deleteColumn} className={`w-5 h-5 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-300 hover:bg-gray-400 text-black'}`} title="Remove column">
                   <Minus className="w-3 h-3" />
                 </button>
               )}
             </div>
             {/* Row controls - Bottom */}
             <div className="absolute left-1/2 -bottom-6 transform -translate-x-1/2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button onClick={addRow} className={`w-5 h-5 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`} title="Add row">
+              <button onClick={addRow} className={`w-5 h-5 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all ${isDarkMode ? 'bg-white hover:bg-gray-200 text-black' : 'bg-black hover:bg-gray-800 text-white'}`} title="Add row">
                 <Plus className="w-3 h-3" />
               </button>
               {table.rows > 1 && (
@@ -801,11 +801,11 @@ const MeetingEditorPage = () => {
 
     if (block.type === 'callout') {
       const calloutTypes = {
-        info: { bg: 'bg-blue-900/20', border: 'border-blue-500/30', icon: Info, color: 'text-blue-400' },
-        warning: { bg: 'bg-yellow-900/20', border: 'border-yellow-500/30', icon: AlertTriangle, color: 'text-yellow-400' },
-        error: { bg: 'bg-red-900/20', border: 'border-red-500/30', icon: AlertCircle, color: 'text-red-400' },
-        success: { bg: 'bg-green-900/20', border: 'border-green-500/30', icon: CheckCircle, color: 'text-green-400' },
-        tip: { bg: 'bg-purple-900/20', border: 'border-purple-500/30', icon: Lightbulb, color: 'text-purple-400' }
+        info: { bg: isDarkMode ? 'bg-white/10' : 'bg-black/10', border: isDarkMode ? 'border-white/30' : 'border-black/30', icon: Info, color: isDarkMode ? 'text-white' : 'text-black' },
+        warning: { bg: isDarkMode ? 'bg-white/10' : 'bg-black/10', border: isDarkMode ? 'border-white/30' : 'border-black/30', icon: AlertTriangle, color: isDarkMode ? 'text-white' : 'text-black' },
+        error: { bg: isDarkMode ? 'bg-white/10' : 'bg-black/10', border: isDarkMode ? 'border-white/30' : 'border-black/30', icon: AlertCircle, color: isDarkMode ? 'text-white' : 'text-black' },
+        success: { bg: isDarkMode ? 'bg-white/10' : 'bg-black/10', border: isDarkMode ? 'border-white/30' : 'border-black/30', icon: CheckCircle, color: isDarkMode ? 'text-white' : 'text-black' },
+        tip: { bg: isDarkMode ? 'bg-white/10' : 'bg-black/10', border: isDarkMode ? 'border-white/30' : 'border-black/30', icon: Lightbulb, color: isDarkMode ? 'text-white' : 'text-black' }
       };
       const callout = calloutTypes[block.calloutType || 'info'];
       const IconComponent = callout.icon;
@@ -973,8 +973,8 @@ const MeetingEditorPage = () => {
       };
 
       return (
-        <div className={`flex items-center gap-2 p-2 border rounded ${isDarkMode ? 'bg-blue-900/20 border-blue-500/30' : 'bg-blue-100/50 border-blue-300/50'}`}>
-          <Calendar className="w-4 h-4 text-blue-400" />
+        <div className={`flex items-center gap-2 p-2 border rounded ${isDarkMode ? 'bg-white/10 border-white/30' : 'bg-black/10 border-black/30'}`}>
+          <Calendar className={`w-4 h-4 ${isDarkMode ? 'text-white' : 'text-black'}`} />
           <input
             ref={(el) => inputRefs.current[block.id] = el}
             type="date"
@@ -984,7 +984,7 @@ const MeetingEditorPage = () => {
             className={`bg-transparent ${isDarkMode ? 'text-white' : 'text-black'} focus:outline-none`}
             style={{ colorScheme: 'dark' }}
           />
-          <span className={`text-sm ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>{formatDate(block.content)}</span>
+          <span className={`text-sm ${isDarkMode ? 'text-white' : 'text-black'}`}>{formatDate(block.content)}</span>
         </div>
       );
     }
@@ -1326,7 +1326,7 @@ const MeetingEditorPage = () => {
   };
 
   return (
-    <div className={`min-h-screen ${isDarkMode ? 'bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white' : 'bg-white text-gray-900'}`}>
+    <div className={`min-h-screen ${isDarkMode ? 'bg-black text-white' : 'bg-white text-gray-900'}`}>
       <div className={`w-full min-h-screen overflow-y-auto ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
         <div className={`sticky top-0 z-10 ${isDarkMode ? 'bg-gray-900/95 backdrop-blur-sm' : 'bg-white/95 backdrop-blur-sm'} border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
           <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4">
@@ -1582,7 +1582,7 @@ const MeetingEditorPage = () => {
                                             )}
                                           </div>
                                           <div className="flex items-center flex-1">
-                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-medium mr-3">
+                                            <div className={`w-8 h-8 rounded-full ${isDarkMode ? 'bg-white text-black' : 'bg-black text-white'} flex items-center justify-center text-sm font-medium mr-3`}>
                                               {user.name.charAt(0).toUpperCase()}
                                             </div>
                                             <div className="flex-1">
@@ -1623,7 +1623,7 @@ const MeetingEditorPage = () => {
                                   return (
                                     <div key={index} className={`flex items-center justify-between p-2 rounded-lg ${isDarkMode ? 'bg-gray-700/50' : 'bg-white'}`}>
                                       <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-medium">
+                                        <div className={`w-8 h-8 rounded-full ${isDarkMode ? 'bg-white text-black' : 'bg-black text-white'} flex items-center justify-center text-sm font-medium`}>
                                           {attendeeName.charAt(0).toUpperCase()}
                                         </div>
                                         <div>

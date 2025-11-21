@@ -309,10 +309,11 @@ router.post('/login', [
     }
 
     // Skip company validation for super admins
+    let company = null;
     if (user.role !== 'superadmin') {
       // Check if company exists and is active
       const Company = require('../models/Company');
-      const company = await Company.findOne({ companyId: user.companyId });
+      company = await Company.findOne({ companyId: user.companyId });
       
       if (!company) {
         return res.status(404).json({ message: 'Company not found. Please contact support.' });
@@ -359,8 +360,30 @@ router.post('/login', [
       payload,
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '7d' },
-      (err, token) => {
+      async (err, token) => {
         if (err) throw err;
+        
+        // Check payment deadline for non-superadmin users
+        let paymentInfo = null;
+        if (company && user.role !== 'superadmin') {
+          const now = new Date();
+          const paymentDeadline = company.paymentDeadline;
+          const isDeadlinePassed = paymentDeadline && new Date(paymentDeadline) < now;
+          // Needs payment if: trial status, not free trial plan, deadline exists and not passed
+          const needsPayment = company.subscriptionStatus === 'trial' && 
+                               company.selectedPlan !== 'free_trial' && 
+                               paymentDeadline &&
+                               !isDeadlinePassed;
+          
+          paymentInfo = {
+            paymentDeadline: paymentDeadline,
+            isDeadlinePassed: isDeadlinePassed,
+            needsPayment: needsPayment,
+            selectedPlan: company.selectedPlan,
+            subscriptionStatus: company.subscriptionStatus
+          };
+        }
+        
         res.json({
           token,
           user: {
@@ -372,7 +395,8 @@ router.post('/login', [
             role: user.role,
             companyId: user.companyId,
             preferences: user.preferences
-          }
+          },
+          paymentInfo: paymentInfo
         });
       }
     );

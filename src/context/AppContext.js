@@ -112,6 +112,11 @@ export const AppProvider = ({ children }) => {
       // Store user with companyId in localStorage
       localStorage.setItem('user', JSON.stringify(userWithCompany));
       
+      // Store payment info if available
+      if (response.paymentInfo) {
+        localStorage.setItem('paymentInfo', JSON.stringify(response.paymentInfo));
+      }
+      
       setUser(userWithCompany);
       setIsAuthenticated(true);
       

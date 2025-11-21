@@ -4,7 +4,7 @@ import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
 import { User, Lock, LogIn, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
-const LoginPage = () => {
+const LoginPage = ({ isSuperAdmin = false }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { login, loading, error, isAuthenticated } = useAppContext();
@@ -21,19 +21,55 @@ const LoginPage = () => {
   const [companyData, setCompanyData] = useState(null);
   const [loadingCompany, setLoadingCompany] = useState(false);
   const companyId = searchParams.get('company');
-  const isSuperAdmin = searchParams.get('superadmin') !== null;
+  const isSuperAdminLogin = isSuperAdmin || searchParams.get('superadmin') !== null;
 
   useEffect(() => {
-    // If already authenticated and no company parameter, redirect to home
-    if (isAuthenticated && !companyId && !isSuperAdmin) {
-      navigate('/home');
-      return;
+    // If already authenticated and no company parameter, redirect based on role
+    if (isAuthenticated && !companyId) {
+      // Only redirect if this is NOT the regular login page (i.e., it's a super admin login page)
+      // For regular login page, let users see the login form even if already logged in
+      if (isSuperAdminLogin) {
+        // For super admin login page, redirect super admins to dashboard
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          try {
+            const userData = JSON.parse(storedUser);
+            if (userData.role === 'superadmin') {
+              navigate('/super-admin/dashboard');
+              return;
+            }
+          } catch (e) {
+            // Ignore parse errors
+          }
+        }
+      } else {
+        // For regular login page, redirect non-superadmin users to home
+        // But don't redirect super admins - let them see the login page
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          try {
+            const userData = JSON.parse(storedUser);
+            if (userData.role !== 'superadmin') {
+              navigate('/home');
+              return;
+            }
+            // If super admin, don't redirect - let them see the login page
+          } catch (e) {
+            // If can't parse, redirect to home
+            navigate('/home');
+            return;
+          }
+        } else {
+          navigate('/home');
+          return;
+        }
+      }
     }
     
     if (companyId) {
       fetchCompanyData();
     }
-  }, [companyId, isSuperAdmin, isAuthenticated, navigate]);
+  }, [companyId, isSuperAdminLogin, isAuthenticated, navigate]);
 
   const fetchCompanyData = async () => {
     setLoadingCompany(true);
@@ -95,11 +131,42 @@ const LoginPage = () => {
     try {
       const response = await login(formData.username.toLowerCase().trim(), formData.password, companyId);
       
+      // Check if payment is needed - paymentInfo is in response.user.paymentInfo
+      const paymentInfo = response?.user?.paymentInfo || response?.paymentInfo;
+      const userCompanyId = response?.user?.companyId || companyId;
+      
+      if (paymentInfo?.needsPayment && paymentInfo?.status !== 'paused') {
+        // Redirect to payment reminder page with company ID in URL
+        navigate(`/payment-reminder?company=${userCompanyId}`, { 
+          state: { 
+            paymentInfo: paymentInfo,
+            companyId: userCompanyId 
+          } 
+        });
+        return;
+      }
+      
+      if (paymentInfo?.status === 'paused') {
+        // Company is paused, redirect to payment reminder
+        navigate(`/payment-reminder?company=${userCompanyId}`, { 
+          state: { 
+            paymentInfo: paymentInfo,
+            companyId: userCompanyId 
+          } 
+        });
+        return;
+      }
+      
       // Redirect based on user role
-      if (response?.user?.role === 'superadmin') {
-        navigate('/super-admin');
-      } else if (companyId) {
-        navigate(`/home?company=${companyId}`);
+      // Only redirect super admins if they logged in through the super admin login page
+      // Regular users clicking "Sign In" should go to home, not super admin dashboard
+      if (response?.user?.role === 'superadmin' && isSuperAdminLogin) {
+        navigate('/super-admin/dashboard');
+      } else if (response?.user?.role === 'superadmin' && !isSuperAdminLogin) {
+        // Super admin logged in through regular login page - redirect to home
+        navigate('/home');
+      } else if (userCompanyId) {
+        navigate(`/home?company=${userCompanyId}`);
       } else {
         navigate('/home');
       }
@@ -130,7 +197,13 @@ const LoginPage = () => {
             <>
               <div className="mx-auto mb-4 sm:mb-6">
                 <img 
-                  src={companyData?.branding?.logo || "/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png"}
+                  src={
+                    companyData?.branding?.logo 
+                      ? (companyData.branding.logo.startsWith('data:') || companyData.branding.logo.startsWith('http') || companyData.branding.logo.startsWith('/ChatGPT')
+                          ? companyData.branding.logo 
+                          : `http://localhost:9000${companyData.branding.logo}`)
+                      : "/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png"
+                  }
                   alt={`${companyData?.name || 'Mela Note'} Logo`}
                   className={`w-20 h-20 sm:w-32 sm:h-32 mx-auto object-contain transition-all duration-300 ${
                     isDarkMode && !companyData?.branding?.logo ? 'filter brightness-0 invert' : ''
@@ -140,9 +213,9 @@ const LoginPage = () => {
               <h1 className={`text-xl sm:text-3xl font-black mb-2 leading-tight ${
                 isDarkMode ? 'text-white' : 'text-gray-900'
               }`}>
-                {isSuperAdmin ? 'SUPER ADMIN LOGIN' : (companyData?.branding?.companyName || companyData?.name || 'MELA NOTE WORK SPACE')}
+                {isSuperAdminLogin ? 'SUPER ADMIN LOGIN' : (companyData?.branding?.companyName || companyData?.name || 'MELA NOTE WORK SPACE')}
               </h1>
-              {isSuperAdmin ? (
+              {isSuperAdminLogin ? (
                 <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                   Platform Administration
                 </p>
@@ -270,22 +343,24 @@ const LoginPage = () => {
             </button>
           </form>
 
-          {/* Register Link */}
-          <div className="mt-6 sm:mt-8 text-center">
-            <p className={`text-sm ${
-              isDarkMode ? 'text-gray-400' : 'text-gray-600'
-            }`}>
-              Don't have an account?{' '}
-              <Link
-                to={companyId ? `/register?company=${companyId}` : '/register'}
-                className={`font-bold hover:underline transition-colors duration-200 ${
-                  isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'
-                }`}
-              >
-                Sign Up
-              </Link>
-            </p>
-          </div>
+          {/* Register Link - Hide for Super Admin */}
+          {!isSuperAdminLogin && (
+            <div className="mt-6 sm:mt-8 text-center">
+              <p className={`text-sm ${
+                isDarkMode ? 'text-gray-400' : 'text-gray-600'
+              }`}>
+                Don't have an account?{' '}
+                <Link
+                  to={companyId ? `/register?company=${companyId}` : '/register'}
+                  className={`font-bold hover:underline transition-colors duration-200 ${
+                    isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'
+                  }`}
+                >
+                  Sign Up
+                </Link>
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
