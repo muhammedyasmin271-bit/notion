@@ -43,7 +43,9 @@ import PaymentSubmission from './components/AdminDashboard/PaymentSubmission';
 import PaymentVerification from './components/SuperAdminPage/PaymentVerification';
 import SuperAdminSettings from './components/SuperAdminPage/SuperAdminSettings';
 import SuperAdminLogin from './components/SuperAdminPage/SuperAdminLogin';
+import MessagesPage from './components/MessagesPage/MessagesPage';
 import SavedNotesPage from './components/SavedNotesPage/SavedNotesPage';
+import PaymentReturn from './components/PaymentReturn/PaymentReturn';
 
 import TasksPage from './components/TasksPage/TasksPage';
 import WorkerReports from './components/WorkerReports/WorkerReports';
@@ -133,6 +135,10 @@ const AppContent = () => {
         <Route
           path="/payment-reminder"
           element={<PaymentReminder />}
+        />
+        <Route
+          path="/payment-return"
+          element={<PaymentReturn />}
         />
 
         {/* Protected Routes */}
@@ -457,6 +463,15 @@ const AppContent = () => {
           </AdminRoute>
         } />
 
+        <Route path="/:companyId/admin/payments" element={
+          <AdminRoute>
+            <Layout>
+              <PaymentSubmission />
+            </Layout>
+          </AdminRoute>
+        } />
+        
+        {/* Legacy route redirect */}
         <Route path="/admin/payments" element={
           <AdminRoute>
             <Layout>
@@ -492,6 +507,14 @@ const AppContent = () => {
           <SuperAdminRoute>
             <Layout>
               <SuperAdminSettings />
+            </Layout>
+          </SuperAdminRoute>
+        } />
+
+        <Route path="/super-admin/messages" element={
+          <SuperAdminRoute>
+            <Layout>
+              <MessagesPage />
             </Layout>
           </SuperAdminRoute>
         } />

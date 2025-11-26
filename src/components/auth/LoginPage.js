@@ -21,6 +21,7 @@ const LoginPage = ({ isSuperAdmin = false }) => {
   const [companyData, setCompanyData] = useState(null);
   const [loadingCompany, setLoadingCompany] = useState(false);
   const companyId = searchParams.get('company');
+  const redirectTo = searchParams.get('redirect');
   const isSuperAdminLogin = isSuperAdmin || searchParams.get('superadmin') !== null;
 
   useEffect(() => {
@@ -157,6 +158,12 @@ const LoginPage = ({ isSuperAdmin = false }) => {
         return;
       }
       
+      // Handle redirect parameter (e.g., redirect=payment)
+      if (redirectTo === 'payment' && userCompanyId) {
+        navigate(`/admin/payments?company=${userCompanyId}`);
+        return;
+      }
+
       // Redirect based on user role
       // Only redirect super admins if they logged in through the super admin login page
       // Regular users clicking "Sign In" should go to home, not super admin dashboard

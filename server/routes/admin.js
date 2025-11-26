@@ -37,7 +37,7 @@ router.get('/companies', auth, isSuperAdmin, async (req, res) => {
 // Create new company with admin user
 router.post('/companies', auth, isSuperAdmin, async (req, res) => {
   try {
-    const { name, adminEmail, adminPhone, subdomain, maxUsers, maxStorage, adminUsername, adminPassword, logo } = req.body;
+    const { name, adminEmail, adminPhone, subdomain, maxUsers, maxStorage, adminUsername, adminPassword, logo, selectedPlan } = req.body;
     const companyId = `comp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
     // Check if admin username already exists
@@ -82,6 +82,21 @@ router.post('/companies', auth, isSuperAdmin, async (req, res) => {
     
 
     
+    // Set payment deadline based on selected plan
+    const now = new Date();
+    let paymentDeadline;
+    let hasPaid = false;
+    let gracePeriodDeadline = null;
+    
+    if (selectedPlan === 'free_trial') {
+      paymentDeadline = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days
+      hasPaid = false;
+    } else {
+      paymentDeadline = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
+      gracePeriodDeadline = new Date(paymentDeadline.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days grace period
+      hasPaid = false;
+    }
+    
     const company = new Company({
       companyId,
       name,
@@ -89,7 +104,13 @@ router.post('/companies', auth, isSuperAdmin, async (req, res) => {
       adminPhone,
       subdomain: subdomain || undefined,
       adminUserId: adminUser._id,
-      limits: { maxUsers, maxStorage },
+      limits: { maxUsers: maxUsers || 50, maxStorage: maxStorage || 5368709120 },
+      selectedPlan: selectedPlan || 'free_trial',
+      paymentDeadline,
+      gracePeriodDeadline,
+      hasPaid,
+      paymentMode: 'paid',
+      subscriptionStatus: selectedPlan === 'free_trial' ? 'trial' : 'trial',
       branding: { logo: processedLogo, companyName: name },
       companyLink
     });
@@ -100,9 +121,29 @@ router.post('/companies', auth, isSuperAdmin, async (req, res) => {
     console.log(`   Admin: ${adminUsername}`);
     console.log(`   Company Link: ${companyLink}`);
     
-    // Send SMS with credentials
-    const smsMessage = `Welcome to ${name}!\n\nUsername: ${normalizedUsername}\nPassword: ${adminPassword}\nCompany ID: ${companyId}\n\nLogin: ${companyLink}`;
-    await smsService.sendSMS(adminPhone, smsMessage);
+    // Send SMS with credentials (non-blocking - don't fail company creation if SMS fails)
+    if (adminPhone) {
+      try {
+        let smsMessage;
+        if (selectedPlan === 'free_trial') {
+          smsMessage = `Welcome to ${name}!\n\nUsername: ${normalizedUsername}\nPassword: ${adminPassword}\nCompany ID: ${companyId}\n\nYou have 7 days free trial.\n\nLogin: ${companyLink}`;
+        } else {
+          smsMessage = `Welcome to ${name}!\n\nUsername: ${normalizedUsername}\nPassword: ${adminPassword}\nCompany ID: ${companyId}\n\nComplete payment within 24 hours.\n\nLogin: ${companyLink}`;
+        }
+        const smsResult = await smsService.sendSMS(adminPhone, smsMessage);
+        
+        if (smsResult.success) {
+          console.log(`✅ SMS notification sent successfully to ${adminPhone}`);
+        } else {
+          console.log(`⚠️ SMS notification failed: ${smsResult.message}`);
+        }
+      } catch (smsError) {
+        console.error('❌ SMS notification error (non-blocking):', smsError.message);
+        // Don't fail company creation if SMS fails
+      }
+    } else {
+      console.log('⚠️ No phone number provided, skipping SMS notification');
+    }
     
     res.status(201).json({ company, adminUsername: normalizedUsername, companyLink });
   } catch (error) {

@@ -329,7 +329,8 @@ router.post('/create', upload.single('logo'), async (req, res) => {
     await company.save();
     console.log(`✅ Company created: ${company.name}`);
 
-    if (adminPhone && process.env.SMS_API && process.env.SMS_TOKEN) {
+    // Send SMS notification (non-blocking - don't fail company creation if SMS fails)
+    if (adminPhone) {
       try {
         let smsMessage;
         
@@ -342,13 +343,16 @@ router.post('/create', upload.single('logo'), async (req, res) => {
         const smsResult = await sendSMS(adminPhone, smsMessage);
         
         if (smsResult.success) {
-          console.log(`✅ SMS sent successfully with credentials to ${adminPhone}`);
+          console.log(`✅ SMS notification sent successfully to ${adminPhone}`);
         } else {
-          console.log(`⚠️ SMS failed: ${smsResult.message}`);
+          console.log(`⚠️ SMS notification failed: ${smsResult.message}`);
         }
       } catch (smsError) {
-        console.error('❌ SMS Error:', smsError.message);
+        console.error('❌ SMS notification error (non-blocking):', smsError.message);
+        // Don't fail company creation if SMS fails
       }
+    } else {
+      console.log('⚠️ No phone number provided, skipping SMS notification');
     }
 
     if (selectedPlan !== 'free_trial' && adminPhone && process.env.SMS_API && process.env.SMS_TOKEN) {

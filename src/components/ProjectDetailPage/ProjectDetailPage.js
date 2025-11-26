@@ -594,111 +594,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
     return line;
   };
 
-  const saveTasks = async (projectId) => {
-    try {
-      console.log('Saving tasks for project:', projectId);
-      const token = localStorage.getItem('token');
-      if (!token) {
-        console.error('No auth token found');
-        return;
-      }
 
-      // Get all todo blocks
-      const todoBlocks = blocks.filter(block => block.type === 'todo');
-      console.log('Current todo blocks:', todoBlocks);
-      
-      // First, get existing tasks to compare
-      const response = await fetch(`http://localhost:9000/api/projects/${projectId}/data`, {
-        headers: { 'x-auth-token': token }
-      });
-      
-      if (!response.ok) {
-        console.error('Failed to fetch existing tasks:', response.status);
-        return;
-      }
-      
-      const { tasks: existingTasks = [] } = await response.json();
-      console.log('Existing tasks from server:', existingTasks);
-      
-      const existingTaskMap = new Map(existingTasks.map(task => [task.id, task]));
-      const processedTaskIds = new Set();
-      
-      // Update or create tasks
-      for (const block of todoBlocks) {
-        const taskData = {
-          text: block.content,
-          completed: block.checked || false,
-          priority: 'Medium',
-          dueDate: new Date().toISOString().split('T')[0],
-          createdBy: user?.id || 'system',
-          updatedAt: new Date().toISOString()
-        };
-        
-        if (block.taskId) {
-          // Update existing task
-          console.log('Updating task:', block.taskId, 'with data:', taskData);
-          const updateResponse = await fetch(`http://localhost:9000/api/projects/${projectId}/tasks/${block.taskId}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-auth-token': token
-            },
-            body: JSON.stringify(taskData)
-          });
-          
-          if (updateResponse.ok) {
-            console.log('Successfully updated task:', block.taskId);
-            processedTaskIds.add(block.taskId);
-          } else {
-            console.error('Failed to update task:', block.taskId, updateResponse.status);
-          }
-        } else {
-          // Create new task
-          console.log('Creating new task with data:', taskData);
-          const createResponse = await fetch(`http://localhost:9000/api/projects/${projectId}/tasks`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-auth-token': token
-            },
-            body: JSON.stringify(taskData)
-          });
-          
-          if (createResponse.ok) {
-            const newTask = await createResponse.json();
-            console.log('Created new task:', newTask);
-            // Update the block with the new task ID
-            setBlocks(prev => prev.map(b => 
-              b.id === block.id ? { ...b, taskId: newTask.id } : b
-            ));
-            processedTaskIds.add(newTask.id);
-          } else {
-            console.error('Failed to create task:', createResponse.status);
-          }
-        }
-      }
-      
-      // Delete tasks that were removed from the UI
-      const tasksToDelete = existingTasks.filter(task => !processedTaskIds.has(task.id));
-      console.log('Tasks to delete:', tasksToDelete);
-      
-      for (const task of tasksToDelete) {
-        console.log('Deleting task:', task.id);
-        const deleteResponse = await fetch(`http://localhost:9000/api/projects/${projectId}/tasks/${task.id}`, {
-          method: 'DELETE',
-          headers: { 'x-auth-token': token }
-        });
-        
-        if (!deleteResponse.ok) {
-          console.error('Failed to delete task:', task.id, deleteResponse.status);
-        }
-      }
-      
-    } catch (error) {
-      console.error('Error saving tasks:', error);
-      throw error;
-    }
-  };
 
   const handleDelete = async () => {
     if (!project || project.id === 'new') return;
@@ -817,12 +713,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
           
           setProject(newProject);
           
-          // Save tasks after project is created
-          try {
-            await saveTasks(newProject._id || newProject.id);
-          } catch (error) {
-            console.error('Error saving tasks for new project:', error);
-          }
+
           
           alert('Project created successfully!');
           navigate(`/projects/${newProject._id || newProject.id}`);
@@ -855,13 +746,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
           
           setProject(updatedProject);
           
-          // Save tasks after project is updated
-          try {
-            await saveTasks(updatedProject._id || updatedProject.id);
-          } catch (error) {
-            console.error('Error saving tasks:', error);
-            alert('Project was saved, but there was an error saving tasks.');
-          }
+
           
           alert('Project updated successfully!');
         } else {
@@ -1064,10 +949,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       }
     }, 10);
     
-    // Auto-save if this is a new todo
-    if (type === 'todo' && project?.id && project.id !== 'new') {
-      saveTasks(project.id);
-    }
+
   };
 
   // Auto-save notes to database
@@ -2827,6 +2709,16 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
             </div>
 
             <div className="flex items-center gap-2">
+              {/* Tasks Button - Show for existing projects */}
+              {project.id !== 'new' && (
+                <button
+                  onClick={() => navigate(`/projects/${project.id}/tasks`)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${isDarkMode ? 'bg-green-600 hover:bg-green-700' : 'bg-green-600 hover:bg-green-700'} text-white shadow-sm hover:shadow-md flex items-center gap-2`}
+                >
+                  <CheckSquare className="w-4 h-4" />
+                  Tasks
+                </button>
+              )}
               {canCreateProjects() && (
                 <button
                   onClick={handleSave}

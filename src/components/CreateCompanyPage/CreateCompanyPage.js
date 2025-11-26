@@ -290,9 +290,32 @@ const CreateCompanyPage = () => {
                 </div>
               </div>
 
-              <button onClick={closeModal} className={`w-full ${isDarkMode ? 'bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700' : 'bg-gradient-to-r from-gray-900 to-black hover:from-gray-800 hover:to-gray-900'} text-white py-4 rounded-2xl font-black text-lg shadow-lg hover:shadow-xl transition-all duration-200 active:scale-95`}>
-                Done
-              </button>
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                {selectedPlan !== 'free_trial' && (
+                  <button 
+                    onClick={() => {
+                      // Redirect to login with company ID and redirect parameter
+                      const loginUrl = createdCompany.companyLink.includes('?') 
+                        ? `${createdCompany.companyLink}&redirect=payment`
+                        : `${createdCompany.companyLink}?redirect=payment`;
+                      window.location.href = loginUrl;
+                    }}
+                    className={`flex-1 ${isDarkMode ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700' : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'} text-white py-4 rounded-2xl font-black text-lg shadow-lg hover:shadow-xl transition-all duration-200 active:scale-95`}
+                  >
+                    Login & Pay Now
+                  </button>
+                )}
+                <button 
+                  onClick={() => {
+                    // Redirect to login with company ID
+                    window.location.href = createdCompany.companyLink;
+                  }}
+                  className={`flex-1 ${isDarkMode ? 'bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700' : 'bg-gradient-to-r from-gray-900 to-black hover:from-gray-800 hover:to-gray-900'} text-white py-4 rounded-2xl font-black text-lg shadow-lg hover:shadow-xl transition-all duration-200 active:scale-95`}
+                >
+                  {selectedPlan === 'free_trial' ? 'Login Now' : 'Login Later'}
+                </button>
+              </div>
             </div>
           ) : (
             /* Form View */

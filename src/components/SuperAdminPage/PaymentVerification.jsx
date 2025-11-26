@@ -286,7 +286,7 @@ const PaymentVerification = () => {
                           Payment Date: {new Date(payment.paymentDate).toLocaleDateString()}
                         </div>
 
-                        {payment.note && (
+                        {payment.note && payment.paymentMethod !== 'chapa' && (
                           <div className={`mt-2 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                             <strong>Note:</strong> {payment.note}
                           </div>

@@ -8,6 +8,38 @@ const Payment = require('../models/Payment');
 const Company = require('../models/Company');
 const auth = require('../middleware/auth');
 
+/**
+ * Calculate the base date for payment period extension, considering remaining time
+ * from paymentPeriodEnd, gracePeriodDeadline, or paymentDeadline.
+ * Uses the maximum future date among these to preserve remaining time.
+ * @param {Object} company - Company object with payment dates
+ * @param {Date} now - Current date
+ * @returns {Date} - Base date to extend from (includes remaining time)
+ */
+function calculatePaymentBaseDate(company, now) {
+  let baseDate = now;
+
+  // Collect all future dates
+  const futureDates = [now];
+
+  if (company.paymentPeriodEnd && new Date(company.paymentPeriodEnd) > now) {
+    futureDates.push(new Date(company.paymentPeriodEnd));
+  }
+
+  if (company.gracePeriodDeadline && new Date(company.gracePeriodDeadline) > now) {
+    futureDates.push(new Date(company.gracePeriodDeadline));
+  }
+
+  if (company.paymentDeadline && new Date(company.paymentDeadline) > now) {
+    futureDates.push(new Date(company.paymentDeadline));
+  }
+
+  // Use the maximum (latest) date among all future dates
+  baseDate = new Date(Math.max(...futureDates.map(d => d.getTime())));
+
+  return baseDate;
+}
+
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -135,7 +167,10 @@ router.get('/my-company', auth, async (req, res) => {
       return res.status(403).json({ message: 'Only company admins can view payments' });
     }
 
-    const payments = await Payment.find({ companyId: req.user.companyId })
+    const payments = await Payment.find({ 
+      companyId: req.user.companyId,
+      status: 'approved'
+    })
       .populate('submittedBy', 'name username email')
       .populate('verifiedBy', 'name username')
       .sort({ createdAt: -1 });
@@ -143,6 +178,60 @@ router.get('/my-company', auth, async (req, res) => {
     res.json(payments);
   } catch (error) {
     console.error('Error fetching company payments:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST /api/payments/company/:companyId/pause
+// @desc    Pause company (Super Admin only)
+// @access  Private (Super Admin)
+router.post('/company/:companyId/pause', auth, async (req, res) => {
+  try {
+    if (req.user.role !== 'superadmin') {
+      return res.status(403).json({ message: 'Only super admin can pause companies' });
+    }
+
+    const company = await Company.findOne({ companyId: req.params.companyId });
+    if (!company) {
+      return res.status(404).json({ message: 'Company not found' });
+    }
+
+    company.status = 'suspended';
+    company.pausedAt = new Date();
+    company.deadlineStart = new Date();
+    await company.save();
+
+    res.json({ message: 'Company paused successfully', company });
+  } catch (error) {
+    console.error('Error pausing company:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST /api/payments/company/:companyId/play
+// @desc    Reactivate company (gives 24 hours to pay) (Super Admin only)
+// @access  Private (Super Admin)
+router.post('/company/:companyId/play', auth, async (req, res) => {
+  try {
+    if (req.user.role !== 'superadmin') {
+      return res.status(403).json({ message: 'Only super admin can reactivate companies' });
+    }
+
+    const company = await Company.findOne({ companyId: req.params.companyId });
+    if (!company) {
+      return res.status(404).json({ message: 'Company not found' });
+    }
+
+    const now = new Date();
+    company.status = 'active';
+    company.unpausedAt = now;
+    company.paymentDeadline = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
+    company.deadlineStart = null; // Reset deadline counter
+    await company.save();
+
+    res.json({ message: 'Company reactivated for 24 hours', company });
+  } catch (error) {
+    console.error('Error reactivating company:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -157,7 +246,7 @@ router.get('/all', auth, async (req, res) => {
     }
 
     const { status } = req.query;
-    const query = status && status !== 'all' ? { status } : {};
+    const query = status && status !== 'all' ? { status } : { status: 'approved' };
 
     const payments = await Payment.find(query)
       .populate('submittedBy', 'name username email phone')
@@ -195,6 +284,13 @@ router.put('/:id/verify', auth, async (req, res) => {
       return res.status(404).json({ message: 'Payment not found' });
     }
 
+    // Chapa payments are auto-approved when successful and should not be manually approved/rejected
+    if (payment.paymentMethod === 'chapa') {
+      return res.status(400).json({ 
+        message: 'Chapa payments are automatically approved when successful. They cannot be manually approved or rejected.' 
+      });
+    }
+
     if (payment.status !== 'pending') {
       return res.status(400).json({ message: 'Payment has already been processed' });
     }
@@ -222,7 +318,7 @@ router.put('/:id/verify', auth, async (req, res) => {
         // Calculate payment period end based on plan
         let monthsToAdd = 0;
         if (payment.period?.months && payment.period.months.length > 0) {
-          // Sum all months in the period array
+          // The months array length represents the number of months in the plan
           monthsToAdd = payment.period.months.length;
         } else {
           // Fallback: determine from selected plan
@@ -241,12 +337,19 @@ router.put('/:id/verify', auth, async (req, res) => {
           }
         }
         
-        // If there's an existing paymentPeriodEnd, extend from there, otherwise from now
-        const baseDate = company.paymentPeriodEnd && company.paymentPeriodEnd > now 
-          ? company.paymentPeriodEnd 
-          : now;
+        console.log(`📅 Payment period calculation:`, {
+          monthsArrayLength: payment.period?.months?.length || 0,
+          selectedPlan: company.selectedPlan,
+          monthsToAdd: monthsToAdd,
+          currentPaymentPeriodEnd: company.paymentPeriodEnd,
+          currentGracePeriodDeadline: company.gracePeriodDeadline,
+          currentPaymentDeadline: company.paymentDeadline
+        });
         
-        // Extend payment period
+        // Calculate base date considering remaining time from paymentPeriodEnd, gracePeriodDeadline, or paymentDeadline
+        const baseDate = calculatePaymentBaseDate(company, now);
+        
+        // Extend payment period from the base date (which includes any remaining time)
         const newPeriodEnd = new Date(baseDate);
         newPeriodEnd.setMonth(newPeriodEnd.getMonth() + monthsToAdd);
         company.paymentPeriodEnd = newPeriodEnd;
@@ -400,8 +503,12 @@ router.post('/chapa/initialize', auth, async (req, res) => {
     // Generate short transaction reference (max 50 chars)
     const txRef = `pay-${req.user.companyId}-${Date.now().toString().slice(-8)}`;
 
-    // Ensure minimum amount for Chapa
-    const chapaAmount = Math.max(parseFloat(amount), 10); // Minimum 10 ETB for Chapa
+    // Use the exact amount from the plan (no minimum enforced)
+    const chapaAmount = parseFloat(amount);
+    
+    if (chapaAmount <= 0) {
+      return res.status(400).json({ message: 'Payment amount must be greater than 0' });
+    }
     
     // Prepare payment data for Chapa
     const paymentData = {
@@ -412,8 +519,8 @@ router.post('/chapa/initialize', auth, async (req, res) => {
       last_name: user.name?.split(' ').slice(1).join(' ') || 'Customer',
       phone_number: user.phone || '+251911123456',
       tx_ref: txRef,
-      callback_url: `http://localhost:9000/api/payments/chapa/callback`,
-      return_url: `${BASE_URL}/admin/payments?status=success&tx_ref=${txRef}`,
+      callback_url: `http://localhost:9000/api/payments/chapa/webhook`,
+      return_url: `${BASE_URL}/payment-return?tx_ref=${txRef}&status=success&company=${req.user.companyId}`,
       customization: {
         title: planName?.substring(0, 16) || 'Subscription', // Max 16 chars
         description: `Payment for ${planName || 'Monthly Subscription'}`
@@ -480,6 +587,8 @@ router.post('/chapa/initialize', auth, async (req, res) => {
       }
 
       // Create pending payment record
+      // Note: Chapa payments are auto-approved by Chapa callback/verify when successful
+      // They should NOT be manually approved - the backend automatically approves them when payment succeeds
       const payment = new Payment({
         companyId: req.user.companyId,
         companyName: company.name,
@@ -489,7 +598,7 @@ router.post('/chapa/initialize', auth, async (req, res) => {
         paymentMethod: 'chapa',
         screenshotUrl: '', // Not needed for Chapa
         note: `Chapa payment for ${planName || 'subscription'}`,
-        status: 'pending',
+        status: 'pending', // Will be auto-approved by Chapa callback/verify when successful
         period: {
           months: monthsToUse,
           year: parseInt(year)
@@ -525,8 +634,72 @@ router.post('/chapa/initialize', auth, async (req, res) => {
   }
 });
 
+// @route   POST /api/payments/chapa/webhook
+// @desc    Handle Chapa webhook (server-to-server notification)
+// @access  Public (called by Chapa)
+router.post('/chapa/webhook', async (req, res) => {
+  try {
+    console.log('🔔 Chapa webhook received:', JSON.stringify(req.body, null, 2));
+    
+    const { tx_ref, status, event } = req.body;
+    
+    if (!tx_ref) {
+      console.log('❌ Webhook: Missing tx_ref');
+      return res.status(400).json({ message: 'Transaction reference is required' });
+    }
+    
+    // Only process successful payment events
+    if (event === 'charge.success' || status === 'success') {
+      console.log('✅ Webhook: Processing successful payment event');
+      
+      // Find payment by Chapa transaction reference
+      const payment = await Payment.findOne({ chapaTxRef: tx_ref });
+      if (!payment) {
+        console.log('❌ Webhook: Payment not found for tx_ref:', tx_ref);
+        return res.status(404).json({ message: 'Payment not found' });
+      }
+      
+      // Only update if still pending
+      if (payment.status === 'pending') {
+        console.log('✅ Webhook: Updating payment status to approved');
+        
+        payment.status = 'approved';
+        payment.verifiedAt = new Date();
+        await payment.save();
+        
+        // Update company payment status
+        const company = await Company.findOne({ companyId: payment.companyId });
+        if (company) {
+          const now = new Date();
+          company.hasPaid = true;
+          company.lastPaymentDate = now;
+          company.status = 'active';
+          
+          let monthsToAdd = payment.period?.months?.length || 1;
+          
+          if (monthsToAdd > 0) {
+            const baseDate = calculatePaymentBaseDate(company, now);
+            company.paymentPeriodEnd = new Date(baseDate);
+            company.paymentPeriodEnd.setMonth(company.paymentPeriodEnd.getMonth() + monthsToAdd);
+            company.paymentDeadline = new Date(company.paymentPeriodEnd);
+            company.gracePeriodDeadline = null;
+          }
+          
+          await company.save();
+          console.log(`✅ Webhook: Company payment status updated for ${company.name}`);
+        }
+      }
+    }
+    
+    res.json({ message: 'Webhook processed successfully' });
+  } catch (error) {
+    console.error('❌ Webhook error:', error);
+    res.status(500).json({ message: 'Webhook processing failed' });
+  }
+});
+
 // @route   POST /api/payments/chapa/callback
-// @desc    Handle Chapa payment callback
+// @desc    Handle Chapa payment callback (legacy - for backward compatibility)
 // @access  Public (called by Chapa)
 router.post('/chapa/callback', async (req, res) => {
   try {
@@ -557,26 +730,117 @@ router.post('/chapa/callback', async (req, res) => {
 
       const verifyData = await verifyResponse.json();
 
-      if (verifyData.status === 'success' && verifyData.data?.status === 'successful') {
-        // Payment successful - auto-approve
+      console.log('🔍 Chapa verification response:', JSON.stringify(verifyData, null, 2));
+
+      // STRICT CHECK: Only approve if Chapa explicitly confirms payment is successful
+      // Check both the API response status AND the transaction status
+      const apiStatus = verifyData.status?.toLowerCase();
+      const transactionStatus = verifyData.data?.status?.toLowerCase();
+      
+      // Only approve if BOTH conditions are met:
+      // 1. API response status is 'success'
+      // 2. Transaction status is 'successful' (not pending, failed, or any other status)
+      const isSuccessful = 
+        apiStatus === 'success' && 
+        transactionStatus === 'success' &&
+        verifyData.data?.amount > 0; // Additional check: amount must be positive
+
+      if (isSuccessful) {
+        // Payment successful - ONLY approve when Chapa confirms success
+        console.log('✅ Payment verified as successful by Chapa, updating payment status...');
+        console.log('✅ Verification details:', {
+          apiStatus,
+          transactionStatus,
+          amount: verifyData.data?.amount,
+          tx_ref: verifyData.data?.tx_ref
+        });
         payment.status = 'approved';
         payment.verifiedAt = new Date();
-        payment.paymentDate = new Date(verifyData.data.created_at || Date.now());
+        payment.paymentDate = new Date(verifyData.data?.created_at || verifyData.data?.createdAt || Date.now());
         await payment.save();
+        console.log('✅ Payment saved with approved status:', payment._id);
+
+        // Update company payment status and extend payment period
+        const company = await Company.findOne({ companyId: payment.companyId });
+        
+        if (company) {
+          const now = new Date();
+          company.hasPaid = true;
+          company.lastPaymentDate = now;
+          company.status = 'active'; // Ensure company is active after payment
+          
+          // Calculate payment period end based on plan
+          let monthsToAdd = 0;
+          if (payment.period?.months && payment.period.months.length > 0) {
+            monthsToAdd = payment.period.months.length;
+          } else {
+            // Fallback: default to 1 month if months array is not available
+            monthsToAdd = 1;
+          }
+          
+          console.log(`📅 Chapa payment period calculation:`, {
+            monthsArrayLength: payment.period?.months?.length || 0,
+            monthsToAdd: monthsToAdd,
+            currentPaymentPeriodEnd: company.paymentPeriodEnd,
+            currentGracePeriodDeadline: company.gracePeriodDeadline,
+            currentPaymentDeadline: company.paymentDeadline
+          });
+          
+          if (monthsToAdd > 0) {
+            // For paid subscriptions, start from today (no trial time preservation)
+            const baseDate = now;
+            
+            // Extend payment period from the base date (which includes any remaining time)
+            company.paymentPeriodEnd = new Date(baseDate);
+            company.paymentPeriodEnd.setMonth(company.paymentPeriodEnd.getMonth() + monthsToAdd);
+            
+            // Update payment deadline to match new period end
+            company.paymentDeadline = new Date(company.paymentPeriodEnd);
+            
+            // Clear grace period deadline since payment is made
+            company.gracePeriodDeadline = null;
+          }
+          
+          await company.save();
+          console.log(`✅ Company payment status updated for ${company.name}`, {
+            paymentPeriodEnd: company.paymentPeriodEnd,
+            hasPaid: company.hasPaid,
+            monthsAdded: monthsToAdd,
+            status: company.status
+          });
+        }
+
+        // Re-fetch payment to ensure we have the latest data
+        const updatedPayment = await Payment.findById(payment._id).populate('submittedBy', 'name username email');
 
         return res.json({ 
           message: 'Payment verified and approved',
-          payment: payment 
+          payment: updatedPayment,
+          status: updatedPayment.status,
+          verified: true
         });
       } else {
-        // Payment failed
-        payment.status = 'rejected';
-        payment.rejectionReason = verifyData.message || 'Payment verification failed';
-        await payment.save();
+        // Payment failed, not completed, or still pending
+        // DO NOT approve - keep as pending or mark as rejected
+        console.log('❌ Payment NOT successful:', {
+          apiStatus: verifyData.status,
+          transactionStatus: verifyData.data?.status,
+          message: verifyData.message || 'Payment not completed'
+        });
+        
+        // Only mark as rejected if explicitly failed, otherwise keep as pending
+        if (verifyData.data?.status?.toLowerCase() === 'failed' || 
+            verifyData.status?.toLowerCase() === 'failed') {
+          payment.status = 'rejected';
+          payment.rejectionReason = verifyData.message || verifyData.data?.message || 'Payment verification failed';
+          await payment.save();
+        }
+        // If still pending or unknown status, leave it as pending (don't approve)
 
         return res.json({ 
-          message: 'Payment verification failed',
-          payment: payment 
+          message: 'Payment not completed or verification failed',
+          payment: payment,
+          status: payment.status
         });
       }
     } catch (verifyError) {
@@ -585,6 +849,186 @@ router.post('/chapa/callback', async (req, res) => {
     }
   } catch (error) {
     console.error('Error handling Chapa callback:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// @route   GET /api/payments/chapa/verify/:tx_ref
+// @desc    Verify Chapa payment status (called when user returns from Chapa)
+// @access  Private (Admin)
+router.get('/chapa/verify/:tx_ref', auth, async (req, res) => {
+  try {
+    const { tx_ref } = req.params;
+    
+    console.log('🔍 Verify endpoint called with tx_ref:', tx_ref);
+    console.log('🔍 User info:', {
+      userId: req.user?.id,
+      companyId: req.user?.companyId,
+      role: req.user?.role
+    });
+    
+    if (!tx_ref) {
+      console.error('❌ Verify endpoint: Missing tx_ref');
+      return res.status(400).json({ message: 'Transaction reference is required' });
+    }
+
+    // Find payment by Chapa transaction reference
+    const payment = await Payment.findOne({ chapaTxRef: tx_ref });
+    if (!payment) {
+      console.error('❌ Verify endpoint: Payment not found for tx_ref:', tx_ref);
+      return res.status(404).json({ message: 'Payment not found' });
+    }
+    
+    console.log('✅ Payment found:', {
+      paymentId: payment._id,
+      currentStatus: payment.status,
+      companyId: payment.companyId,
+      amount: payment.amount
+    });
+
+    // Only allow company admin to verify their own payments
+    if (payment.companyId !== req.user.companyId && req.user.role !== 'superadmin') {
+      console.error('❌ Verify endpoint: Unauthorized', {
+        paymentCompanyId: payment.companyId,
+        userCompanyId: req.user.companyId,
+        userRole: req.user.role
+      });
+      return res.status(403).json({ message: 'Not authorized to verify this payment' });
+    }
+
+    // Verify payment with Chapa
+    let CHAPA_TOKEN = (process.env.CHAPA_TOKEN || process.env.CHAPA_SECRET_KEY || '').trim();
+    if (CHAPA_TOKEN.startsWith('"') && CHAPA_TOKEN.endsWith('"')) {
+      CHAPA_TOKEN = CHAPA_TOKEN.slice(1, -1);
+    }
+    const CHAPA_API = (process.env.CHAPA_API || 'https://api.chapa.co/v1').trim();
+    
+    try {
+      const verifyUrl = `${CHAPA_API}/transaction/verify/${tx_ref}`;
+      console.log('🌐 Calling Chapa verify API:', verifyUrl);
+      console.log('🔑 Using token:', CHAPA_TOKEN ? CHAPA_TOKEN.substring(0, 15) + '...' : 'MISSING');
+      
+      const verifyResponse = await fetch(verifyUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${CHAPA_TOKEN}`
+        }
+      });
+
+      console.log('📡 Chapa verify API response status:', verifyResponse.status);
+      const verifyData = await verifyResponse.json();
+
+      console.log('🔍 Chapa verify endpoint response:', JSON.stringify(verifyData, null, 2));
+
+      // STRICT CHECK: Only approve if Chapa explicitly confirms payment is successful
+      // Check both the API response status AND the transaction status
+      const apiStatus = verifyData.status?.toLowerCase();
+      const transactionStatus = verifyData.data?.status?.toLowerCase();
+      
+      // Only approve if BOTH conditions are met:
+      // 1. API response status is 'success'
+      // 2. Transaction status is 'successful' (not pending, failed, or any other status)
+      const isSuccessful = 
+        apiStatus === 'success' && 
+        transactionStatus === 'success' &&
+        verifyData.data?.amount > 0; // Additional check: amount must be positive
+
+      if (isSuccessful) {
+        // Payment successful - ONLY approve when Chapa confirms success
+        // Only update if still pending (don't override if already processed)
+        if (payment.status === 'pending') {
+          console.log('✅ Payment verified as successful by Chapa, updating payment status...');
+          console.log('✅ Verification details:', {
+            apiStatus,
+            transactionStatus,
+            amount: verifyData.data?.amount,
+            tx_ref: verifyData.data?.tx_ref
+          });
+          payment.status = 'approved';
+          payment.verifiedAt = new Date();
+          payment.paymentDate = new Date(verifyData.data?.created_at || verifyData.data?.createdAt || Date.now());
+          await payment.save();
+          console.log('✅ Payment saved with approved status:', payment._id);
+
+          // Update company payment status
+          const company = await Company.findOne({ companyId: payment.companyId });
+          
+          if (company) {
+            const now = new Date();
+            company.hasPaid = true;
+            company.lastPaymentDate = now;
+            company.status = 'active';
+            
+            let monthsToAdd = 0;
+            if (payment.period?.months && payment.period.months.length > 0) {
+              monthsToAdd = payment.period.months.length;
+            } else {
+              // Fallback: default to 1 month if months array is not available
+              monthsToAdd = 1;
+            }
+            
+            console.log(`📅 Chapa verify payment period calculation:`, {
+              monthsArrayLength: payment.period?.months?.length || 0,
+              monthsToAdd: monthsToAdd,
+              currentPaymentPeriodEnd: company.paymentPeriodEnd,
+              currentGracePeriodDeadline: company.gracePeriodDeadline,
+              currentPaymentDeadline: company.paymentDeadline
+            });
+            
+            if (monthsToAdd > 0) {
+              // Calculate base date considering remaining time from paymentPeriodEnd, gracePeriodDeadline, or paymentDeadline
+              const baseDate = calculatePaymentBaseDate(company, now);
+              
+              // Extend payment period from the base date (which includes any remaining time)
+              company.paymentPeriodEnd = new Date(baseDate);
+              company.paymentPeriodEnd.setMonth(company.paymentPeriodEnd.getMonth() + monthsToAdd);
+              
+              // Update payment deadline to match new period end
+              company.paymentDeadline = new Date(company.paymentPeriodEnd);
+              
+              // Clear grace period deadline since payment is made
+              company.gracePeriodDeadline = null;
+            }
+            
+            await company.save();
+            console.log(`✅ Company payment status updated for ${company.name}`, {
+              paymentPeriodEnd: company.paymentPeriodEnd,
+              hasPaid: company.hasPaid,
+              monthsAdded: monthsToAdd,
+              status: company.status
+            });
+          }
+        }
+
+        // Re-fetch payment to ensure we have the latest data
+        const updatedPayment = await Payment.findById(payment._id).populate('submittedBy', 'name username email');
+        
+        return res.json({ 
+          message: 'Payment verified successfully',
+          payment: updatedPayment,
+          status: updatedPayment.status,
+          verified: true
+        });
+      } else {
+        // Payment not successful
+        if (payment.status === 'pending') {
+          payment.status = 'rejected';
+          payment.rejectionReason = verifyData.message || 'Payment verification failed';
+          await payment.save();
+        }
+
+        return res.json({ 
+          message: 'Payment verification failed',
+          payment: payment,
+          status: payment.status
+        });
+      }
+    } catch (verifyError) {
+      console.error('Chapa verification error:', verifyError);
+      return res.status(500).json({ message: 'Failed to verify payment' });
+    }
+  } catch (error) {
+    console.error('Error verifying Chapa payment:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });

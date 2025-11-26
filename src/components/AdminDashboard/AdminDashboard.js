@@ -243,7 +243,10 @@ const AdminDashboard = () => {
         {/* Fixed Payment Button */}
         <div className="fixed top-6 right-6 z-50">
           <button
-            onClick={() => navigate('/admin/payments')}
+            onClick={() => {
+              const companyId = user?.companyId;
+              navigate(companyId ? `/${companyId}/admin/payments` : '/admin/payments');
+            }}
             className={`flex items-center gap-3 px-6 py-4 ${isDarkMode ? 'bg-white hover:bg-gray-200 text-black' : 'bg-black hover:bg-gray-800 text-white'} rounded-full font-bold shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-110`}
           >
             <DollarSign className="w-6 h-6" />

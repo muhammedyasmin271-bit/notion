@@ -61,6 +61,10 @@ const connectDB = async () => {
 // Start MongoDB connection (non-blocking)
 connectDB();
 
+// Start SMS reminder cron jobs
+const cronScheduler = require('./services/cronScheduler');
+cronScheduler.start();
+
 // Ensure an initial admin exists so you can sign in without manual creation
 async function ensureInitialAdmin() {
   try {
@@ -163,6 +167,8 @@ app.use('/api/payments', paymentRoutes);
 const settingsRoutes = require('./routes/settings');
 app.use('/api/settings', settingsRoutes);
 app.use('/api/company', companyRoutes);
+const contactRoutes = require('./routes/contact');
+app.use('/api/contact', contactRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

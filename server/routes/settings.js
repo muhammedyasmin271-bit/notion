@@ -32,6 +32,27 @@ router.get('/payment', async (req, res) => {
   }
 });
 
+// @route   GET /api/settings/contact
+// @desc    Get contact information (public - for landing page)
+// @access  Public (no auth required for landing page)
+router.get('/contact', async (req, res) => {
+  try {
+    const settings = await SystemSettings.find({ category: 'contact' });
+    
+    // Convert to key-value object
+    const contactSettings = {};
+    settings.forEach(setting => {
+      const key = setting.settingKey.replace('contact.', '');
+      contactSettings[key] = setting.value;
+    });
+
+    res.json(contactSettings);
+  } catch (error) {
+    console.error('Error fetching contact settings:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // @route   GET /api/settings/all
 // @desc    Get all system settings (Super Admin only)
 // @access  Private (Super Admin)

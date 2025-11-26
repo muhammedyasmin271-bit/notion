@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, Users, Pause, Play, Trash2, Plus, X, TrendingUp, DollarSign, Activity, AlertCircle, CheckCircle, Upload, Copy, Link as LinkIcon, Eye, XCircle, Settings, Phone, User, Lock, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Building2, Users, Pause, Play, Trash2, Plus, X, TrendingUp, DollarSign, Activity, AlertCircle, CheckCircle, Upload, Copy, Link as LinkIcon, Eye, XCircle, Settings, Phone, User, Lock, ToggleLeft, ToggleRight, Mail } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../../context/AppContext';
@@ -16,7 +16,7 @@ const SuperAdminPage = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [formData, setFormData] = useState({
-    name: '', adminEmail: '', adminPhone: '', maxUsers: 50, maxStorage: 5368709120, adminUsername: '', adminPassword: '', logo: ''
+    name: '', adminEmail: '', adminPhone: '', maxUsers: 50, maxStorage: 5368709120, adminUsername: '', adminPassword: '', logo: '', selectedPlan: 'free_trial'
   });
   const [logoFile, setLogoFile] = useState(null);
   const [createdCompany, setCreatedCompany] = useState(null);
@@ -27,8 +27,7 @@ const SuperAdminPage = () => {
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [verifyAction, setVerifyAction] = useState('approved');
   const [rejectionReason, setRejectionReason] = useState('');
-  const [editingPricing, setEditingPricing] = useState(false);
-  const [pricingForm, setPricingForm] = useState({ monthlyAmount: 1000, currency: 'ETB' });
+
   const [editingLimits, setEditingLimits] = useState(false);
   const [limitsForm, setLimitsForm] = useState({ maxUsers: 50, maxStorage: 5368709120 });
   const [updatingPaymentMode, setUpdatingPaymentMode] = useState(false);
@@ -158,7 +157,7 @@ const SuperAdminPage = () => {
   const closeModal = () => {
     setShowModal(false);
     setCreatedCompany(null);
-    setFormData({ name: '', adminEmail: '', adminPhone: '', maxUsers: 50, maxStorage: 5368709120, adminUsername: '', adminPassword: '', logo: '' });
+    setFormData({ name: '', adminEmail: '', adminPhone: '', maxUsers: 50, maxStorage: 5368709120, adminUsername: '', adminPassword: '', logo: '', selectedPlan: 'free_trial' });
     setLogoFile(null);
   };
 
@@ -173,12 +172,6 @@ const SuperAdminPage = () => {
       const company = companies.find(c => c.companyId === companyId);
       setSelectedCompany(company);
       
-      // Set pricing form with company's current pricing
-      setPricingForm({
-        monthlyAmount: company.pricing?.monthlyAmount || 1000,
-        currency: company.pricing?.currency || 'ETB'
-      });
-      
       // Set limits form with company's current limits
       setLimitsForm({
         maxUsers: company.limits?.maxUsers || 50,
@@ -190,7 +183,16 @@ const SuperAdminPage = () => {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
       const paymentsData = await paymentsRes.json();
-      const filteredPayments = paymentsData.filter(p => p.companyId === companyId);
+      
+      // Filter by company and only show successful payments (approved/rejected)
+      // Hide ALL pending payments - they will only appear after Chapa confirms success
+      const filteredPayments = paymentsData.filter(p => {
+        if (p.companyId !== companyId) return false;
+        
+        // Only show approved or rejected payments (no pending payments)
+        return p.status === 'approved' || p.status === 'rejected';
+      });
+      
       setCompanyPayments(filteredPayments);
       
       // Add payments to company object for calendar component
@@ -206,41 +208,10 @@ const SuperAdminPage = () => {
     setSelectedCompany(null);
     setCompanyDetails(null);
     setCompanyPayments([]);
-    setEditingPricing(false);
     setEditingLimits(false);
   };
 
-  const handleUpdatePricing = async () => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:9000/api/admin/companies/${selectedCompany.companyId}/pricing`, {
-        method: 'PATCH',
-        headers: {
-          'x-auth-token': token,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(pricingForm)
-      });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to update pricing');
-      }
-
-      setSuccess('Company pricing updated successfully!');
-      setTimeout(() => setSuccess(''), 3000);
-      setEditingPricing(false);
-      fetchCompanies(); // Refresh companies list
-    } catch (error) {
-      console.error('Error updating pricing:', error);
-      setError(error.message || 'Failed to update pricing');
-      setTimeout(() => setError(''), 3000);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleUpdateLimits = async () => {
     setLoading(true);
@@ -439,6 +410,12 @@ const SuperAdminPage = () => {
             </div>
           </div>
           <div className="flex gap-3">
+            <button 
+              onClick={() => navigate('/super-admin/messages')} 
+              className={`flex items-center gap-2 px-6 py-3.5 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 ${isDarkMode ? 'bg-gray-900 hover:bg-gray-800 text-white border border-gray-800' : 'bg-white hover:bg-gray-50 text-black border-2 border-gray-200 shadow-md'}`}
+            >
+              <Mail size={20} /> <span className="hidden sm:inline">Messages</span>
+            </button>
             <button 
               onClick={() => {
                 const token = new URLSearchParams(window.location.search).get('token');
@@ -779,6 +756,65 @@ const SuperAdminPage = () => {
                     </div>
                   </div>
 
+                  {/* Plan Selection */}
+                  <div className={`p-5 rounded-2xl ${isDarkMode ? 'bg-gradient-to-br from-blue-900/20 to-purple-900/20 border-2 border-blue-700/50' : 'bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-300'}`}>
+                    <h3 className={`text-base font-bold mb-4 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                      <DollarSign size={18} />
+                      Subscription Plan
+                    </h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {[
+                        { value: 'free_trial', label: 'Free Trial', period: '7 days' },
+                        { value: 'one_month', label: '1 Month', period: '1 month' },
+                        { value: 'three_month', label: '3 Months', period: '3 months' },
+                        { value: 'six_month', label: '6 Months', period: '6 months' }
+                      ].map(plan => (
+                        <button
+                          key={plan.value}
+                          type="button"
+                          onClick={() => setFormData({...formData, selectedPlan: plan.value})}
+                          className={`p-3 rounded-xl border-2 font-semibold text-sm transition-all ${
+                            formData.selectedPlan === plan.value
+                              ? isDarkMode
+                                ? 'bg-blue-600 border-blue-400 text-white shadow-lg scale-105'
+                                : 'bg-blue-600 border-blue-500 text-white shadow-lg scale-105'
+                              : isDarkMode
+                                ? 'bg-gray-800/50 border-gray-700 text-gray-300 hover:border-gray-600'
+                                : 'bg-white border-gray-300 text-gray-700 hover:border-gray-400'
+                          }`}
+                        >
+                          <div className="font-bold">{plan.label}</div>
+                          <div className="text-xs opacity-75">{plan.period}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* User Limit */}
+                  <div className={`p-5 rounded-2xl ${isDarkMode ? 'bg-gray-800/50 border border-gray-700' : 'bg-gray-50 border border-gray-200'}`}>
+                    <h3 className={`text-base font-bold mb-4 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                      <Users size={18} />
+                      User Limit
+                    </h3>
+                    <div className="relative">
+                      <div className={`absolute left-4 top-1/2 -translate-y-1/2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                        <Users size={18} />
+                      </div>
+                      <input 
+                        type="number" 
+                        placeholder="Maximum number of users *" 
+                        value={formData.maxUsers} 
+                        min="1"
+                        className={`w-full pl-12 pr-4 py-3.5 border-2 rounded-xl text-base font-medium ${isDarkMode ? 'bg-gray-900/50 border-gray-700 text-white placeholder-gray-500 focus:border-gray-600' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-gray-500'} focus:outline-none focus:ring-2 ${isDarkMode ? 'focus:ring-gray-600' : 'focus:ring-gray-400'} transition-all`} 
+                        onChange={e => setFormData({...formData, maxUsers: parseInt(e.target.value) || 1})} 
+                        required 
+                      />
+                    </div>
+                    <p className={`text-xs mt-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Maximum number of users allowed for this company
+                    </p>
+                  </div>
+
                   {/* Admin Credentials */}
                   <div className={`p-5 rounded-2xl ${isDarkMode ? 'bg-white/10 border-2 border-white/20' : 'bg-black/10 border-2 border-black/20'}`}>
                     <div className="flex items-center gap-2 mb-4">
@@ -1007,91 +1043,7 @@ const SuperAdminPage = () => {
                   </div>
                 </div>
 
-                {/* Company Pricing */}
-                <div className={`p-3 sm:p-4 rounded-lg sm:rounded-xl ${isDarkMode ? 'bg-gray-800 border border-gray-600' : 'bg-gray-100 border border-gray-300'}`}>
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-3">
-                    <div className="flex items-center gap-2">
-                      <DollarSign className={`w-4 h-4 sm:w-5 sm:h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
-                      <h3 className={`text-base sm:text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Monthly Subscription</h3>
-                    </div>
-                    {!editingPricing && (
-                      <button
-                        onClick={() => setEditingPricing(true)}
-                        className={`self-start sm:self-auto px-3 py-1.5 sm:py-1 ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-800 hover:bg-gray-900'} text-white text-xs sm:text-sm rounded-lg transition-colors`}
-                      >
-                        Edit Pricing
-                      </button>
-                    )}
-                  </div>
-                  
-                  {editingPricing ? (
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <label className={`block text-xs font-semibold mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                            Monthly Amount
-                          </label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={pricingForm.monthlyAmount}
-                            onChange={(e) => setPricingForm({ ...pricingForm, monthlyAmount: e.target.value })}
-                            className={`w-full px-3 py-2 rounded-lg border text-sm ${
-                              isDarkMode
-                                ? 'bg-gray-700 border-gray-600 text-white'
-                                : 'bg-white border-gray-300 text-gray-900'
-                            }`}
-                          />
-                        </div>
-                        <div>
-                          <label className={`block text-xs font-semibold mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                            Currency
-                          </label>
-                          <input
-                            type="text"
-                            value={pricingForm.currency}
-                            onChange={(e) => setPricingForm({ ...pricingForm, currency: e.target.value })}
-                            className={`w-full px-3 py-2 rounded-lg border text-sm ${
-                              isDarkMode
-                                ? 'bg-gray-700 border-gray-600 text-white'
-                                : 'bg-white border-gray-300 text-gray-900'
-                            }`}
-                          />
-                        </div>
-                      </div>
-                      <div className="flex flex-col sm:flex-row gap-2">
-                        <button
-                          onClick={handleUpdatePricing}
-                          disabled={loading}
-                          className={`flex-1 px-4 py-2 ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-900 hover:bg-black'} text-white text-sm rounded-lg transition-colors disabled:opacity-50`}
-                        >
-                          {loading ? 'Saving...' : 'Save'}
-                        </button>
-                        <button
-                          onClick={() => {
-                            setEditingPricing(false);
-                            setPricingForm({
-                              monthlyAmount: selectedCompany.pricing?.monthlyAmount || 1000,
-                              currency: selectedCompany.pricing?.currency || 'ETB'
-                            });
-                          }}
-                          className={`px-4 py-2 text-sm rounded-lg ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center">
-                      <div className={`flex-1 p-3 rounded-lg ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
-                        <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Monthly Fee</p>
-                        <p className={`text-xl sm:text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                          {selectedCompany.pricing?.monthlyAmount || 1000} {selectedCompany.pricing?.currency || 'ETB'}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
+
 
                 {/* Company Limits */}
                 <div className={`p-3 sm:p-4 rounded-lg sm:rounded-xl ${isDarkMode ? 'bg-gray-800 border border-gray-600' : 'bg-gray-100 border border-gray-300'}`}>
@@ -1226,16 +1178,7 @@ const SuperAdminPage = () => {
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-2 flex-wrap">
                                 <span className={`text-base sm:text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                                  {payment.amount.toFixed(2)}
-                                </span>
-                                <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                                  payment.status === 'approved' 
-                                    ? (isDarkMode ? 'bg-gray-600 text-white' : 'bg-gray-800 text-white')
-                                    : payment.status === 'rejected'
-                                    ? (isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-400 text-white')
-                                    : (isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-300 text-gray-700')
-                                }`}>
-                                  {payment.status.toUpperCase()}
+                                  {payment.amount.toFixed(2)} ETB
                                 </span>
                               </div>
                               <p className={`text-xs sm:text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -1248,41 +1191,10 @@ const SuperAdminPage = () => {
                               <p className={`text-xs sm:text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                                 <strong>Submitted:</strong> {new Date(payment.createdAt).toLocaleDateString()}
                               </p>
-                              {payment.note && (
+                              {payment.note && payment.paymentMethod !== 'chapa' && (
                                 <p className={`text-xs sm:text-sm mt-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} line-clamp-2`}>
                                   <strong>Note:</strong> {payment.note}
                                 </p>
-                              )}
-                            </div>
-                            <div className="flex sm:flex-col gap-2 w-full sm:w-auto">
-                              <a
-                                href={`http://localhost:9000${payment.screenshotUrl}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-800 hover:bg-gray-900'} text-white text-xs sm:text-sm rounded-lg transition-colors flex items-center gap-1 sm:gap-2 justify-center active:scale-95`}
-                              >
-                                <Eye size={14} className="sm:w-4 sm:h-4" />
-                                View
-                              </a>
-                              {payment.status === 'pending' && (
-                                <>
-                                  <button
-                                    onClick={() => openVerifyModal(payment, 'approved')}
-                                    className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 ${isDarkMode ? 'bg-gray-600 hover:bg-gray-500' : 'bg-gray-700 hover:bg-gray-800'} text-white text-xs sm:text-sm rounded-lg transition-colors flex items-center gap-1 sm:gap-2 justify-center active:scale-95`}
-                                  >
-                                    <CheckCircle size={14} className="sm:w-4 sm:h-4" />
-                                    <span className="hidden sm:inline">Approve</span>
-                                    <span className="sm:hidden">✓</span>
-                                  </button>
-                                  <button
-                                    onClick={() => openVerifyModal(payment, 'rejected')}
-                                    className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 ${isDarkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-500 hover:bg-gray-600'} text-white text-xs sm:text-sm rounded-lg transition-colors flex items-center gap-1 sm:gap-2 justify-center active:scale-95`}
-                                  >
-                                    <XCircle size={14} className="sm:w-4 sm:h-4" />
-                                    <span className="hidden sm:inline">Reject</span>
-                                    <span className="sm:hidden">✗</span>
-                                  </button>
-                                </>
                               )}
                             </div>
                           </div>

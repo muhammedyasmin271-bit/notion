@@ -31,6 +31,11 @@ const LandingPage = () => {
     message: ''
   });
   const [contactSubmitStatus, setContactSubmitStatus] = React.useState({ type: '', message: '' });
+  const [contactInfo, setContactInfo] = React.useState({
+    email: 'support@melanote.com',
+    phone: '+251 911 234 567',
+    address: 'Addis Ababa, Ethiopia'
+  });
 
   // Calculate prices based on price per user per month
   const calculatePrice = (months, discount = 0) => {
@@ -58,6 +63,27 @@ const LandingPage = () => {
       }
     };
     fetchPricePerUser();
+
+    // Fetch contact information from settings
+    const fetchContactInfo = async () => {
+      try {
+        const response = await fetch('http://localhost:9000/api/settings/contact');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.email || data.phone || data.address) {
+            setContactInfo({
+              email: data.email || 'support@melanote.com',
+              phone: data.phone || '+251 911 234 567',
+              address: data.address || 'Addis Ababa, Ethiopia'
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching contact info:', error);
+        // Keep default values
+      }
+    };
+    fetchContactInfo();
   }, []);
 
   const handleContactInputChange = (e) => {
@@ -72,11 +98,24 @@ const LandingPage = () => {
     e.preventDefault();
     setContactSubmitStatus({ type: 'loading', message: 'Sending message...' });
     
-    // Simulate form submission (you can connect this to your backend)
-    setTimeout(() => {
+    try {
+      const response = await fetch('http://localhost:9000/api/contact/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(contactForm)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to send message');
+      }
+
       setContactSubmitStatus({ 
         type: 'success', 
-        message: 'Thank you! We\'ll get back to you soon.' 
+        message: data.message || 'Thank you! We\'ll get back to you soon.' 
       });
       setContactForm({ name: '', email: '', phone: '', message: '' });
       
@@ -84,7 +123,18 @@ const LandingPage = () => {
       setTimeout(() => {
         setContactSubmitStatus({ type: '', message: '' });
       }, 5000);
-    }, 1000);
+    } catch (error) {
+      console.error('Error submitting contact form:', error);
+      setContactSubmitStatus({ 
+        type: 'error', 
+        message: error.message || 'Failed to send message. Please try again.' 
+      });
+      
+      // Clear error message after 5 seconds
+      setTimeout(() => {
+        setContactSubmitStatus({ type: '', message: '' });
+      }, 5000);
+    }
   };
 
   const features = [
@@ -588,8 +638,8 @@ const LandingPage = () => {
                   </div>
                   <div>
                     <h4 className="text-lg font-bold text-gray-900 mb-1">Email</h4>
-                    <a href="mailto:support@melanote.com" className="text-gray-600 hover:text-blue-600 transition-colors text-lg">
-                      support@melanote.com
+                    <a href={`mailto:${contactInfo.email}`} className="text-gray-600 hover:text-blue-600 transition-colors text-lg">
+                      {contactInfo.email}
                     </a>
                   </div>
                 </div>
@@ -600,8 +650,8 @@ const LandingPage = () => {
                   </div>
                   <div>
                     <h4 className="text-lg font-bold text-gray-900 mb-1">Phone</h4>
-                    <a href="tel:+251911234567" className="text-gray-600 hover:text-purple-600 transition-colors text-lg">
-                      +251 911 234 567
+                    <a href={`tel:${contactInfo.phone.replace(/\s/g, '')}`} className="text-gray-600 hover:text-purple-600 transition-colors text-lg">
+                      {contactInfo.phone}
                     </a>
                   </div>
                 </div>
@@ -613,7 +663,7 @@ const LandingPage = () => {
                   <div>
                     <h4 className="text-lg font-bold text-gray-900 mb-1">Address</h4>
                     <p className="text-gray-600 text-lg">
-                      Addis Ababa, Ethiopia
+                      {contactInfo.address}
                     </p>
                   </div>
                 </div>

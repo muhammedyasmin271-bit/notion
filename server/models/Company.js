@@ -33,6 +33,13 @@ const companySchema = new mongoose.Schema({
   gracePeriodDeadline: Date, // Grace period deadline (7 days after payment deadline for paid plans)
   lastPaymentDate: Date, // Date of last approved payment
   paymentPeriodEnd: Date, // When the current payment period ends (calculated from last payment + plan duration)
+  smsReminders: {
+    paymentReminders: [Date], // SMS sent during 24h payment period
+    trialReminders: [Date], // SMS sent during trial period
+    graceReminders: [Date], // SMS sent during grace period
+    lastSent: Date // Last SMS sent timestamp
+  },
+  deadlineStart: Date, // When company entered deadline (blocked) status
   createdAt: { type: Date, default: Date.now },
   expiresAt: Date
 });

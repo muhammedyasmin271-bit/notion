@@ -9,7 +9,7 @@ const systemSettingsSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ['payment', 'general', 'email', 'sms', 'other'],
+    enum: ['payment', 'general', 'email', 'sms', 'contact', 'other'],
     default: 'general'
   },
   value: {
@@ -71,6 +71,24 @@ systemSettingsSchema.statics.ensureDefaults = async function() {
       category: 'payment',
       value: 1,
       description: 'Price per user per month in ETB'
+    },
+    {
+      settingKey: 'contact.email',
+      category: 'contact',
+      value: 'support@melanote.com',
+      description: 'Contact email address displayed on landing page'
+    },
+    {
+      settingKey: 'contact.phone',
+      category: 'contact',
+      value: '+251 911 234 567',
+      description: 'Contact phone number displayed on landing page'
+    },
+    {
+      settingKey: 'contact.address',
+      category: 'contact',
+      value: 'Addis Ababa, Ethiopia',
+      description: 'Contact address displayed on landing page'
     }
   ];
 

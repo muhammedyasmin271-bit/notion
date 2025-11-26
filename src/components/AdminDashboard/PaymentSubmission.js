@@ -18,6 +18,7 @@ const PaymentSubmission = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [showInstructions, setShowInstructions] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState(null);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [paymentSettings, setPaymentSettings] = useState({
     pricePerUserPerMonth: 1,
@@ -28,6 +29,10 @@ const PaymentSubmission = () => {
     selectedPlan: 'one_month',
     createdAt: null,
     paymentDeadline: null,
+    paymentPeriodEnd: null,
+    gracePeriodDeadline: null,
+    hasPaid: false,
+    status: 'active',
     payments: []
   });
 
@@ -70,15 +75,118 @@ const PaymentSubmission = () => {
     year: new Date().getFullYear()
   });
 
+  const verifyPaymentStatus = async (txRef) => {
+    try {
+      const token = localStorage.getItem('token');
+      console.log('🔍 Verifying payment with tx_ref:', txRef);
+      
+      // Show verification status on page
+      setVerificationStatus({ status: 'checking', message: 'Verifying payment with Chapa...' });
+      
+      const response = await fetch(`http://localhost:9000/api/payments/chapa/verify/${txRef}`, {
+        headers: { 'x-auth-token': token }
+      });
+      
+      const data = await response.json();
+      console.log('🔍 Verification response:', data);
+      
+      if (response.ok) {
+        // STRICT CHECK: Only show success if payment is explicitly approved
+        if (data.status === 'approved' && data.verified === true) {
+          const successStatus = { 
+            status: 'success', 
+            message: '✅ Payment completed and verified successfully! Payment will appear in history shortly.',
+            txRef: txRef,
+            timestamp: new Date().toISOString()
+          };
+          setVerificationStatus(successStatus);
+          // Store in localStorage so it persists across reloads
+          localStorage.setItem('paymentVerificationStatus', JSON.stringify(successStatus));
+          showMessage('success', 'Payment completed and verified successfully!');
+          
+          // Refresh payments list and company data immediately
+          await Promise.all([
+            fetchPayments(),
+            fetchPaymentSettings() // This fetches company data including paymentPeriodEnd, hasPaid, etc.
+          ]);
+          
+          // Give a moment for state to update, then reload to ensure calendar updates
+          setTimeout(() => {
+            localStorage.removeItem('paymentVerificationStatus');
+            setVerificationStatus(null); // Clear status before reload
+            window.location.reload();
+          }, 5000); // Increased to 5 seconds so user can see the message
+        } else if (data.status === 'pending') {
+          // Payment is still pending - not completed yet
+          const pendingStatus = { 
+            status: 'pending', 
+            message: '⏳ Payment is still pending. If you completed payment, please wait a moment and refresh the page.',
+            txRef: txRef,
+            timestamp: new Date().toISOString()
+          };
+          setVerificationStatus(pendingStatus);
+          localStorage.setItem('paymentVerificationStatus', JSON.stringify(pendingStatus));
+          showMessage('error', 'Payment is still pending. Please complete the payment on Chapa or wait a moment and refresh.');
+        } else {
+          // Payment failed or rejected
+          const failedStatus = { 
+            status: 'failed', 
+            message: `❌ Payment status: ${data.status || 'unknown'}. Payment was not completed successfully.`,
+            txRef: txRef,
+            timestamp: new Date().toISOString()
+          };
+          setVerificationStatus(failedStatus);
+          localStorage.setItem('paymentVerificationStatus', JSON.stringify(failedStatus));
+          showMessage('error', `Payment status: ${data.status || 'unknown'}. Payment was not completed successfully.`);
+        }
+      } else {
+        const errorStatus = { 
+          status: 'error', 
+          message: `❌ ${data.message || 'Payment verification failed. Please contact support.'}`,
+          txRef: txRef,
+          timestamp: new Date().toISOString()
+        };
+        setVerificationStatus(errorStatus);
+        localStorage.setItem('paymentVerificationStatus', JSON.stringify(errorStatus));
+        showMessage('error', data.message || 'Payment verification failed. Please contact support.');
+      }
+    } catch (error) {
+      console.error('Error verifying payment:', error);
+      setVerificationStatus({ 
+        status: 'error', 
+        message: 'Failed to verify payment status. Please refresh the page or contact support.' 
+      });
+      showMessage('error', 'Failed to verify payment status. Please refresh the page.');
+    }
+  };
+
   useEffect(() => {
     fetchPayments();
     fetchPaymentSettings();
     
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('status') === 'success') {
-      showMessage('success', 'Payment completed successfully! Your payment is being verified.');
-      window.history.replaceState({}, document.title, window.location.pathname);
-      fetchPayments();
+    // Check for payment success from localStorage (set by PaymentReturn page)
+    const paymentSuccess = localStorage.getItem('paymentSuccess');
+    if (paymentSuccess) {
+      try {
+        const successData = JSON.parse(paymentSuccess);
+        setVerificationStatus({
+          status: 'success',
+          message: '✅ Payment completed successfully! Your subscription has been activated.',
+          txRef: successData.txRef,
+          timestamp: successData.timestamp
+        });
+        
+        // Clear after 10 seconds
+        setTimeout(() => {
+          localStorage.removeItem('paymentSuccess');
+          setVerificationStatus(null);
+          // Refresh data to show updated payment
+          fetchPayments();
+          fetchPaymentSettings();
+        }, 10000);
+      } catch (e) {
+        localStorage.removeItem('paymentSuccess');
+      }
     }
   }, [user]);
 
@@ -126,12 +234,19 @@ const PaymentSubmission = () => {
         ...companyResponseData,
         ...myCompanyData,
         createdAt: companyResponseData.createdAt || myCompanyData.createdAt,
-        paymentDeadline: companyResponseData.paymentDeadline || myCompanyData.paymentDeadline
+        paymentDeadline: companyResponseData.paymentDeadline || myCompanyData.paymentDeadline,
+        paymentPeriodEnd: companyResponseData.paymentPeriodEnd || myCompanyData.paymentPeriodEnd,
+        gracePeriodDeadline: companyResponseData.gracePeriodDeadline || myCompanyData.gracePeriodDeadline,
+        hasPaid: companyResponseData.hasPaid !== undefined ? companyResponseData.hasPaid : (myCompanyData.hasPaid !== undefined ? myCompanyData.hasPaid : false),
+        status: companyResponseData.status || myCompanyData.status
       };
       
       console.log('Company data for calendar:', {
         createdAt: mergedCompanyData.createdAt,
         paymentDeadline: mergedCompanyData.paymentDeadline,
+        paymentPeriodEnd: mergedCompanyData.paymentPeriodEnd,
+        hasPaid: mergedCompanyData.hasPaid,
+        gracePeriodDeadline: mergedCompanyData.gracePeriodDeadline,
         payments: companyPayments.length
       });
       
@@ -145,6 +260,10 @@ const PaymentSubmission = () => {
         selectedPlan: mergedCompanyData.selectedPlan || 'one_month',
         createdAt: mergedCompanyData.createdAt,
         paymentDeadline: mergedCompanyData.paymentDeadline,
+        paymentPeriodEnd: mergedCompanyData.paymentPeriodEnd,
+        gracePeriodDeadline: mergedCompanyData.gracePeriodDeadline,
+        hasPaid: mergedCompanyData.hasPaid,
+        status: mergedCompanyData.status,
         payments: companyPayments
       });
     } catch (error) {
@@ -158,11 +277,38 @@ const PaymentSubmission = () => {
       const response = await fetch('http://localhost:9000/api/payments/my-company', {
         headers: { 'x-auth-token': token }
       });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch payments');
+      }
+      
       const data = await response.json();
-      setPayments(data);
+      
+      // Ensure payments is always an array
+      let paymentsArray = [];
+      if (Array.isArray(data)) {
+        paymentsArray = data;
+      } else if (data && Array.isArray(data.payments)) {
+        paymentsArray = data.payments;
+      } else if (data && Array.isArray(data.data)) {
+        paymentsArray = data.data;
+      } else {
+        console.warn('Payments data is not an array:', data);
+        paymentsArray = [];
+      }
+      
+      // Filter: Only show successful payments (approved only)
+      // Hide pending and rejected payments
+      const filteredPayments = paymentsArray.filter(payment => {
+        // Only show approved payments
+        return payment.status === 'approved';
+      });
+      
+      setPayments(filteredPayments);
     } catch (error) {
       console.error('Error fetching payments:', error);
       showMessage('error', 'Failed to load payment history');
+      setPayments([]); // Ensure it's always an array even on error
     }
   };
 
@@ -233,13 +379,33 @@ const PaymentSubmission = () => {
       
       if (!response.ok) {
         let errorMessage = 'Failed to initialize payment';
-        if (data.message && typeof data.message === 'object') {
-          errorMessage = JSON.stringify(data.message);
-        } else if (data.message) {
-          errorMessage = data.message;
-        } else if (data.error?.message) {
-          errorMessage = data.error.message;
+        
+        // Try to get the most helpful error message
+        if (data.message) {
+          if (typeof data.message === 'object') {
+            errorMessage = JSON.stringify(data.message);
+          } else {
+            errorMessage = data.message;
+          }
+        } else if (data.error) {
+          if (typeof data.error === 'string') {
+            errorMessage = data.error;
+          } else if (data.error.message) {
+            errorMessage = data.error.message;
+          } else {
+            errorMessage = JSON.stringify(data.error);
+          }
+        } else if (data.setupInstructions) {
+          errorMessage = `${data.message || 'Payment gateway not configured'}\n\n${data.setupInstructions}`;
         }
+        
+        // Log full error for debugging
+        console.error('❌ Payment initialization error:', {
+          status: response.status,
+          statusText: response.statusText,
+          data: data
+        });
+        
         throw new Error(errorMessage);
       }
 
@@ -254,12 +420,17 @@ const PaymentSubmission = () => {
     } catch (error) {
       let errorMessage = 'Failed to initialize payment';
       
-      if (error.message.includes('fetch')) {
+      // Log the full error for debugging
+      console.error('❌ Payment error details:', error);
+      
+      if (error.message.includes('fetch') || error.message.includes('NetworkError')) {
         errorMessage = 'Network error. Please check your connection and try again.';
-      } else if (error.message.includes('token')) {
+      } else if (error.message.includes('token') || error.message.includes('Authentication')) {
         errorMessage = 'Authentication error. Please refresh the page and try again.';
+      } else if (error.message.includes('CHAPA_TOKEN') || error.message.includes('not configured')) {
+        errorMessage = 'Payment gateway is not configured. Please contact the administrator to set up Chapa payment gateway.';
       } else {
-        errorMessage = error.message;
+        errorMessage = error.message || 'An unexpected error occurred. Please try again.';
       }
       
       showMessage('error', errorMessage);
@@ -380,6 +551,42 @@ const PaymentSubmission = () => {
                 <AlertCircle className={`w-6 h-6 flex-shrink-0 ${isDarkMode ? 'text-red-400' : 'text-red-600'}`} />
               }
               <span className="font-bold text-base sm:text-lg">{message.text}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Verification Status Banner - Persists across reloads */}
+        {verificationStatus && (
+          <div className={`mb-8 p-5 sm:p-6 rounded-2xl shadow-2xl border-2 backdrop-blur-sm animate-fadeIn ${
+            verificationStatus.status === 'success'
+              ? isDarkMode
+                ? 'bg-gradient-to-r from-green-900/30 to-emerald-900/30 border-green-500/50 text-green-300'
+                : 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-300 text-green-800'
+              : verificationStatus.status === 'checking'
+              ? isDarkMode
+                ? 'bg-gradient-to-r from-blue-900/30 to-indigo-900/30 border-blue-500/50 text-blue-300'
+                : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-300 text-blue-800'
+              : isDarkMode
+                ? 'bg-gradient-to-r from-yellow-900/30 to-orange-900/30 border-yellow-500/50 text-yellow-300'
+                : 'bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-300 text-yellow-800'
+          }`}>
+            <div className="flex items-start gap-3">
+              {verificationStatus.status === 'success' ? 
+                <CheckCircle className={`w-6 h-6 flex-shrink-0 mt-0.5 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} /> :
+              verificationStatus.status === 'checking' ?
+                <Clock className={`w-6 h-6 flex-shrink-0 mt-0.5 animate-spin ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} /> :
+                <AlertCircle className={`w-6 h-6 flex-shrink-0 mt-0.5 ${isDarkMode ? 'text-yellow-400' : 'text-yellow-600'}`} />}
+              <div className="flex-1">
+                <span className="font-bold text-base sm:text-lg block">{verificationStatus.message}</span>
+                {verificationStatus.txRef && (
+                  <span className={`text-xs mt-2 block ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Transaction: {verificationStatus.txRef}
+                  </span>
+                )}
+                {verificationStatus.status === 'checking' && (
+                  <span className="text-sm opacity-75 mt-1 block">Please wait while we verify with Chapa...</span>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -585,7 +792,7 @@ const PaymentSubmission = () => {
           </div>
 
           <div className="p-6 sm:p-8">
-            {payments.length === 0 ? (
+            {!Array.isArray(payments) || payments.length === 0 ? (
               <div className="text-center py-12 sm:py-20">
                 <div className={`inline-flex p-6 sm:p-8 rounded-2xl mb-6 ${isDarkMode ? 'bg-gradient-to-r from-blue-600/20 to-purple-600/20 border-2 border-blue-500/30' : 'bg-gradient-to-r from-blue-100 to-purple-100'} shadow-xl`}>
                   <DollarSign className={`w-16 h-16 sm:w-20 sm:h-20 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
@@ -599,7 +806,7 @@ const PaymentSubmission = () => {
               </div>
             ) : (
               <div className="space-y-4 sm:space-y-6">
-                {payments.map((payment) => (
+                {Array.isArray(payments) && payments.map((payment) => (
                   <div
                     key={payment._id}
                     className={`p-5 sm:p-6 rounded-2xl border-2 ${
@@ -644,7 +851,7 @@ const PaymentSubmission = () => {
                             </div>
                           )}
                         </div>
-                        {payment.note && (
+                        {payment.note && payment.paymentMethod !== 'chapa' && (
                           <div className={`mt-3 p-3 rounded-lg ${isDarkMode ? 'bg-blue-900/20 border border-blue-500/30' : 'bg-blue-50 border border-blue-200'}`}>
                             <p className={`text-sm flex items-start gap-2 ${isDarkMode ? 'text-blue-300' : 'text-blue-800'}`}>
                               <span><strong>Note:</strong> {payment.note}</span>
