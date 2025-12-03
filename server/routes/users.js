@@ -110,22 +110,12 @@ router.post('/',
         }
       }
 
-      // Check if company has reached its user limit
-      const Company = require('../models/Company');
-      const company = await Company.findOne({ companyId: req.user.companyId });
+      // Check user limit with SMS notifications
+      const { checkUserLimit } = require('../services/userLimitService');
+      const limitCheck = await checkUserLimit(req.user.companyId, true);
       
-      if (company) {
-        const currentUserCount = await User.countDocuments({ 
-          companyId: req.user.companyId,
-          status: { $ne: 'declined' }
-        });
-
-        const maxUsers = company.limits?.maxUsers || 50;
-        if (currentUserCount >= maxUsers) {
-          return res.status(403).json({ 
-            message: `Your company has reached its maximum user limit (${maxUsers} users). Please contact the super administrator to increase the limit.` 
-          });
-        }
+      if (!limitCheck.canAdd) {
+        return res.status(403).json({ message: limitCheck.message });
       }
 
       // Create new user with companyId
@@ -142,6 +132,11 @@ router.post('/',
       });
 
       await user.save();
+
+      // Check if we reached 100% limit and send SMS if needed
+      if (limitCheck.reachedLimit) {
+        console.log('📱 Company reached 100% user limit, SMS notification sent');
+      }
 
       // Clear cache
       delKeysByPrefix('users_');
@@ -539,24 +534,14 @@ router.put('/:id/approve',
         return res.status(400).json({ message: 'Cannot approve own account' });
       }
 
-      // Check if company has reached its user limit (only if approving from pending status)
+      // Check user limit with SMS notifications (only if approving from pending status)
+      let limitCheck = null;
       if (user.status === 'pending') {
-        const Company = require('../models/Company');
-        const company = await Company.findOne({ companyId: user.companyId });
+        const { checkUserLimit } = require('../services/userLimitService');
+        limitCheck = await checkUserLimit(user.companyId, true);
         
-        if (company) {
-          const currentUserCount = await User.countDocuments({ 
-            companyId: user.companyId,
-            status: 'approved', // Only count approved users
-            isActive: true
-          });
-
-          const maxUsers = company.limits?.maxUsers || 50;
-          if (currentUserCount >= maxUsers) {
-            return res.status(403).json({ 
-              message: `Cannot approve user. Company has reached its maximum user limit (${maxUsers} users). Please contact the super administrator to increase the limit.` 
-            });
-          }
+        if (!limitCheck.canAdd) {
+          return res.status(403).json({ message: limitCheck.message });
         }
       }
 
@@ -564,6 +549,11 @@ router.put('/:id/approve',
       user.isActive = true;
       user.updatedAt = new Date();
       await user.save();
+
+      // Check if we reached 100% limit and send SMS if needed
+      if (limitCheck?.reachedLimit) {
+        console.log('📱 Company reached 100% user limit after approval, SMS notification sent');
+      }
 
       cache.del(`user_${req.params.id}`);
       delKeysByPrefix('users_');

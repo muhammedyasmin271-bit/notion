@@ -40,6 +40,8 @@ const companySchema = new mongoose.Schema({
     lastSent: Date // Last SMS sent timestamp
   },
   deadlineStart: Date, // When company entered deadline (blocked) status
+  paymentModeChangedAt: Date, // When payment mode was last changed by super admin
+  paymentCountdownStart: Date, // When 24-hour countdown started for paid mode
   createdAt: { type: Date, default: Date.now },
   expiresAt: Date
 });

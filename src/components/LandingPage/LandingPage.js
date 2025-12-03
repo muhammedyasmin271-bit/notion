@@ -17,10 +17,19 @@ import {
   Mail,
   Phone,
   MapPin,
-  Send
+  Send,
+  Clock,
+  Calendar,
+  CheckSquare,
+  Gmail,
+  Slack,
+  Sun,
+  Moon
 } from 'lucide-react';
+import { useTheme } from '../../context/ThemeContext';
 
 const LandingPage = () => {
+  const { isDarkMode, toggleTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [pricePerUserPerMonth, setPricePerUserPerMonth] = React.useState(1);
   const [exampleUserLimit] = React.useState(10); // Default example: 10 users
@@ -31,11 +40,6 @@ const LandingPage = () => {
     message: ''
   });
   const [contactSubmitStatus, setContactSubmitStatus] = React.useState({ type: '', message: '' });
-  const [contactInfo, setContactInfo] = React.useState({
-    email: 'support@melanote.com',
-    phone: '+251 911 234 567',
-    address: 'Addis Ababa, Ethiopia'
-  });
 
   // Calculate prices based on price per user per month
   const calculatePrice = (months, discount = 0) => {
@@ -63,27 +67,6 @@ const LandingPage = () => {
       }
     };
     fetchPricePerUser();
-
-    // Fetch contact information from settings
-    const fetchContactInfo = async () => {
-      try {
-        const response = await fetch('http://localhost:9000/api/settings/contact');
-        if (response.ok) {
-          const data = await response.json();
-          if (data.email || data.phone || data.address) {
-            setContactInfo({
-              email: data.email || 'support@melanote.com',
-              phone: data.phone || '+251 911 234 567',
-              address: data.address || 'Addis Ababa, Ethiopia'
-            });
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching contact info:', error);
-        // Keep default values
-      }
-    };
-    fetchContactInfo();
   }, []);
 
   const handleContactInputChange = (e) => {
@@ -244,82 +227,147 @@ const LandingPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+    <div className={`min-h-screen transition-colors duration-300 ${
+      isDarkMode 
+        ? 'bg-gray-900 text-white' 
+        : 'bg-gray-100 text-gray-900'
+    }`} style={!isDarkMode ? {
+      backgroundImage: "url('data:image/svg+xml,%3Csvg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"none\" fill-rule=\"evenodd\"%3E%3Cg fill=\"%23999\" fill-opacity=\"0.4\"%3E%3Ccircle cx=\"30\" cy=\"30\" r=\"1.5\"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')"
+    } : {}}>
       {/* Navigation */}
-      <nav className="fixed top-0 w-full bg-black/20 backdrop-blur-xl border-b border-white/10 z-50">
+      <nav className={`fixed top-0 w-full backdrop-blur-sm border-b z-50 transition-colors duration-300 ${
+        isDarkMode 
+          ? 'bg-gray-800/80 border-gray-700' 
+          : 'bg-white/80 border-gray-200'
+      }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-24">
-            <div className="flex items-center">
-              <div className="flex-shrink-0 flex items-center space-x-3">
+          <div className="flex justify-between items-center h-20">
+            <div className="flex items-center space-x-3">
+              {/* Mela Note Logo */}
+              <div className={`p-1.5 rounded-lg transition-colors duration-300 ${
+                isDarkMode ? 'bg-gray-700/50' : 'bg-gray-100/50'
+              }`}>
                 <img 
                   src="/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png" 
                   alt="Mela Note Logo" 
-                  className="h-12 w-12"
+                  className={`h-10 w-10 object-contain transition-all duration-300 ${
+                    isDarkMode ? 'brightness-0 invert' : ''
+                  }`}
                 />
-                <h1 className="text-4xl font-black bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">
-                  Mela Note
-                </h1>
               </div>
+              <h1 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                Mela Note
+              </h1>
             </div>
-            <div className="hidden md:block">
-              <div className="ml-10 flex items-center space-x-8">
-                <a href="#features" className="text-white/80 hover:text-white px-4 py-2 text-lg font-semibold transition-all duration-300 hover:bg-white/10 rounded-xl backdrop-blur-sm">
-                  Features
-                </a>
-                <a href="#pricing" className="text-white/80 hover:text-white px-4 py-2 text-lg font-semibold transition-all duration-300 hover:bg-white/10 rounded-xl backdrop-blur-sm">
-                  Pricing
-                </a>
-                <a href="#about" className="text-white/80 hover:text-white px-4 py-2 text-lg font-semibold transition-all duration-300 hover:bg-white/10 rounded-xl backdrop-blur-sm">
-                  About
-                </a>
-                <a href="#contact" className="text-white/80 hover:text-white px-4 py-2 text-lg font-semibold transition-all duration-300 hover:bg-white/10 rounded-xl backdrop-blur-sm">
-                  Contact
-                </a>
-                <Link 
-                  to="/super-admin/login" 
-                  className="bg-gradient-to-r from-gray-600 to-gray-700 text-white px-6 py-3 rounded-xl text-sm font-bold hover:from-gray-700 hover:to-gray-800 transition-all duration-300 transform hover:scale-105 shadow-lg"
-                >
-                  Super Admin
-                </Link>
-                <a 
-                  href="#pricing" 
-                  className="bg-gradient-to-r from-cyan-500 to-purple-500 text-white px-8 py-4 rounded-2xl text-lg font-black hover:from-cyan-400 hover:to-purple-400 transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-cyan-500/25"
-                >
-                  Get Started
-                </a>
-              </div>
+            <div className="hidden md:flex items-center space-x-8">
+              <a href="#features" className={`px-4 py-2 text-sm font-medium transition-colors ${
+                isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-700 hover:text-gray-900'
+              }`}>
+                Features
+              </a>
+              <a href="#pricing" className={`px-4 py-2 text-sm font-medium transition-colors ${
+                isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-700 hover:text-gray-900'
+              }`}>
+                Pricing
+              </a>
+              <a href="#about" className={`px-4 py-2 text-sm font-medium transition-colors ${
+                isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-700 hover:text-gray-900'
+              }`}>
+                Resources
+              </a>
+              <a href="#contact" className={`px-4 py-2 text-sm font-medium transition-colors ${
+                isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-700 hover:text-gray-900'
+              }`}>
+                Contact
+              </a>
+              <Link 
+                to="/login" 
+                className={`px-4 py-2 text-sm font-medium transition-colors ${
+                  isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-700 hover:text-gray-900'
+                }`}
+              >
+                Sign in
+              </Link>
+              <button
+                onClick={toggleTheme}
+                className={`p-2 rounded-lg transition-all duration-300 ${
+                  isDarkMode 
+                    ? 'text-yellow-400 hover:bg-gray-700' 
+                    : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+                }`}
+                title={`Switch to ${isDarkMode ? 'light' : 'dark'} mode`}
+              >
+                {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+              </button>
+              <a 
+                href="#pricing" 
+                className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+                  isDarkMode 
+                    ? 'bg-gray-700 text-white hover:bg-gray-600' 
+                    : 'bg-gray-200 text-gray-900 hover:bg-gray-300'
+                }`}
+              >
+                Get demo
+              </a>
             </div>
-            <div className="md:hidden">
+            <div className="md:hidden flex items-center gap-2">
+              <button
+                onClick={toggleTheme}
+                className={`p-2 rounded-lg transition-all duration-300 ${
+                  isDarkMode 
+                    ? 'text-yellow-400 hover:bg-gray-700' 
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+                title={`Switch to ${isDarkMode ? 'light' : 'dark'} mode`}
+              >
+                {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+              </button>
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="text-white hover:text-cyan-400 p-2"
+                className={isDarkMode ? 'text-gray-300 p-2' : 'text-gray-700 p-2'}
               >
-                {mobileMenuOpen ? <X className="w-7 h-7" /> : <Menu className="w-7 h-7" />}
+                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
             </div>
           </div>
         </div>
         {/* Mobile menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden bg-black/40 backdrop-blur-xl border-t border-white/10">
+          <div className={`md:hidden border-t ${
+            isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+          }`}>
             <div className="px-2 pt-2 pb-3 space-y-1">
-              <a href="#features" className="block px-4 py-3 text-white/80 hover:text-white font-semibold rounded-xl hover:bg-white/10">
+              <a href="#features" className={`block px-4 py-3 font-medium transition-colors ${
+                isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-700 hover:text-gray-900'
+              }`}>
                 Features
               </a>
-              <a href="#pricing" className="block px-4 py-3 text-white/80 hover:text-white font-semibold rounded-xl hover:bg-white/10">
+              <a href="#pricing" className={`block px-4 py-3 font-medium transition-colors ${
+                isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-700 hover:text-gray-900'
+              }`}>
                 Pricing
               </a>
-              <a href="#about" className="block px-4 py-3 text-white/80 hover:text-white font-semibold rounded-xl hover:bg-white/10">
-                About
+              <a href="#about" className={`block px-4 py-3 font-medium transition-colors ${
+                isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-700 hover:text-gray-900'
+              }`}>
+                Resources
               </a>
-              <a href="#contact" className="block px-4 py-3 text-white/80 hover:text-white font-semibold rounded-xl hover:bg-white/10">
+              <a href="#contact" className={`block px-4 py-3 font-medium transition-colors ${
+                isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-700 hover:text-gray-900'
+              }`}>
                 Contact
               </a>
-              <Link to="/super-admin/login" className="block px-4 py-3 text-gray-300 font-semibold rounded-xl hover:bg-white/10">
-                Super Admin
+              <Link to="/login" className={`block px-4 py-3 font-medium transition-colors ${
+                isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-700 hover:text-gray-900'
+              }`}>
+                Sign in
               </Link>
-              <a href="#pricing" className="block px-4 py-3 text-cyan-400 font-black rounded-xl hover:bg-white/10">
-                Get Started
+              <a href="#pricing" className={`block px-4 py-3 font-semibold rounded-lg transition-colors ${
+                isDarkMode 
+                  ? 'bg-gray-700 text-white hover:bg-gray-600' 
+                  : 'bg-gray-200 text-gray-900 hover:bg-gray-300'
+              }`}>
+                Get demo
               </a>
             </div>
           </div>
@@ -328,60 +376,185 @@ const LandingPage = () => {
 
       {/* Hero Section */}
       <section className="relative pt-32 pb-32 overflow-hidden min-h-screen flex items-center">
-        <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900"></div>
-          <div className="absolute inset-0 opacity-20" style={{backgroundImage: "url('data:image/svg+xml,%3Csvg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"none\" fill-rule=\"evenodd\"%3E%3Cg fill=\"%23ffffff\" fill-opacity=\"0.05\"%3E%3Ccircle cx=\"30\" cy=\"30\" r=\"2\"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')"}}></div>
-          <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
-          <div className="absolute top-40 right-10 w-96 h-96 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse animation-delay-2000"></div>
-          <div className="absolute bottom-20 left-1/2 w-96 h-96 bg-gradient-to-r from-cyan-400 to-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse animation-delay-4000"></div>
-        </div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="text-center">
-            <div className="mb-12">
-              <span className="inline-flex items-center px-6 py-3 rounded-full text-sm font-bold bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-white border border-white/20 backdrop-blur-sm">
-                <Zap className="w-5 h-5 mr-2 text-yellow-400" />
-                🚀 Revolutionary Team Workspace - Powered by Mela Note
-              </span>
-            </div>
-            <h1 className="text-4xl sm:text-6xl lg:text-8xl xl:text-9xl font-black text-white mb-8 lg:mb-12 leading-tight">
-              Transform Your
-              <span className="bg-gradient-to-r from-blue-300 to-blue-100 bg-clip-text text-transparent block mt-2 lg:mt-4">
-                Team's Future
-              </span>
-            </h1>
-            <p className="text-lg sm:text-xl lg:text-2xl xl:text-3xl text-blue-100 mb-12 lg:mb-16 max-w-5xl mx-auto leading-relaxed font-light px-4">
-              Experience the next generation of collaboration with Mela Note's AI-powered workspace. 
-              Built for Ethiopian businesses, designed for global success.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 lg:gap-8 justify-center mb-12 lg:mb-16 px-4">
+          <div className="relative">
+            {/* Central Content */}
+            <div className="text-center mb-16 relative z-10">
+              {/* Central Logo */}
+              <div className="flex justify-center mb-8">
+                <div className={`relative w-24 h-24 rounded-xl shadow-lg flex items-center justify-center transform rotate-3 transition-all duration-300 ${
+                  isDarkMode 
+                    ? 'bg-gray-800 border-2 border-gray-700' 
+                    : 'bg-white border-2 border-gray-100'
+                }`}>
+                  <img 
+                    src="/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png" 
+                    alt="Mela Note Logo" 
+                    className={`w-16 h-16 object-contain transition-all duration-300 ${
+                      isDarkMode ? 'brightness-0 invert' : ''
+                    }`}
+                  />
+                </div>
+              </div>
+              
+              <h1 className={`text-5xl sm:text-6xl lg:text-7xl font-bold mb-4 leading-tight ${
+                isDarkMode ? 'text-white' : 'text-gray-900'
+              }`}>
+                Think, plan, and track
+                <span className={`block text-4xl sm:text-5xl lg:text-6xl mt-2 ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                }`}>
+                  all in one place
+                </span>
+              </h1>
+              <p className={`text-lg sm:text-xl mb-8 max-w-2xl mx-auto ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-600'
+              }`}>
+                Efficiently manage your tasks and boost productivity.
+              </p>
               <a 
                 href="#pricing" 
-                className="group relative bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 lg:px-12 py-4 lg:py-6 rounded-xl lg:rounded-2xl text-lg lg:text-2xl font-black hover:from-blue-700 hover:to-blue-800 transition-all duration-500 transform hover:scale-105 lg:hover:scale-110 shadow-2xl hover:shadow-blue-500/25 flex items-center justify-center overflow-hidden"
+                className="inline-block bg-blue-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg hover:shadow-xl transform hover:scale-105"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                <span className="relative z-10">Start Free Trial</span>
-                <ArrowRight className="relative z-10 ml-2 lg:ml-4 w-5 h-5 lg:w-7 lg:h-7 group-hover:translate-x-1 lg:group-hover:translate-x-2 transition-transform duration-300" />
-              </a>
-              <a 
-                href="#pricing" 
-                className="group border-2 border-white/30 text-white px-8 lg:px-12 py-4 lg:py-6 rounded-xl lg:rounded-2xl text-lg lg:text-2xl font-black hover:bg-white/10 transition-all duration-500 flex items-center justify-center backdrop-blur-sm hover:border-white/50"
-              >
-                <Play className="mr-2 lg:mr-4 w-5 h-5 lg:w-7 lg:h-7 group-hover:scale-110 transition-transform" />
-                Watch Demo
+                Get free demo
               </a>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 lg:gap-6 max-w-4xl mx-auto px-4">
-              <div className="flex items-center justify-center bg-white/10 backdrop-blur-sm px-4 lg:px-6 py-3 lg:py-4 rounded-xl lg:rounded-2xl border border-white/20">
-                <CheckCircle className="w-5 h-5 lg:w-6 lg:h-6 text-green-400 mr-2 lg:mr-3 flex-shrink-0" />
-                <span className="text-white font-semibold text-sm lg:text-base">7-day free trial</span>
+
+            {/* Supporting Visual Elements */}
+            <div className="relative mt-20">
+              {/* Top-Left: Sticky Note */}
+              <div className="absolute top-0 left-0 md:left-10 transform -rotate-6 z-20 hidden md:block">
+                <div className={`relative w-64 p-4 rounded shadow-lg ${
+                  isDarkMode ? 'bg-yellow-600' : 'bg-yellow-200'
+                }`} style={{ transform: 'perspective(1000px) rotateY(-5deg)' }}>
+                  <div className="absolute -top-2 left-4 w-4 h-4 bg-red-500 rounded-full"></div>
+                  <p className={`text-sm mt-2 leading-relaxed ${
+                    isDarkMode ? 'text-gray-900' : 'text-gray-800'
+                  }`}>
+                    Take notes to keep track of crucial details, and accomplish more tasks with ease.
+                  </p>
+                  <div className={`mt-4 w-12 h-12 rounded-lg flex items-center justify-center shadow-sm ${
+                    isDarkMode ? 'bg-gray-800' : 'bg-white'
+                  }`}>
+                    <CheckSquare className={`w-6 h-6 ${
+                      isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                    }`} />
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center justify-center bg-white/10 backdrop-blur-sm px-4 lg:px-6 py-3 lg:py-4 rounded-xl lg:rounded-2xl border border-white/20">
-                <CheckCircle className="w-5 h-5 lg:w-6 lg:h-6 text-green-400 mr-2 lg:mr-3 flex-shrink-0" />
-                <span className="text-white font-semibold text-sm lg:text-base">No credit card required</span>
+
+              {/* Top-Right: Reminders */}
+              <div className="absolute top-0 right-0 md:right-10 transform rotate-3 z-20 hidden md:block">
+                <div className="relative">
+                  <Clock className={`absolute -top-8 left-1/2 transform -translate-x-1/2 w-8 h-8 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`} />
+                  <div className={`rounded-lg shadow-lg p-4 w-64 ${
+                    isDarkMode ? 'bg-gray-700' : 'bg-white'
+                  }`} style={{ transform: 'perspective(1000px) rotateY(5deg)' }}>
+                    <h3 className={`font-semibold mb-3 ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    }`}>Reminders</h3>
+                    <div className="space-y-2 text-sm">
+                      <div>
+                        <p className={`font-medium ${
+                          isDarkMode ? 'text-white' : 'text-gray-900'
+                        }`}>Today's Meeting</p>
+                        <p className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>Call with marketing team</p>
+                        <p className={`text-xs mt-1 ${
+                          isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                        }`}>Time 13:00 - 13:45</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center justify-center bg-white/10 backdrop-blur-sm px-4 lg:px-6 py-3 lg:py-4 rounded-xl lg:rounded-2xl border border-white/20">
-                <CheckCircle className="w-5 h-5 lg:w-6 lg:h-6 text-green-400 mr-2 lg:mr-3 flex-shrink-0" />
-                <span className="text-white font-semibold text-sm lg:text-base">Ethiopian payment support</span>
+
+              {/* Bottom-Left: Today's Tasks */}
+              <div className="absolute bottom-0 left-0 md:left-10 transform rotate-2 z-20 hidden md:block">
+                <div className={`rounded-lg shadow-lg p-4 w-72 ${
+                  isDarkMode ? 'bg-gray-700' : 'bg-white'
+                }`} style={{ transform: 'perspective(1000px) rotateY(-3deg)' }}>
+                  <h3 className={`font-semibold mb-3 ${
+                    isDarkMode ? 'text-white' : 'text-gray-900'
+                  }`}>Today's tasks</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 bg-red-500 rounded flex items-center justify-center">
+                            <span className="text-white text-xs font-bold">8</span>
+                          </div>
+                          <span className={`text-sm font-medium ${
+                            isDarkMode ? 'text-white' : 'text-gray-900'
+                          }`}>New Ideas for campaign</span>
+                        </div>
+                        <span className={`text-xs ${
+                          isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                        }`}>Sep 10</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className={`flex-1 h-2 rounded-full overflow-hidden ${
+                          isDarkMode ? 'bg-gray-600' : 'bg-gray-200'
+                        }`}>
+                          <div className="h-full bg-blue-600 rounded-full" style={{ width: '60%' }}></div>
+                        </div>
+                        <span className={`text-xs ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                        }`}>60%</span>
+                        <div className="w-6 h-6 bg-blue-500 rounded-full"></div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 bg-green-500 rounded flex items-center justify-center">
+                            <span className="text-white text-xs font-bold">3</span>
+                          </div>
+                          <span className={`text-sm font-medium ${
+                            isDarkMode ? 'text-white' : 'text-gray-900'
+                          }`}>Design PPT #4</span>
+                        </div>
+                        <span className={`text-xs ${
+                          isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                        }`}>Sep 18</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className={`flex-1 h-2 rounded-full overflow-hidden ${
+                          isDarkMode ? 'bg-gray-600' : 'bg-gray-200'
+                        }`}>
+                          <div className="h-full bg-blue-600 rounded-full" style={{ width: '100%' }}></div>
+                        </div>
+                        <span className={`text-xs ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                        }`}>100%</span>
+                        <div className="w-6 h-6 bg-purple-500 rounded-full"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom-Right: Integrations */}
+              <div className="absolute bottom-0 right-0 md:right-10 transform -rotate-2 z-20 hidden md:block">
+                <div className={`rounded-lg shadow-lg p-4 w-64 ${
+                  isDarkMode ? 'bg-gray-700' : 'bg-white'
+                }`} style={{ transform: 'perspective(1000px) rotateY(3deg)' }}>
+                  <h3 className={`font-semibold mb-3 ${
+                    isDarkMode ? 'text-white' : 'text-gray-900'
+                  }`}>100+ Integrations</h3>
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                      <span className="text-red-600 font-bold text-lg">M</span>
+                    </div>
+                    <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                      <Slack className="w-6 h-6 text-purple-600" />
+                    </div>
+                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <Calendar className="w-6 h-6 text-blue-600" />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -389,31 +562,40 @@ const LandingPage = () => {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-32 bg-white relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-gray-50 to-white"></div>
+      <section id="features" className={`py-24 relative overflow-hidden transition-colors duration-300 ${
+        isDarkMode ? 'bg-gray-800' : 'bg-white'
+      }`}>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-20">
-            <h2 className="text-5xl md:text-6xl font-black text-gray-900 mb-6">
-              Everything you need to
-              <span className="bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent block">
-                succeed
-              </span>
+          <div className="text-center mb-16">
+            <h2 className={`text-4xl md:text-5xl font-bold mb-4 ${
+              isDarkMode ? 'text-white' : 'text-gray-900'
+            }`}>
+              Everything you need to succeed
             </h2>
-            <p className="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              Powerful features designed to streamline your workflow and boost team productivity to new heights.
+            <p className={`text-lg max-w-2xl mx-auto ${
+              isDarkMode ? 'text-gray-300' : 'text-gray-600'
+            }`}>
+              Powerful features designed to streamline your workflow and boost team productivity.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((feature, index) => (
-              <div key={index} className="group relative bg-white p-8 rounded-3xl shadow-xl border border-gray-100 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 hover:scale-105">
-                <div className="absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-5 transition-opacity duration-500 rounded-3xl" style={{backgroundImage: `linear-gradient(135deg, ${feature.color.split(' ')[1]}, ${feature.color.split(' ')[3]})`}}></div>
-                <div className={`relative inline-flex p-4 rounded-2xl bg-gradient-to-br ${feature.color} text-white mb-6 shadow-lg`}>
+              <div key={index} className={`group relative p-6 rounded-xl border hover:shadow-lg transition-all duration-300 ${
+                isDarkMode 
+                  ? 'bg-gray-700 border-gray-600 hover:border-blue-500' 
+                  : 'bg-white border-gray-200 hover:border-blue-300'
+              }`}>
+                <div className="inline-flex p-3 rounded-lg bg-blue-50 text-blue-600 mb-4">
                   {feature.icon}
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4 group-hover:text-blue-600 transition-colors">
+                <h3 className={`text-xl font-semibold mb-2 ${
+                  isDarkMode ? 'text-white' : 'text-gray-900'
+                }`}>
                   {feature.title}
                 </h3>
-                <p className="text-gray-600 leading-relaxed">
+                <p className={`text-sm leading-relaxed ${
+                  isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                }`}>
                   {feature.description}
                 </p>
               </div>
@@ -423,44 +605,77 @@ const LandingPage = () => {
       </section>
 
       {/* Stats Section */}
-      <section className="py-32 bg-gradient-to-br from-blue-600 via-purple-600 to-blue-800 relative overflow-hidden">
-        <div className="absolute inset-0">
-          <div className="absolute top-0 left-0 w-full h-full bg-black opacity-10"></div>
-          <div className="absolute top-10 left-10 w-64 h-64 bg-white rounded-full mix-blend-overlay filter blur-xl opacity-10 animate-pulse"></div>
-          <div className="absolute bottom-10 right-10 w-64 h-64 bg-white rounded-full mix-blend-overlay filter blur-xl opacity-10 animate-pulse animation-delay-2000"></div>
-        </div>
+      <section className={`py-20 relative overflow-hidden transition-colors duration-300 ${
+        isDarkMode ? 'bg-gray-900' : 'bg-gray-50'
+      }`}>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-black text-white mb-4">
+          <div className="text-center mb-12">
+            <h2 className={`text-3xl md:text-4xl font-bold mb-3 ${
+              isDarkMode ? 'text-white' : 'text-gray-900'
+            }`}>
               Trusted by teams worldwide
             </h2>
-            <p className="text-xl text-blue-100 max-w-2xl mx-auto">
+            <p className={`text-lg max-w-2xl mx-auto ${
+              isDarkMode ? 'text-gray-300' : 'text-gray-600'
+            }`}>
               Join thousands of companies already transforming their workflow
             </p>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <div className="text-center group">
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20 hover:bg-white/20 transition-all duration-300">
-                <div className="text-5xl md:text-6xl font-black text-white mb-2 group-hover:scale-110 transition-transform">10K+</div>
-                <div className="text-blue-100 font-semibold">Active Users</div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="text-center">
+              <div className={`rounded-lg p-6 border hover:shadow-md transition-shadow ${
+                isDarkMode 
+                  ? 'bg-gray-800 border-gray-700' 
+                  : 'bg-white border-gray-200'
+              }`}>
+                <div className={`text-4xl md:text-5xl font-bold mb-2 ${
+                  isDarkMode ? 'text-white' : 'text-gray-900'
+                }`}>10K+</div>
+                <div className={`font-medium ${
+                  isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                }`}>Active Users</div>
               </div>
             </div>
-            <div className="text-center group">
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20 hover:bg-white/20 transition-all duration-300">
-                <div className="text-5xl md:text-6xl font-black text-white mb-2 group-hover:scale-110 transition-transform">500+</div>
-                <div className="text-blue-100 font-semibold">Companies</div>
+            <div className="text-center">
+              <div className={`rounded-lg p-6 border hover:shadow-md transition-shadow ${
+                isDarkMode 
+                  ? 'bg-gray-800 border-gray-700' 
+                  : 'bg-white border-gray-200'
+              }`}>
+                <div className={`text-4xl md:text-5xl font-bold mb-2 ${
+                  isDarkMode ? 'text-white' : 'text-gray-900'
+                }`}>500+</div>
+                <div className={`font-medium ${
+                  isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                }`}>Companies</div>
               </div>
             </div>
-            <div className="text-center group">
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20 hover:bg-white/20 transition-all duration-300">
-                <div className="text-5xl md:text-6xl font-black text-white mb-2 group-hover:scale-110 transition-transform">99.9%</div>
-                <div className="text-blue-100 font-semibold">Uptime</div>
+            <div className="text-center">
+              <div className={`rounded-lg p-6 border hover:shadow-md transition-shadow ${
+                isDarkMode 
+                  ? 'bg-gray-800 border-gray-700' 
+                  : 'bg-white border-gray-200'
+              }`}>
+                <div className={`text-4xl md:text-5xl font-bold mb-2 ${
+                  isDarkMode ? 'text-white' : 'text-gray-900'
+                }`}>99.9%</div>
+                <div className={`font-medium ${
+                  isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                }`}>Uptime</div>
               </div>
             </div>
-            <div className="text-center group">
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20 hover:bg-white/20 transition-all duration-300">
-                <div className="text-5xl md:text-6xl font-black text-white mb-2 group-hover:scale-110 transition-transform">24/7</div>
-                <div className="text-blue-100 font-semibold">Support</div>
+            <div className="text-center">
+              <div className={`rounded-lg p-6 border hover:shadow-md transition-shadow ${
+                isDarkMode 
+                  ? 'bg-gray-800 border-gray-700' 
+                  : 'bg-white border-gray-200'
+              }`}>
+                <div className={`text-4xl md:text-5xl font-bold mb-2 ${
+                  isDarkMode ? 'text-white' : 'text-gray-900'
+                }`}>24/7</div>
+                <div className={`font-medium ${
+                  isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                }`}>Support</div>
               </div>
             </div>
           </div>
@@ -468,64 +683,98 @@ const LandingPage = () => {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-32 bg-gradient-to-b from-gray-50 to-white relative">
+      <section id="pricing" className={`py-24 relative transition-colors duration-300 ${
+        isDarkMode ? 'bg-gray-800' : 'bg-white'
+      }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12 lg:mb-20">
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-black text-gray-900 mb-4 lg:mb-6">
-              Simple, transparent
-              <span className="bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent block">
-                pricing
-              </span>
+          <div className="text-center mb-16">
+            <h2 className={`text-4xl md:text-5xl font-bold mb-4 ${
+              isDarkMode ? 'text-white' : 'text-gray-900'
+            }`}>
+              Simple, transparent pricing
             </h2>
-            <p className="text-lg lg:text-xl xl:text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed px-4">
+            <p className={`text-lg max-w-2xl mx-auto ${
+              isDarkMode ? 'text-gray-300' : 'text-gray-600'
+            }`}>
               Choose the perfect plan for your team. All plans include our core features with no hidden costs.
             </p>
-            <p className="text-sm lg:text-base text-gray-500 max-w-2xl mx-auto mt-4 px-4">
+            <p className={`text-sm max-w-2xl mx-auto mt-3 ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-500'
+            }`}>
               * Prices shown are examples based on {exampleUserLimit} users at {pricePerUserPerMonth} ETB per user per month. Final price depends on your company's user limit.
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {pricing.map((plan, index) => (
-              <div key={index} className={`relative bg-white rounded-2xl lg:rounded-3xl shadow-xl p-6 lg:p-8 border-2 ${plan.color} transition-all duration-500 hover:shadow-2xl hover:-translate-y-1 ${plan.popular ? 'transform scale-105' : 'hover:scale-105'}`}>
+              <div key={index} className={`relative rounded-xl shadow-md p-6 border-2 transition-all duration-300 hover:shadow-lg ${
+                isDarkMode 
+                  ? plan.popular 
+                    ? 'bg-gray-700 border-blue-500 ring-4 ring-blue-900' 
+                    : 'bg-gray-700 border-gray-600'
+                  : plan.popular 
+                    ? 'bg-white border-blue-500 ring-4 ring-blue-100' 
+                    : 'bg-white border-gray-200'
+              }`}>
                 {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                    <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-1 rounded-full text-xs lg:text-sm font-bold shadow-lg">
-                      ⭐ Most Popular
+                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      isDarkMode 
+                        ? 'bg-blue-600 text-white' 
+                        : 'bg-blue-600 text-white'
+                    }`}>
+                      Most Popular
                     </span>
                   </div>
                 )}
-                <div className="text-center mb-6 lg:mb-8">
-                  <h3 className="text-xl lg:text-2xl font-black text-gray-900 mb-2">{plan.name}</h3>
-                  <p className="text-gray-600 mb-4 text-sm lg:text-base">{plan.description}</p>
+                <div className="text-center mb-6">
+                  <h3 className={`text-xl font-bold mb-2 ${
+                    isDarkMode ? 'text-white' : 'text-gray-900'
+                  }`}>{plan.name}</h3>
+                  <p className={`mb-4 text-sm ${
+                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                  }`}>{plan.description}</p>
                   <div className="flex items-baseline justify-center mb-2">
-                    <span className="text-lg lg:text-xl font-bold text-gray-600 mr-1">{plan.currency}</span>
-                    <span className="text-3xl lg:text-5xl font-black text-gray-900">{plan.price}</span>
-                    <span className="text-gray-600 ml-1 text-sm lg:text-lg font-semibold">{plan.period}</span>
+                    <span className={`text-lg font-semibold mr-1 ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>{plan.currency}</span>
+                    <span className={`text-4xl font-bold ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    }`}>{plan.price}</span>
+                    <span className={`ml-1 text-sm font-medium ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>{plan.period}</span>
                   </div>
-                  {plan.popular && (
-                    <div className="text-green-600 font-semibold text-xs lg:text-sm">
-                      Save 20% annually
-                    </div>
-                  )}
                 </div>
-                <ul className="space-y-3 lg:space-y-4 mb-6 lg:mb-8">
+                <ul className="space-y-3 mb-6">
                   {plan.features.map((feature, featureIndex) => (
                     <li key={featureIndex} className="flex items-start">
-                      <div className="flex-shrink-0 w-5 h-5 bg-green-100 rounded-full flex items-center justify-center mr-3 mt-0.5">
-                        <CheckCircle className="w-3 h-3 text-green-600" />
+                      <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center mr-3 mt-0.5 ${
+                        isDarkMode ? 'bg-green-900' : 'bg-green-100'
+                      }`}>
+                        <CheckCircle className={`w-3 h-3 ${
+                          isDarkMode ? 'text-green-400' : 'text-green-600'
+                        }`} />
                       </div>
-                      <span className="text-gray-700 font-medium text-sm lg:text-base">{feature}</span>
+                      <span className={`text-sm ${
+                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                      }`}>{feature}</span>
                     </li>
                   ))}
                 </ul>
                 <Link 
                   to={`/create-company?plan=${plan.planId}`}
-                  className={`w-full py-3 lg:py-4 px-4 lg:px-6 rounded-xl lg:rounded-2xl font-bold text-center block transition-all duration-300 transform hover:scale-105 text-sm lg:text-base ${
+                  className={`w-full py-3 px-4 rounded-lg font-semibold text-center block transition-all duration-300 text-sm ${
                     plan.planId === 'free_trial'
-                      ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600 shadow-lg hover:shadow-xl'
+                      ? isDarkMode
+                        ? 'bg-green-600 text-white hover:bg-green-700'
+                        : 'bg-green-600 text-white hover:bg-green-700'
                       : plan.popular 
-                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl' 
-                      : 'bg-gray-100 text-gray-900 hover:bg-gray-200 border-2 border-gray-200 hover:border-gray-300'
+                      ? isDarkMode
+                        ? 'bg-blue-600 text-white hover:bg-blue-700'
+                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                      : isDarkMode
+                        ? 'bg-gray-600 text-white hover:bg-gray-500 border-2 border-gray-500'
+                        : 'bg-gray-100 text-gray-900 hover:bg-gray-200 border-2 border-gray-200'
                   }`}
                 >
                   {plan.planId === 'free_trial' ? 'Start Free Trial' : plan.popular ? 'Choose Plan' : 'Get Started'}
@@ -537,66 +786,93 @@ const LandingPage = () => {
       </section>
 
       {/* About Section */}
-      <section id="about" className="py-32 bg-white relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-50/30 to-purple-50/30"></div>
+      <section id="about" className={`py-24 relative overflow-hidden transition-colors duration-300 ${
+        isDarkMode ? 'bg-gray-900' : 'bg-gray-50'
+      }`}>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
-              <h2 className="text-5xl md:text-6xl font-black text-gray-900 mb-8 leading-tight">
-                Built for
-                <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent block">
-                  modern teams
-                </span>
+              <h2 className={`text-4xl md:text-5xl font-bold mb-6 leading-tight ${
+                isDarkMode ? 'text-white' : 'text-gray-900'
+              }`}>
+                Built for modern teams
               </h2>
-              <p className="text-xl text-gray-600 mb-10 leading-relaxed">
+              <p className={`text-lg mb-8 leading-relaxed ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-600'
+              }`}>
                 Our platform combines the best of project management, document collaboration, 
                 and team communication in one seamless experience. Built with cutting-edge 
                 technologies and designed for infinite scalability.
               </p>
-              <div className="space-y-6">
-                <div className="flex items-center group">
-                  <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl flex items-center justify-center mr-4 group-hover:scale-110 transition-transform">
-                    <Globe className="w-6 h-6 text-white" />
+              <div className="space-y-4">
+                <div className="flex items-center">
+                  <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center mr-4 ${
+                    isDarkMode ? 'bg-blue-900' : 'bg-blue-100'
+                  }`}>
+                    <Globe className={`w-5 h-5 ${
+                      isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                    }`} />
                   </div>
-                  <span className="text-gray-700 font-semibold text-lg">Global accessibility with 99.9% uptime</span>
+                  <span className={`font-medium ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Global accessibility with 99.9% uptime</span>
                 </div>
-                <div className="flex items-center group">
-                  <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl flex items-center justify-center mr-4 group-hover:scale-110 transition-transform">
-                    <Shield className="w-6 h-6 text-white" />
+                <div className="flex items-center">
+                  <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center mr-4 ${
+                    isDarkMode ? 'bg-blue-900' : 'bg-blue-100'
+                  }`}>
+                    <Shield className={`w-5 h-5 ${
+                      isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                    }`} />
                   </div>
-                  <span className="text-gray-700 font-semibold text-lg">Enterprise-grade security and compliance</span>
+                  <span className={`font-medium ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Enterprise-grade security and compliance</span>
                 </div>
-                <div className="flex items-center group">
-                  <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl flex items-center justify-center mr-4 group-hover:scale-110 transition-transform">
-                    <Zap className="w-6 h-6 text-white" />
+                <div className="flex items-center">
+                  <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center mr-4 ${
+                    isDarkMode ? 'bg-blue-900' : 'bg-blue-100'
+                  }`}>
+                    <Zap className={`w-5 h-5 ${
+                      isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                    }`} />
                   </div>
-                  <span className="text-gray-700 font-semibold text-lg">Lightning-fast performance and real-time sync</span>
+                  <span className={`font-medium ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Lightning-fast performance and real-time sync</span>
                 </div>
               </div>
             </div>
             <div className="relative">
-              <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-3xl p-10 shadow-2xl border border-gray-100 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400 to-purple-400 rounded-full -translate-y-16 translate-x-16 opacity-10"></div>
-                <div className="relative">
-                  <div className="flex justify-center mb-6">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="w-8 h-8 text-yellow-400 fill-current mx-1 animate-pulse" style={{animationDelay: `${i * 0.1}s`}} />
-                    ))}
+              <div className={`rounded-xl p-8 shadow-lg border ${
+                isDarkMode 
+                  ? 'bg-gray-800 border-gray-700' 
+                  : 'bg-white border-gray-200'
+              }`}>
+                <div className="flex justify-center mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="w-5 h-5 text-yellow-400 fill-current mx-1" />
+                  ))}
+                </div>
+                <blockquote className={`text-lg mb-6 font-medium leading-relaxed text-center ${
+                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                }`}>
+                  "This platform has completely transformed how our team collaborates. The intuitive 
+                  interface and powerful features have increased our productivity by 40% in just 3 months."
+                </blockquote>
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-blue-600 rounded-full mx-auto mb-3 flex items-center justify-center text-white font-semibold">
+                    SJ
                   </div>
-                  <blockquote className="text-xl text-gray-700 mb-6 font-medium leading-relaxed text-center">
-                    "This platform has completely transformed how our team collaborates. The intuitive 
-                    interface and powerful features have increased our productivity by 40% in just 3 months."
-                  </blockquote>
-                  <div className="text-center">
-                    <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full mx-auto mb-4 flex items-center justify-center text-white font-bold text-xl">
-                      SJ
-                    </div>
-                    <cite className="text-gray-600 font-semibold">
-                      Sarah Johnson
-                    </cite>
-                    <div className="text-sm text-gray-500 mt-1">
-                      Project Manager at TechCorp
-                    </div>
+                  <cite className={`font-semibold ${
+                    isDarkMode ? 'text-white' : 'text-gray-900'
+                  }`}>
+                    Sarah Johnson
+                  </cite>
+                  <div className={`text-sm mt-1 ${
+                    isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                  }`}>
+                    Project Manager at TechCorp
                   </div>
                 </div>
               </div>
@@ -606,82 +882,116 @@ const LandingPage = () => {
       </section>
 
       {/* Contact Us Section */}
-      <section id="contact" className="py-32 bg-gradient-to-br from-gray-50 via-white to-blue-50 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-50/30 to-purple-50/30"></div>
+      <section id="contact" className={`py-24 relative overflow-hidden transition-colors duration-300 ${
+        isDarkMode ? 'bg-gray-800' : 'bg-white'
+      }`}>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-5xl md:text-6xl font-black text-gray-900 mb-6">
-              Get in
-              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent block">
-                Touch
-              </span>
+          <div className="text-center mb-12">
+            <h2 className={`text-4xl md:text-5xl font-bold mb-4 ${
+              isDarkMode ? 'text-white' : 'text-gray-900'
+            }`}>
+              Get in Touch
             </h2>
-            <p className="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+            <p className={`text-lg max-w-2xl mx-auto ${
+              isDarkMode ? 'text-gray-300' : 'text-gray-600'
+            }`}>
               Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
             </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             {/* Contact Information */}
-            <div className="space-y-8">
+            <div className="space-y-6">
               <div>
-                <h3 className="text-3xl font-bold text-gray-900 mb-6">Contact Information</h3>
-                <p className="text-lg text-gray-600 mb-8 leading-relaxed">
+                <h3 className={`text-2xl font-bold mb-4 ${
+                  isDarkMode ? 'text-white' : 'text-gray-900'
+                }`}>Contact Information</h3>
+                <p className={`mb-6 ${
+                  isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                }`}>
                   Reach out to us through any of these channels. We're here to help you succeed.
                 </p>
               </div>
 
-              <div className="space-y-6">
-                <div className="flex items-start group">
-                  <div className="flex-shrink-0 w-14 h-14 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl flex items-center justify-center mr-4 group-hover:scale-110 transition-transform shadow-lg">
-                    <Mail className="w-7 h-7 text-white" />
+              <div className="space-y-4">
+                <div className="flex items-start">
+                  <div className={`flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center mr-4 ${
+                    isDarkMode ? 'bg-blue-900' : 'bg-blue-100'
+                  }`}>
+                    <Mail className={`w-5 h-5 ${
+                      isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                    }`} />
                   </div>
                   <div>
-                    <h4 className="text-lg font-bold text-gray-900 mb-1">Email</h4>
-                    <a href={`mailto:${contactInfo.email}`} className="text-gray-600 hover:text-blue-600 transition-colors text-lg">
-                      {contactInfo.email}
+                    <h4 className={`text-base font-semibold mb-1 ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    }`}>Email</h4>
+                    <a href="mailto:support@melanote.com" className={`hover:text-blue-600 transition-colors ${
+                      isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                    }`}>
+                      support@melanote.com
                     </a>
                   </div>
                 </div>
 
-                <div className="flex items-start group">
-                  <div className="flex-shrink-0 w-14 h-14 bg-gradient-to-br from-purple-600 to-purple-700 rounded-2xl flex items-center justify-center mr-4 group-hover:scale-110 transition-transform shadow-lg">
-                    <Phone className="w-7 h-7 text-white" />
+                <div className="flex items-start">
+                  <div className={`flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center mr-4 ${
+                    isDarkMode ? 'bg-blue-900' : 'bg-blue-100'
+                  }`}>
+                    <Phone className={`w-5 h-5 ${
+                      isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                    }`} />
                   </div>
                   <div>
-                    <h4 className="text-lg font-bold text-gray-900 mb-1">Phone</h4>
-                    <a href={`tel:${contactInfo.phone.replace(/\s/g, '')}`} className="text-gray-600 hover:text-purple-600 transition-colors text-lg">
-                      {contactInfo.phone}
+                    <h4 className={`text-base font-semibold mb-1 ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    }`}>Phone</h4>
+                    <a href="tel:+251911234567" className={`hover:text-blue-600 transition-colors ${
+                      isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                    }`}>
+                      +251 911 234 567
                     </a>
                   </div>
                 </div>
 
-                <div className="flex items-start group">
-                  <div className="flex-shrink-0 w-14 h-14 bg-gradient-to-br from-cyan-600 to-cyan-700 rounded-2xl flex items-center justify-center mr-4 group-hover:scale-110 transition-transform shadow-lg">
-                    <MapPin className="w-7 h-7 text-white" />
+                <div className="flex items-start">
+                  <div className={`flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center mr-4 ${
+                    isDarkMode ? 'bg-blue-900' : 'bg-blue-100'
+                  }`}>
+                    <MapPin className={`w-5 h-5 ${
+                      isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                    }`} />
                   </div>
                   <div>
-                    <h4 className="text-lg font-bold text-gray-900 mb-1">Address</h4>
-                    <p className="text-gray-600 text-lg">
-                      {contactInfo.address}
+                    <h4 className={`text-base font-semibold mb-1 ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    }`}>Address</h4>
+                    <p className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
+                      Addis Ababa, Ethiopia
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-8 border-t border-gray-200">
-                <h4 className="text-xl font-bold text-gray-900 mb-4">Business Hours</h4>
-                <div className="space-y-2 text-gray-600">
+              <div className={`pt-6 border-t ${
+                isDarkMode ? 'border-gray-700' : 'border-gray-200'
+              }`}>
+                <h4 className={`text-lg font-semibold mb-3 ${
+                  isDarkMode ? 'text-white' : 'text-gray-900'
+                }`}>Business Hours</h4>
+                <div className={`space-y-2 text-sm ${
+                  isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                }`}>
                   <p className="flex justify-between">
-                    <span className="font-semibold">Monday - Friday:</span>
+                    <span className="font-medium">Monday - Friday:</span>
                     <span>9:00 AM - 6:00 PM EAT</span>
                   </p>
                   <p className="flex justify-between">
-                    <span className="font-semibold">Saturday:</span>
+                    <span className="font-medium">Saturday:</span>
                     <span>10:00 AM - 4:00 PM EAT</span>
                   </p>
                   <p className="flex justify-between">
-                    <span className="font-semibold">Sunday:</span>
+                    <span className="font-medium">Sunday:</span>
                     <span>Closed</span>
                   </p>
                 </div>
@@ -689,10 +999,16 @@ const LandingPage = () => {
             </div>
 
             {/* Contact Form */}
-            <div className="bg-white rounded-3xl p-8 shadow-2xl border border-gray-100">
+            <div className={`rounded-xl p-6 shadow-md border ${
+              isDarkMode 
+                ? 'bg-gray-700 border-gray-600' 
+                : 'bg-white border-gray-200'
+            }`}>
               <form onSubmit={handleContactSubmit} className="space-y-6">
                 <div>
-                  <label htmlFor="contact-name" className="block text-sm font-bold text-gray-700 mb-2">
+                  <label htmlFor="contact-name" className={`block text-sm font-bold mb-2 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
                     Full Name *
                   </label>
                   <input
@@ -702,13 +1018,19 @@ const LandingPage = () => {
                     value={contactForm.name}
                     onChange={handleContactInputChange}
                     required
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none text-gray-900"
+                    className={`w-full px-4 py-3 rounded-xl border-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none ${
+                      isDarkMode 
+                        ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:ring-blue-800' 
+                        : 'border-gray-200 text-gray-900'
+                    }`}
                     placeholder="John Doe"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="contact-email" className="block text-sm font-bold text-gray-700 mb-2">
+                  <label htmlFor="contact-email" className={`block text-sm font-bold mb-2 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
                     Email Address *
                   </label>
                   <input
@@ -718,13 +1040,19 @@ const LandingPage = () => {
                     value={contactForm.email}
                     onChange={handleContactInputChange}
                     required
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none text-gray-900"
+                    className={`w-full px-4 py-3 rounded-xl border-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none ${
+                      isDarkMode 
+                        ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:ring-blue-800' 
+                        : 'border-gray-200 text-gray-900'
+                    }`}
                     placeholder="john@example.com"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="contact-phone" className="block text-sm font-bold text-gray-700 mb-2">
+                  <label htmlFor="contact-phone" className={`block text-sm font-bold mb-2 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
                     Phone Number
                   </label>
                   <input
@@ -733,13 +1061,19 @@ const LandingPage = () => {
                     name="phone"
                     value={contactForm.phone}
                     onChange={handleContactInputChange}
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none text-gray-900"
+                    className={`w-full px-4 py-3 rounded-xl border-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none ${
+                      isDarkMode 
+                        ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:ring-blue-800' 
+                        : 'border-gray-200 text-gray-900'
+                    }`}
                     placeholder="+251 9XX XXX XXX"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="contact-message" className="block text-sm font-bold text-gray-700 mb-2">
+                  <label htmlFor="contact-message" className={`block text-sm font-bold mb-2 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
                     Message *
                   </label>
                   <textarea
@@ -749,7 +1083,11 @@ const LandingPage = () => {
                     onChange={handleContactInputChange}
                     required
                     rows={6}
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none resize-none text-gray-900"
+                    className={`w-full px-4 py-3 rounded-xl border-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none resize-none ${
+                      isDarkMode 
+                        ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:ring-blue-800' 
+                        : 'border-gray-200 text-gray-900'
+                    }`}
                     placeholder="Tell us how we can help you..."
                   />
                 </div>
@@ -769,14 +1107,14 @@ const LandingPage = () => {
                 <button
                   type="submit"
                   disabled={contactSubmitStatus.type === 'loading'}
-                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 rounded-xl font-bold text-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center"
+                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                 >
                   {contactSubmitStatus.type === 'loading' ? (
                     'Sending...'
                   ) : (
                     <>
                       Send Message
-                      <Send className="ml-2 w-5 h-5" />
+                      <Send className="ml-2 w-4 h-4" />
                     </>
                   )}
                 </button>
@@ -787,33 +1125,25 @@ const LandingPage = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-32 bg-gradient-to-br from-blue-600 via-purple-600 to-blue-800 relative overflow-hidden">
-        <div className="absolute inset-0">
-          <div className="absolute top-0 left-0 w-full h-full bg-black opacity-20"></div>
-          <div className="absolute top-20 left-20 w-96 h-96 bg-white rounded-full mix-blend-overlay filter blur-3xl opacity-10 animate-pulse"></div>
-          <div className="absolute bottom-20 right-20 w-96 h-96 bg-white rounded-full mix-blend-overlay filter blur-3xl opacity-10 animate-pulse animation-delay-2000"></div>
-        </div>
+      <section className="py-20 bg-gray-900 relative overflow-hidden">
         <div className="relative max-w-6xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <h2 className="text-5xl md:text-7xl font-black text-white mb-8 leading-tight">
-            Ready to transform
-            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-purple-200">
-              your workflow?
-            </span>
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
+            Ready to transform your workflow?
           </h2>
-          <p className="text-2xl text-blue-100 mb-12 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-lg text-gray-300 mb-8 max-w-2xl mx-auto">
             Join thousands of teams already using our platform to achieve extraordinary results together.
           </p>
-          <div className="flex flex-col sm:flex-row gap-6 justify-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a 
               href="#pricing" 
-              className="group bg-white text-blue-600 px-12 py-6 rounded-2xl text-xl font-black hover:bg-gray-100 transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-3xl inline-flex items-center justify-center"
+              className="group bg-white text-gray-900 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors inline-flex items-center justify-center"
             >
               Start Your Free Trial
-              <ArrowRight className="ml-3 w-6 h-6 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </a>
             <Link 
               to="/login" 
-              className="group border-2 border-white/30 text-white px-12 py-6 rounded-2xl text-xl font-black hover:bg-white/10 transition-all duration-300 inline-flex items-center justify-center backdrop-blur-sm"
+              className="group border-2 border-white/30 text-white px-8 py-3 rounded-lg font-semibold hover:bg-white/10 transition-colors inline-flex items-center justify-center"
             >
               Sign In
             </Link>
@@ -822,58 +1152,48 @@ const LandingPage = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-20 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-black"></div>
+      <footer className="bg-gray-900 text-white py-12 relative overflow-hidden">
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div className="md:col-span-2">
-              <div className="flex items-center space-x-3 mb-6">
-                <img 
-                  src="/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png" 
-                  alt="Mela Note Logo" 
-                  className="h-10 w-10"
-                />
-                <h3 className="text-4xl font-black bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="p-1.5 rounded-lg bg-gray-800/50">
+                  <img 
+                    src="/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png" 
+                    alt="Mela Note Logo" 
+                    className="h-10 w-10 object-contain brightness-0 invert"
+                  />
+                </div>
+                <h3 className="text-2xl font-bold text-white">
                   Mela Note
                 </h3>
               </div>
-              <p className="text-gray-300 text-lg leading-relaxed max-w-md">
+              <p className="text-gray-400 text-sm leading-relaxed max-w-md">
                 The complete workspace for modern teams to collaborate, manage projects, and achieve their most ambitious goals.
               </p>
-              <div className="flex space-x-4 mt-8">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center hover:scale-110 transition-transform cursor-pointer">
-                  <span className="text-white font-bold">f</span>
-                </div>
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-xl flex items-center justify-center hover:scale-110 transition-transform cursor-pointer">
-                  <span className="text-white font-bold">t</span>
-                </div>
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center hover:scale-110 transition-transform cursor-pointer">
-                  <span className="text-white font-bold">in</span>
-                </div>
-              </div>
             </div>
             <div>
-              <h4 className="font-bold mb-6 text-xl">Product</h4>
-              <ul className="space-y-3 text-gray-300">
-                <li><a href="#features" className="hover:text-white transition-colors hover:translate-x-1 transform inline-block">Features</a></li>
-                <li><a href="#pricing" className="hover:text-white transition-colors hover:translate-x-1 transform inline-block">Pricing</a></li>
-                <li><Link to="/register" className="hover:text-white transition-colors hover:translate-x-1 transform inline-block">Sign Up</Link></li>
-                <li><a href="#" className="hover:text-white transition-colors hover:translate-x-1 transform inline-block">API</a></li>
+              <h4 className="font-semibold mb-4">Product</h4>
+              <ul className="space-y-2 text-gray-400 text-sm">
+                <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
+                <li><a href="#pricing" className="hover:text-white transition-colors">Pricing</a></li>
+                <li><Link to="/register" className="hover:text-white transition-colors">Sign Up</Link></li>
+                <li><a href="#" className="hover:text-white transition-colors">API</a></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-bold mb-6 text-xl">Company</h4>
-              <ul className="space-y-3 text-gray-300">
-                <li><a href="#about" className="hover:text-white transition-colors hover:translate-x-1 transform inline-block">About</a></li>
-                <li><a href="#contact" className="hover:text-white transition-colors hover:translate-x-1 transform inline-block">Contact</a></li>
-                <li><a href="#" className="hover:text-white transition-colors hover:translate-x-1 transform inline-block">Support</a></li>
-                <li><a href="#" className="hover:text-white transition-colors hover:translate-x-1 transform inline-block">Careers</a></li>
+              <h4 className="font-semibold mb-4">Company</h4>
+              <ul className="space-y-2 text-gray-400 text-sm">
+                <li><a href="#about" className="hover:text-white transition-colors">About</a></li>
+                <li><a href="#contact" className="hover:text-white transition-colors">Contact</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Support</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Careers</a></li>
               </ul>
             </div>
           </div>
-          <div className="border-t border-gray-700 pt-8 text-center">
-            <p className="text-gray-400 text-lg">
-              &copy; 2024 Mela Note. All rights reserved. Made with ❤️ for modern teams.
+          <div className="border-t border-gray-800 pt-6 text-center">
+            <p className="text-gray-400 text-sm">
+              &copy; 2024 Mela Note. All rights reserved.
             </p>
           </div>
         </div>

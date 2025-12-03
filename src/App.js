@@ -33,6 +33,7 @@ import ManagerRoute from './components/ManagerRoute/ManagerRoute';
 import AdminRoute from './components/AdminRoute/AdminRoute';
 import SuperAdminRoute from './components/SuperAdminRoute/SuperAdminRoute';
 import SuperAdminPage from './components/SuperAdminPage/SuperAdminPage';
+import CompanyRouteGuard from './components/common/CompanyRouteGuard';
 import AdminDashboard from './components/AdminDashboard/AdminDashboard';
 import CompanySettings from './components/AdminDashboard/CompanySettings';
 import AdminReports from './components/AdminDashboard/AdminReports';
@@ -43,6 +44,7 @@ import PaymentSubmission from './components/AdminDashboard/PaymentSubmission';
 import PaymentVerification from './components/SuperAdminPage/PaymentVerification';
 import SuperAdminSettings from './components/SuperAdminPage/SuperAdminSettings';
 import SuperAdminLogin from './components/SuperAdminPage/SuperAdminLogin';
+import AddCompanyPage from './components/SuperAdminPage/AddCompanyPage';
 import MessagesPage from './components/MessagesPage/MessagesPage';
 import SavedNotesPage from './components/SavedNotesPage/SavedNotesPage';
 import PaymentReturn from './components/PaymentReturn/PaymentReturn';
@@ -83,7 +85,7 @@ const Layout = ({ children, hideNav = false }) => {
       <div className="app-content">
         {children}
       </div>
-      <AIAssistant />
+      <AIAssistant hideOnAIPage />
       <NavigationPanel />
     </div>
   );
@@ -145,22 +147,26 @@ const AppContent = () => {
         <Route path="/home" element={
           <ProtectedRoute>
             <SuperAdminRedirect>
-              <PaymentRestriction>
-                <Layout>
-                  <HomePage />
-                </Layout>
-              </PaymentRestriction>
+              <CompanyRouteGuard>
+                <PaymentRestriction>
+                  <Layout>
+                    <AIAssistantPage />
+                  </Layout>
+                </PaymentRestriction>
+              </CompanyRouteGuard>
             </SuperAdminRedirect>
           </ProtectedRoute>
         } />
 
         <Route path="/projects" element={
           <ProtectedRoute>
-            <PaymentRestriction>
-              <Layout>
-                <ProjectsPage />
-              </Layout>
-            </PaymentRestriction>
+            <CompanyRouteGuard>
+              <PaymentRestriction>
+                <Layout>
+                  <ProjectsPage />
+                </Layout>
+              </PaymentRestriction>
+            </CompanyRouteGuard>
           </ProtectedRoute>
         } />
 
@@ -224,9 +230,13 @@ const AppContent = () => {
 
         <Route path="/documents" element={
           <ProtectedRoute>
-            <Layout>
-              <DocumentsPage />
-            </Layout>
+            <CompanyRouteGuard>
+              <PaymentRestriction>
+                <Layout>
+                  <DocumentsPage />
+                </Layout>
+              </PaymentRestriction>
+            </CompanyRouteGuard>
           </ProtectedRoute>
         } />
         {/* Legacy redirect: Inbox -> Documents */}
@@ -238,17 +248,25 @@ const AppContent = () => {
 
         <Route path="/notepad" element={
           <ProtectedRoute>
-            <Layout>
-              <NotepadPage />
-            </Layout>
+            <CompanyRouteGuard>
+              <PaymentRestriction>
+                <Layout>
+                  <NotepadPage />
+                </Layout>
+              </PaymentRestriction>
+            </CompanyRouteGuard>
           </ProtectedRoute>
         } />
 
         <Route path="/notes" element={
           <ProtectedRoute>
-            <Layout>
-              <NotepadPage />
-            </Layout>
+            <CompanyRouteGuard>
+              <PaymentRestriction>
+                <Layout>
+                  <NotepadPage />
+                </Layout>
+              </PaymentRestriction>
+            </CompanyRouteGuard>
           </ProtectedRoute>
         } />
 
@@ -262,50 +280,64 @@ const AppContent = () => {
 
         <Route path="/meeting-notes" element={
           <ProtectedRoute>
-            <Layout>
-              <MeetingNotesPage />
-            </Layout>
+            <CompanyRouteGuard>
+              <PaymentRestriction>
+                <Layout>
+                  <MeetingNotesPage />
+                </Layout>
+              </PaymentRestriction>
+            </CompanyRouteGuard>
           </ProtectedRoute>
         } />
 
         <Route path="/meeting-templates" element={
           <ProtectedRoute>
-            <Layout>
-              <MeetingTemplatesPage />
-            </Layout>
+            <PaymentRestriction>
+              <Layout>
+                <MeetingTemplatesPage />
+              </Layout>
+            </PaymentRestriction>
           </ProtectedRoute>
         } />
 
         <Route path="/:companyId/meeting-new" element={
           <ProtectedRoute>
-            <Layout>
-              <MeetingEditorPage />
-            </Layout>
+            <PaymentRestriction>
+              <Layout>
+                <MeetingEditorPage />
+              </Layout>
+            </PaymentRestriction>
           </ProtectedRoute>
         } />
 
         <Route path="/:companyId/meeting-editor/:meetingId" element={
           <ProtectedRoute>
-            <Layout>
-              <MeetingEditorPage />
-            </Layout>
+            <PaymentRestriction>
+              <Layout>
+                <MeetingEditorPage />
+              </Layout>
+            </PaymentRestriction>
           </ProtectedRoute>
         } />
 
         {/* Legacy routes */}
         <Route path="/meeting-new" element={
           <ProtectedRoute>
-            <Layout>
-              <MeetingEditorPage />
-            </Layout>
+            <PaymentRestriction>
+              <Layout>
+                <MeetingEditorPage />
+              </Layout>
+            </PaymentRestriction>
           </ProtectedRoute>
         } />
 
         <Route path="/meeting-editor/:meetingId" element={
           <ProtectedRoute>
-            <Layout>
-              <MeetingEditorPage />
-            </Layout>
+            <PaymentRestriction>
+              <Layout>
+                <MeetingEditorPage />
+              </Layout>
+            </PaymentRestriction>
           </ProtectedRoute>
         } />
 
@@ -343,25 +375,31 @@ const AppContent = () => {
 
         <Route path="/users" element={
           <ManagerRoute>
-            <Layout>
-              <UserManagementPage />
-            </Layout>
+            <CompanyRouteGuard>
+              <Layout>
+                <UserManagementPage />
+              </Layout>
+            </CompanyRouteGuard>
           </ManagerRoute>
         } />
 
         <Route path="/user-management" element={
           <ManagerRoute>
-            <Layout>
-              <UserManagementPage />
-            </Layout>
+            <CompanyRouteGuard>
+              <Layout>
+                <UserManagementPage />
+              </Layout>
+            </CompanyRouteGuard>
           </ManagerRoute>
         } />
 
         <Route path="/profile" element={
           <ProtectedRoute>
-            <Layout>
-              <UserProfilePage />
-            </Layout>
+            <CompanyRouteGuard>
+              <Layout>
+                <UserProfilePage />
+              </Layout>
+            </CompanyRouteGuard>
           </ProtectedRoute>
         } />
 
@@ -383,9 +421,13 @@ const AppContent = () => {
 
         <Route path="/reports" element={
           <ProtectedRoute>
-            <Layout>
-              <ReportsPage />
-            </Layout>
+            <CompanyRouteGuard>
+              <PaymentRestriction>
+                <Layout>
+                  <ReportsPage />
+                </Layout>
+              </PaymentRestriction>
+            </CompanyRouteGuard>
           </ProtectedRoute>
         } />
 
@@ -417,49 +459,122 @@ const AppContent = () => {
         {/* Admin Routes */}
         <Route path="/admin" element={
           <AdminRoute>
-            <Layout>
-              <AdminDashboard />
-            </Layout>
+            <CompanyRouteGuard>
+              <Layout>
+                <AdminDashboard />
+              </Layout>
+            </CompanyRouteGuard>
           </AdminRoute>
         } />
 
         <Route path="/admin/settings" element={
           <AdminRoute>
-            <Layout>
-              <CompanySettings />
-            </Layout>
+            <CompanyRouteGuard>
+              <Layout>
+                <CompanySettings />
+              </Layout>
+            </CompanyRouteGuard>
           </AdminRoute>
         } />
 
         <Route path="/admin/reports" element={
           <AdminRoute>
-            <Layout>
-              <AdminReports />
-            </Layout>
+            <CompanyRouteGuard>
+              <Layout>
+                <AdminReports />
+              </Layout>
+            </CompanyRouteGuard>
           </AdminRoute>
         } />
 
         <Route path="/admin/audit-log" element={
           <AdminRoute>
-            <Layout>
-              <AdminAuditLog />
-            </Layout>
+            <CompanyRouteGuard>
+              <Layout>
+                <AdminAuditLog />
+              </Layout>
+            </CompanyRouteGuard>
           </AdminRoute>
         } />
 
         <Route path="/admin/analytics" element={
           <AdminRoute>
-            <Layout>
-              <AdminUserAnalytics />
-            </Layout>
+            <CompanyRouteGuard>
+              <Layout>
+                <AdminUserAnalytics />
+              </Layout>
+            </CompanyRouteGuard>
           </AdminRoute>
         } />
 
         <Route path="/admin/data-management" element={
           <AdminRoute>
-            <Layout>
-              <AdminDataManagement />
-            </Layout>
+            <CompanyRouteGuard>
+              <Layout>
+                <AdminDataManagement />
+              </Layout>
+            </CompanyRouteGuard>
+          </AdminRoute>
+        } />
+
+        {/* Admin Routes with Company ID in Path */}
+        <Route path="/:companyId/admin" element={
+          <AdminRoute>
+            <CompanyRouteGuard>
+              <Layout>
+                <AdminDashboard />
+              </Layout>
+            </CompanyRouteGuard>
+          </AdminRoute>
+        } />
+
+        <Route path="/:companyId/admin/settings" element={
+          <AdminRoute>
+            <CompanyRouteGuard>
+              <Layout>
+                <CompanySettings />
+              </Layout>
+            </CompanyRouteGuard>
+          </AdminRoute>
+        } />
+
+        <Route path="/:companyId/admin/reports" element={
+          <AdminRoute>
+            <CompanyRouteGuard>
+              <Layout>
+                <AdminReports />
+              </Layout>
+            </CompanyRouteGuard>
+          </AdminRoute>
+        } />
+
+        <Route path="/:companyId/admin/audit-log" element={
+          <AdminRoute>
+            <CompanyRouteGuard>
+              <Layout>
+                <AdminAuditLog />
+              </Layout>
+            </CompanyRouteGuard>
+          </AdminRoute>
+        } />
+
+        <Route path="/:companyId/admin/analytics" element={
+          <AdminRoute>
+            <CompanyRouteGuard>
+              <Layout>
+                <AdminUserAnalytics />
+              </Layout>
+            </CompanyRouteGuard>
+          </AdminRoute>
+        } />
+
+        <Route path="/:companyId/admin/data-management" element={
+          <AdminRoute>
+            <CompanyRouteGuard>
+              <Layout>
+                <AdminDataManagement />
+              </Layout>
+            </CompanyRouteGuard>
           </AdminRoute>
         } />
 
@@ -474,9 +589,11 @@ const AppContent = () => {
         {/* Legacy route redirect */}
         <Route path="/admin/payments" element={
           <AdminRoute>
-            <Layout>
-              <PaymentSubmission />
-            </Layout>
+            <CompanyRouteGuard>
+              <Layout>
+                <PaymentSubmission />
+              </Layout>
+            </CompanyRouteGuard>
           </AdminRoute>
         } />
 
@@ -516,6 +633,12 @@ const AppContent = () => {
             <Layout>
               <MessagesPage />
             </Layout>
+          </SuperAdminRoute>
+        } />
+
+        <Route path="/super-admin/add-company" element={
+          <SuperAdminRoute>
+            <AddCompanyPage />
           </SuperAdminRoute>
         } />
 

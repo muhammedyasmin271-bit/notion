@@ -43,27 +43,40 @@ const PaymentRestriction = ({ children }) => {
             return;
           }
           
-          // Check if in grace period (only admin can login during grace period)
+          // Check payment status and grace period
           const now = new Date();
           const paymentDeadline = companyData.paymentDeadline ? new Date(companyData.paymentDeadline) : null;
           const gracePeriodDeadline = companyData.gracePeriodDeadline ? new Date(companyData.gracePeriodDeadline) : null;
-          // Grace period: payment deadline has passed, but grace period hasn't
-          const inGracePeriod = paymentDeadline && now >= paymentDeadline && 
-                               gracePeriodDeadline && now < gracePeriodDeadline && 
-                               companyData.paymentMode === 'paid' && 
-                               companyData.selectedPlan !== 'free_trial' && 
-                               !companyData.hasPaid;
           
-          if (inGracePeriod && user.role !== 'admin') {
-            // Non-admin users cannot login during grace period
+          // Check if payment deadline has passed (deadline month)
+          const deadlinePassed = paymentDeadline && now >= paymentDeadline && 
+                                 companyData.paymentMode === 'paid' && 
+                                 !companyData.hasPaid;
+          
+          // Grace period: payment deadline has passed, but grace period hasn't
+          const inGracePeriod = deadlinePassed && 
+                               gracePeriodDeadline && now < gracePeriodDeadline;
+          
+          // Grace period expired - company should be paused
+          const gracePeriodExpired = gracePeriodDeadline && now >= gracePeriodDeadline && 
+                                    companyData.paymentMode === 'paid' && 
+                                    !companyData.hasPaid;
+          
+          // Block ALL users (including admin) when deadline passes - until super admin clicks play
+          // Block if: deadline passed OR company is paused (due to deadline)
+          if (deadlinePassed || companyData.status === 'paused') {
+            // Company deadline passed or is paused - ALL users blocked until super admin unpauses
             return;
           }
           
-          // Check if payment is required
-          // Only require payment if paymentMode is 'paid' AND (selectedPlan is not free_trial AND hasPaid is false)
-          const needsPayment = companyData.paymentMode === 'paid' && 
-                               companyData.selectedPlan !== 'free_trial' && 
-                               !companyData.hasPaid;
+          // Block ALL users (including admin) after grace period expires
+          if (gracePeriodExpired) {
+            // Grace period expired - block all access until super admin unpauses
+            return;
+          }
+          
+          // Check if payment is required (after grace period expires)
+          const needsPayment = gracePeriodExpired;
           
           // If payment is needed and not on allowed payment pages, redirect
           if (needsPayment && !isPaymentPage) {
@@ -88,16 +101,67 @@ const PaymentRestriction = ({ children }) => {
     checkPaymentStatus();
   }, [isAuthenticated, user, navigate, location.pathname, isPaymentPage]);
 
-  // Check if in grace period and user is not admin
+  // Check grace period and expiration status
   const now = new Date();
   const paymentDeadline = company?.paymentDeadline ? new Date(company.paymentDeadline) : null;
   const gracePeriodDeadline = company?.gracePeriodDeadline ? new Date(company.gracePeriodDeadline) : null;
+  
+  // Check if payment deadline has passed (deadline month)
+  const deadlinePassed = paymentDeadline && now >= paymentDeadline && 
+                        company?.paymentMode === 'paid' && 
+                        !company?.hasPaid;
+  
   // Grace period: payment deadline has passed, but grace period hasn't
-  const inGracePeriod = paymentDeadline && now >= paymentDeadline && 
-                       gracePeriodDeadline && now < gracePeriodDeadline && 
-                       company?.paymentMode === 'paid' && 
-                       company?.selectedPlan !== 'free_trial' && 
-                       !company?.hasPaid;
+  const inGracePeriod = deadlinePassed && 
+                       gracePeriodDeadline && now < gracePeriodDeadline;
+  
+  // Grace period expired
+  const gracePeriodExpired = gracePeriodDeadline && now >= gracePeriodDeadline && 
+                            company?.paymentMode === 'paid' && 
+                            !company?.hasPaid;
+  
+  // Block ALL users (including admin) when deadline passes OR company is paused
+  // This happens until super admin clicks "Play" button
+  if (deadlinePassed || company?.status === 'paused') {
+    return (
+      <div className={`min-h-screen flex items-center justify-center p-4 ${
+        isDarkMode ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-slate-900' : 'bg-gradient-to-br from-gray-50 via-white to-gray-100'
+      }`}>
+        <div className={`max-w-2xl w-full ${isDarkMode ? 'bg-gray-800/90 border-gray-700' : 'bg-white border-gray-200'} border-2 rounded-3xl shadow-2xl p-8 sm:p-10`}>
+          <div className="flex items-center gap-4 mb-6">
+            <div className={`p-4 rounded-2xl ${isDarkMode ? 'bg-red-500/20' : 'bg-red-100'}`}>
+              <Lock size={32} className="text-red-500" />
+            </div>
+            <div>
+              <h1 className={`text-3xl font-black ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-2`}>
+                Payment Deadline Passed
+              </h1>
+              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                Company has been paused
+              </p>
+            </div>
+          </div>
+
+          <div className={`p-6 rounded-2xl ${isDarkMode ? 'bg-red-500/10 border border-red-500/30' : 'bg-red-50 border border-red-200'}`}>
+            <div className="flex items-start gap-3">
+              <AlertCircle size={24} className="text-red-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <h2 className={`font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  Access Suspended
+                </h2>
+                <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Your company's payment deadline has passed and the account has been paused. Please contact the super administrator to reactivate your account.
+                </p>
+                <p className={`text-sm mt-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Once reactivated, you will have 24 hours to complete payment.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   
   if (inGracePeriod && user?.role !== 'admin') {
     return (
@@ -192,9 +256,46 @@ const PaymentRestriction = ({ children }) => {
     );
   }
 
+  // If grace period expired, show payment required message
+  if (gracePeriodExpired) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center p-4 ${
+        isDarkMode ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-slate-900' : 'bg-gradient-to-br from-gray-50 via-white to-gray-100'
+      }`}>
+        <div className={`max-w-2xl w-full ${isDarkMode ? 'bg-gray-800/90 border-gray-700' : 'bg-white border-gray-200'} border-2 rounded-3xl shadow-2xl p-8 sm:p-10`}>
+          <div className="flex items-center gap-4 mb-6">
+            <div className={`p-4 rounded-2xl ${isDarkMode ? 'bg-red-500/20' : 'bg-red-100'}`}>
+              <Lock size={32} className="text-red-500" />
+            </div>
+            <div>
+              <h1 className={`text-3xl font-black ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-2`}>
+                Payment Required
+              </h1>
+              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                Grace period has expired
+              </p>
+            </div>
+          </div>
+          <div className={`p-6 rounded-2xl ${isDarkMode ? 'bg-red-500/10 border border-red-500/30' : 'bg-red-50 border border-red-200'}`}>
+            <div className="flex items-start gap-3">
+              <AlertCircle size={24} className="text-red-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <h2 className={`font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  Access Suspended
+                </h2>
+                <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  The 7-day grace period has expired. Payment is now required to continue using the application.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // If payment is required and not on payment page, block access and redirect
-  // Only require payment if paymentMode is 'paid'
-  if (company && company.paymentMode === 'paid' && company.selectedPlan !== 'free_trial' && !company.hasPaid && !isPaymentPage) {
+  if (company && gracePeriodExpired && !isPaymentPage) {
     // Don't render children - redirect will happen in useEffect
     // Show a blocking message while redirecting
     return (

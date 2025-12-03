@@ -2,16 +2,21 @@ import React, { useState, useEffect } from 'react';
 import {
   Users, Plus, Search, UserCheck, UserX, Trash2,
   Shield, Crown, User as UserIcon, Calendar,
-  Edit3, Mail, Phone, Building, Check, X, Clock
+  Edit3, Mail, Phone, Building, Check, X, Clock,
+  MessageSquare, UserPlus, MoreVertical, Eye
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 const UserManagementPage = () => {
   const { user } = useAppContext();
   const { isDarkMode } = useTheme();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  
+  // Get companyId from query params or user context
+  const companyId = searchParams.get('company') || user?.companyId || localStorage.getItem('currentCompanyId');
   const isManager = user?.role === 'manager';
   const isAdmin = user?.role === 'admin';
   const canManageUsers = isManager || isAdmin;
@@ -25,6 +30,7 @@ const UserManagementPage = () => {
   const [showUserProfile, setShowUserProfile] = useState(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [openMenuId, setOpenMenuId] = useState(null);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -166,7 +172,8 @@ const UserManagementPage = () => {
       sessionStorage.setItem('selectedProjectUsers', selectedUserNames);
       sessionStorage.setItem('projectPickerReturn', JSON.stringify(returnData));
       console.log('Navigating back to projects with picker data preserved');
-      navigate('/projects');
+      const backUrl = companyId ? `/projects?company=${companyId}` : '/projects';
+      navigate(backUrl);
     } else if (pickerData.type === 'goal') {
       sessionStorage.setItem('selectedGoalUsers', selectedUserNames);
       sessionStorage.setItem('goalPickerReturn', JSON.stringify(returnData));
@@ -183,9 +190,11 @@ const UserManagementPage = () => {
       const data = JSON.parse(projectData);
       sessionStorage.removeItem('projectPickerReturn');
       if (data.id && data.id !== 'new') {
-        navigate(`/projects/${data.id}`);
+        const projectUrl = companyId ? `/projects/${data.id}?company=${companyId}` : `/projects/${data.id}`;
+        navigate(projectUrl);
       } else {
-        navigate('/projects');
+        const backUrl = companyId ? `/projects?company=${companyId}` : '/projects';
+        navigate(backUrl);
       }
     } else if (goalData) {
       const data = JSON.parse(goalData);
@@ -292,6 +301,16 @@ const UserManagementPage = () => {
       console.error('Error making manager user:', error);
       alert(error.message || 'Failed to make manager user.');
     }
+  };
+
+  const getRoleDisplay = (user) => {
+    // Use department if available, otherwise use role
+    if (user.department && user.department !== 'General' && user.department !== 'Not provided') {
+      return user.department;
+    }
+    if (user.role === 'admin') return 'Admin';
+    if (user.role === 'manager') return 'Manager';
+    return 'Team Member';
   };
 
   const handleUpdateMember = async (e) => {
@@ -486,212 +505,245 @@ const UserManagementPage = () => {
       </div>
 
       {/* Users Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
-        {filteredUsers.map((userItem) => (
-          <div
-            key={userItem.id}
-            className={`rounded-xl sm:rounded-2xl shadow-lg border overflow-hidden cursor-pointer hover:scale-105 transition-transform duration-200 ${isPickerMode && selectedUsers.includes(userItem.name)
-              ? (isDarkMode ? 'bg-blue-900/20 border-blue-600 ring-2 ring-blue-500/30' : 'bg-blue-50 border-blue-400 ring-2 ring-blue-400/30')
-              : userItem.status === 'pending'
-                ? (isDarkMode ? 'bg-yellow-900/10 border-yellow-700 ring-2 ring-yellow-600/20' : 'bg-yellow-50 border-yellow-300 ring-2 ring-yellow-400/20')
-                : (isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200')
-              }`}
-            onClick={() => isPickerMode ? handleUserSelection(userItem.name) : setShowUserProfile(userItem)}
-          >
-            {/* User Header */}
-            <div className={`p-4 sm:p-6 border-b ${isDarkMode ? 'border-gray-800' : 'border-gray-100'}`}>
-              <div className="flex items-center space-x-3 sm:space-x-4 mb-3 sm:mb-4">
-                <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl flex items-center justify-center text-lg sm:text-2xl font-bold ${isDarkMode ? 'bg-white text-black' : 'bg-black text-white'
-                  }`}>
-                  {userItem.name.charAt(0).toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className={`font-bold text-lg sm:text-xl truncate ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    {userItem.name}
-                  </h3>
-                  <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} truncate`}>
-                    @{userItem.username}
-                  </p>
-                </div>
-              </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 lg:gap-6">
+        {filteredUsers.map((userItem) => {
+          const roleDisplay = getRoleDisplay(userItem);
+          const joinDate = new Date(userItem.joinDate).toLocaleDateString('en-US', { 
+            month: 'numeric', 
+            day: 'numeric', 
+            year: 'numeric' 
+          });
 
-              <div className="flex flex-wrap items-center gap-2">
-                <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-bold border-2 flex items-center gap-1 sm:gap-2 ${userItem.role === 'admin'
-                  ? (isDarkMode ? 'bg-red-900 text-red-300 border-red-700' : 'bg-red-100 text-red-800 border-red-300')
-                  : userItem.role === 'manager'
-                    ? (isDarkMode ? 'bg-yellow-900 text-yellow-300 border-yellow-700' : 'bg-yellow-100 text-yellow-800 border-yellow-300')
-                    : (isDarkMode ? 'bg-blue-900 text-blue-300 border-blue-700' : 'bg-blue-100 text-blue-800 border-blue-300')
-                  }`}>
-                  {userItem.role === 'admin' ? <Shield className="w-3 h-3" /> : userItem.role === 'manager' ? <Crown className="w-3 h-3" /> : <UserIcon className="w-3 h-3" />}
-                  <span className="hidden sm:inline">{userItem.role === 'admin' ? 'Admin' : userItem.role === 'manager' ? 'Manager' : 'Team Member'}</span>
-                  <span className="sm:hidden">{userItem.role === 'admin' ? 'A' : userItem.role === 'manager' ? 'M' : 'U'}</span>
-                </span>
-                <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-bold border-2 flex items-center gap-1 ${userItem.status === 'approved'
-                  ? (isDarkMode ? 'bg-green-900 text-green-300 border-green-700' : 'bg-green-100 text-green-800 border-green-300')
-                  : userItem.status === 'declined'
-                    ? (isDarkMode ? 'bg-red-900 text-red-300 border-red-700' : 'bg-red-100 text-red-800 border-red-300')
-                    : (isDarkMode ? 'bg-yellow-900 text-yellow-300 border-yellow-700' : 'bg-yellow-100 text-yellow-700 border-yellow-300')
-                  }`}>
-                  {userItem.status === 'pending' && <Clock className="w-3 h-3" />}
-                  {userItem.status === 'approved' && <Check className="w-3 h-3" />}
-                  {userItem.status === 'declined' && <X className="w-3 h-3" />}
-                  <span className="hidden sm:inline">{userItem.status.charAt(0).toUpperCase() + userItem.status.slice(1)}</span>
-                  <span className="sm:hidden">{userItem.status.charAt(0).toUpperCase()}</span>
-                </span>
-                <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium truncate max-w-[100px] sm:max-w-none ${isDarkMode ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-700'
-                  }`}>
-                  {userItem.department}
-                </span>
-              </div>
-            </div>
-
-            {/* User Details */}
-            <div className="p-4 sm:p-6">
-              <div className="space-y-3 sm:space-y-4">
-                <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
-                  <Mail className="w-4 h-4 opacity-50 flex-shrink-0" />
-                  <span className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'} truncate`}>
-                    {userItem.email}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
-                  <Phone className="w-4 h-4 opacity-50 flex-shrink-0" />
-                  <span className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'} truncate`}>
-                    {userItem.phone}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
-                  <Building className="w-4 h-4 opacity-50 flex-shrink-0" />
-                  <span className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'} truncate`}>
-                    {userItem.location}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
-                  <Calendar className="w-4 h-4 opacity-50 flex-shrink-0" />
-                  <span className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
-                    Joined {new Date(userItem.joinDate).toLocaleDateString()}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
-                  <div className={`w-4 h-4 rounded opacity-50 flex-shrink-0 ${isDarkMode ? 'bg-blue-400' : 'bg-blue-600'}`}></div>
-                  <span className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
-                    {userItem.files?.length || 0} files uploaded
-                  </span>
-                </div>
-              </div>
-
-              {isPickerMode && (
-                <div className="mt-4">
-                  <div className={`flex items-center justify-center p-3 rounded-lg ${selectedUsers.includes(userItem.name)
-                    ? 'bg-blue-600 text-white'
-                    : isDarkMode ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-700'
-                    }`}>
-                    {selectedUsers.includes(userItem.name) ? (
-                      <><Check className="w-4 h-4 mr-2" /> Selected</>
-                    ) : (
-                      'Click to Select'
+          return (
+            <div
+              key={userItem.id}
+              className={`relative rounded-xl shadow-lg border overflow-hidden transition-all duration-200 ${isPickerMode && selectedUsers.includes(userItem.name)
+                ? (isDarkMode ? 'bg-blue-900/20 border-blue-600 ring-2 ring-blue-500/30' : 'bg-blue-50 border-blue-400 ring-2 ring-blue-400/30')
+                : userItem.status === 'pending'
+                  ? (isDarkMode ? 'bg-yellow-900/10 border-yellow-700 ring-2 ring-yellow-600/20' : 'bg-yellow-50 border-yellow-300 ring-2 ring-yellow-400/20')
+                  : (isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200')
+                } ${isPickerMode ? 'cursor-pointer hover:scale-105' : ''}`}
+              onClick={() => isPickerMode ? handleUserSelection(userItem.name) : null}
+            >
+              {/* Ellipsis Menu */}
+              {!isPickerMode && (
+                <div className="absolute top-3 right-3 z-10">
+                  <div className="relative">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenMenuId(openMenuId === userItem.id ? null : userItem.id);
+                      }}
+                      className={`p-1.5 rounded-full hover:bg-opacity-20 transition-colors ${isDarkMode ? 'hover:bg-white' : 'hover:bg-gray-200'}`}
+                    >
+                      <MoreVertical className={`w-5 h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+                    </button>
+                    
+                    {openMenuId === userItem.id && (
+                      <>
+                        <div 
+                          className="fixed inset-0 z-20" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenMenuId(null);
+                          }}
+                        />
+                        <div className={`absolute right-0 mt-2 w-48 rounded-lg shadow-lg border z-30 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                          <div className="py-2">
+                            {canManageUsers && (
+                              <>
+                                {userItem.status === 'pending' ? (
+                                  <>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleApprove(userItem.id);
+                                        setOpenMenuId(null);
+                                      }}
+                                      className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${isDarkMode ? 'hover:bg-gray-700 text-green-400' : 'hover:bg-gray-100 text-green-600'}`}
+                                    >
+                                      <Check className="w-4 h-4" />
+                                      Approve
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDecline(userItem.id);
+                                        setOpenMenuId(null);
+                                      }}
+                                      className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${isDarkMode ? 'hover:bg-gray-700 text-red-400' : 'hover:bg-gray-100 text-red-600'}`}
+                                    >
+                                      <X className="w-4 h-4" />
+                                      Decline
+                                    </button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEditUser(userItem);
+                                        setOpenMenuId(null);
+                                      }}
+                                      className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${isDarkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}
+                                    >
+                                      <Edit3 className="w-4 h-4" />
+                                      Edit
+                                    </button>
+                                    {isAdmin && userItem.role === 'user' && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleMakeManager(userItem.id);
+                                          setOpenMenuId(null);
+                                        }}
+                                        className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${isDarkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}
+                                      >
+                                        <Crown className="w-4 h-4" />
+                                        Make Manager
+                                      </button>
+                                    )}
+                                    {isAdmin && userItem.role === 'manager' && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleMakeUser(userItem.id);
+                                          setOpenMenuId(null);
+                                        }}
+                                        className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${isDarkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}
+                                      >
+                                        <UserIcon className="w-4 h-4" />
+                                        Make User
+                                      </button>
+                                    )}
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleToggleStatus(userItem.id);
+                                        setOpenMenuId(null);
+                                      }}
+                                      className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${isDarkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}
+                                    >
+                                      {userItem.isActive ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                                      {userItem.isActive ? 'Deactivate' : 'Activate'}
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteUser(userItem.id);
+                                        setOpenMenuId(null);
+                                      }}
+                                      className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${isDarkMode ? 'hover:bg-gray-700 text-red-400' : 'hover:bg-gray-100 text-red-600'}`}
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                      Delete
+                                    </button>
+                                  </>
+                                )}
+                              </>
+                            )}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setShowUserProfile(userItem);
+                                setOpenMenuId(null);
+                              }}
+                              className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${isDarkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}
+                            >
+                              <Eye className="w-4 h-4" />
+                              View Details
+                            </button>
+                          </div>
+                        </div>
+                      </>
                     )}
                   </div>
                 </div>
               )}
 
-              {!isPickerMode && canManageUsers && (
-                <div className="flex items-center space-x-2 mt-4">
-                  {userItem.status === 'pending' ? (
-                    <>
-                      <button
-                        className={`flex-1 px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 ${isDarkMode ? 'bg-green-900 text-green-300 hover:bg-green-800' : 'bg-green-100 text-green-700 hover:bg-green-200'
-                          }`}
-                        onClick={(e) => { e.stopPropagation(); handleApprove(userItem.id); }}
-                        title="Approve User"
-                      >
-                        <Check className="w-3 h-3" />
-                        Approve
-                      </button>
-                      <button
-                        className={`flex-1 px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 ${isDarkMode ? 'bg-red-900 text-red-300 hover:bg-red-800' : 'bg-red-100 text-red-700 hover:bg-red-200'
-                          }`}
-                        onClick={(e) => { e.stopPropagation(); handleDecline(userItem.id); }}
-                        title="Decline User"
-                      >
-                        <X className="w-3 h-3" />
-                        Decline
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        className={`flex-1 p-2 rounded-lg ${isDarkMode ? 'bg-green-900 text-green-300 hover:bg-green-800' : 'bg-green-100 text-green-700 hover:bg-green-200'
-                          }`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEditUser(userItem);
-                        }}
-                        title="Edit User"
-                      >
-                        <Edit3 className="w-4 h-4 mx-auto" />
-                      </button>
-                      {isAdmin && userItem.role === 'user' && (
-                        <button
-                          className={`flex-1 p-2 rounded-lg ${isDarkMode ? 'bg-yellow-900 text-yellow-300 hover:bg-yellow-800' : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                            }`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleMakeManager(userItem.id);
-                          }}
-                          title="Make Manager"
-                        >
-                          <Crown className="w-4 h-4 mx-auto" />
-                        </button>
-                      )}
-                      {isAdmin && userItem.role === 'manager' && (
-                        <button
-                          className={`flex-1 p-2 rounded-lg ${isDarkMode ? 'bg-blue-900 text-blue-300 hover:bg-blue-800' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                            }`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleMakeUser(userItem.id);
-                          }}
-                          title="Make User"
-                        >
-                          <UserIcon className="w-4 h-4 mx-auto" />
-                        </button>
-                      )}
-                      <button
-                        className={`flex-1 p-2 rounded-lg ${userItem.isActive
-                          ? (isDarkMode ? 'bg-orange-900 text-orange-300 hover:bg-orange-800' : 'bg-orange-100 text-orange-700 hover:bg-orange-200')
-                          : (isDarkMode ? 'bg-green-900 text-green-300 hover:bg-green-800' : 'bg-green-100 text-green-700 hover:bg-green-200')
-                          }`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleStatus(userItem.id);
-                        }}
-                        title={userItem.isActive ? 'Deactivate User' : 'Activate User'}
-                      >
-                        {userItem.isActive ? <UserX className="w-4 h-4 mx-auto" /> : <UserCheck className="w-4 h-4 mx-auto" />}
-                      </button>
-                      <button
-                        className={`flex-1 p-2 rounded-lg ${isDarkMode ? 'bg-red-900 text-red-300 hover:bg-red-800' : 'bg-red-100 text-red-700 hover:bg-red-200'
-                          }`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteUser(userItem.id);
-                        }}
-                        title="Delete User"
-                      >
-                        <Trash2 className="w-4 h-4 mx-auto" />
-                      </button>
-                    </>
-                  )}
+              {/* Card Content */}
+              <div className="p-6 pb-4">
+                {/* Profile Picture */}
+                <div className="flex justify-center mb-4">
+                  <div className={`w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold shadow-md ${isDarkMode ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-800'
+                    }`}>
+                    {userItem.name.charAt(0).toUpperCase()}
+                  </div>
+                </div>
+
+                {/* Name */}
+                <h3 className={`text-center font-bold text-lg mb-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  {userItem.name}
+                </h3>
+
+                {/* Role */}
+                <p className={`text-center text-sm mb-6 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  {roleDisplay}
+                </p>
+
+                {/* Join Date */}
+                <div className="mb-6">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Join Date</span>
+                    <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{joinDate}</span>
+                  </div>
+                </div>
+
+                {/* Action Icons */}
+                <div className="flex justify-center gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (userItem.phone && userItem.phone !== 'Not provided') {
+                        window.location.href = `tel:${userItem.phone}`;
+                      } else {
+                        alert('Phone number not available');
+                      }
+                    }}
+                    className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                    title="Call"
+                  >
+                    <Phone className={`w-5 h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (userItem.email) {
+                        window.location.href = `mailto:${userItem.email}`;
+                      } else {
+                        alert('Email not available');
+                      }
+                    }}
+                    className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                    title="Message"
+                  >
+                    <MessageSquare className={`w-5 h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowUserProfile(userItem);
+                    }}
+                    className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                    title="View Profile"
+                  >
+                    <UserPlus className={`w-5 h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Picker Mode Selection Indicator */}
+              {isPickerMode && (
+                <div className={`absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 transition-opacity ${selectedUsers.includes(userItem.name) ? 'opacity-100' : 'opacity-0'}`}>
+                  <div className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2">
+                    <Check className="w-5 h-5" />
+                    Selected
+                  </div>
                 </div>
               )}
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {filteredUsers.length === 0 && (
           <div className="col-span-full px-6 py-12 text-center">

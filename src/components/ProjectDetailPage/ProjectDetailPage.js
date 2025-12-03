@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   User,
   CheckCircle,
@@ -58,6 +58,11 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
   const navigate = useNavigate();
   const { user, canCreateProjects, users } = useAppContext();
   const { isDarkMode } = useTheme();
+  const [searchParams] = useSearchParams();
+  const params = useParams();
+  
+  // Get companyId from URL params, query params, or user context
+  const companyId = params.companyId || searchParams.get('company') || user?.companyId || localStorage.getItem('currentCompanyId');
 
   // Priority Selector Component
   const PrioritySelector = ({ priority, onChange, isFullscreen, isDarkMode }) => {
@@ -619,7 +624,8 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
 
       if (response.ok) {
         alert('Project deleted successfully!');
-        navigate('/projects');
+        const backUrl = companyId ? `/projects?company=${companyId}` : '/projects';
+        navigate(backUrl);
       } else {
         const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
         alert(`Failed to delete project: ${errorData.message || response.status}`);
@@ -2672,7 +2678,10 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
           {/* Overlay to detect clicks on ProjectsPage and close detail page */}
           <div
             className="absolute top-0 left-0 w-1/2 h-full cursor-pointer"
-            onClick={() => navigate('/projects')}
+            onClick={() => {
+              const backUrl = companyId ? `/projects?company=${companyId}` : '/projects';
+              navigate(backUrl);
+            }}
           />
         </div>
       )}
@@ -2700,7 +2709,10 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
               </button>
 
               <button
-                onClick={() => navigate('/projects')}
+                onClick={() => {
+                  const backUrl = companyId ? `/projects?company=${companyId}` : '/projects';
+                  navigate(backUrl);
+                }}
                 className={`p-2 rounded-lg transition-all duration-200 border ${isDarkMode ? 'text-gray-400 hover:text-red-400 hover:bg-red-900/20 hover:border-red-900/40' : 'text-gray-500 hover:text-red-600 hover:bg-red-50 hover:border-red-200'}`}
                 title="Close"
               >

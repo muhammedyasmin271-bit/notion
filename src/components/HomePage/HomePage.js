@@ -1,23 +1,39 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
-  LayoutGrid, FileText, BarChart3, Plus, ArrowRight, CheckCircle, Clock, Folder,
-  Users, Calendar, Target, TrendingUp, Activity, Bell, Zap, Brain,
-  MessageSquare, Settings, Search, Filter, RefreshCw, Award, Sparkles, AlertCircle, CheckSquare, BellOff
+  FileText,
+  BarChart3,
+  Plus,
+  ArrowRight,
+  CheckCircle,
+  Users,
+  Calendar,
+  Target,
+  Zap,
+  LayoutGrid,
+  MessageSquare,
+  Clock,
+  Brain,
+  BookOpen,
+  Sparkles,
+  Activity,
+  TrendingUp,
+  ChevronRight
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
-import { requestNotificationPermission, initializeWebPush } from '../../utils/webPush';
 
 const HomePage = () => {
   const { user } = useAppContext();
   const { isDarkMode } = useTheme();
   const [stats, setStats] = useState({
-    projects: 0, documents: 0, completed: 0, meetings: 0
+    projects: 0,
+    documents: 0,
+    completed: 0,
+    meetings: 0
   });
   const [teamStats, setTeamStats] = useState({ managers: 0, users: 0 });
-
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -26,28 +42,34 @@ const HomePage = () => {
         if (!token) return;
 
         const [projects, documents, meetings] = await Promise.all([
-          fetch('http://localhost:9000/api/projects', { headers: { 'x-auth-token': token } }).then(r => r.json()).catch(() => []),
-          fetch('http://localhost:9000/api/documents', { headers: { 'x-auth-token': token } }).then(r => r.json()).catch(() => []),
-          fetch('http://localhost:9000/api/meetings', { headers: { 'x-auth-token': token } }).then(r => r.json()).catch(() => [])
+          fetch('http://localhost:9000/api/projects', { headers: { 'x-auth-token': token } })
+            .then(r => r.json())
+            .catch(() => []),
+          fetch('http://localhost:9000/api/documents', { headers: { 'x-auth-token': token } })
+            .then(r => r.json())
+            .catch(() => []),
+          fetch('http://localhost:9000/api/meetings', { headers: { 'x-auth-token': token } })
+            .then(r => r.json())
+            .catch(() => [])
         ]);
 
         setStats({
-          projects: projects.length,
-          documents: documents.length,
-          completed: projects.filter(p => p.status === 'Done').length,
-          meetings: meetings.length
+          projects: projects.length || 0,
+          documents: documents.length || 0,
+          completed: projects.filter(p => p.status === 'Done').length || 0,
+          meetings: meetings.length || 0
         });
 
-        // Fetch team stats only if not super admin
         if (user?.role !== 'superadmin') {
-          const usersRes = await fetch('http://localhost:9000/api/users', { headers: { 'x-auth-token': token } }).catch(() => ({ json: () => [] }));
+          const usersRes = await fetch('http://localhost:9000/api/users', {
+            headers: { 'x-auth-token': token }
+          }).catch(() => ({ json: () => [] }));
           const users = await usersRes.json();
           setTeamStats({
-            managers: users.filter(u => u.role === 'manager').length,
-            users: users.filter(u => u.role === 'user').length
+            managers: users.filter(u => u.role === 'manager').length || 0,
+            users: users.filter(u => u.role === 'user').length || 0
           });
         }
-
       } catch (error) {
         console.error('Error:', error);
       }
@@ -59,45 +81,6 @@ const HomePage = () => {
     return () => clearInterval(timer);
   }, [user]);
 
-  // Check notification permission status
-  useEffect(() => {
-    if ('Notification' in window) {
-      setNotificationsEnabled(Notification.permission === 'granted');
-    }
-  }, []);
-
-  const handleToggleNotifications = async () => {
-    if (!('Notification' in window)) {
-      alert('This browser does not support notifications');
-      return;
-    }
-
-    if (Notification.permission === 'granted') {
-      alert('Notifications are enabled. To disable them, please change your browser settings.');
-      return;
-    }
-
-    if (Notification.permission === 'denied') {
-      alert('Notifications are blocked. Please enable them in your browser settings.');
-      return;
-    }
-
-    try {
-      const granted = await requestNotificationPermission();
-      if (granted) {
-        await initializeWebPush();
-        setNotificationsEnabled(true);
-        alert('Notifications enabled successfully!');
-      } else {
-        setNotificationsEnabled(false);
-        alert('Notification permission denied.');
-      }
-    } catch (error) {
-      console.error('Error toggling notifications:', error);
-      alert('Failed to enable notifications. Please try again.');
-    }
-  };
-
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
@@ -105,223 +88,178 @@ const HomePage = () => {
     return 'Good evening';
   };
 
+  const statCards = user?.role === 'superadmin'
+    ? [
+        { label: 'Projects', value: stats.projects, icon: Target, color: '#3B82F6', bg: '#EFF6FF' },
+        { label: 'Completed', value: stats.completed, icon: CheckCircle, color: '#10B981', bg: '#ECFDF5' },
+        { label: 'Documents', value: stats.documents, icon: FileText, color: '#8B5CF6', bg: '#F5F3FF' },
+        { label: 'Meetings', value: stats.meetings, icon: Calendar, color: '#F59E0B', bg: '#FFFBEB' }
+      ]
+    : [
+        { label: 'Projects', value: stats.projects, icon: Target, color: '#3B82F6', bg: '#EFF6FF' },
+        { label: 'Completed', value: stats.completed, icon: CheckCircle, color: '#10B981', bg: '#ECFDF5' },
+        { label: 'Managers', value: teamStats.managers, icon: Users, color: '#8B5CF6', bg: '#F5F3FF' },
+        { label: 'Team Members', value: teamStats.users, icon: Users, color: '#F59E0B', bg: '#FFFBEB' }
+      ];
+
   const quickActions = [
-    { name: 'Create Project', desc: 'Start a new project', icon: Plus, path: '/projects', bg: isDarkMode ? 'from-white to-gray-300' : 'from-gray-900 to-black' },
-    { name: 'How it Works', desc: 'Learn the system', icon: Brain, path: '/how-it-works', bg: isDarkMode ? 'from-white to-gray-300' : 'from-gray-900 to-black' },
-    { name: 'Analytics', desc: 'View insights', icon: BarChart3, path: '/reports', bg: isDarkMode ? 'from-white to-gray-300' : 'from-gray-900 to-black' },
-    { name: 'Quick Notes', desc: 'Capture ideas', icon: Zap, path: '/notepad', bg: isDarkMode ? 'from-white to-gray-300' : 'from-gray-900 to-black' }
+    { name: 'Projects', icon: LayoutGrid, path: '/projects', color: '#3B82F6' },
+    { name: 'Documents', icon: FileText, path: '/documents', color: '#8B5CF6' },
+    { name: 'Meeting Notes', icon: MessageSquare, path: '/meeting-notes', color: '#10B981' },
+    { name: 'Notepad', icon: Zap, path: '/notepad', color: '#F59E0B' },
+    { name: 'Reports', icon: BarChart3, path: '/reports', color: '#6366F1' },
+    { name: 'Create Project', icon: Plus, path: '/projects', color: '#14B8A6' }
   ];
 
   return (
-    <div className={`min-h-screen transition-all duration-1000 ${isDarkMode ? 'bg-black' : 'bg-white'
-      }`}>
-
-      {/* Animated Background */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className={`absolute -top-40 -right-40 w-80 h-80 ${isDarkMode ? 'bg-white/5' : 'bg-black/5'
-          } rounded-full blur-3xl animate-pulse`}></div>
-        <div className={`absolute -bottom-40 -left-40 w-96 h-96 ${isDarkMode ? 'bg-white/3' : 'bg-black/3'
-          } rounded-full blur-3xl animate-pulse`} style={{ animationDelay: '2s' }}></div>
+    <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'bg-black text-white' : 'bg-white text-gray-900'}`}>
+      {/* Top Navigation Bar */}
+      <div className={`${isDarkMode ? 'bg-gray-900' : 'bg-gray-900'} text-white`}>
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Activity className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-sm sm:text-lg font-bold truncate">{getGreeting()}, {user?.name || 'User'}</h1>
+                <p className="text-xs text-gray-400">
+                  {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 sm:gap-2 bg-gray-800 px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg flex-shrink-0">
+              <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400" />
+              <span className="text-xs sm:text-sm font-medium">{currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="relative z-10 px-4 py-6 sm:px-6 sm:py-8 max-w-7xl mx-auto">
-
-        {/* Status Bar - Simplified for mobile */}
-        <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 p-4 rounded-2xl ${isDarkMode ? 'bg-white/5 border border-white/10 backdrop-blur-sm' : 'bg-white/70 border border-white/20 backdrop-blur-sm'
-          } shadow-xl`}>
-          <div className="flex items-center space-x-3">
-            <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${isDarkMode ? 'bg-white/20 border border-white/30' : 'bg-black/10 border border-black/20'
-              }`}>
-              <div className={`w-2 h-2 ${isDarkMode ? 'bg-white' : 'bg-black'} rounded-full animate-pulse`}></div>
-              <span className={`text-xs font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                Online
-              </span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Clock className={`w-4 h-4 ${isDarkMode ? 'text-white' : 'text-black'}`} />
-              <span className={`text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </span>
-            </div>
-          </div>
-
-          {/* Notification Toggle Button */}
-          <button
-            onClick={handleToggleNotifications}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-full transition-all duration-300 hover:scale-105 ${
-              notificationsEnabled
-                ? isDarkMode 
-                  ? 'bg-white/20 border border-white/30 hover:bg-white/30' 
-                  : 'bg-black/10 border border-black/20 hover:bg-black/20'
-                : isDarkMode
-                  ? 'bg-gray-500/20 border border-gray-400/30 hover:bg-gray-500/30'
-                  : 'bg-gray-100 border border-gray-200 hover:bg-gray-200'
-            }`}
-            title={notificationsEnabled ? 'Notifications Enabled' : 'Enable Notifications'}
-          >
-            {notificationsEnabled ? (
-              <Bell className={`w-4 h-4 ${isDarkMode ? 'text-white' : 'text-black'}`} />
-            ) : (
-              <BellOff className={`w-4 h-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
-            )}
-            <span className={`text-xs font-medium ${
-              notificationsEnabled
-                ? isDarkMode ? 'text-white' : 'text-black'
-                : isDarkMode ? 'text-gray-400' : 'text-gray-600'
-            }`}>
-              {notificationsEnabled ? 'Notifications On' : 'Enable Notifications'}
-            </span>
-            {notificationsEnabled && (
-              <span className={`text-xs ${isDarkMode ? 'text-white' : 'text-black'}`}>✓</span>
-            )}
-          </button>
-        </div>
-
-        {/* Hero Section - Optimized for mobile with AI Assistant card */}
-        <div className="flex flex-col mb-8 relative">
-          <div className="mb-6">
-            <h1 className={`text-4xl sm:text-5xl font-black mb-3 ${isDarkMode ? 'text-white'
-                : 'text-gray-900'
-              }`}>
-              {getGreeting()},<br />
-              <span className="text-3xl sm:text-4xl">{user?.name?.split(' ')[0] || 'User'}</span>
-            </h1>
-            <p className={`text-lg sm:text-xl ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-2`}>
-              Your productivity dashboard
-            </p>
-            <p className={`text-sm sm:text-base ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
-            </p>
-          </div>
-
-          {/* AI Assistant Card - Desktop version in top right */}
-          <button
-            onClick={() => window.location.href = '/ai-assistant'}
-            className={`hidden sm:block absolute top-0 right-0 p-8 rounded-3xl ${isDarkMode ? 'bg-white/10 border border-white/20 hover:bg-white/20'
-                : 'bg-black/10 border border-black/20 hover:bg-black/20'
-              } backdrop-blur-sm transition-all duration-300 cursor-pointer hover:scale-105 shadow-2xl`}>
-            <div className="flex items-center space-x-5">
-              <Sparkles className={`w-12 h-12 ${isDarkMode ? 'text-white' : 'text-black'} animate-pulse`} />
-              <div className="text-left">
-                <div className={`text-lg font-medium ${isDarkMode ? 'text-gray-100' : 'text-gray-800'}`}>
-                  AI Assistant
-                </div>
-                <div className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  Online
-                </div>
-              </div>
-            </div>
-          </button>
-
-          {/* AI Assistant Button - Mobile version */}
-          <button
-            onClick={() => window.location.href = '/ai-assistant'}
-            className={`flex sm:hidden items-center space-x-4 w-full ${isDarkMode ? 'bg-white/10 border border-white/20'
-                : 'bg-black/10 border border-black/20'
-              } rounded-2xl p-4 backdrop-blur-sm hover:scale-[1.02] transition-all duration-300 cursor-pointer`}>
-            <Sparkles className={`w-8 h-8 ${isDarkMode ? 'text-white' : 'text-black'} animate-pulse`} />
-            <div className="text-left">
-              <div className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                AI Assistant
-              </div>
-              <div className={`text-base font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                Online
-              </div>
-            </div>
-            <ArrowRight className={`w-5 h-5 ml-auto ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
-          </button>
-        </div>
-
-        {/* Stats Dashboard - Responsive grid for mobile */}
-        <div className="grid grid-cols-2 gap-4 mb-8">
-          {(user?.role === 'superadmin' ? [
-            { label: 'Projects', value: stats.projects, icon: Target, color: 'blue' },
-            { label: 'Completed', value: stats.completed, icon: CheckCircle, color: 'green' },
-            { label: 'Documents', value: stats.documents, icon: FileText, color: 'purple' },
-            { label: 'Meetings', value: stats.meetings, icon: Calendar, color: 'orange' },
-          ] : [
-            { label: 'Projects', value: stats.projects, icon: Target, color: 'blue' },
-            { label: 'Completed', value: stats.completed, icon: CheckCircle, color: 'green' },
-            { label: 'Managers', value: teamStats.managers, icon: Users, color: 'purple' },
-            { label: 'Team Members', value: teamStats.users, icon: Users, color: 'orange' },
-          ]).map((stat, index) => (
-            <div key={stat.label} className={`group relative overflow-hidden rounded-2xl ${isDarkMode ? 'bg-white/5 border border-white/10 backdrop-blur-sm' : 'bg-white/70 border border-white/20 backdrop-blur-sm'
-              } p-4 hover:scale-105 transition-all duration-500 shadow-lg hover:shadow-xl`}>
-              <div className="flex items-center justify-between mb-3">
-                <div className={`p-2 rounded-xl bg-${stat.color}-500/20 border border-${stat.color}-400/30`}>
-                  <stat.icon className={`w-5 h-5 text-${stat.color}-400`} />
-                </div>
-                <div className={`w-2 h-2 rounded-full bg-${stat.color}-500 animate-pulse`}></div>
-              </div>
-
-              <div className={`text-2xl font-black mb-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                {stat.value}
-              </div>
-              <div className={`text-xs font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                {stat.label}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Quick Actions - Improved mobile layout */}
-        <div className="mb-8">
-          <h2 className={`text-2xl sm:text-3xl font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-            Smart Actions
-          </h2>
-          <div className="grid grid-cols-2 gap-4">
-            {quickActions.map((action, index) => (
-              <button
-                key={action.name}
-                onClick={() => window.location.href = action.path}
-                className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${action.bg} p-5 ${isDarkMode ? 'text-black' : 'text-white'} shadow-xl hover:shadow-2xl transition-all duration-700 hover:scale-[1.02]`}
-              >
-                <div className="relative z-10">
-                  <div className="flex items-start justify-between mb-4">
-                    <action.icon className="w-8 h-8 group-hover:scale-125 group-hover:rotate-12 transition-all duration-500" />
-                    <ArrowRight className="w-4 h-4 opacity-60 group-hover:opacity-100 transition-opacity duration-300" />
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
+        {/* MELA AI & App Guide - Hero Section */}
+        <div className="mb-6 sm:mb-10">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            {/* MELA AI */}
+            <Link
+              to="/ai-assistant"
+              className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-700 p-5 sm:p-8 text-white shadow-xl"
+            >
+              <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+              <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full blur-2xl"></div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+                  <div className="p-2 sm:p-3 bg-white/20 rounded-lg sm:rounded-xl backdrop-blur-sm">
+                    <Brain className="w-5 h-5 sm:w-7 sm:h-7" />
                   </div>
-                  <h3 className="text-lg sm:text-xl font-bold mb-2 group-hover:scale-105 transition-transform duration-300">
-                    {action.name}
-                  </h3>
-                  <p className="text-white/80 text-xs sm:text-sm group-hover:text-white transition-colors duration-300">
-                    {action.desc}
-                  </p>
+                  <div>
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      <span className="text-xs sm:text-sm font-medium opacity-90">AI Assistant</span>
+                    </div>
+                  </div>
                 </div>
+                <h2 className="text-xl sm:text-3xl font-bold mb-2 sm:mb-3">MELA AI</h2>
+                <p className="text-purple-100 mb-4 sm:mb-6 leading-relaxed text-sm sm:text-base">
+                  Intelligent productivity assistant with full workspace access. Get insights, navigate pages, and optimize your workflow with AI-powered assistance.
+                </p>
+                <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold">
+                  <span>Start Chatting</span>
+                  <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </div>
+              </div>
+            </Link>
 
-                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              </button>
+            {/* App Guide */}
+            <Link
+              to="/how-it-works"
+              className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-600 p-5 sm:p-8 text-white shadow-xl"
+            >
+              <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+              <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full blur-2xl"></div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+                  <div className="p-2 sm:p-3 bg-white/20 rounded-lg sm:rounded-xl backdrop-blur-sm">
+                    <BookOpen className="w-5 h-5 sm:w-7 sm:h-7" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      <span className="text-xs sm:text-sm font-medium opacity-90">Documentation</span>
+                    </div>
+                  </div>
+                </div>
+                <h2 className="text-xl sm:text-3xl font-bold mb-2 sm:mb-3">App Guide</h2>
+                <p className="text-blue-100 mb-4 sm:mb-6 leading-relaxed text-sm sm:text-base">
+                  Complete platform guide covering all features, workflows, and productivity tips. Master the system and maximize your efficiency.
+                </p>
+                <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold">
+                  <span>Read Guide</span>
+                  <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </div>
+              </div>
+            </Link>
+          </div>
+        </div>
+
+        {/* Stats Section */}
+        <div className="mb-6 sm:mb-10">
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <h3 className={`text-lg sm:text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Overview</h3>
+            <TrendingUp className={`w-4 h-4 sm:w-5 sm:h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`} />
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            {statCards.map((stat) => (
+              <div
+                key={stat.label}
+                className={`${isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-100'} rounded-lg sm:rounded-xl border-2 p-4 sm:p-6`}
+                style={{ borderLeftColor: stat.color, borderLeftWidth: '4px' }}
+              >
+                <div className="flex items-center justify-between mb-3 sm:mb-4">
+                  <div 
+                    className="p-2 sm:p-2.5 rounded-lg"
+                    style={{ backgroundColor: stat.bg }}
+                  >
+                    <stat.icon className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: stat.color }} />
+                  </div>
+                </div>
+                <div className={`text-2xl sm:text-3xl font-bold mb-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{stat.value}</div>
+                <div className={`text-xs sm:text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{stat.label}</div>
+              </div>
             ))}
           </div>
         </div>
 
-        {/* Bottom Status - Simplified and hidden as requested */}
-        <div className="hidden">
-          <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl ${isDarkMode ? 'bg-white/5 border border-white/10 backdrop-blur-sm' : 'bg-white/70 border border-white/20 backdrop-blur-sm'
-            } shadow-xl`}>
-            <div className="flex items-center">
-              <Activity className={`w-5 h-5 mr-2 ${isDarkMode ? 'text-white' : 'text-black'}`} />
-              <span className={`text-sm sm:text-base font-bold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                Updated: {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </span>
+        {/* Quick Actions */}
+        <div>
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <div>
+              <h3 className={`text-lg sm:text-xl font-bold mb-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Quick Actions</h3>
+              <p className={`text-xs sm:text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Jump to your most used features</p>
             </div>
-
-            <button
-              onClick={() => window.location.reload()}
-              className={`flex items-center px-3 py-2 rounded-lg ${isDarkMode ? 'bg-white/10 hover:bg-white/20' : 'bg-gray-200 hover:bg-gray-300'
-                } transition-colors duration-200`}
-            >
-              <RefreshCw className={`w-4 h-4 mr-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`} />
-              <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                Refresh
-              </span>
-            </button>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            {quickActions.map((action) => (
+              <Link
+                key={action.name}
+                to={action.path}
+                className={`group ${isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-100'} border-2 rounded-lg sm:rounded-xl p-4 sm:p-5 flex items-center gap-3 sm:gap-4 transition-all`}
+              >
+                <div 
+                  className="p-2.5 sm:p-3 rounded-lg flex-shrink-0"
+                  style={{ backgroundColor: `${action.color}15` }}
+                >
+                  <action.icon className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: action.color }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className={`font-semibold mb-0.5 text-sm sm:text-base ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{action.name}</h4>
+                </div>
+                <ChevronRight className={`w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`} />
+              </Link>
+            ))}
           </div>
         </div>
-
-        {/* Empty div to maintain layout spacing */}
-        <div className="h-4"></div>
-
       </div>
     </div>
   );

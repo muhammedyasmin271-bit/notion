@@ -20,16 +20,16 @@ const SettingsPage = () => {
     <div className={`min-h-screen transition-colors duration-300 ${
       isDarkMode ? 'bg-black text-white' : 'bg-gray-50 text-gray-900'
     }`}>
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">Account Settings</h1>
+      <div className="max-w-4xl mx-auto p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4 sm:mb-6">
+          <h1 className={`text-xl sm:text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Account Settings</h1>
           <ThemeToggle />
         </div>
         
         <div className={`rounded-lg overflow-hidden border ${
           isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
         }`}>
-          <div className={`flex border-b ${
+          <div className={`flex border-b overflow-x-auto ${
             isDarkMode ? 'border-gray-700' : 'border-gray-200'
           }`}>
             {tabs.map(tab => {
@@ -38,7 +38,7 @@ const SettingsPage = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-1 sm:gap-2 px-3 py-2 sm:px-6 sm:py-4 text-sm sm:text-base font-medium transition-colors ${
+                  className={`flex items-center gap-1 sm:gap-2 px-3 py-2 sm:px-6 sm:py-4 text-sm sm:text-base font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
                     activeTab === tab.id 
                       ? 'bg-blue-600 text-white' 
                       : isDarkMode
@@ -53,7 +53,7 @@ const SettingsPage = () => {
             })}
           </div>
           
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             {activeTab === 'profile' && <ProfileTab />}
             {activeTab === 'security' && <SecurityTab />}
             {activeTab === 'preferences' && <PreferencesTab />}

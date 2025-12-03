@@ -596,15 +596,26 @@ const ProjectsPage = () => {
               <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'} text-xs sm:text-lg font-medium`}>Manage and execute projects</p>
             </div>
           </div>
-          <div className="flex items-center">
+          <div className="flex items-center gap-2">
             {canCreateProjects() && (
-              <button
-                onClick={() => addNewProject()}
-                className={`hidden sm:flex items-center px-6 py-3 text-sm font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 transform ${isDarkMode ? 'bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-700 hover:from-blue-600 hover:via-indigo-600 hover:to-purple-600' : 'bg-gradient-to-r from-black via-gray-800 to-slate-700 hover:from-gray-800 hover:via-slate-700 hover:to-gray-600'} text-white`}
-              >
-                <Plus size={16} className="mr-2" />
-                New Project
-              </button>
+              <>
+                {/* Mobile Button */}
+                <button
+                  onClick={() => addNewProject()}
+                  className={`sm:hidden flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 transform ${isDarkMode ? 'bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-700 hover:from-blue-600 hover:via-indigo-600 hover:to-purple-600' : 'bg-gradient-to-r from-black via-gray-800 to-slate-700 hover:from-gray-800 hover:via-slate-700 hover:to-gray-600'} text-white`}
+                  title="New Project"
+                >
+                  <Plus size={20} />
+                </button>
+                {/* Desktop Button */}
+                <button
+                  onClick={() => addNewProject()}
+                  className={`hidden sm:flex items-center px-6 py-3 text-sm font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 transform ${isDarkMode ? 'bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-700 hover:from-blue-600 hover:via-indigo-600 hover:to-purple-600' : 'bg-gradient-to-r from-black via-gray-800 to-slate-700 hover:from-gray-800 hover:via-slate-700 hover:to-gray-600'} text-white`}
+                >
+                  <Plus size={16} className="mr-2" />
+                  New Project
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -1011,7 +1022,7 @@ const ProjectsPage = () => {
                 {filteredProjects.filter(p => p.status === status).map(project => (
                   <div
                     key={project.id}
-                    className={`group relative p-0 rounded-2xl sm:rounded-3xl border-2 cursor-pointer transition-all duration-500 hover:shadow-2xl overflow-hidden shadow-xl backdrop-blur-sm ${isDarkMode ? 'bg-gray-900/70 border-gray-800 hover:bg-gradient-to-br hover:from-gray-900/70 hover:to-blue-900/30' : 'bg-white/90 border-gray-200/60 hover:bg-gradient-to-br hover:from-white hover:to-blue-50/30'}`}
+                    className={`group relative p-0 rounded-2xl sm:rounded-3xl border-2 cursor-pointer transition-all duration-500 overflow-hidden shadow-xl backdrop-blur-sm ${isDarkMode ? 'bg-gray-900/70 border-gray-800 active:bg-amber-900/60 active:border-amber-800' : 'bg-white/90 border-gray-200/60 active:bg-amber-100 active:border-amber-400'}`}
                     onClick={(e) => {
                       const el = e.target;
                       if (

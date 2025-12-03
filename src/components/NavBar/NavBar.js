@@ -1,282 +1,405 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
- Home as HomeIcon,
- LayoutGrid as ProjectsIcon,
- Folder as DocumentsIcon,
- Newspaper as MeetingNotesIcon,
- FileText as NotepadIcon,
- LogOut,
- ChevronDown,
- Search,
- Filter,
- Users,
- Menu,
- X,
- UsersIcon,
- User as ProfileIcon,
- BarChart3 as ReportsIcon,
- Shield,
+  Home,
+  LayoutGrid,
+  Folder,
+  FileText,
+  Newspaper,
+  BarChart3,
+  User,
+  Users,
+  Shield,
+  ChevronDown,
+  ChevronRight,
+  Menu,
+  Sun,
+  Moon,
+  LogOut,
+  Brain,
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
 
 const NavBar = () => {
- const { user, logout, company } = useAppContext();
- const { navbarBgColor, navbarTextColor, navbarBorderColor, buttonColors, isDarkMode } = useTheme();
- const location = useLocation();
- const navigate = useNavigate();
- const [isCollapsed, setIsCollapsed] = useState(false);
- const [searchQuery, setSearchQuery] = useState('');
- const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
- const navRef = useRef(null);
- 
- // Get companyId from URL or localStorage
- const urlParams = new URLSearchParams(location.search);
- const companyIdFromUrl = urlParams.get('company');
- const currentCompanyId = companyIdFromUrl || localStorage.getItem('currentCompanyId');
+  const { user, logout, company } = useAppContext();
+  const { isDarkMode, toggleTheme } = useTheme();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const params = useParams();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
+  const [userFiles, setUserFiles] = useState([]);
+  const [loadingFiles, setLoadingFiles] = useState(false);
+  const [expandedFiles, setExpandedFiles] = useState(true);
+  const navRef = useRef(null);
 
- // Sync body class with sidebar state so pages can adjust layout instantly
- useEffect(() => {
- const body = document.body;
- if (isCollapsed) {
- body.classList.add('sidebar-collapsed');
- body.classList.remove('sidebar-expanded');
- } else {
- body.classList.add('sidebar-expanded');
- body.classList.remove('sidebar-collapsed');
- }
- }, [isCollapsed]);
+  // Get companyId from URL path, query params, or localStorage
+  // Check path parameter first (e.g., /:companyId/admin/payments)
+  const companyIdFromPath = params.companyId;
+  const urlParams = new URLSearchParams(location.search);
+  const companyIdFromQuery = urlParams.get('company');
+  const currentCompanyId = companyIdFromPath || companyIdFromQuery || user?.companyId || localStorage.getItem('currentCompanyId');
 
- // Get current page from URL
- const getCurrentPage = () => {
- const path = location.pathname;
- if (path === '/' || path === '/home') return 'home';
- if (path === '/meeting-notes') return 'meetingNotes';
- if (path === '/user-management') return 'user-management';
- if (path === '/admin') return 'admin';
- return path.substring(1); // Remove leading slash
- };
+  // Check if current path matches
+  const isActive = (path) => {
+    if (path === '/super-admin') {
+      return location.pathname.startsWith('/super-admin');
+    }
+    
+    // For admin routes, check both query param and path-based formats
+    if (path === '/admin' || path.startsWith('/admin')) {
+      const pathBasedAdmin = currentCompanyId ? `/${currentCompanyId}/admin` : null;
+      if (pathBasedAdmin && location.pathname.startsWith(pathBasedAdmin)) {
+        return true;
+      }
+    }
+    
+    // Check exact path match or path starts with the route
+    const exactMatch = location.pathname === path;
+    const startsWith = location.pathname.startsWith(path + '/');
+    
+    // Also check if it's a path-based route with company ID
+    if (currentCompanyId && path !== '/admin') {
+      const pathBased = `/${currentCompanyId}${path}`;
+      if (location.pathname === pathBased || location.pathname.startsWith(pathBased + '/')) {
+        return true;
+      }
+    }
+    
+    return exactMatch || startsWith;
+  };
 
- const currentPage = getCurrentPage();
+  // Track desktop mode
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
- useEffect(() => {
- const handleClickOutside = (event) => {
- if (navRef.current && !navRef.current.contains(event.target) && !event.target.closest('.mobile-menu-button')) {
- setIsMobileMenuOpen(false);
- }
- };
- if (isMobileMenuOpen) {
- document.addEventListener('mousedown', handleClickOutside);
- }
- return () => document.removeEventListener('mousedown', handleClickOutside);
- }, [isMobileMenuOpen]);
+  // Set body class for sidebar state (for content margin)
+  useEffect(() => {
+    const body = document.body;
+    // Sidebar is always expanded on desktop (w-64 = 16rem)
+    // On mobile, it overlays so no margin needed
+    if (isDesktop) {
+      body.classList.add('sidebar-expanded');
+      body.classList.remove('sidebar-collapsed');
+    } else {
+      body.classList.remove('sidebar-expanded');
+      body.classList.remove('sidebar-collapsed');
+    }
+  }, [isDesktop]);
 
- const navItems = user?.role === 'superadmin' ? [
- { name: 'Super Admin', icon: Shield, page: 'super-admin', path: '/super-admin', description: 'Manage companies' },
- ] : [
- { name: 'Home', icon: HomeIcon, page: 'home', path: '/home', description: 'Dashboard overview' },
- { name: 'Projects', icon: ProjectsIcon, page: 'projects', path: '/projects', description: 'Project management' },
- { name: 'Documents', icon: DocumentsIcon, page: 'documents', path: '/documents', description: 'Document hub' },
- { name: 'Notepad', icon: NotepadIcon, page: 'notepad', path: '/notepad', description: 'Personal notes & ideas' },
- { name: 'Meeting Notes', icon: MeetingNotesIcon, page: 'meetingNotes', path: '/meeting-notes', description: 'Meeting summaries' },
- { name: 'Reports', icon: ReportsIcon, page: 'reports', path: '/reports', description: 'Analytics & insights' },
- { name: 'Profile', icon: ProfileIcon, page: 'profile', path: '/profile', description: 'User profile & settings' },
- { name: 'User Management', icon: UsersIcon, page: 'user-management', path: '/user-management', description: 'User management' },
- { name: 'Admin', icon: Shield, page: 'admin', path: '/admin', description: 'Admin dashboard' },
- ];
+  // Fetch user-specific files
+  useEffect(() => {
+    const fetchUserFiles = async () => {
+      if (!user) return;
+      
+      setLoadingFiles(true);
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setLoadingFiles(false);
+          return;
+        }
 
- const handleLogout = () => {
- console.log('Logout button clicked');
- try {
- logout();
- // Super admin should always go to main login page
- if (user?.role === 'superadmin') {
- navigate('/login');
- } else if (currentCompanyId) {
- navigate(`/login?company=${currentCompanyId}`);
- } else {
- navigate('/login');
- }
- console.log('Logout function called successfully');
- } catch (error) {
- console.error('Error during logout:', error);
- }
- };
+        // Fetch documents that belong to the user or are shared with them
+        const response = await fetch('http://localhost:9000/api/documents', {
+          headers: {
+            'x-auth-token': token,
+            'Content-Type': 'application/json'
+          }
+        });
 
- const filteredNavItems = navItems.filter(item => {
- // Super admin only sees super admin page
- if (user?.role === 'superadmin') {
- return true;
- }
- 
- // Filter out Admin button for non-admin users
- if (item.page === 'admin' && user?.role !== 'admin') {
- return false;
- }
- 
- // Filter out User Management for regular users (only show to admin and manager)
- if (item.page === 'user-management' && !['admin', 'manager'].includes(user?.role)) {
- return false;
- }
- 
- // Filter by search query
- return item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
- item.description.toLowerCase().includes(searchQuery.toLowerCase());
- });
+        if (response.ok) {
+          const documents = await response.json();
+          const userId = user.id || user._id;
+          const userIdString = String(userId);
+          
+          console.log('Fetched documents:', documents.length);
+          console.log('Current user ID:', userIdString);
+          
+          // Filter to only show files that belong to the user or are shared with them
+          // Handle different author formats: object with _id, string ID, or direct match
+          const userSpecificFiles = documents
+            .filter(doc => {
+              // Check if user is the owner
+              const authorId = doc.author?._id || doc.author;
+              const authorIdString = authorId ? String(authorId) : null;
+              const isOwner = authorIdString === userIdString;
+              
+              // Check if file is shared with user
+              const isSharedWith = doc.sharedWith?.some(shared => {
+                const sharedUserId = shared.user?._id || shared.user;
+                return sharedUserId ? String(sharedUserId) === userIdString : false;
+              });
+              
+              return isOwner || isSharedWith;
+            })
+            .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
+            .slice(0, 10)
+            .map(doc => {
+              const authorId = doc.author?._id || doc.author;
+              const authorIdString = authorId ? String(authorId) : null;
+              const isOwner = authorIdString === userIdString;
+              
+              return {
+                id: doc._id || doc.id,
+                name: doc.title || 'Untitled',
+                type: doc.type || 'document',
+                isOwner: isOwner,
+                isShared: !isOwner,
+                updatedAt: doc.updatedAt || doc.createdAt
+              };
+            });
+          
+          console.log('User-specific files:', userSpecificFiles.length);
+          setUserFiles(userSpecificFiles);
+        } else {
+          console.error('Failed to fetch documents:', response.status);
+        }
+      } catch (error) {
+        console.error('Error fetching user files:', error);
+      } finally {
+        setLoadingFiles(false);
+      }
+    };
 
- const handleNavClick = (path) => {
- setIsMobileMenuOpen(false);
- navigate(path);
- };
+    fetchUserFiles();
+  }, [user]);
 
- return (
- <>
- {/* Mobile Menu Button */}
- <button
- onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
- className="lg:hidden sticky left-0 top-0 z-50 mobile-menu-button"
- title="Toggle menu"
- >
- <Menu size={20} />
- </button>
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (navRef.current && !navRef.current.contains(event.target) && !event.target.closest('.mobile-menu-button')) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+    if (isMobileMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isMobileMenuOpen]);
 
- {/* Mobile Overlay */}
- {isMobileMenuOpen && (
- <div
- className="lg:hidden mobile-sidebar-overlay"
- onClick={() => setIsMobileMenuOpen(false)}
- />
- )}
+  const toggleFiles = () => {
+    setExpandedFiles(prev => !prev);
+  };
 
- {/* Sidebar Navigation */}
- <nav ref={navRef} className={`${isDarkMode ? 'bg-gray-900' : 'bg-white'} ${navbarTextColor} transition-all duration-300 ease-in-out shadow-2xl border-r ${navbarBorderColor} ${isCollapsed ? 'lg:w-20' : 'lg:w-64'} w-64 min-h-screen ${isCollapsed ? 'lg:p-2' : 'p-3 lg:p-4'} fixed z-50 lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
- } flex flex-col overflow-hidden`}>
- <div className={`flex items-center ${isCollapsed ? 'lg:justify-center' : 'justify-between'} mb-6 lg:mb-6 mb-8 flex-shrink-0`}>
- <div className={`flex items-center ${isCollapsed ? 'lg:hidden' : ''}`}>
- <div className="relative">
- <img
- src={company?.branding?.logo || "/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png"}
- alt={`${company?.name || 'Mela Note'} Logo`}
- className={`h-10 w-10 lg:h-12 lg:w-12 mr-3 object-contain ${isDarkMode ? 'filter brightness-0 invert' : ''}`}
- />
- <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
- </div>
- <h1 className={`text-xl lg:text-2xl font-bold whitespace-nowrap ${isDarkMode ? 'bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent' : 'text-gray-900'}`}>
- {company?.branding?.companyName || company?.name || 'MELA NOTE'}
- </h1>
- </div>
- <button
- onClick={() => setIsCollapsed(!isCollapsed)}
- className={`hidden lg:block p-2 rounded-lg transition-all duration-200 ${isDarkMode ? ' bg-white/10' : ' bg-gray-100'}`}
- title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
- >
- <Menu size={20} />
- </button>
- <button
- onClick={() => setIsMobileMenuOpen(false)}
- className={`lg:hidden p-2 rounded-xl transition-all duration-200 ${isDarkMode ? ' bg-white/10' : ' bg-gray-100'}`}
- title="Close menu"
- >
- <X size={22} />
- </button>
- </div>
+  const handleLogout = () => {
+    try {
+      logout();
+      if (user?.role === 'superadmin') {
+        navigate('/login');
+      } else if (currentCompanyId) {
+        navigate(`/login?company=${currentCompanyId}`);
+      } else {
+        navigate('/login');
+      }
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
+  };
+
+  // Helper function to build navigation path with company ID
+  const buildNavPath = (path) => {
+    if (!currentCompanyId) return path;
+    
+    // For admin routes, use path-based format (/:companyId/admin)
+    if (path === '/admin' || path.startsWith('/admin')) {
+      const adminPath = path === '/admin' ? '' : path.replace('/admin', '');
+      return `/${currentCompanyId}/admin${adminPath}`;
+    }
+    
+    // For other routes, use query parameter format
+    return `${path}?company=${currentCompanyId}`;
+  };
+
+  const handleNavClick = (e, path) => {
+    setIsMobileMenuOpen(false);
+    const targetPath = buildNavPath(path);
+    navigate(targetPath, { replace: false });
+  };
+
+  // Main navigation items - different for superadmin vs regular users
+  const mainNavItems = user?.role === 'superadmin' 
+    ? [
+        { name: 'Super Admin', icon: Shield, path: '/super-admin' },
+      ]
+    : [
+        { name: 'Projects', icon: LayoutGrid, path: '/projects' },
+        { name: 'Documents', icon: Folder, path: '/documents' },
+        { name: 'Notepad', icon: FileText, path: '/notepad' },
+        { name: 'Meeting Notes', icon: Newspaper, path: '/meeting-notes' },
+        { name: 'Reports', icon: BarChart3, path: '/reports' },
+        { name: 'MELA AI', icon: Brain, path: '/home' },
+        { name: 'Profile', icon: User, path: '/profile' },
+        { name: 'User Management', icon: Users, path: '/user-management' },
+        { name: 'Admin', icon: Shield, path: '/admin' },
+      ].filter(item => {
+        // Filter out Admin button for non-admin users
+        if (item.path === '/admin' && user?.role !== 'admin') {
+          return false;
+        }
+        // Filter out User Management for regular users (only show to admin and manager)
+        if (item.path === '/user-management' && !['admin', 'manager'].includes(user?.role)) {
+          return false;
+        }
+        return true;
+      });
 
 
+  return (
+    <>
+      {/* Mobile Menu Button */}
+      <button
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        className={`lg:hidden sticky left-0 top-0 z-50 mobile-menu-button p-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
+        title="Toggle menu"
+      >
+        <Menu size={20} />
+      </button>
 
- <div 
- className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent"
- onWheel={(e) => {
- const target = e.currentTarget;
- const atTop = target.scrollTop === 0;
- const atBottom = target.scrollHeight - target.scrollTop === target.clientHeight;
- 
- // Only allow scrolling within the navbar if not at boundaries
- if ((e.deltaY < 0 && atTop) || (e.deltaY > 0 && atBottom)) {
- return; // Allow default behavior if at boundaries
- }
- 
- e.stopPropagation();
- e.preventDefault();
- target.scrollTop += e.deltaY;
- }}
- >
- <ul className="space-y-1.5 lg:space-y-2 pb-24">
- {filteredNavItems.map((item) => (
- <li key={item.name}>
- <Link
- to={currentCompanyId ? `${item.path}?company=${currentCompanyId}` : item.path}
- className={`flex items-center ${isCollapsed ? 'lg:justify-center' : ''} w-full px-3 py-3 lg:px-4 lg:py-2 text-sm font-medium rounded-lg transition-all duration-200 group transform ${currentPage === item.page
- ? isDarkMode
- ? 'bg-white text-gray-900 shadow-lg border border-white/20 scale-105'
- : 'bg-gray-900 text-white shadow-lg border border-gray-900 scale-105'
- : isDarkMode 
- ? ` active:bg-white/20 active:scale-95 active:shadow-lg`
- : ` active:bg-black active:scale-95 active:shadow-lg`
- }`}
- onClick={() => setIsMobileMenuOpen(false)}
- title={isCollapsed ? item.name : ''}
- >
- <item.icon className={`${isCollapsed ? '' : 'mr-3'} transition-colors duration-200 ${currentPage === item.page ? (isDarkMode ? 'text-gray-900' : 'text-white') : isDarkMode ? 'text-gray-400 group-' : 'text-gray-600 group-'}`} size={20} />
- <div className={`flex-1 text-left ${isCollapsed ? 'lg:hidden' : ''}`}>
- <div className="flex flex-col">
- <span className="font-medium">{item.name}</span>
- {item.description && (
- <span className={`text-xs mt-0.5 transition-opacity duration-200 ${currentPage === item.page
- ? isDarkMode
- ? 'text-gray-700 opacity-90'
- : 'text-gray-300 opacity-90'
- : isDarkMode 
- ? 'text-gray-400 opacity-70 group- group-'
- : 'text-gray-500 opacity-80 group- group-'
- }`}>
- {item.description}
- </span>
- )}
- </div>
- </div>
- </Link>
- </li>
- ))}
+      {/* Mobile Overlay */}
+      {isMobileMenuOpen && (
+        <div
+          className="lg:hidden mobile-sidebar-overlay fixed inset-0 bg-black/50 z-40"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
 
- <li className={`pt-4 border-t ${isDarkMode ? 'border-white/20' : 'border-gray-200'}`}>
- <button
- onClick={handleLogout}
- className={`flex items-center ${isCollapsed ? 'lg:justify-center' : ''} w-full px-3 py-3 lg:px-4 lg:py-2 text-sm font-medium rounded-lg bg-gradient-to-r from-red-600 to-red-700 active:from-red-800 active:to-red-900 text-white transition-all duration-200 shadow-lg transform active:scale-95`}
- title={isCollapsed ? 'Logout' : ''}
- >
- <LogOut className={isCollapsed ? '' : 'mr-3'} size={20} />
- <span className={isCollapsed ? 'lg:hidden' : ''}>Logout</span>
- </button>
- </li>
- </ul>
- </div>
+      {/* Sidebar Navigation */}
+      <nav
+        ref={navRef}
+        className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} transition-all duration-300 ease-in-out border-r ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} w-64 min-h-screen fixed z-50 lg:translate-x-0 ${
+          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        } flex flex-col overflow-hidden`}
+      >
+        {/* Header Section with Company Logo, Name, and Theme Toggle */}
+        <div className={`flex items-center justify-between p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} flex-shrink-0`}>
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            {/* Company Logo */}
+            <img
+              src={company?.branding?.logo || "/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png"}
+              alt={`${company?.name || 'Company'} Logo`}
+              className="h-12 w-12 object-contain flex-shrink-0"
+            />
+            {/* Company Name */}
+            <h2 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} truncate`}>
+              {company?.branding?.companyName || company?.name || 'Company'}
+            </h2>
+          </div>
+          {/* Theme Toggle Button */}
+          <button
+            onClick={toggleTheme}
+            className={`p-1.5 ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} rounded flex-shrink-0 transition-colors`}
+            title={`Switch to ${isDarkMode ? 'light' : 'dark'} mode`}
+          >
+            {isDarkMode ? (
+              <Sun className="w-5 h-5 text-yellow-500" />
+            ) : (
+              <Moon className="w-5 h-5 text-gray-600" />
+            )}
+          </button>
+        </div>
 
- <div className={`absolute bottom-4 ${isCollapsed ? 'lg:left-2 lg:right-2' : 'left-3 right-3 lg:left-4 lg:right-4'} flex-shrink-0`}>
- <div className={`p-3 rounded-2xl border shadow-xl ${isCollapsed ? 'lg:flex lg:justify-center lg:p-2' : ''} ${
- isDarkMode 
- ? 'bg-gradient-to-r from-white/20 to-blue-500/20 border-white/20 backdrop-blur-md' 
- : 'bg-gradient-to-r from-gray-100 to-blue-100 border-gray-200'
- }`}>
- <div className={`flex items-center ${isCollapsed ? 'lg:flex-col lg:space-x-0' : 'space-x-3'}`}>
- <div className="relative" title={isCollapsed ? `${user?.name} (${user?.role})` : ''}>
- <div className="w-10 h-10 lg:w-8 lg:h-8 bg-gradient-to-br from-blue-400 to-indigo-600 rounded-full flex items-center justify-center shadow-lg">
- <span className="text-sm font-bold text-white">{user?.name?.charAt(0)}</span>
- </div>
- <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 ${isDarkMode ? 'border-white' : 'border-gray-100'}`}></div>
- </div>
- <div className={`flex-1 min-w-0 ${isCollapsed ? 'lg:hidden' : ''}`}>
- <p className={`text-sm font-semibold truncate ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{user?.name}</p>
- <p className={`text-xs capitalize font-medium ${isDarkMode ? 'text-blue-200' : 'text-gray-600'}`}>
- {user?.role === 'superadmin' ? 'Super Admin' : user?.role}
- </p>
- </div>
- </div>
- </div>
- </div>
- </nav>
- </>
- );
+        {/* Main Navigation Section */}
+        <div className="flex-1 overflow-y-auto p-3">
+          <div className="space-y-1">
+            {mainNavItems.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.path);
+              const navPath = buildNavPath(item.path);
+              
+              return (
+                <Link
+                  key={item.path}
+                  to={navPath}
+                  onClick={(e) => {
+                    handleNavClick(e, item.path);
+                    // Ensure the Link navigation happens
+                  }}
+                  className={`flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
+                    active
+                      ? isDarkMode ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-900'
+                      : isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon className="w-4 h-4" />
+                    <span className="text-sm font-medium">{item.name}</span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* User Files Section */}
+          <div className="mt-6">
+            <button
+              onClick={toggleFiles}
+              className={`flex items-center gap-2 w-full px-3 py-2 text-sm font-medium ${isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'} rounded-lg transition-colors`}
+            >
+              {expandedFiles ? (
+                <ChevronDown className="w-4 h-4" />
+              ) : (
+                <ChevronRight className="w-4 h-4" />
+              )}
+              <span>My Files</span>
+            </button>
+            
+            {expandedFiles && (
+              <div className="ml-4 mt-1 space-y-1">
+                {loadingFiles ? (
+                  <div className={`px-3 py-2 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    Loading...
+                  </div>
+                ) : userFiles.length === 0 ? (
+                  <div className={`px-3 py-2 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    No files yet
+                  </div>
+                ) : (
+                  userFiles.map((file) => (
+                    <Link
+                      key={file.id}
+                      to={currentCompanyId ? `/documents?company=${currentCompanyId}&file=${file.id}` : `/documents?file=${file.id}`}
+                      onClick={(e) => handleNavClick(e, '/documents')}
+                      className={`flex items-center gap-2 w-full px-3 py-2 text-sm ${isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'} rounded-lg transition-colors`}
+                      title={file.name}
+                    >
+                      <FileText className="w-4 h-4" />
+                      <span className="truncate flex-1">{file.name}</span>
+                      {file.isShared && (
+                        <span className={`text-xs px-1.5 py-0.5 rounded ${isDarkMode ? 'bg-blue-900 text-blue-300' : 'bg-blue-100 text-blue-700'}`}>
+                          Shared
+                        </span>
+                      )}
+                    </Link>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Logout Button at Bottom */}
+          <div className={`mt-auto border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} p-3`}>
+            <button
+              onClick={handleLogout}
+              className={`flex items-center gap-3 w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                isDarkMode 
+                  ? 'text-red-400 hover:bg-red-900/20 hover:text-red-300' 
+                  : 'text-red-600 hover:bg-red-50 hover:text-red-700'
+              }`}
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Logout</span>
+            </button>
+          </div>
+        </div>
+      </nav>
+    </>
+  );
 };
 
 export default NavBar;

@@ -92,17 +92,12 @@ router.post('/register', upload.array('files'), [
       return res.status(403).json({ message: 'This company is currently paused and not accepting new registrations.' });
     }
 
-    // Check if company has reached its user limit
-    const currentUserCount = await User.countDocuments({ 
-      companyId: userCompanyId,
-      status: { $ne: 'declined' } // Don't count declined users
-    });
-
-    const maxUsers = company.limits?.maxUsers || 50;
-    if (currentUserCount >= maxUsers) {
-      return res.status(403).json({ 
-        message: `This company has reached its maximum user limit (${maxUsers} users). Please contact your administrator.` 
-      });
+    // Check user limit with SMS notifications
+    const { checkUserLimit } = require('../services/userLimitService');
+    const limitCheck = await checkUserLimit(userCompanyId, true);
+    
+    if (!limitCheck.canAdd) {
+      return res.status(403).json({ message: limitCheck.message });
     }
     
     // Determine role with bootstrap rule: allow first manager if none exists
@@ -164,6 +159,11 @@ router.post('/register', upload.array('files'), [
       status: user.status,
       isActive: user.isActive
     });
+
+    // Check if we reached 100% limit and send SMS if needed
+    if (limitCheck.reachedLimit) {
+      console.log('📱 Company reached 100% user limit, SMS notification sent');
+    }
 
     // If user needs approval, don't create token - redirect to pending page
     if (user.status === 'pending') {
@@ -559,22 +559,12 @@ router.post('/register-user', requireManager, [
       return res.status(400).json({ message: 'Username already exists' });
     }
 
-    // Check if company has reached its user limit
-    const Company = require('../models/Company');
-    const company = await Company.findOne({ companyId: req.user.companyId });
+    // Check user limit with SMS notifications
+    const { checkUserLimit } = require('../services/userLimitService');
+    const limitCheck = await checkUserLimit(req.user.companyId, true);
     
-    if (company) {
-      const currentUserCount = await User.countDocuments({ 
-        companyId: req.user.companyId,
-        status: { $ne: 'declined' }
-      });
-
-      const maxUsers = company.limits?.maxUsers || 50;
-      if (currentUserCount >= maxUsers) {
-        return res.status(403).json({ 
-          message: `Your company has reached its maximum user limit (${maxUsers} users). Please contact the super administrator to increase the limit.` 
-        });
-      }
+    if (!limitCheck.canAdd) {
+      return res.status(403).json({ message: limitCheck.message });
     }
 
     // Create new user
@@ -590,6 +580,11 @@ router.post('/register-user', requireManager, [
     });
 
     await user.save();
+
+    // Check if we reached 100% limit and send SMS if needed
+    if (limitCheck.reachedLimit) {
+      console.log('📱 Company reached 100% user limit, SMS notification sent');
+    }
 
     // Send welcome email if user has email
     if (user.email) {
@@ -707,30 +702,25 @@ router.put('/users/:id/approve', requireManager, async (req, res) => {
       return res.status(400).json({ message: 'User is already approved' });
     }
 
-    // Check if company has reached its user limit (only if approving from pending status)
+    // Check user limit with SMS notifications (only if approving from pending status)
+    let limitCheck = null;
     if (user.status === 'pending') {
-      const Company = require('../models/Company');
-      const company = await Company.findOne({ companyId: user.companyId });
+      const { checkUserLimit } = require('../services/userLimitService');
+      limitCheck = await checkUserLimit(user.companyId, true);
       
-      if (company) {
-        const currentUserCount = await User.countDocuments({ 
-          companyId: user.companyId,
-          status: 'approved',
-          isActive: true
-        });
-
-        const maxUsers = company.limits?.maxUsers || 50;
-        if (currentUserCount >= maxUsers) {
-          return res.status(403).json({ 
-            message: `Cannot approve user. Company has reached its maximum user limit (${maxUsers} users). Please contact the super administrator to increase the limit.` 
-          });
-        }
+      if (!limitCheck.canAdd) {
+        return res.status(403).json({ message: limitCheck.message });
       }
     }
 
     user.status = 'approved';
     user.isActive = true;
     await user.save();
+
+    // Check if we reached 100% limit and send SMS if needed
+    if (limitCheck?.reachedLimit) {
+      console.log('📱 Company reached 100% user limit after approval, SMS notification sent');
+    }
 
     res.json({
       message: 'User approved successfully',
@@ -846,30 +836,25 @@ router.put('/admin/users/:id/approve', requireAdmin, async (req, res) => {
       return res.status(400).json({ message: 'User is already approved' });
     }
 
-    // Check if company has reached its user limit (only if approving from pending status)
+    // Check user limit with SMS notifications (only if approving from pending status)
+    let limitCheck = null;
     if (user.status === 'pending') {
-      const Company = require('../models/Company');
-      const company = await Company.findOne({ companyId: user.companyId });
+      const { checkUserLimit } = require('../services/userLimitService');
+      limitCheck = await checkUserLimit(user.companyId, true);
       
-      if (company) {
-        const currentUserCount = await User.countDocuments({ 
-          companyId: user.companyId,
-          status: 'approved',
-          isActive: true
-        });
-
-        const maxUsers = company.limits?.maxUsers || 50;
-        if (currentUserCount >= maxUsers) {
-          return res.status(403).json({ 
-            message: `Cannot approve user. Company has reached its maximum user limit (${maxUsers} users). Please contact the super administrator to increase the limit.` 
-          });
-        }
+      if (!limitCheck.canAdd) {
+        return res.status(403).json({ message: limitCheck.message });
       }
     }
 
     user.status = 'approved';
     user.isActive = true;
     await user.save();
+
+    // Check if we reached 100% limit and send SMS if needed
+    if (limitCheck?.reachedLimit) {
+      console.log('📱 Company reached 100% user limit after approval, SMS notification sent');
+    }
 
     res.json({
       message: 'User approved successfully',

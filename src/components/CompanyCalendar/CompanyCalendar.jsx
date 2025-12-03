@@ -7,6 +7,12 @@ const CompanyCalendar = ({ company }) => {
   const [timeRemaining, setTimeRemaining] = useState(null);
 
   useEffect(() => {
+    // If company is in free mode, don't show any countdown
+    if (company?.paymentMode === 'free') {
+      setTimeRemaining(null);
+      return;
+    }
+    
     // Determine which deadline to use based on company status
     let deadline = null;
     
@@ -45,7 +51,7 @@ const CompanyCalendar = ({ company }) => {
     const interval = setInterval(updateTimer, 1000);
 
     return () => clearInterval(interval);
-  }, [company?.paymentDeadline, company?.gracePeriodDeadline, company?.paymentPeriodEnd, company?.hasPaid]);
+  }, [company?.paymentDeadline, company?.gracePeriodDeadline, company?.paymentPeriodEnd, company?.hasPaid, company?.paymentMode]);
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
@@ -178,8 +184,43 @@ const CompanyCalendar = ({ company }) => {
           </div>
         )}
 
+        {/* Free Mode Display */}
+        {company?.paymentMode === 'free' && (
+          <div className={`p-5 sm:p-6 rounded-xl border-2 ${
+            isDarkMode 
+              ? 'bg-green-900/20 border-green-700/50' 
+              : 'bg-green-50 border-green-300'
+          }`}>
+            <div className="flex items-center gap-3 mb-4">
+              <DollarSign className={`w-6 h-6 sm:w-7 sm:h-7 text-green-500`} />
+              <span className={`text-lg sm:text-xl font-black ${
+                isDarkMode ? 'text-white' : 'text-gray-900'
+              }`}>
+                Company Status
+              </span>
+            </div>
+            <div className="text-center">
+              <p className={`text-5xl sm:text-6xl font-black mb-3 ${
+                isDarkMode ? 'text-green-400' : 'text-green-600'
+              }`}>
+                FREE
+              </p>
+              <p className={`text-base sm:text-lg font-bold mb-2 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                No Payment Required
+              </p>
+              <p className={`text-sm sm:text-base font-semibold ${
+                isDarkMode ? 'text-green-300' : 'text-green-600'
+              }`}>
+                ✅ Company can operate without restrictions
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Time Remaining Display - Shows hours for unpaid paid plans, days for free trial/paid periods */}
-        {timeRemaining && !timeRemaining.passed && (
+        {company?.paymentMode !== 'free' && timeRemaining && !timeRemaining.passed && (
           <div className={`p-5 sm:p-6 rounded-xl border-2 ${
             timeRemaining.days === 0
               ? isDarkMode 
@@ -266,7 +307,7 @@ const CompanyCalendar = ({ company }) => {
         )}
 
         {/* Current Deadline */}
-        {currentDeadline && (
+        {company?.paymentMode !== 'free' && currentDeadline && (
           <div className={`p-4 rounded-xl border-2 ${
             isWithin24Hours
               ? isDarkMode 

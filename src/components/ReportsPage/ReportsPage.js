@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAppContext } from '../../context/AppContext';
-import { FileText, BarChart3, Plus, Grid, LayoutList, Star, TrendingUp, Clock, Eye, CheckCircle, Calendar, Users, Trash2 } from 'lucide-react';
+import { FileText, BarChart3, Plus, Calendar, Users, Trash2, ExternalLink, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const ReportsPage = () => {
@@ -10,9 +10,7 @@ const ReportsPage = () => {
   const navigate = useNavigate();
   const [reports, setReports] = useState([]);
   const [sharedReports, setSharedReports] = useState([]);
-  const [activeTab, setActiveTab] = useState('my-reports');
   const [adminSharedReports, setAdminSharedReports] = useState([]);
-  const [viewMode, setViewMode] = useState('list');
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -89,288 +87,306 @@ const ReportsPage = () => {
     }
   };
 
-  return (
-    <div className={`min-h-screen transition-colors duration-200 ${
-      isDarkMode 
-        ? 'bg-black text-white' 
-        : 'bg-white text-gray-900'
-    }`}>
-      <div className={`backdrop-blur-sm border-b shadow-2xl ${
-        isDarkMode 
-          ? 'bg-gray-900/50 border-gray-700/50' 
-          : 'bg-white/50 border-gray-200/50'
-      }`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3 sm:gap-6">
-              <div className={`p-2 sm:p-4 rounded-xl sm:rounded-2xl ${isDarkMode ? 'bg-white' : 'bg-black'} shadow-lg`}>
-                <BarChart3 className={`w-6 h-6 sm:w-10 sm:h-10 ${isDarkMode ? 'text-black' : 'text-white'}`} />
-              </div>
-              <div>
-                <h1 className={`text-2xl sm:text-4xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                  Reports Dashboard
-                </h1>
-                <p className={`mt-1 sm:mt-2 text-sm sm:text-lg ${
-                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                }`}>
-                  Manage and create professional reports
-                </p>
-              </div>
+  const renderReportCard = (report, reportType = 'my-report') => {
+    const reportId = report._id || report.id;
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    
+    // Properly extract owner name
+    let ownerName = 'Unknown User';
+    
+    // If it's the user's own report, use their name
+    if (reportType === 'my-report' && currentUser.name) {
+      ownerName = currentUser.name;
+    } else if (report.owner) {
+      if (typeof report.owner === 'string') {
+        // If owner is a string, check if it's an ID (long hex string) or a name
+        // IDs are typically 24 characters (MongoDB ObjectId) or longer
+        if (report.owner.length > 20) {
+          // It's likely an ID, check if it matches current user
+          if (currentUser.id === report.owner || currentUser._id === report.owner) {
+            ownerName = currentUser.name || currentUser.username || 'You';
+          } else {
+            ownerName = 'Unknown User';
+          }
+        } else {
+          ownerName = report.owner;
+        }
+      } else if (report.owner.name) {
+        ownerName = report.owner.name;
+      } else if (report.owner.username) {
+        ownerName = report.owner.username;
+      } else if (report.owner._id) {
+        // Check if owner ID matches current user
+        if (currentUser.id === report.owner._id || currentUser._id === report.owner._id) {
+          ownerName = currentUser.name || currentUser.username || 'You';
+        } else {
+          ownerName = 'Unknown User';
+        }
+      } else {
+        ownerName = 'Unknown User';
+      }
+    }
+    
+    // Don't show "Unknown User" if we can determine it's the current user
+    if (ownerName === 'Unknown User' && reportType === 'my-report' && currentUser.name) {
+      ownerName = currentUser.name;
+    }
+    
+    const createdAt = report.createdAt;
+    const formattedDate = createdAt ? new Date(createdAt).toLocaleDateString('en-GB', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: 'numeric' 
+    }) : 'N/A';
+    const isOwnReport = reportType === 'my-report';
+
+    // Determine badge label and color based on report type
+    const getTypeBadge = () => {
+      if (isDarkMode) {
+        switch (reportType) {
+          case 'my-report':
+            return { label: 'My Report', bgColor: 'bg-blue-900/30', textColor: 'text-blue-300' };
+          case 'shared-with-me':
+            return { label: 'Shared with Me', bgColor: 'bg-purple-900/30', textColor: 'text-purple-300' };
+          case 'shared':
+            return { label: 'Shared', bgColor: 'bg-orange-900/30', textColor: 'text-orange-300' };
+          default:
+            return { label: 'Report', bgColor: 'bg-gray-800', textColor: 'text-gray-300' };
+        }
+      } else {
+        switch (reportType) {
+          case 'my-report':
+            return { label: 'My Report', bgColor: 'bg-blue-100', textColor: 'text-blue-800' };
+          case 'shared-with-me':
+            return { label: 'Shared with Me', bgColor: 'bg-purple-100', textColor: 'text-purple-800' };
+          case 'shared':
+            return { label: 'Shared', bgColor: 'bg-orange-100', textColor: 'text-orange-800' };
+          default:
+            return { label: 'Report', bgColor: 'bg-gray-100', textColor: 'text-gray-800' };
+        }
+      }
+    };
+
+    const typeBadge = getTypeBadge();
+
+    return (
+      <div 
+        key={reportId} 
+        onClick={() => {
+          const companyId = user?.companyId || 'melanote';
+          navigate(`/${companyId}/submit-report?edit=${reportId}`);
+        }}
+        className={`${isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'} rounded-xl shadow-sm border p-4 sm:p-5 hover:shadow-md transition-all duration-200 cursor-pointer relative group`}
+      >
+        {/* ID Header with Type Badge */}
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+            <span className={`text-xs sm:text-sm font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+              ID: #{String(reportId).slice(-5)}
+            </span>
+            <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-semibold ${typeBadge.bgColor} ${typeBadge.textColor}`}>
+              {typeBadge.label}
+            </span>
+          </div>
+          <ExternalLink className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0`} />
+        </div>
+
+        {/* Report Title */}
+        <div className="mb-3 sm:mb-4">
+          <p className={`text-xs sm:text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Title:</p>
+          <h3 className={`text-sm sm:text-base font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} line-clamp-2`}>
+            {report.title || 'Untitled Report'}
+          </h3>
+        </div>
+
+        {/* Due Date */}
+        <div className="mb-2 sm:mb-3">
+          <p className={`text-xs sm:text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Created Date:</p>
+          <div className="inline-flex items-center">
+            <Calendar className={`w-3 h-3 mr-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`} />
+            <span className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-medium ${isDarkMode ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-800'}`}>
+              {formattedDate}
+            </span>
+          </div>
+        </div>
+
+        {/* Assignee/Owner */}
+        <div className="mb-2 sm:mb-3">
+          <p className={`text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Owner:</p>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full ${isDarkMode ? 'bg-blue-900' : 'bg-blue-100'} flex items-center justify-center flex-shrink-0`}>
+              <span className={`text-xs font-bold ${isDarkMode ? 'text-blue-200' : 'text-blue-700'}`}>
+                {ownerName.charAt(0).toUpperCase()}
+              </span>
             </div>
+            <span className={`text-xs sm:text-sm font-medium truncate ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>
+              {ownerName}
+            </span>
+          </div>
+        </div>
+
+        {/* Shared With Info */}
+        {report.sharedWith && report.sharedWith.length > 0 && (
+          <div className="mb-2 sm:mb-3">
+            <p className={`text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Shared With:</p>
+            <div className="flex items-center gap-1 flex-wrap">
+              {report.sharedWith.slice(0, 3).map((user, idx) => (
+                <div key={idx} className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full ${isDarkMode ? 'bg-gray-800' : 'bg-gray-200'} flex items-center justify-center flex-shrink-0`}>
+                  <span className={`text-xs font-bold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                  </span>
+                </div>
+              ))}
+              {report.sharedWith.length > 3 && (
+                <span className={`text-xs font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  +{report.sharedWith.length - 3} more
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Status and Actions */}
+        <div className={`flex items-center justify-between mt-3 sm:mt-4 pt-2 sm:pt-3 border-t ${isDarkMode ? 'border-gray-800' : 'border-gray-100'}`}>
+          <span className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-semibold ${
+            report.status === 'Published' || !report.status
+              ? isDarkMode ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-800'
+              : isDarkMode ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-800'
+          }`}>
+            {report.status || 'Published'}
+          </span>
+          <div className="flex items-center gap-1 sm:gap-2">
+            {isOwnReport && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteReport(reportId, e);
+                }}
+                className={`p-1 sm:p-1.5 rounded-lg text-red-500 transition-all ${isDarkMode ? 'hover:bg-red-900/30' : 'hover:bg-red-50'}`}
+                title="Delete report"
+              >
+                <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </button>
+            )}
             <button
-              onClick={() => {
-                const companyId = user?.companyId || 'melanote';
-                navigate(`/${companyId}/submit-report`);
+              onClick={(e) => {
+                e.stopPropagation();
+                // Refresh action - can be implemented later
               }}
-              className={`w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 ${isDarkMode ? 'bg-white hover:bg-gray-200 text-black' : 'bg-black hover:bg-gray-800 text-white'} rounded-lg sm:rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2`}
+              className={`p-1 sm:p-1.5 rounded-lg text-gray-500 transition-all ${isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}
+              title="Refresh"
             >
-              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="sm:inline">New Report</span>
+              <RefreshCw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
           </div>
         </div>
       </div>
+    );
+  };
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+  // Combine all reports into one array with type labels
+  const getAllReports = () => {
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const currentUserId = currentUser.id || currentUser._id;
+    const allReports = [];
 
+    // Add my reports
+    reports.forEach(report => {
+      allReports.push({ ...report, reportType: 'my-report' });
+    });
 
-        {/* Tabs */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8">
-          <div className="w-full sm:w-auto overflow-x-auto">
-            <div className={`flex rounded-lg p-1 border min-w-max ${
-              isDarkMode 
-                ? 'bg-gray-800/50 border-gray-700' 
-                : 'bg-gray-100 border-gray-200'
-            }`}>
-              <button
-                onClick={() => setActiveTab('my-reports')}
-                className={`px-3 sm:px-4 py-2 rounded-md font-medium transition-all text-sm sm:text-base whitespace-nowrap ${
-                  activeTab === 'my-reports' 
-                    ? 'bg-blue-600 text-white' 
-                    : isDarkMode
-                      ? 'text-gray-400 hover:text-white hover:bg-gray-700'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
-                }`}
-              >
-                <span className="hidden sm:inline">My Reports ({reports.length})</span>
-                <span className="sm:hidden">Mine ({reports.length})</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('shared-reports')}
-                className={`px-3 sm:px-4 py-2 rounded-md font-medium transition-all text-sm sm:text-base whitespace-nowrap ${
-                  activeTab === 'shared-reports' 
-                    ? 'bg-blue-600 text-white' 
-                    : isDarkMode
-                      ? 'text-gray-400 hover:text-white hover:bg-gray-700'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
-                }`}
-              >
-                <span className="hidden sm:inline">Shared with Me ({sharedReports.length})</span>
-                <span className="sm:hidden">Shared ({sharedReports.length})</span>
-              </button>
-              {JSON.parse(localStorage.getItem('user') || '{}').role === 'admin' && (
-                <button
-                  onClick={() => setActiveTab('shared')}
-                  className={`px-3 sm:px-4 py-2 rounded-md font-medium transition-all text-sm sm:text-base whitespace-nowrap ${
-                    activeTab === 'shared' 
-                      ? 'bg-blue-600 text-white' 
-                      : isDarkMode
-                        ? 'text-gray-400 hover:text-white hover:bg-gray-700'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
-                  }`}
-                >
-                  <span className="hidden sm:inline">Shared ({adminSharedReports.length})</span>
-                  <span className="sm:hidden">All ({adminSharedReports.length})</span>
-                </button>
-              )}
+    // Add shared with me reports (excluding duplicates that are already in my reports)
+    const myReportIds = new Set(reports.map(r => r._id || r.id));
+    sharedReports.forEach(report => {
+      if (!myReportIds.has(report._id || report.id)) {
+        allReports.push({ ...report, reportType: 'shared-with-me' });
+      }
+    });
+
+    // Add all shared reports for admin (excluding duplicates)
+    if (currentUser.role === 'admin' && adminSharedReports.length > 0) {
+      const existingReportIds = new Set(allReports.map(r => r._id || r.id));
+      adminSharedReports.forEach(report => {
+        const reportId = report._id || report.id;
+        if (!existingReportIds.has(reportId)) {
+          // Check if this report belongs to the admin
+          const isAdminReport = report.owner?._id === currentUserId || report.owner?._id === currentUser._id || report.owner === currentUserId;
+          // Check if it's already in shared with me
+          const isInSharedWithMe = sharedReports.some(r => (r._id || r.id) === reportId);
+          
+          if (!isAdminReport && !isInSharedWithMe) {
+            allReports.push({ ...report, reportType: 'shared' });
+          }
+        }
+      });
+    }
+
+    return allReports;
+  };
+
+  const allReports = getAllReports();
+
+  return (
+    <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'bg-black text-white' : 'bg-gray-50 text-gray-900'}`}>
+      <div className="max-w-7xl mx-auto p-4 sm:p-6">
+        {/* Header */}
+        <div className="mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4">
+            <div className="flex items-center gap-2 sm:gap-4">
+              <h1 className={`text-2xl sm:text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                Reports Dashboard
+              </h1>
+              <span className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-semibold ${isDarkMode ? 'bg-gray-800 text-gray-200 border border-gray-700' : 'bg-gray-200 text-gray-700'}`}>
+                {allReports.length}
+              </span>
             </div>
-          </div>
-          <div className={`hidden sm:flex items-center gap-2 p-1 rounded-lg border ${
-            isDarkMode 
-              ? 'bg-gray-800/50 border-gray-700' 
-              : 'bg-gray-100 border-gray-200'
-          }`}>
             <button
-              onClick={() => setViewMode('card')}
-              className={`p-2 rounded-md transition-all ${
-                viewMode === 'card' 
-                  ? 'bg-blue-600 text-white' 
-                  : isDarkMode
-                    ? 'text-gray-400 hover:text-white hover:bg-gray-700'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
-              }`}
+              onClick={() => {
+                const companyId = user?.companyId || localStorage.getItem('currentCompanyId') || 'melanote';
+                navigate(`/${companyId}/submit-report`);
+              }}
+              className={`flex items-center gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg font-semibold transition-colors text-sm sm:text-base ${
+                isDarkMode 
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+              } shadow-sm`}
             >
-              <Grid className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`p-2 rounded-md transition-all ${
-                viewMode === 'list' 
-                  ? 'bg-blue-600 text-white' 
-                  : isDarkMode
-                    ? 'text-gray-400 hover:text-white hover:bg-gray-700'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
-              }`}
-            >
-              <LayoutList className="w-4 h-4" />
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">New Report</span>
+              <span className="sm:hidden">New</span>
             </button>
           </div>
         </div>
 
-        {(activeTab === 'my-reports' ? reports : activeTab === 'shared' ? adminSharedReports : sharedReports).length === 0 ? (
-          <div className={`text-center py-12 sm:py-20 backdrop-blur-sm rounded-2xl sm:rounded-3xl border shadow-2xl ${
-            isDarkMode 
-              ? 'bg-gray-800/30 border-gray-700/50' 
-              : 'bg-white/50 border-gray-200/50'
-          }`}>
-            <div className={`w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-6 sm:mb-8 rounded-full ${isDarkMode ? 'bg-white/10' : 'bg-black/10'} flex items-center justify-center border ${
-              isDarkMode ? 'border-gray-600' : 'border-gray-300'
-            }`}>
-              <FileText className={`w-8 h-8 sm:w-12 sm:h-12 ${
-                isDarkMode ? 'text-gray-400' : 'text-gray-500'
-              }`} />
+        {/* All Reports in One Grid */}
+        {allReports.length === 0 ? (
+          <div className={`${isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'} rounded-xl shadow-sm border text-center py-8 sm:py-12 px-4`}>
+            <div className={`w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 rounded-full ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'} flex items-center justify-center`}>
+              <FileText className={`w-6 h-6 sm:w-8 sm:h-8 ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`} />
             </div>
-            <h3 className={`text-xl sm:text-2xl font-bold mb-3 px-4 ${
-              isDarkMode ? 'text-white' : 'text-gray-900'
-            }`}>
-              {activeTab === 'my-reports' ? 'No reports yet' : activeTab === 'shared' ? 'No shared reports' : 'No shared reports'}
+            <h3 className={`text-base sm:text-lg font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              No reports yet
             </h3>
-            <p className={`mb-6 sm:mb-8 text-base sm:text-lg max-w-md mx-auto px-4 ${
-              isDarkMode ? 'text-gray-400' : 'text-gray-600'
-            }`}>
-              {activeTab === 'my-reports' 
-                ? 'Create your first professional report with our advanced editor'
-                : activeTab === 'shared'
-                  ? 'No shared reports found. When team members share reports, they will appear here'
-                  : 'When team members share reports with you, they will appear here'
-              }
+            <p className={`mb-4 text-xs sm:text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Create your first professional report
             </p>
             <button
               onClick={() => {
-                const companyId = user?.companyId || 'melanote';
+                const companyId = user?.companyId || localStorage.getItem('currentCompanyId') || 'melanote';
                 navigate(`/${companyId}/submit-report`);
               }}
-              className={`px-6 sm:px-8 py-3 sm:py-4 ${isDarkMode ? 'bg-white hover:bg-gray-200 text-black' : 'bg-black hover:bg-gray-800 text-white'} rounded-lg sm:rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105`}
+              className={`px-4 py-2 rounded-lg font-semibold transition-colors text-sm sm:text-base ${
+                isDarkMode 
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+              }`}
             >
               Create Your First Report
             </button>
           </div>
         ) : (
-          <div className={viewMode === 'card' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6' : 'space-y-3 sm:space-y-4'}>
-            {(activeTab === 'my-reports' ? reports : activeTab === 'shared' ? adminSharedReports : sharedReports).map((report) => {
-              const reportId = report._id || report.id;
-              const ownerName = report.owner?.name || report.owner || 'Unknown User';
-              const createdAt = report.createdAt || report.createdAt;
-              
-              return viewMode === 'card' ? (
-                <div key={reportId} className={`group rounded-xl sm:rounded-2xl p-4 sm:p-6 border hover:border-blue-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10 ${
-                  isDarkMode 
-                    ? 'bg-gray-800/50 border-gray-700/50' 
-                    : 'bg-white border-gray-200 hover:shadow-blue-500/5'
-                }`}>
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-2 rounded-lg bg-blue-500/20 border border-blue-500/30">
-                      <FileText className="w-5 h-5 text-blue-400" />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {activeTab === 'my-reports' && (
-                        <button
-                          onClick={(e) => handleDeleteReport(reportId, e)}
-                          className="p-1 rounded-md text-red-400 hover:text-red-300 hover:bg-red-500/20 transition-all"
-                          title="Delete report"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-                      {(activeTab === 'shared-reports' || activeTab === 'shared') && (
-                        <div className="px-2 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                          Shared
-                        </div>
-                      )}
-                      <div className="px-3 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30">
-                        {report.status || 'Published'}
-                      </div>
-                    </div>
-                  </div>
-                  <div onClick={() => {
-                    const companyId = user?.companyId || 'melanote';
-                    navigate(`/${companyId}/submit-report?edit=${reportId}`);
-                  }} className="cursor-pointer">
-                  <h3 className={`text-base sm:text-lg font-bold mb-3 sm:mb-4 group-hover:text-blue-400 transition-colors line-clamp-2 ${
-                    isDarkMode ? 'text-white' : 'text-gray-900'
-                  }`}>{report.title}</h3>
-                  <div className={`space-y-2 text-sm ${
-                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                  }`}>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      <span>{new Date(createdAt).toLocaleDateString()}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-4 h-4" />
-                      <span>By {ownerName}</span>
-                    </div>
-                    {report.sharedWith && report.sharedWith.length > 0 && (
-                      <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4" />
-                        <span>Shared with {report.sharedWith.length} user(s)</span>
-                      </div>
-                    )}
-                  </div>
-                  </div>
-                </div>
-              ) : (
-                <div key={reportId} onClick={() => {
-                  const companyId = user?.companyId || 'melanote';
-                  navigate(`/${companyId}/submit-report?edit=${reportId}`);
-                }} className={`group flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 rounded-lg sm:rounded-xl border hover:border-blue-500/30 transition-all duration-200 cursor-pointer gap-3 sm:gap-4 ${
-                  isDarkMode 
-                    ? 'bg-gray-800/30 border-gray-700/50 hover:bg-gray-800/50' 
-                    : 'bg-white border-gray-200 hover:bg-gray-50'
-                }`}>
-                  <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-                    <div className="p-2 rounded-lg bg-blue-500/20 border border-blue-500/30 flex-shrink-0">
-                      <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h3 className={`text-base sm:text-lg font-semibold group-hover:text-blue-400 transition-colors truncate ${
-                        isDarkMode ? 'text-white' : 'text-gray-900'
-                      }`}>{report.title}</h3>
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 mt-1">
-                        <span className={`text-xs sm:text-sm ${
-                          isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                        }`}>By {ownerName}</span>
-                        <span className={`text-xs sm:text-sm ${
-                          isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                        }`}>{new Date(createdAt).toLocaleDateString()}</span>
-                        {report.sharedWith && report.sharedWith.length > 0 && (
-                          <span className="text-xs sm:text-sm text-blue-400">Shared with {report.sharedWith.length}</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {activeTab === 'my-reports' && (
-                      <button
-                        onClick={(e) => handleDeleteReport(reportId, e)}
-                        className="p-1 rounded-md text-red-400 hover:text-red-300 hover:bg-red-500/20 transition-all"
-                        title="Delete report"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
-                    {(activeTab === 'shared-reports' || activeTab === 'shared') && (
-                      <div className="px-2 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30 whitespace-nowrap">
-                        Shared
-                      </div>
-                    )}
-                    <div className="px-2 sm:px-3 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30 whitespace-nowrap">
-                      {report.status || 'Published'}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+            {allReports.map(report => renderReportCard(report, report.reportType))}
           </div>
         )}
       </div>

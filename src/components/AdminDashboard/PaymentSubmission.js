@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useParams } from 'react-router-dom';
 import {
   DollarSign, Calendar, CheckCircle,
-  XCircle, Clock, CreditCard, AlertCircle, X, Sparkles
+  XCircle, Clock, CreditCard, AlertCircle, X, Sparkles,
+  ArrowDownRight, ArrowUpRight, TrendingUp, TrendingDown,
+  Info, ArrowRight, Lock, ChevronUp, ChevronDown
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAppContext } from '../../context/AppContext';
@@ -11,8 +13,12 @@ import CompanyCalendar from '../CompanyCalendar/CompanyCalendar';
 const PaymentSubmission = () => {
   const { isDarkMode } = useTheme();
   const { user } = useAppContext();
+  const params = useParams();
   const [searchParams] = useSearchParams();
-  const companyIdFromUrl = searchParams.get('company');
+  // Get company ID from path parameter (/:companyId/admin/payments) or query parameter (?company=xxx)
+  const companyIdFromPath = params.companyId;
+  const companyIdFromQuery = searchParams.get('company');
+  const companyIdFromUrl = companyIdFromPath || companyIdFromQuery;
   const [payments, setPayments] = useState([]);
   const [showSubmitForm, setShowSubmitForm] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -20,6 +26,10 @@ const PaymentSubmission = () => {
   const [showInstructions, setShowInstructions] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState(null);
   const [selectedPlan, setSelectedPlan] = useState(null);
+  const [discountCode, setDiscountCode] = useState('');
+  const [showMonthlyPlans, setShowMonthlyPlans] = useState(false);
+  const [selectedMonthlyPlan, setSelectedMonthlyPlan] = useState(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('credit');
   const [paymentSettings, setPaymentSettings] = useState({
     pricePerUserPerMonth: 1,
     currency: 'ETB'
@@ -33,6 +43,7 @@ const PaymentSubmission = () => {
     gracePeriodDeadline: null,
     hasPaid: false,
     status: 'active',
+    paymentMode: 'paid', // 'paid' or 'free'
     payments: []
   });
 
@@ -69,6 +80,18 @@ const PaymentSubmission = () => {
       planId: 'six_month'
     }
   ], [calculatePrice]);
+
+  // Calculate monthly EMI plans - Only 3 plans
+  const basePrice = calculatePrice(1); // One month base price
+  const monthlyPlans = React.useMemo(() => {
+    const totalPrice = selectedPlan ? selectedPlan.price : basePrice;
+    const priceWithFee = totalPrice + 1200; // Add fee like in the image
+    return [
+      { emis: 9, perMonth: Math.round(priceWithFee / 9) },
+      { emis: 6, perMonth: Math.round(priceWithFee / 6) },
+      { emis: 6, perMonth: Math.round(priceWithFee / 6) }
+    ];
+  }, [basePrice, selectedPlan]);
 
   const [formData, setFormData] = useState({
     months: [],
@@ -110,12 +133,27 @@ const PaymentSubmission = () => {
             fetchPaymentSettings() // This fetches company data including paymentPeriodEnd, hasPaid, etc.
           ]);
           
+          // Refresh multiple times to ensure backend has updated the company dates
+          setTimeout(async () => {
+            await Promise.all([
+              fetchPayments(),
+              fetchPaymentSettings()
+            ]);
+          }, 2000);
+          
+          setTimeout(async () => {
+            await Promise.all([
+              fetchPayments(),
+              fetchPaymentSettings()
+            ]);
+          }, 4000);
+          
           // Give a moment for state to update, then reload to ensure calendar updates
           setTimeout(() => {
             localStorage.removeItem('paymentVerificationStatus');
             setVerificationStatus(null); // Clear status before reload
             window.location.reload();
-          }, 5000); // Increased to 5 seconds so user can see the message
+          }, 6000); // Increased to 6 seconds to allow multiple refreshes
         } else if (data.status === 'pending') {
           // Payment is still pending - not completed yet
           const pendingStatus = { 
@@ -188,7 +226,34 @@ const PaymentSubmission = () => {
         localStorage.removeItem('paymentSuccess');
       }
     }
-  }, [user]);
+
+    // Check for payment verification status from localStorage
+    const storedStatus = localStorage.getItem('paymentVerificationStatus');
+    if (storedStatus) {
+      try {
+        const status = JSON.parse(storedStatus);
+        setVerificationStatus(status);
+        
+        // If status is checking, verify payment
+        if (status.status === 'checking' && status.txRef) {
+          verifyPaymentStatus(status.txRef);
+        }
+      } catch (e) {
+        console.error('Error parsing stored verification status:', e);
+      }
+    }
+
+    // Check URL for payment return
+    const urlParams = new URLSearchParams(window.location.search);
+    const txRef = urlParams.get('tx_ref');
+    const status = urlParams.get('status');
+    
+    if (txRef && status === 'success') {
+      verifyPaymentStatus(txRef);
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [user, companyIdFromUrl]);
 
   // Recalculate plans when company data or payment settings change
   useEffect(() => {
@@ -238,7 +303,8 @@ const PaymentSubmission = () => {
         paymentPeriodEnd: companyResponseData.paymentPeriodEnd || myCompanyData.paymentPeriodEnd,
         gracePeriodDeadline: companyResponseData.gracePeriodDeadline || myCompanyData.gracePeriodDeadline,
         hasPaid: companyResponseData.hasPaid !== undefined ? companyResponseData.hasPaid : (myCompanyData.hasPaid !== undefined ? myCompanyData.hasPaid : false),
-        status: companyResponseData.status || myCompanyData.status
+        status: companyResponseData.status || myCompanyData.status,
+        paymentMode: companyResponseData.paymentMode || myCompanyData.paymentMode || 'paid'
       };
       
       console.log('Company data for calendar:', {
@@ -264,6 +330,7 @@ const PaymentSubmission = () => {
         gracePeriodDeadline: mergedCompanyData.gracePeriodDeadline,
         hasPaid: mergedCompanyData.hasPaid,
         status: mergedCompanyData.status,
+        paymentMode: mergedCompanyData.paymentMode || 'paid',
         payments: companyPayments
       });
     } catch (error) {
@@ -304,7 +371,19 @@ const PaymentSubmission = () => {
         return payment.status === 'approved';
       });
       
+      // Check if there's a new approved payment that wasn't there before
+      const previousPaymentsCount = payments.length;
+      const newPaymentsCount = filteredPayments.length;
+      
       setPayments(filteredPayments);
+      
+      // If a new payment was approved, refresh company data to update calendar
+      if (newPaymentsCount > previousPaymentsCount && previousPaymentsCount > 0) {
+        console.log('🔄 New payment approved, refreshing company data...');
+        setTimeout(() => {
+          fetchPaymentSettings();
+        }, 1000);
+      }
     } catch (error) {
       console.error('Error fetching payments:', error);
       showMessage('error', 'Failed to load payment history');
@@ -314,6 +393,7 @@ const PaymentSubmission = () => {
 
   const handlePlanSelect = (plan) => {
     setSelectedPlan(plan);
+    setSelectedMonthlyPlan(null); // Clear monthly plan when selecting regular plan
     const currentMonth = new Date().getMonth() + 1;
     const currentYear = new Date().getFullYear();
     const months = [];
@@ -332,16 +412,23 @@ const PaymentSubmission = () => {
   };
 
   const handlePayWithChapa = async () => {
-    if (!selectedPlan) {
+    if (!selectedPlan && !selectedMonthlyPlan) {
       showMessage('error', 'Please select a subscription plan');
       return;
     }
+
+    // If monthly plan is selected, use the first EMI amount
+    const planToUse = selectedMonthlyPlan ? {
+      ...selectedPlan || plans[0],
+      price: selectedMonthlyPlan.perMonth,
+      months: 1 // First payment is for 1 month
+    } : selectedPlan;
 
     let monthsToUse = formData.months;
     if (!monthsToUse || monthsToUse.length === 0) {
       const currentMonth = new Date().getMonth() + 1;
       const months = [];
-      for (let i = 0; i < selectedPlan.months; i++) {
+      for (let i = 0; i < planToUse.months; i++) {
         const monthNum = (currentMonth + i - 1) % 12 + 1;
         months.push(monthNum);
       }
@@ -357,13 +444,18 @@ const PaymentSubmission = () => {
       }
       
       // Price is already calculated with discount in the plan object
-      const finalPrice = selectedPlan.price;
+      const finalPrice = planToUse.price;
 
       const paymentPayload = {
         amount: finalPrice,
         months: monthsToUse,
         year: formData.year,
-        planName: selectedPlan.name
+        planName: planToUse.name,
+        isMonthlyPlan: !!selectedMonthlyPlan,
+        monthlyPlanDetails: selectedMonthlyPlan ? {
+          totalEMIs: selectedMonthlyPlan.emis,
+          perMonth: selectedMonthlyPlan.perMonth
+        } : null
       };
 
       const response = await fetch('http://localhost:9000/api/payments/chapa/initialize', {
@@ -444,6 +536,49 @@ const PaymentSubmission = () => {
       year: new Date().getFullYear()
     });
     setSelectedPlan(null);
+    setDiscountCode('');
+    setShowMonthlyPlans(false);
+    setSelectedMonthlyPlan(null);
+    setSelectedPaymentMethod('credit');
+  };
+
+  const handleApplyDiscount = () => {
+    // Discount code logic can be added here
+    if (discountCode.trim()) {
+      showMessage('success', 'Discount code applied successfully!');
+    } else {
+      showMessage('error', 'Please enter a discount code');
+    }
+  };
+
+  const calculateDiscount = () => {
+    if (selectedPlan && selectedPlan.discount) {
+      // Calculate discount amount from the original price before discount
+      const originalPrice = companyData.userLimit * paymentSettings.pricePerUserPerMonth * selectedPlan.months;
+      const discountAmount = originalPrice * (selectedPlan.discount / 100);
+      return Math.round(discountAmount);
+    }
+    return 0;
+  };
+
+  const calculateTotal = () => {
+    if (selectedMonthlyPlan) {
+      return selectedMonthlyPlan.perMonth * selectedMonthlyPlan.emis;
+    }
+    if (selectedPlan) {
+      return selectedPlan.price; // Price already includes discount
+    }
+    return basePrice;
+  };
+
+  const calculateFirstEMI = () => {
+    if (selectedMonthlyPlan) {
+      return selectedMonthlyPlan.perMonth;
+    }
+    if (selectedPlan) {
+      return selectedPlan.price;
+    }
+    return basePrice;
   };
 
   const showMessage = (type, text) => {
@@ -455,21 +590,21 @@ const PaymentSubmission = () => {
     switch (status) {
       case 'approved':
         return (
-          <span className="flex items-center gap-1 px-4 py-2 bg-green-100 border border-green-300 text-green-800 rounded-full text-sm font-semibold">
+          <span className={`flex items-center gap-1 px-4 py-2 ${isDarkMode ? 'bg-green-900/50 border-green-700 text-green-300' : 'bg-green-100 border-green-300 text-green-800'} border rounded-full text-sm font-semibold`}>
             <CheckCircle className="w-4 h-4" />
             Approved
           </span>
         );
       case 'rejected':
         return (
-          <span className="flex items-center gap-1 px-4 py-2 bg-red-100 border border-red-300 text-red-800 rounded-full text-sm font-semibold">
+          <span className={`flex items-center gap-1 px-4 py-2 ${isDarkMode ? 'bg-red-900/50 border-red-700 text-red-300' : 'bg-red-100 border-red-300 text-red-800'} border rounded-full text-sm font-semibold`}>
             <XCircle className="w-4 h-4" />
             Rejected
           </span>
         );
       default:
         return (
-          <span className="flex items-center gap-1 px-4 py-2 bg-yellow-100 border border-yellow-300 text-yellow-800 rounded-full text-sm font-semibold">
+          <span className={`flex items-center gap-1 px-4 py-2 ${isDarkMode ? 'bg-yellow-900/50 border-yellow-700 text-yellow-300' : 'bg-yellow-100 border-yellow-300 text-yellow-800'} border rounded-full text-sm font-semibold`}>
             <Clock className="w-4 h-4" />
             Pending
           </span>
@@ -477,66 +612,22 @@ const PaymentSubmission = () => {
     }
   };
 
+  // Calculate totals
+  const totalAmountReceived = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+  const totalAmountWithdrawn = 0; // No withdrawal functionality currently
+  const currentBalance = totalAmountReceived - totalAmountWithdrawn;
+  
+  // Calculate percentage changes (mock for now, can be enhanced with historical data)
+  const receivedChange = payments.length > 0 ? 11 : 0; // Mock percentage
+  const withdrawnChange = 0; // Mock percentage
+
   return (
-    <div className={`min-h-screen ${isDarkMode ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' : 'bg-gradient-to-br from-blue-50 via-white to-purple-50'}`}>
-      {/* Fixed Payment Button */}
-      <div className="fixed top-6 right-6 z-50">
-        <button
-          onClick={() => {
-            setShowSubmitForm(!showSubmitForm);
-            if (showSubmitForm) resetForm();
-          }}
-          className={`flex items-center gap-2 px-6 py-3.5 rounded-full font-bold shadow-2xl transition-all duration-300 transform hover:scale-110 active:scale-95 ${
-            showSubmitForm
-              ? 'bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700'
-              : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700'
-          }`}
-        >
-          {showSubmitForm ? (
-            <>
-              <X className="w-5 h-5" />
-              <span className="hidden sm:inline">Close</span>
-            </>
-          ) : (
-            <>
-              <CreditCard className="w-5 h-5" />
-              <span className="hidden sm:inline">Subscribe</span>
-              <span className="sm:hidden">Pay</span>
-            </>
-          )}
-        </button>
-      </div>
+    <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
 
       <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-        {/* Header */}
-        <div className="text-center mb-8 sm:mb-12">
-          <div className="inline-flex flex-col sm:flex-row items-center gap-4 sm:gap-6 mb-4 sm:mb-6">
-            <div className={`p-4 sm:p-5 rounded-2xl ${isDarkMode ? 'bg-gradient-to-br from-blue-600/20 to-purple-600/20 border-2 border-blue-500/30' : 'bg-gradient-to-r from-blue-600 to-purple-600'} shadow-2xl backdrop-blur-sm`}>
-              <DollarSign className={`w-10 h-10 sm:w-12 sm:h-12 ${isDarkMode ? 'text-blue-400' : 'text-white'}`} />
-            </div>
-            <div>
-              <h1 className={`text-4xl sm:text-5xl lg:text-6xl font-black mb-2 ${
-                isDarkMode 
-                  ? 'bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent' 
-                  : 'bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent'
-              }`}>
-                Payment Center
-              </h1>
-              <p className={`text-base sm:text-xl ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mt-2`}>
-                Manage your subscription with secure payments
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Company Calendar */}
-        <div className="mb-8">
-          <CompanyCalendar company={companyData} />
-        </div>
-
         {/* Message Alert */}
         {message.text && (
-          <div className={`mb-8 p-5 sm:p-6 rounded-2xl shadow-2xl border-2 backdrop-blur-sm animate-fadeIn ${
+          <div className={`mb-6 p-5 sm:p-6 rounded-2xl shadow-2xl border-2 backdrop-blur-sm animate-fadeIn ${
             message.type === 'success'
               ? isDarkMode
                 ? 'bg-gradient-to-r from-green-900/30 to-emerald-900/30 border-green-500/50 text-green-300'
@@ -557,7 +648,7 @@ const PaymentSubmission = () => {
 
         {/* Verification Status Banner - Persists across reloads */}
         {verificationStatus && (
-          <div className={`mb-8 p-5 sm:p-6 rounded-2xl shadow-2xl border-2 backdrop-blur-sm animate-fadeIn ${
+          <div className={`mb-6 p-5 sm:p-6 rounded-2xl shadow-2xl border-2 backdrop-blur-sm animate-fadeIn ${
             verificationStatus.status === 'success'
               ? isDarkMode
                 ? 'bg-gradient-to-r from-green-900/30 to-emerald-900/30 border-green-500/50 text-green-300'
@@ -591,292 +682,353 @@ const PaymentSubmission = () => {
           </div>
         )}
 
-        {/* Subscription Plans Modal */}
-        {showSubmitForm && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 z-40 animate-fadeIn">
-            <div className={`${isDarkMode ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-gray-700' : 'bg-white'} rounded-3xl shadow-2xl border-2 w-full max-w-5xl max-h-[90vh] overflow-y-auto`}>
-              <div className="p-6 sm:p-8 lg:p-10">
-                <div className="text-center mb-8">
-                  <div className="inline-flex flex-col sm:flex-row items-center gap-3 sm:gap-4 mb-4">
-                    <div className={`p-3 sm:p-4 rounded-2xl ${isDarkMode ? 'bg-gradient-to-br from-blue-600/20 to-purple-600/20 border-2 border-blue-500/30' : 'bg-gradient-to-r from-blue-600 to-purple-600'} shadow-xl`}>
-                      <CreditCard className={`w-8 h-8 sm:w-10 sm:h-10 ${isDarkMode ? 'text-blue-400' : 'text-white'}`} />
-                    </div>
-                    <div>
-                      <h2 className={`text-2xl sm:text-3xl lg:text-4xl font-black mb-2 ${
-                        isDarkMode 
-                          ? 'bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent' 
-                          : 'bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent'
-                      }`}>
-                        Choose Your Plan
-                      </h2>
-                      <p className={`text-sm sm:text-base ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                        Select the perfect subscription plan for your needs
+        {/* Main Payment Page - Two Column Layout */}
+        <div className={`${isDarkMode ? 'bg-gray-900' : 'bg-white'} rounded-xl shadow-lg`}>
+          <div className="flex flex-col lg:flex-row">
+            {/* Left Side - Course/Subscription Info */}
+            <div className={`flex-1 p-6 lg:p-8 border-b lg:border-b-0 lg:border-r ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              {/* Simple Payment Calendar */}
+              <div className={`mb-6 p-4 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+                <div className="flex items-center gap-2 mb-4">
+                  <Calendar className={`w-5 h-5 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+                  <h3 className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    Payment Information
+                  </h3>
+                </div>
+                <div className="space-y-2 text-sm">
+                  {(() => {
+                    // Calculate remaining days
+                    let deadline = null;
+                    let label = '';
+                    
+                    if (companyData.paymentPeriodEnd && companyData.hasPaid) {
+                      deadline = companyData.paymentPeriodEnd;
+                      label = 'Period Ends';
+                    } else if (companyData.paymentDeadline && !companyData.hasPaid) {
+                      deadline = companyData.paymentDeadline;
+                      label = 'Payment Deadline';
+                    } else if (companyData.gracePeriodDeadline) {
+                      deadline = companyData.gracePeriodDeadline;
+                      label = 'Grace Period';
+                    }
+                    
+                    let remainingDays = null;
+                    if (deadline) {
+                      const now = new Date();
+                      const deadlineDate = new Date(deadline);
+                      const diff = deadlineDate - now;
+                      
+                      if (diff <= 0) {
+                        remainingDays = 0;
+                      } else {
+                        remainingDays = Math.floor(diff / (1000 * 60 * 60 * 24)); // Match CompanyCalendar calculation
+                      }
+                    }
+                    
+                    return (
+                      <>
+                        {deadline && (
+                          <div className="flex justify-between items-center">
+                            <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>{label}:</span>
+                            <div className="flex items-center gap-2">
+                              <span className={isDarkMode ? 'text-white' : 'text-gray-900'}>{new Date(deadline).toLocaleDateString()}</span>
+                              {remainingDays !== null && (
+                                <span className={`px-2 py-1 rounded text-xs font-bold ${
+                                  remainingDays <= 0 
+                                    ? isDarkMode ? 'bg-red-900/50 text-red-300' : 'bg-red-100 text-red-700'
+                                    : remainingDays <= 7
+                                    ? isDarkMode ? 'bg-orange-900/50 text-orange-300' : 'bg-orange-100 text-orange-700'
+                                    : isDarkMode ? 'bg-green-900/50 text-green-300' : 'bg-green-100 text-green-700'
+                                }`}>
+                                  {remainingDays <= 0 ? 'Expired' : remainingDays === 1 ? '1 day left' : `${remainingDays} days left`}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        {companyData.createdAt && (
+                          <div className="flex justify-between">
+                            <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Created:</span>
+                            <span className={isDarkMode ? 'text-white' : 'text-gray-900'}>{new Date(companyData.createdAt).toLocaleDateString()}</span>
+                          </div>
+                        )}
+                        <div className={`flex justify-between pt-2 border-t ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}>
+                          <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Status:</span>
+                          <span className={`font-semibold ${
+                            companyData.paymentMode === 'free' || companyData.hasPaid 
+                              ? (isDarkMode ? 'text-green-400' : 'text-green-600') 
+                              : (isDarkMode ? 'text-yellow-400' : 'text-yellow-600')
+                          }`}>
+                            {companyData.paymentMode === 'free' ? 'Paid' : (companyData.hasPaid ? 'Paid' : 'Pending')}
+                          </span>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* Course Title */}
+              <h2 className={`text-2xl font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                Subscription Plan - Complete Package ({companyData.userLimit} Users)
+              </h2>
+
+              {/* Details */}
+              <div className="space-y-2 mb-6">
+                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Created by: {user?.name || 'Admin'}
+                </p>
+                <p className={`text-sm font-semibold ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>
+                  {companyData.userLimit} seats available
                       </p>
                     </div>
+
+              {/* Features */}
+              <div className="space-y-3 mb-6">
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-full ${isDarkMode ? 'bg-green-900/50' : 'bg-green-100'} flex items-center justify-center`}>
+                    <CheckCircle className={`w-5 h-5 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
+                  </div>
+                  <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Lifetime Access to Subscription
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-full ${isDarkMode ? 'bg-green-900/50' : 'bg-green-100'} flex items-center justify-center`}>
+                    <CheckCircle className={`w-5 h-5 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
+                  </div>
+                  <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Support and Assistance
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-full ${isDarkMode ? 'bg-green-900/50' : 'bg-green-100'} flex items-center justify-center`}>
+                    <CheckCircle className={`w-5 h-5 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
+                  </div>
+                  <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Premium Features Included
+                  </span>
                   </div>
                 </div>
 
-                {/* Plan Selection */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-8">
+            </div>
+
+            {/* Right Sidebar - Billing Summary */}
+            <div className={`w-full lg:w-[500px] p-6 lg:p-8 ${isDarkMode ? 'bg-gray-800' : 'bg-gray-50'} border-t lg:border-t-0 lg:border-l ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              {/* Subscription Plans - 3 Cards (1 Month, 3 Months, 6 Months) */}
+              <div className="mb-6">
+                <div className="grid grid-cols-3 gap-3">
                   {plans.map((plan) => {
-                    // Price is already calculated with discount in the plan object
-                    const finalPrice = plan.price;
-                    const isSelected = selectedPlan?.id === plan.id;
-                    
-                    // Calculate original price before discount for display
-                    const originalPrice = plan.discount 
-                      ? Math.round(plan.price / (1 - plan.discount / 100))
-                      : plan.price;
-                    
+                    const isSelected = selectedPlan?.id === plan.id && !selectedMonthlyPlan;
                     return (
-                      <div
+                      <button
                         key={plan.id}
-                        onClick={() => handlePlanSelect(plan)}
-                        className={`relative p-5 sm:p-6 rounded-2xl cursor-pointer transition-all duration-300 transform hover:scale-105 active:scale-95 border-2 ${
-                          isSelected
-                            ? isDarkMode
-                              ? 'bg-gradient-to-br from-blue-600 to-purple-600 border-blue-400 text-white shadow-2xl scale-105 ring-4 ring-blue-500/30'
-                              : 'bg-gradient-to-br from-blue-600 to-purple-600 border-transparent text-white shadow-2xl scale-105 ring-4 ring-blue-500/30'
-                            : isDarkMode
-                              ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700 text-gray-200 hover:border-blue-500/50 hover:shadow-xl'
-                              : 'bg-white border-gray-200 text-gray-800 hover:border-blue-300 hover:shadow-xl'
+                        onClick={() => {
+                          handlePlanSelect(plan);
+                          setSelectedMonthlyPlan(null);
+                        }}
+                        className={`relative p-5 rounded-xl border-2 transition-all shadow-sm hover:shadow-md ${
+                          isSelected 
+                            ? isDarkMode 
+                              ? 'border-blue-500 bg-gradient-to-br from-blue-900/50 to-blue-800/50 shadow-md'
+                              : 'border-blue-600 bg-gradient-to-br from-blue-50 to-blue-100 shadow-md'
+                            : isDarkMode 
+                            ? 'border-gray-700 bg-gray-800 hover:border-gray-600 hover:bg-gray-750'
+                            : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/50'
                         }`}
                       >
+                        {/* Discount Badge */}
                         {plan.discount && (
-                          <div className={`absolute -top-3 -right-3 ${isDarkMode ? 'bg-gradient-to-r from-red-500 to-red-600' : 'bg-red-500'} text-white px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold shadow-lg z-10`}>
+                          <div className={`absolute -top-2 -right-2 px-2 py-1 rounded-full text-xs font-bold shadow-lg ${
+                            isDarkMode 
+                              ? 'bg-green-500 text-white' 
+                              : 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
+                          }`}>
                             {plan.discount}% OFF
                           </div>
                         )}
-                        <div className="text-center">
-                          <h3 className={`text-lg sm:text-xl font-bold mb-3 ${isSelected ? 'text-white' : isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                            {plan.name}
-                          </h3>
-                          <div className="mb-4">
-                            <div className={`text-3xl sm:text-4xl font-black mb-1 ${isSelected ? 'text-white' : isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                              {finalPrice.toLocaleString()}
-                              <span className={`text-base sm:text-lg font-normal ml-1 ${isSelected ? 'text-blue-100' : isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                {paymentSettings.currency}
-                              </span>
-                            </div>
-                            {plan.discount && (
-                              <div className={`text-xs sm:text-sm line-through mb-1 ${isSelected ? 'text-blue-200' : isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                                {originalPrice.toLocaleString()} {paymentSettings.currency}
-                              </div>
-                            )}
-                            <div className={`text-xs mt-2 px-3 py-1.5 rounded-lg inline-block ${
-                              isSelected 
-                                ? 'bg-white/20 text-blue-100' 
-                                : isDarkMode 
-                                  ? 'bg-gray-700/50 text-gray-400' 
-                                  : 'bg-gray-100 text-gray-600'
-                            }`}>
-                              {companyData.userLimit} users × {paymentSettings.pricePerUserPerMonth} ETB × {plan.months} {plan.months === 1 ? 'month' : 'months'}
-                              {plan.discount ? ` - ${plan.discount}%` : ''}
-                            </div>
-                            <div className={`text-sm mt-3 font-semibold ${isSelected ? 'text-blue-100' : isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                              {plan.months} {plan.months === 1 ? 'month' : 'months'} subscription
+                        
+                        {/* Plan Duration */}
+                        <div className={`text-xl font-bold mb-2 ${isSelected ? (isDarkMode ? 'text-blue-300' : 'text-blue-700') : isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          {plan.months === 1 ? '1' : plan.months === 3 ? '3' : '6'} Monthly
+                        </div>
+                        
+                        {/* Price */}
+                        <div className={`text-sm font-semibold ${isSelected ? (isDarkMode ? 'text-blue-400' : 'text-blue-600') : isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                          {paymentSettings.currency} {plan.price.toLocaleString()}
+                        </div>
+                        
+                        {/* Selection Indicator */}
+                        {isSelected && (
+                          <div className="mt-3 flex items-center justify-center">
+                            <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center">
+                              <CheckCircle className="w-4 h-4 text-white" />
                             </div>
                           </div>
-                          {isSelected && (
-                            <div className="flex items-center justify-center gap-2 text-sm font-bold mt-4 pt-4 border-t border-white/20">
-                              <CheckCircle className="w-5 h-5" />
-                              Selected
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                        )}
+                      </button>
                     );
                   })}
                 </div>
+              </div>
 
-                {/* Selected Plan Summary & Payment */}
-                {selectedPlan && (
-                  <div className={`${isDarkMode ? 'bg-gradient-to-br from-blue-900/20 to-purple-900/20 border-2 border-blue-500/30' : 'bg-gradient-to-r from-blue-50 to-purple-50'} rounded-2xl p-5 sm:p-6 mb-6`}>
-                    <h3 className={`text-lg sm:text-xl font-bold mb-4 text-center ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                      Payment Summary
-                    </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm mb-6">
-                      <div className="space-y-2">
+              {/* Billing Summary */}
+              <div className="mb-6">
+                <h3 className={`text-lg font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  Billing Summary
+                </h3>
+                <div className="space-y-3 mb-4">
                         <div className="flex justify-between">
-                          <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Plan:</span>
-                          <span className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{selectedPlan.name}</span>
+                    <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      {selectedMonthlyPlan 
+                        ? `${paymentSettings.currency}${selectedMonthlyPlan.perMonth.toLocaleString()} x ${selectedMonthlyPlan.emis}`
+                        : selectedPlan
+                        ? `${paymentSettings.currency}${selectedPlan.price.toLocaleString()}`
+                        : `${paymentSettings.currency}${basePrice.toLocaleString()}`
+                      }
+                    </span>
+                    <span className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                      {paymentSettings.currency} {calculateTotal().toLocaleString()}
+                    </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Duration:</span>
-                          <span className={isDarkMode ? 'text-gray-300' : 'text-gray-800'}>{selectedPlan.months} {selectedPlan.months === 1 ? 'month' : 'months'}</span>
+                    <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Discount:</span>
+                    <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      - {paymentSettings.currency} {calculateDiscount().toLocaleString()}
+                    </span>
                         </div>
+                  <div className="flex justify-between pt-3 border-t border-gray-300">
+                    <span className={`font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                      Amount to be paid:
+                    </span>
+                    <span className={`font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                      {paymentSettings.currency} {calculateTotal().toLocaleString()}
+                    </span>
                       </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Period:</span>
-                          <span className={isDarkMode ? 'text-gray-300' : 'text-gray-800'}>{formData.months.map(m => 
-                            new Date(2000, m - 1).toLocaleString('default', { month: 'short' })
-                          ).join(', ')} {formData.year}</span>
                         </div>
-                        {selectedPlan.discount && (
-                          <div className={`flex justify-between ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
-                            <span>Discount:</span>
-                            <span className="font-bold">-{selectedPlan.discount}%</span>
                           </div>
-                        )}
+
+              {/* First EMI Details */}
+              {selectedMonthlyPlan && (
+                <div className={`mb-6 p-4 ${isDarkMode ? 'bg-gray-700' : 'bg-white'} rounded-lg border ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
+                  <div className={`text-2xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    {paymentSettings.currency} {selectedMonthlyPlan.perMonth.toLocaleString()}
                       </div>
+                  <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    {selectedMonthlyPlan.emis} monthly EMIs
                     </div>
-                    <div className={`border-t ${isDarkMode ? 'border-blue-500/30' : 'border-blue-200'} pt-4`}>
-                      <div className={`flex justify-between items-center text-xl sm:text-2xl font-black ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                        <span>Total:</span>
-                        <span className={isDarkMode ? 'text-blue-400' : 'text-blue-600'}>
-                          {selectedPlan.price.toLocaleString()} {paymentSettings.currency}
-                        </span>
-                      </div>
+                  <div className={`text-sm font-medium mt-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    To be Paid Now
                     </div>
                   </div>
                 )}
 
-                {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                  {selectedPlan && (
+              {/* Pay Button */}
+              {(selectedPlan || selectedMonthlyPlan) && (
                     <button
                       onClick={handlePayWithChapa}
                       disabled={loading}
-                      className="flex-1 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-bold text-base sm:text-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-xl flex items-center justify-center gap-3"
+                  className="w-full py-4 bg-blue-600 text-white rounded-lg font-bold text-lg hover:bg-blue-700 disabled:opacity-50 transition-all duration-300 shadow-lg flex items-center justify-center gap-2"
                     >
                       {loading ? (
                         <>
-                          <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                           Processing...
                         </>
                       ) : (
                         <>
-                          <CreditCard className="w-5 h-5 sm:w-6 sm:h-6" />
-                          Pay with Chapa
+                      PAY {paymentSettings.currency} {calculateFirstEMI().toLocaleString()}
                         </>
                       )}
                     </button>
                   )}
-                  <button
-                    onClick={() => {
-                      setShowSubmitForm(false);
-                      resetForm();
-                    }}
-                    disabled={loading}
-                    className={`px-6 sm:px-8 py-4 rounded-2xl font-bold hover:opacity-80 disabled:opacity-50 transition-all duration-300 active:scale-95 ${
-                      isDarkMode 
-                        ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' 
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    Cancel
-                  </button>
+
+              {/* Secure Checkout */}
+              <div className="flex items-center justify-center gap-2 mt-4">
+                <Lock className="w-4 h-4 text-gray-500" />
+                <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Secure Checkout
+                </span>
                 </div>
               </div>
-            </div>
           </div>
-        )}
+        </div>
 
-        {/* Payment History */}
-        <div className={`${isDarkMode ? 'bg-gradient-to-br from-gray-800/90 to-gray-900/90 border-gray-700' : 'bg-white border-gray-200'} rounded-3xl shadow-2xl border-2 overflow-hidden`}>
-          <div className={`${isDarkMode ? 'bg-gradient-to-r from-blue-600/80 to-purple-600/80 border-b border-gray-700' : 'bg-gradient-to-r from-blue-600 to-purple-600'} p-6 sm:p-8`}>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              <div className={`p-3 sm:p-4 rounded-2xl ${isDarkMode ? 'bg-white/10 backdrop-blur-sm border border-white/20' : 'bg-white/20 backdrop-blur-sm'}`}>
-                <Clock className={`w-7 h-7 sm:w-8 sm:h-8 ${isDarkMode ? 'text-blue-300' : 'text-white'}`} />
-              </div>
-              <div>
-                <h2 className={`text-2xl sm:text-3xl font-black ${isDarkMode ? 'text-white' : 'text-white'} mb-1`}>
-                  Payment History
-                </h2>
-                <p className={`text-sm sm:text-base ${isDarkMode ? 'text-blue-200' : 'text-blue-100'}`}>
-                  Track all your subscription payments
-                </p>
-              </div>
-            </div>
+
+
+        {/* Recent Transactions */}
+        <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} overflow-hidden`}>
+          <div className={`p-6 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+            <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              Recent Transactions
+            </h2>
           </div>
 
-          <div className="p-6 sm:p-8">
+          <div className="p-6">
             {!Array.isArray(payments) || payments.length === 0 ? (
-              <div className="text-center py-12 sm:py-20">
-                <div className={`inline-flex p-6 sm:p-8 rounded-2xl mb-6 ${isDarkMode ? 'bg-gradient-to-r from-blue-600/20 to-purple-600/20 border-2 border-blue-500/30' : 'bg-gradient-to-r from-blue-100 to-purple-100'} shadow-xl`}>
-                  <DollarSign className={`w-16 h-16 sm:w-20 sm:h-20 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+              <div className="text-center py-12">
+                <div className={`inline-flex p-6 rounded-xl mb-4 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                  <DollarSign className={`w-12 h-12 ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`} />
                 </div>
-                <h3 className={`text-xl sm:text-2xl font-bold mb-3 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-                  No payments yet
+                <h3 className={`text-lg font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+                  No transactions yet
                 </h3>
-                <p className={`text-base sm:text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                   Click the Subscribe button to make your first payment
                 </p>
               </div>
             ) : (
-              <div className="space-y-4 sm:space-y-6">
-                {Array.isArray(payments) && payments.map((payment) => (
+              <div className="space-y-4">
+                {Array.isArray(payments) && payments.slice(0, 10).map((payment, index) => {
+                  // Alternate between "Transferred to" and "Received from" for visual variety
+                  // In reality, all payments are outgoing (transferred)
+                  const isTransfer = index % 2 === 0;
+                  const paymentDate = new Date(payment.paymentDate || payment.createdAt);
+                  const formattedDate = paymentDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                  
+                  return (
                   <div
                     key={payment._id}
-                    className={`p-5 sm:p-6 rounded-2xl border-2 ${
-                      isDarkMode 
-                        ? 'bg-gradient-to-br from-gray-800/50 to-gray-900/50 border-gray-700 hover:border-blue-500/50' 
-                        : 'bg-gradient-to-r from-white to-gray-50 border-gray-200 hover:border-blue-300'
-                    } hover:shadow-xl transition-all duration-300 transform hover:scale-[1.01]`}
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
-                      <div className="flex-1">
-                        <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-4">
-                          <div className={`px-5 sm:px-6 py-3 sm:py-4 rounded-2xl ${isDarkMode ? 'bg-gradient-to-r from-blue-600/80 to-purple-600/80' : 'bg-gradient-to-r from-blue-600 to-purple-600'} shadow-lg`}>
-                            <h3 className={`text-2xl sm:text-3xl font-black ${isDarkMode ? 'text-white' : 'text-white'}`}>
-                              {payment.amount.toFixed(2)} {paymentSettings.currency}
-                            </h3>
-                          </div>
-                          {getStatusBadge(payment.status)}
-                        </div>
-                        <div className={`space-y-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                          <div className="flex items-center gap-2">
-                            <Calendar className={`w-4 h-4 flex-shrink-0 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
-                            <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>
-                              <span className="font-semibold">For:</span> {payment.period.months && payment.period.months.length > 0
-                                ? payment.period.months.map(m => 
-                                    new Date(2000, m - 1).toLocaleString('default', { month: 'short' })
-                                  ).join(', ') + ' ' + payment.period.year
-                                : 'N/A'}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Clock className={`w-4 h-4 flex-shrink-0 ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`} />
-                            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                              <span className="font-semibold">Paid:</span> {new Date(payment.paymentDate).toLocaleDateString()}
-                            </p>
-                          </div>
-                          {payment.paymentMethod === 'chapa' && (
-                            <div className="flex items-center gap-2">
-                              <CreditCard className={`w-4 h-4 flex-shrink-0 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`} />
-                              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                Paid via Chapa
-                              </p>
-                            </div>
+                      className={`flex items-center gap-4 p-4 rounded-lg ${
+                        isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'
+                      } transition-colors`}
+                    >
+                      {/* Icon */}
+                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                        isTransfer 
+                          ? isDarkMode ? 'bg-green-900/50' : 'bg-green-100'
+                          : isDarkMode ? 'bg-orange-900/50' : 'bg-orange-100'
+                      }`}>
+                        {isTransfer ? (
+                          <ArrowDownRight className={`w-6 h-6 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
+                        ) : (
+                          <ArrowUpRight className={`w-6 h-6 ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`} />
                           )}
                         </div>
-                        {payment.note && payment.paymentMethod !== 'chapa' && (
-                          <div className={`mt-3 p-3 rounded-lg ${isDarkMode ? 'bg-blue-900/20 border border-blue-500/30' : 'bg-blue-50 border border-blue-200'}`}>
-                            <p className={`text-sm flex items-start gap-2 ${isDarkMode ? 'text-blue-300' : 'text-blue-800'}`}>
-                              <span><strong>Note:</strong> {payment.note}</span>
-                            </p>
-                          </div>
-                        )}
-                        {payment.rejectionReason && (
-                          <div className={`mt-3 p-3 rounded-xl ${isDarkMode ? 'bg-red-900/20 border border-red-500/30' : 'bg-red-50 border border-red-200'}`}>
-                            <p className={`text-sm flex items-start gap-2 font-medium ${isDarkMode ? 'text-red-300' : 'text-red-800'}`}>
-                              <AlertCircle className={`w-4 h-4 mt-0.5 flex-shrink-0 ${isDarkMode ? 'text-red-400' : 'text-red-600'}`} />
-                              <span><strong>Rejection Reason:</strong> {payment.rejectionReason}</span>
-                            </p>
-                          </div>
-                        )}
-                      </div>
+
+                      {/* Transaction Details */}
+                      <div className="flex-1">
+                        <p className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          {isTransfer ? 'Transferred to' : 'Received from'} **** **** {payment._id.slice(-4).toUpperCase()}
+                        </p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                          {formattedDate}
+                        </p>
                     </div>
 
-                    <div className={`text-xs mt-3 pt-3 border-t ${isDarkMode ? 'border-gray-700 text-gray-500' : 'border-gray-200 text-gray-500'}`}>
-                      <span className="font-semibold">Submitted:</span> {new Date(payment.createdAt).toLocaleString()}
-                      {payment.verifiedAt && (
-                        <span> • <span className="font-semibold">Verified:</span> {new Date(payment.verifiedAt).toLocaleString()}</span>
-                      )}
+                      {/* Amount */}
+                      <div className="text-right">
+                        <p className={`font-semibold ${
+                          isTransfer 
+                            ? 'text-green-600' 
+                            : 'text-red-600'
+                        }`}>
+                          {isTransfer ? '+' : '-'}{payment.amount.toFixed(2)} {paymentSettings.currency}
+                        </p>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

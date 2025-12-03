@@ -135,8 +135,36 @@ const reportRoutes = require('./routes/reports');
 const adminRoutes = require('./routes/admin');
 const companyRoutes = require('./routes/company');
 
-// Database status middleware (must be before routes)
+// Health check and AI status endpoints (before database middleware)
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'OK',
+    message: 'Notion App Backend is running',
+    database: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get('/api/ai/status', (req, res) => {
+  try {
+    const hasApiKey = !!process.env.OPENAI_API_KEY;
+    res.json({ 
+      status: 'online',
+      aiConfigured: hasApiKey,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({ status: 'error', error: error.message });
+  }
+});
+
+// Database status middleware (must be before other routes)
 app.use('/api', (req, res, next) => {
+  // Skip database check for health and AI status endpoints
+  if (req.path === '/health' || req.path === '/ai/status') {
+    return next();
+  }
+  
   if (mongoose.connection.readyState !== 1) {
     return res.status(503).json({
       message: 'Database unavailable',
@@ -170,15 +198,7 @@ app.use('/api/company', companyRoutes);
 const contactRoutes = require('./routes/contact');
 app.use('/api/contact', contactRoutes);
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'OK',
-    message: 'Notion App Backend is running',
-    database: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
-    timestamp: new Date().toISOString()
-  });
-});
+
 
 // Error handling middleware
 app.use((err, req, res, next) => {

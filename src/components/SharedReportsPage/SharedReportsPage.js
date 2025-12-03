@@ -1,11 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { FileText, Users, Calendar, ArrowLeft } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import { useAppContext } from '../../context/AppContext';
 
 const SharedReportsPage = () => {
   const navigate = useNavigate();
   const { isDarkMode } = useTheme();
+  const { user } = useAppContext();
+  const [searchParams] = useSearchParams();
+  
+  // Get companyId from query params or user context
+  const companyId = searchParams.get('company') || user?.companyId || localStorage.getItem('currentCompanyId');
   const [sharedReports, setSharedReports] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -59,7 +65,10 @@ const SharedReportsPage = () => {
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="flex items-center gap-6 mb-8">
           <button
-            onClick={() => navigate('/reports')}
+            onClick={() => {
+              const backUrl = companyId ? `/reports?company=${companyId}` : '/reports';
+              navigate(backUrl);
+            }}
             className={`p-3 rounded-xl transition-all duration-200 ${isDarkMode ? 'hover:bg-gray-800/50 text-gray-400 hover:text-white border border-gray-700 hover:border-gray-600' : 'hover:bg-gray-200 text-gray-600 hover:text-gray-800 border border-gray-300 hover:border-gray-400'}`}
           >
             <ArrowLeft className="w-5 h-5" />

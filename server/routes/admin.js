@@ -16,6 +16,12 @@ const isSuperAdmin = (req, res, next) => {
 // Get all companies
 router.get('/companies', auth, isSuperAdmin, async (req, res) => {
   try {
+    const now = new Date();
+    const { checkAndPauseCompanies } = require('../middleware/companyStatusCheck');
+    
+    // Check and auto-pause companies before fetching
+    await checkAndPauseCompanies();
+    
     const companies = await Company.find().sort({ createdAt: -1 });
     const companiesWithStats = await Promise.all(companies.map(async (company) => {
       const userCount = await User.countDocuments({ companyId: company.companyId });
@@ -26,6 +32,21 @@ router.get('/companies', auth, isSuperAdmin, async (req, res) => {
         // Update the company in database to set paymentMode
         await Company.findByIdAndUpdate(company._id, { paymentMode: 'paid' }, { new: true });
       }
+      
+      // Auto-update status if grace period expired
+      if (companyObj.paymentMode === 'paid' && !companyObj.hasPaid) {
+        const gracePeriodDeadline = companyObj.gracePeriodDeadline ? new Date(companyObj.gracePeriodDeadline) : null;
+        if (gracePeriodDeadline && now >= gracePeriodDeadline && companyObj.status !== 'paused') {
+          // Auto-pause company
+          await Company.findByIdAndUpdate(company._id, { 
+            status: 'paused', 
+            pausedAt: now 
+          });
+          companyObj.status = 'paused';
+          companyObj.pausedAt = now;
+        }
+      }
+      
       return { ...companyObj, userCount };
     }));
     res.json(companiesWithStats);
@@ -205,6 +226,16 @@ router.patch('/companies/:companyId/limits', auth, isSuperAdmin, async (req, res
   try {
     const { maxUsers, maxStorage } = req.body;
     
+    // Validate user limit change if maxUsers is being updated
+    if (maxUsers !== undefined) {
+      const { validateLimitChange } = require('../services/userLimitService');
+      const validation = await validateLimitChange(req.params.companyId, parseInt(maxUsers));
+      
+      if (!validation.canUpdate) {
+        return res.status(400).json({ message: validation.message });
+      }
+    }
+    
     const updateData = {};
     if (maxUsers !== undefined) {
       updateData['limits.maxUsers'] = parseInt(maxUsers);
@@ -301,18 +332,57 @@ router.patch('/companies/:companyId/payment-mode', auth, isSuperAdmin, async (re
       return res.status(400).json({ message: 'Invalid payment mode. Must be "paid" or "free"' });
     }
 
-    const company = await Company.findOneAndUpdate(
-      { companyId: req.params.companyId },
-      { paymentMode: paymentMode },
-      { new: true }
-    );
-
+    const company = await Company.findOne({ companyId: req.params.companyId });
     if (!company) {
       return res.status(404).json({ message: 'Company not found' });
     }
 
-    res.json({ message: 'Payment mode updated successfully', company });
+    const now = new Date();
+    const currentMode = company.paymentMode || 'paid';
+    
+    // Update payment mode with proper timing logic
+    const updateData = {
+      paymentMode: paymentMode,
+      paymentModeChangedAt: now
+    };
+
+    if (paymentMode === 'paid' && currentMode === 'free') {
+      // Switching from free to paid - start 24-hour countdown
+      updateData.paymentCountdownStart = now;
+      updateData.paymentDeadline = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
+      updateData.gracePeriodDeadline = new Date(updateData.paymentDeadline.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days grace after payment deadline
+      updateData.status = 'active';
+      updateData.hasPaid = false; // Ensure hasPaid is false when switching to paid mode
+      
+      console.log(`✅ Company ${company.name} switched to PAID mode - 24 hour countdown started`);
+      console.log(`   Payment deadline: ${updateData.paymentDeadline}`);
+    } else if (paymentMode === 'free' && currentMode === 'paid') {
+      // Switching from paid to free - remove all payment deadlines
+      updateData.paymentCountdownStart = null;
+      updateData.paymentDeadline = null;
+      updateData.gracePeriodDeadline = null;
+      updateData.status = 'active'; // Ensure company is active when switching to free
+      
+      console.log(`✅ Company ${company.name} switched to FREE mode - no payment required`);
+    }
+
+    const updatedCompany = await Company.findOneAndUpdate(
+      { companyId: req.params.companyId },
+      { $set: updateData },
+      { new: true }
+    );
+
+    res.json({ 
+      message: `Payment mode updated to ${paymentMode.toUpperCase()} successfully`, 
+      company: updatedCompany,
+      countdown: paymentMode === 'paid' && currentMode === 'free' ? {
+        started: updateData.paymentCountdownStart,
+        deadline: updateData.paymentDeadline,
+        hoursRemaining: 24
+      } : null
+    });
   } catch (error) {
+    console.error('Error updating payment mode:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -324,6 +394,50 @@ router.get('/companies/:companyId/stats', auth, isSuperAdmin, async (req, res) =
     const activeUsers = await User.countDocuments({ companyId: req.params.companyId, isActive: true });
     res.json({ userCount, activeUsers });
   } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get company payment status with countdown
+router.get('/companies/:companyId/payment-status', auth, isSuperAdmin, async (req, res) => {
+  try {
+    const company = await Company.findOne({ companyId: req.params.companyId });
+    if (!company) {
+      return res.status(404).json({ message: 'Company not found' });
+    }
+
+    const now = new Date();
+    const paymentMode = company.paymentMode || 'paid';
+    
+    let status = {
+      paymentMode,
+      isCountingDown: false,
+      hoursRemaining: null,
+      minutesRemaining: null,
+      deadline: null,
+      isFree: paymentMode === 'free'
+    };
+
+    if (paymentMode === 'paid' && company.paymentCountdownStart && company.paymentDeadline) {
+      const timeRemaining = company.paymentDeadline.getTime() - now.getTime();
+      
+      if (timeRemaining > 0) {
+        status.isCountingDown = true;
+        status.hoursRemaining = Math.floor(timeRemaining / (1000 * 60 * 60));
+        status.minutesRemaining = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
+        status.deadline = company.paymentDeadline;
+      } else {
+        // Countdown expired
+        status.isCountingDown = false;
+        status.hoursRemaining = 0;
+        status.minutesRemaining = 0;
+        status.expired = true;
+      }
+    }
+
+    res.json(status);
+  } catch (error) {
+    console.error('Error getting payment status:', error);
     res.status(500).json({ message: error.message });
   }
 });

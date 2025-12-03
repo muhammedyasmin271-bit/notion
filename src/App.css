@@ -6,12 +6,17 @@
 }
 
 /* Offset main content from the fixed sidebar */
+.app-content {
+  transition: margin-left 300ms ease-in-out;
+  min-height: 100vh;
+}
+
 body.sidebar-expanded .app-content {
-  margin-left: 16rem; /* matches NavBar w-64 */
+  margin-left: 16rem; /* matches NavBar w-64 (256px) */
 }
 
 body.sidebar-collapsed .app-content {
-  margin-left: 4rem; /* matches NavBar w-16 */
+  margin-left: 4rem; /* matches NavBar w-16 (64px) */
 }
 
 /* On mobile, sidebar overlays; content should not be offset */

@@ -55,58 +55,62 @@ const AdminReports = () => {
     const renderOverview = () => (
         <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className={`p-6 rounded-2xl shadow-lg ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
+                <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} p-6`}>
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Users</p>
-                            <p className="text-3xl font-bold mt-2">1,248</p>
+                            <p className={`text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Users</p>
+                            <p className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>1,248</p>
                         </div>
-                        <div className="p-3 bg-blue-100 rounded-xl">
-                            <Users className="w-8 h-8 text-blue-600" />
+                        <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-blue-600' : 'bg-blue-100'}`}>
+                            <Users className={`w-8 h-8 ${isDarkMode ? 'text-white' : 'text-blue-600'}`} />
                         </div>
                     </div>
+                    <div className="h-1 rounded-full bg-blue-500 mt-4"></div>
                 </div>
 
-                <div className={`p-6 rounded-2xl shadow-lg ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
+                <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} p-6`}>
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Active Projects</p>
-                            <p className="text-3xl font-bold mt-2">86</p>
+                            <p className={`text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Active Projects</p>
+                            <p className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>86</p>
                         </div>
-                        <div className="p-3 bg-green-100 rounded-xl">
-                            <FileText className="w-8 h-8 text-green-600" />
+                        <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-green-600' : 'bg-green-100'}`}>
+                            <FileText className={`w-8 h-8 ${isDarkMode ? 'text-white' : 'text-green-600'}`} />
                         </div>
                     </div>
+                    <div className="h-1 rounded-full bg-green-500 mt-4"></div>
                 </div>
 
-                <div className={`p-6 rounded-2xl shadow-lg ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
+                <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} p-6`}>
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Meetings</p>
-                            <p className="text-3xl font-bold mt-2">142</p>
+                            <p className={`text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Meetings</p>
+                            <p className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>142</p>
                         </div>
-                        <div className="p-3 bg-purple-100 rounded-xl">
-                            <Calendar className="w-8 h-8 text-purple-600" />
+                        <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-purple-600' : 'bg-purple-100'}`}>
+                            <Calendar className={`w-8 h-8 ${isDarkMode ? 'text-white' : 'text-purple-600'}`} />
                         </div>
                     </div>
+                    <div className="h-1 rounded-full bg-purple-500 mt-4"></div>
                 </div>
 
-                <div className={`p-6 rounded-2xl shadow-lg ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
+                <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} p-6`}>
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Messages</p>
-                            <p className="text-3xl font-bold mt-2">3,421</p>
+                            <p className={`text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Messages</p>
+                            <p className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>3,421</p>
                         </div>
-                        <div className="p-3 bg-yellow-100 rounded-xl">
-                            <MessageSquare className="w-8 h-8 text-yellow-600" />
+                        <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-yellow-600' : 'bg-yellow-100'}`}>
+                            <MessageSquare className={`w-8 h-8 ${isDarkMode ? 'text-white' : 'text-yellow-600'}`} />
                         </div>
                     </div>
+                    <div className="h-1 rounded-full bg-yellow-500 mt-4"></div>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className={`p-6 rounded-2xl shadow-lg ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
-                    <h3 className="text-lg font-bold mb-4">User Activity Trend</h3>
+                <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} p-6`}>
+                    <h3 className={`text-lg font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>User Activity Trend</h3>
                     <div className="h-64 flex items-end space-x-2">
                         {userActivityData.map((data, index) => (
                             <div key={index} className="flex flex-col items-center flex-1">
@@ -122,8 +126,8 @@ const AdminReports = () => {
                     </div>
                 </div>
 
-                <div className={`p-6 rounded-2xl shadow-lg ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
-                    <h3 className="text-lg font-bold mb-4">Project Status Distribution</h3>
+                <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} p-6`}>
+                    <h3 className={`text-lg font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Project Status Distribution</h3>
                     <div className="flex items-center justify-center h-64">
                         <div className="relative w-48 h-48">
                             <div className="absolute inset-0 rounded-full border-8 border-green-500"></div>
@@ -150,43 +154,47 @@ const AdminReports = () => {
 
     const renderUserActivity = () => (
         <div className="space-y-6">
-            <div className={`p-6 rounded-2xl shadow-lg ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
-                <h3 className="text-lg font-bold mb-4">User Activity Details</h3>
+            <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} overflow-hidden`}>
+                <div className={`p-6 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                    <h3 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>User Activity Details</h3>
+                </div>
+                <div className="p-6">
                 <div className="overflow-x-auto">
                     <table className="w-full">
-                        <thead>
-                            <tr className={`border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                                <th className="text-left py-3 px-4">User</th>
-                                <th className="text-left py-3 px-4">Last Active</th>
-                                <th className="text-left py-3 px-4">Projects</th>
-                                <th className="text-left py-3 px-4">Meetings</th>
-                                <th className="text-left py-3 px-4">Status</th>
+                        <thead className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} border-b ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
+                            <tr>
+                                <th className={`text-left py-4 px-6 font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>User</th>
+                                <th className={`text-left py-4 px-6 font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Last Active</th>
+                                <th className={`text-left py-4 px-6 font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Projects</th>
+                                <th className={`text-left py-4 px-6 font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Meetings</th>
+                                <th className={`text-left py-4 px-6 font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Status</th>
                             </tr>
                         </thead>
                         <tbody>
                             {[1, 2, 3, 4, 5].map((item) => (
-                                <tr key={item} className={`border-b ${isDarkMode ? 'border-gray-700 hover:bg-gray-750' : 'border-gray-200 hover:bg-gray-50'}`}>
-                                    <td className="py-3 px-4">
+                                <tr key={item} className={`border-b ${isDarkMode ? 'border-gray-700 hover:bg-gray-700/50' : 'border-gray-200 hover:bg-gray-50'} transition-colors`}>
+                                    <td className="py-4 px-6">
                                         <div className="flex items-center">
-                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${isDarkMode ? 'bg-gray-600' : 'bg-gray-200'}`}>
-                                                U
+                                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center mr-3 ${isDarkMode ? 'bg-blue-600' : 'bg-blue-100'}`}>
+                                                <span className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-blue-700'}`}>U</span>
                                             </div>
                                             <div>
-                                                <div className="font-medium">User {item}</div>
-                                                <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>@user{item}</div>
+                                                <div className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>User {item}</div>
+                                                <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>@user{item}</div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="py-3 px-4">2 hours ago</td>
-                                    <td className="py-3 px-4">3</td>
-                                    <td className="py-3 px-4">2</td>
-                                    <td className="py-3 px-4">
-                                        <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">Active</span>
+                                    <td className={`py-4 px-6 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>2 hours ago</td>
+                                    <td className={`py-4 px-6 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>3</td>
+                                    <td className={`py-4 px-6 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>2</td>
+                                    <td className="py-4 px-6">
+                                        <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">Active</span>
                                     </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
+                </div>
                 </div>
             </div>
         </div>
@@ -194,16 +202,16 @@ const AdminReports = () => {
 
     const renderProjectMetrics = () => (
         <div className="space-y-6">
-            <div className={`p-6 rounded-2xl shadow-lg ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
-                <h3 className="text-lg font-bold mb-4">Project Metrics</h3>
+            <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} p-6`}>
+                <h3 className={`text-lg font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Project Metrics</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {projectMetricsData.map((item, index) => (
-                        <div key={index} className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-                            <div className="flex items-center justify-between">
-                                <span className="font-medium">{item.status}</span>
-                                <span className="text-2xl font-bold">{item.count}</span>
+                        <div key={index} className={`p-4 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'}`}>
+                            <div className="flex items-center justify-between mb-2">
+                                <span className={`font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{item.status}</span>
+                                <span className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{item.count}</span>
                             </div>
-                            <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+                            <div className={`mt-2 w-full rounded-full h-2 ${isDarkMode ? 'bg-gray-600' : 'bg-gray-200'}`}>
                                 <div
                                     className={`h-2 rounded-full ${item.color}`}
                                     style={{ width: `${(item.count / 50) * 100}%` }}
@@ -218,16 +226,16 @@ const AdminReports = () => {
 
     const renderMeetingInsights = () => (
         <div className="space-y-6">
-            <div className={`p-6 rounded-2xl shadow-lg ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
-                <h3 className="text-lg font-bold mb-4">Meeting Insights</h3>
+            <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} p-6`}>
+                <h3 className={`text-lg font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Meeting Insights</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {meetingInsightsData.map((item, index) => (
-                        <div key={index} className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-                            <div className="flex items-center justify-between">
-                                <span className="font-medium">{item.type}</span>
-                                <span className="text-2xl font-bold">{item.count}</span>
+                        <div key={index} className={`p-4 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'}`}>
+                            <div className="flex items-center justify-between mb-2">
+                                <span className={`font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{item.type}</span>
+                                <span className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{item.count}</span>
                             </div>
-                            <div className={`mt-2 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                                 Total duration: {item.duration}
                             </div>
                         </div>
@@ -254,80 +262,109 @@ const AdminReports = () => {
 
     return (
         <RoleGuard requiredRole="admin" fallback={
-            <div className="p-8 text-center">
-                <BarChart3 className="w-16 h-16 mx-auto mb-4 text-red-500" />
-                <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
-                <p className="text-gray-600">You need admin privileges to access this page.</p>
+            <div className={`min-h-screen ${isDarkMode ? 'bg-black' : 'bg-white'} flex items-center justify-center p-8`}>
+                <div className={`text-center ${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-3xl shadow-2xl p-12 max-w-md`}>
+                    <BarChart3 className={`w-20 h-20 mx-auto mb-6 ${isDarkMode ? 'text-white' : 'text-black'}`} />
+                    <h2 className="text-3xl font-black mb-4 text-gray-900">Access Denied</h2>
+                    <p className="text-gray-600 text-lg">You need admin privileges to access this page.</p>
+                </div>
             </div>
         }>
-            <div className={`min-h-screen p-6 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-                <div className="max-w-7xl mx-auto">
-                    <div className="mb-8">
-                        <div className="flex items-center mb-4">
-                            <BarChart3 className="w-8 h-8 mr-3 text-blue-500" />
-                            <h1 className="text-3xl font-bold">Admin Reports</h1>
+            <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+                <div className="max-w-7xl mx-auto p-6">
+                    {/* Header */}
+                    <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} p-6 mb-6`}>
+                        <div className="flex items-center gap-4 mb-2">
+                            <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-blue-600' : 'bg-blue-100'}`}>
+                                <BarChart3 className={`w-6 h-6 ${isDarkMode ? 'text-white' : 'text-blue-700'}`} />
+                            </div>
+                            <div>
+                                <h1 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Admin Reports</h1>
+                                <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                    Comprehensive analytics and insights for system administrators
+                                </p>
+                            </div>
                         </div>
-                        <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                            Comprehensive analytics and insights for system administrators
-                        </p>
                     </div>
 
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-                        <div className="flex flex-wrap gap-2 mb-4 md:mb-0">
-                            {tabs.map((tab) => {
-                                const Icon = tab.icon;
-                                return (
-                                    <button
-                                        key={tab.id}
-                                        onClick={() => setActiveTab(tab.id)}
-                                        className={`flex items-center px-4 py-2 rounded-lg transition-colors ${activeTab === tab.id
-                                                ? 'bg-blue-600 text-white'
-                                                : `${isDarkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-gray-100'}`
+                    {/* Filters and Actions */}
+                    <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} p-6 mb-6`}>
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                            <div className="flex flex-wrap gap-2">
+                                {tabs.map((tab) => {
+                                    const Icon = tab.icon;
+                                    return (
+                                        <button
+                                            key={tab.id}
+                                            onClick={() => setActiveTab(tab.id)}
+                                            className={`flex items-center px-4 py-2 rounded-lg font-semibold transition-colors ${
+                                                activeTab === tab.id
+                                                    ? 'bg-blue-600 text-white'
+                                                    : isDarkMode
+                                                        ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                             }`}
-                                    >
-                                        <Icon className="w-4 h-4 mr-2" />
-                                        {tab.label}
-                                    </button>
-                                );
-                            })}
-                        </div>
-
-                        <div className="flex flex-wrap gap-3">
-                            <select
-                                value={dateRange}
-                                onChange={(e) => setDateRange(e.target.value)}
-                                className={`px-4 py-2 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-300'}`}
-                            >
-                                <option value="last7days">Last 7 Days</option>
-                                <option value="last30days">Last 30 Days</option>
-                                <option value="last90days">Last 90 Days</option>
-                                <option value="yearToDate">Year to Date</option>
-                            </select>
-
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                                <input
-                                    type="text"
-                                    placeholder="Search reports..."
-                                    className={`pl-10 pr-4 py-2 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-300'}`}
-                                />
+                                        >
+                                            <Icon className="w-4 h-4 mr-2" />
+                                            {tab.label}
+                                        </button>
+                                    );
+                                })}
                             </div>
 
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => exportReport('pdf')}
-                                    className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                            <div className="flex flex-wrap gap-3">
+                                <select
+                                    value={dateRange}
+                                    onChange={(e) => setDateRange(e.target.value)}
+                                    className={`px-4 py-2 rounded-lg border transition-all ${
+                                        isDarkMode 
+                                            ? 'bg-gray-700 border-gray-600 text-white' 
+                                            : 'bg-white border-gray-300 text-gray-900'
+                                    } focus:outline-none focus:ring-2 focus:ring-blue-500`}
                                 >
-                                    <Download className="w-4 h-4 mr-2" />
-                                    PDF
-                                </button>
-                                <button
-                                    onClick={() => exportReport('csv')}
-                                    className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                                >
-                                    <Download className="w-4 h-4 mr-2" />
-                                    CSV
-                                </button>
+                                    <option value="last7days">Last 7 Days</option>
+                                    <option value="last30days">Last 30 Days</option>
+                                    <option value="last90days">Last 90 Days</option>
+                                    <option value="yearToDate">Year to Date</option>
+                                </select>
+
+                                <div className="relative">
+                                    <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+                                    <input
+                                        type="text"
+                                        placeholder="Search reports..."
+                                        className={`pl-10 pr-4 py-2 rounded-lg border transition-all ${
+                                            isDarkMode 
+                                                ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                                                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                                        } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                                    />
+                                </div>
+
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => exportReport('pdf')}
+                                        className={`flex items-center px-4 py-2 rounded-lg font-semibold transition-colors ${
+                                            isDarkMode
+                                                ? 'bg-red-600 hover:bg-red-700 text-white'
+                                                : 'bg-red-600 hover:bg-red-700 text-white'
+                                        }`}
+                                    >
+                                        <Download className="w-4 h-4 mr-2" />
+                                        PDF
+                                    </button>
+                                    <button
+                                        onClick={() => exportReport('csv')}
+                                        className={`flex items-center px-4 py-2 rounded-lg font-semibold transition-colors ${
+                                            isDarkMode
+                                                ? 'bg-green-600 hover:bg-green-700 text-white'
+                                                : 'bg-green-600 hover:bg-green-700 text-white'
+                                        }`}
+                                    >
+                                        <Download className="w-4 h-4 mr-2" />
+                                        CSV
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>

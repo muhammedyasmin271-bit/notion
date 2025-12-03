@@ -53,32 +53,49 @@ class CronScheduler {
   async updateCompanyStatuses() {
     const now = new Date();
 
-    // Move expired companies to grace period
-    await Company.updateMany(
+    // Automatically pause companies when payment deadline passes (immediately, not after grace period)
+    // This blocks ALL users until super admin clicks "Play"
+    // Applies to both original deadlines and new deadlines after unpause
+    const pausedDeadlineCount = await Company.updateMany(
       {
         hasPaid: false,
+        paymentMode: 'paid',
         paymentDeadline: { $lt: now },
-        status: 'active',
-        gracePeriodDeadline: { $exists: false }
+        status: 'active'
       },
       {
-        status: 'paused',
-        gracePeriodDeadline: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) // 7 days grace
+        $set: {
+          status: 'paused',
+          pausedAt: now,
+          unpausedAt: undefined, // Clear unpausedAt since we're pausing again
+          gracePeriodDeadline: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) // Set grace period for reference
+        }
       }
     );
 
-    // Block companies after grace period
-    await Company.updateMany(
+    if (pausedDeadlineCount.modifiedCount > 0) {
+      console.log(`⏸️ Auto-paused ${pausedDeadlineCount.modifiedCount} companies after payment deadline passed`);
+    }
+
+    // Also pause companies after grace period expires (for companies that were unpaused)
+    const pausedGraceCount = await Company.updateMany(
       {
         hasPaid: false,
+        paymentMode: 'paid',
         gracePeriodDeadline: { $lt: now },
-        status: 'paused'
+        status: { $ne: 'paused' }
       },
       {
-        status: 'suspended',
-        deadlineStart: now
+        $set: {
+          status: 'paused',
+          pausedAt: now
+        }
       }
     );
+
+    if (pausedGraceCount.modifiedCount > 0) {
+      console.log(`⏸️ Auto-paused ${pausedGraceCount.modifiedCount} companies after grace period expired`);
+    }
   }
 
   async cleanupOldCompanies() {

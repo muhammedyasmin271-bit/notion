@@ -4,27 +4,51 @@ const { sendSMS } = require('./smsService');
 class SMSReminderService {
   
   // Send payment reminders (every 6 hours for 24 hours = 4 SMS)
+  // Also sends SMS during deadline month (after deadline passes)
   async sendPaymentReminders() {
     try {
+      const now = new Date();
+      
+      // Find companies that are in deadline period (24 hours before deadline OR after deadline but before grace period)
       const companies = await Company.find({
         selectedPlan: { $in: ['one_month', 'three_month', 'six_month'] },
         hasPaid: false,
         status: 'active',
-        paymentDeadline: { $exists: true, $gte: new Date() }
+        paymentMode: 'paid',
+        paymentDeadline: { $exists: true }
       }).populate('adminUserId', 'phone name');
 
       for (const company of companies) {
-        const now = new Date();
-        const paymentStart = new Date(company.paymentDeadline.getTime() - 24 * 60 * 60 * 1000);
-        const hoursElapsed = Math.floor((now - paymentStart) / (1000 * 60 * 60));
+        const paymentDeadline = new Date(company.paymentDeadline);
+        const gracePeriodDeadline = company.gracePeriodDeadline ? new Date(company.gracePeriodDeadline) : null;
         
-        // Send SMS at 6, 12, 18, 24 hours
-        const reminderHours = [6, 12, 18, 24];
-        const currentReminderHour = reminderHours.find(h => hoursElapsed >= h && hoursElapsed < h + 1);
+        // Check if we're in the 24-hour window before deadline OR after deadline but before grace period
+        const hoursBeforeDeadline = (paymentDeadline.getTime() - now.getTime()) / (1000 * 60 * 60);
+        const inDeadlineWindow = hoursBeforeDeadline <= 24 && hoursBeforeDeadline >= -168; // 24 hours before to 7 days after (grace period)
+        const inGracePeriod = gracePeriodDeadline && now >= paymentDeadline && now < gracePeriodDeadline;
         
-        if (currentReminderHour && !this.hasRecentSMS(company, 5)) {
-          const hoursLeft = 24 - hoursElapsed;
-          await this.sendPaymentReminderSMS(company, hoursLeft);
+        if (inDeadlineWindow && !inGracePeriod) {
+          // Calculate hours left (positive if before deadline, negative if after)
+          const hoursLeft = Math.ceil((paymentDeadline.getTime() - now.getTime()) / (1000 * 60 * 60));
+          
+          // Send SMS at specific intervals: 24h, 18h, 12h, 6h before deadline, and daily after deadline
+          let shouldSend = false;
+          let messageHoursLeft = hoursLeft;
+          
+          if (hoursLeft > 0) {
+            // Before deadline: send at 24, 18, 12, 6 hours
+            const reminderHours = [24, 18, 12, 6];
+            shouldSend = reminderHours.some(h => hoursLeft <= h && hoursLeft > h - 1);
+          } else {
+            // After deadline but before grace period: send daily
+            const daysPastDeadline = Math.floor(Math.abs(hoursLeft) / 24);
+            shouldSend = daysPastDeadline <= 7 && Math.abs(hoursLeft) % 24 < 1; // Once per day
+            messageHoursLeft = Math.abs(hoursLeft);
+          }
+          
+          if (shouldSend && !this.hasRecentSMS(company, 5)) {
+            await this.sendPaymentReminderSMS(company, messageHoursLeft, hoursLeft < 0);
+          }
         }
       }
     } catch (error) {
@@ -58,23 +82,31 @@ class SMSReminderService {
   }
 
   // Send grace period reminders (day 5, 6, 7 of grace period)
+  // Grace period happens when paymentDeadline has passed but gracePeriodDeadline hasn't
   async sendGraceReminders() {
     try {
+      const now = new Date();
+      
+      // Find companies in grace period (active status, payment deadline passed, grace period not expired)
       const companies = await Company.find({
         hasPaid: false,
-        status: 'paused',
-        gracePeriodDeadline: { $exists: true, $gte: new Date() }
+        paymentMode: 'paid',
+        paymentDeadline: { $exists: true, $lte: now },
+        gracePeriodDeadline: { $exists: true, $gte: now }
       }).populate('adminUserId', 'phone name');
 
       for (const company of companies) {
-        const now = new Date();
-        const graceStart = new Date(company.gracePeriodDeadline.getTime() - 7 * 24 * 60 * 60 * 1000);
-        const daysElapsed = Math.floor((now - graceStart) / (1000 * 60 * 60 * 24));
+        const paymentDeadline = new Date(company.paymentDeadline);
+        const gracePeriodDeadline = new Date(company.gracePeriodDeadline);
         
-        // Send SMS on days 5, 6, 7 of grace period
-        if ([5, 6, 7].includes(daysElapsed) && !this.hasRecentSMS(company, 23)) {
-          const daysLeft = 7 - daysElapsed;
-          const isLastDay = daysLeft === 0;
+        // Calculate days into grace period (0-7 days)
+        const graceStart = paymentDeadline;
+        const daysIntoGrace = Math.floor((now - graceStart) / (1000 * 60 * 60 * 24));
+        const daysLeft = Math.ceil((gracePeriodDeadline - now) / (1000 * 60 * 60 * 24));
+        
+        // Send SMS on days 5, 6, 7 of grace period (or when 3, 2, 1 days left)
+        if ((daysIntoGrace >= 5 || daysLeft <= 3) && !this.hasRecentSMS(company, 23)) {
+          const isLastDay = daysLeft <= 1;
           await this.sendGraceReminderSMS(company, daysLeft, isLastDay);
         }
       }
@@ -120,11 +152,16 @@ class SMSReminderService {
   }
 
   // Send payment reminder SMS
-  async sendPaymentReminderSMS(company, hoursLeft) {
+  async sendPaymentReminderSMS(company, hoursLeft, isPastDeadline = false) {
     const phone = company.adminUserId?.phone;
     if (!phone) return;
 
-    const message = `⏰ Payment Reminder: Your ${company.name} subscription expires in ${hoursLeft} hours. Please complete payment to avoid service interruption. Pay now: ${process.env.BASE_URL}/${company.companyId}/admin/payments`;
+    let message;
+    if (isPastDeadline) {
+      message = `🚨 URGENT: Your ${company.name} payment deadline has passed ${Math.floor(hoursLeft / 24)} days ago! Complete payment immediately to avoid service interruption. Pay now: ${process.env.BASE_URL}/${company.companyId}/admin/payments`;
+    } else {
+      message = `⏰ Payment Reminder: Your ${company.name} subscription expires in ${hoursLeft} hours. Please complete payment to avoid service interruption. Pay now: ${process.env.BASE_URL}/${company.companyId}/admin/payments`;
+    }
     
     await sendSMS(phone, message);
     await this.updateSMSLog(company, 'payment');

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, Users, Pause, Play, Trash2, Plus, X, TrendingUp, DollarSign, Activity, AlertCircle, CheckCircle, Upload, Copy, Link as LinkIcon, Eye, XCircle, Settings, Phone, User, Lock, ToggleLeft, ToggleRight, Mail } from 'lucide-react';
+import { Building2, Users, Pause, Play, Trash2, Plus, X, TrendingUp, DollarSign, Activity, AlertCircle, CheckCircle, Upload, Copy, Link as LinkIcon, Eye, XCircle, Settings, Phone, User, Lock, ToggleLeft, ToggleRight, Mail, Clock, MoreVertical, MessageCircle, Info } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../../context/AppContext';
 import CompanyCalendar from '../CompanyCalendar/CompanyCalendar';
+import CompanyPaymentStatus from '../CompanyPaymentStatus/CompanyPaymentStatus';
 
 const SuperAdminPage = () => {
   const { isDarkMode } = useTheme();
@@ -27,6 +28,7 @@ const SuperAdminPage = () => {
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [verifyAction, setVerifyAction] = useState('approved');
   const [rejectionReason, setRejectionReason] = useState('');
+  const [openMenuId, setOpenMenuId] = useState(null);
 
   const [editingLimits, setEditingLimits] = useState(false);
   const [limitsForm, setLimitsForm] = useState({ maxUsers: 50, maxStorage: 5368709120 });
@@ -99,6 +101,17 @@ const SuperAdminPage = () => {
       fetchCompanies();
     }
   }, [isAuthorized, authLoading, fetchCompanies]);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (openMenuId && !event.target.closest('.menu-container')) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openMenuId]);
 
   // Don't render anything until authorized
   if (authLoading || !isAuthorized) {
@@ -325,10 +338,18 @@ const SuperAdminPage = () => {
       setSelectedPayment(null);
       setRejectionReason('');
       
-      // Refresh company details to show updated payment
+      // Refresh company details to show updated payment and calendar
       if (selectedCompany) {
+        // Refresh immediately
         viewCompanyDetails(selectedCompany.companyId);
+        // Refresh again after a delay to ensure backend has updated
+        setTimeout(() => {
+          viewCompanyDetails(selectedCompany.companyId);
+        }, 2000);
       }
+      
+      // Also refresh the companies list to update calendar data
+      fetchCompanies();
     } catch (error) {
       console.error('Error verifying payment:', error);
       setError(error.message || 'Failed to verify payment');
@@ -394,165 +415,385 @@ const SuperAdminPage = () => {
   };
 
   return (
-    <div className={`min-h-screen ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
+    <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
       <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-8">
-          <div className="flex items-center gap-4">
-            <div className={`p-4 rounded-2xl ${isDarkMode ? 'bg-white' : 'bg-black'} shadow-xl`}>
-              <Building2 size={32} className={isDarkMode ? 'text-black' : 'text-white'} />
+        <div className="mb-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <div className="flex items-center gap-3">
+              <div className={`p-3 rounded-lg ${
+                isDarkMode ? 'bg-gray-800' : 'bg-gray-100'
+              }`}>
+                <Building2 size={24} className={isDarkMode ? 'text-gray-300' : 'text-gray-700'} />
+              </div>
+              <div>
+                <h1 className={`text-2xl sm:text-3xl font-bold ${
+                  isDarkMode ? 'text-white' : 'text-gray-900'
+                }`}>
+                  Super Admin
+                </h1>
+                <p className={`text-sm ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>
+                  Manage all companies and subscriptions
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className={`text-4xl sm:text-5xl font-black mb-2 ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                Super Admin
-              </h1>
-              <p className={`text-sm font-semibold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Manage all companies and subscriptions</p>
+            <div className="flex flex-wrap gap-2">
+              <button 
+                onClick={() => navigate('/super-admin/messages')} 
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                  isDarkMode 
+                    ? 'bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700' 
+                    : 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200'
+                }`}
+              >
+                <Mail size={16} /> 
+                <span className="hidden sm:inline">Messages</span>
+              </button>
+              <button 
+                onClick={() => {
+                  const token = new URLSearchParams(window.location.search).get('token');
+                  navigate(`/super-admin/settings${token ? `?token=${token}` : ''}`);
+                }} 
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                  isDarkMode 
+                    ? 'bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700' 
+                    : 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200'
+                }`}
+              >
+                <Settings size={16} /> 
+                <span className="hidden sm:inline">Settings</span>
+              </button>
+              <button 
+                onClick={() => navigate('/super-admin/add-company')} 
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors border ${
+                  isDarkMode 
+                    ? 'bg-white hover:bg-gray-100 text-gray-900 border-gray-300' 
+                    : 'bg-white hover:bg-gray-50 text-gray-900 border-gray-200'
+                }`}
+              >
+                <Plus size={16} /> 
+                <span className="hidden sm:inline">Add Company</span>
+              </button>
             </div>
-          </div>
-          <div className="flex gap-3">
-            <button 
-              onClick={() => navigate('/super-admin/messages')} 
-              className={`flex items-center gap-2 px-6 py-3.5 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 ${isDarkMode ? 'bg-gray-900 hover:bg-gray-800 text-white border border-gray-800' : 'bg-white hover:bg-gray-50 text-black border-2 border-gray-200 shadow-md'}`}
-            >
-              <Mail size={20} /> <span className="hidden sm:inline">Messages</span>
-            </button>
-            <button 
-              onClick={() => {
-                const token = new URLSearchParams(window.location.search).get('token');
-                navigate(`/super-admin/settings${token ? `?token=${token}` : ''}`);
-              }} 
-              className={`flex items-center gap-2 px-6 py-3.5 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 ${isDarkMode ? 'bg-gray-900 hover:bg-gray-800 text-white border border-gray-800' : 'bg-white hover:bg-gray-50 text-black border-2 border-gray-200 shadow-md'}`}
-            >
-              <Settings size={20} /> <span className="hidden sm:inline">Settings</span>
-            </button>
-            <button 
-              onClick={() => setShowModal(true)} 
-              className={`flex items-center gap-2 ${isDarkMode ? 'bg-white hover:bg-gray-100 text-black' : 'bg-black hover:bg-gray-900 text-white'} px-6 py-3.5 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105`}
-            >
-              <Plus size={20} /> <span className="hidden sm:inline">Add Company</span>
-            </button>
           </div>
         </div>
 
         {/* Alerts */}
         {error && (
-          <div className={`mb-6 p-4 rounded-2xl border-2 backdrop-blur-sm flex items-center gap-3 animate-slideDown ${isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-gray-100 border-gray-300'}`}>
-            <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-gray-800' : 'bg-gray-200'}`}>
-              <AlertCircle className={isDarkMode ? 'text-white' : 'text-black'} size={20} />
-            </div>
-            <span className={`flex-1 font-semibold ${isDarkMode ? 'text-white' : 'text-black'}`}>{error}</span>
-            <button onClick={() => setError('')} className={`p-2 rounded-lg hover:bg-opacity-20 transition-colors ${isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-200'}`}>
-              <X size={18} className={isDarkMode ? 'text-white' : 'text-black'} />
+          <div className={`mb-4 p-3 rounded-lg border flex items-center gap-3 ${
+            isDarkMode 
+              ? 'bg-red-900/20 border-red-700/30' 
+              : 'bg-red-50 border-red-200'
+          }`}>
+            <AlertCircle className={isDarkMode ? 'text-red-400' : 'text-red-600'} size={18} />
+            <span className={`flex-1 text-sm font-medium ${
+              isDarkMode ? 'text-red-300' : 'text-red-700'
+            }`}>
+              {error}
+            </span>
+            <button 
+              onClick={() => setError('')} 
+              className={`p-1 rounded transition-colors ${
+                isDarkMode ? 'hover:bg-red-900/30' : 'hover:bg-red-100'
+              }`}
+            >
+              <X size={16} className={isDarkMode ? 'text-red-400' : 'text-red-600'} />
             </button>
           </div>
         )}
         {success && (
-          <div className={`mb-6 p-4 rounded-2xl border-2 backdrop-blur-sm flex items-center gap-3 animate-slideDown ${isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-gray-100 border-gray-300'}`}>
-            <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-gray-800' : 'bg-gray-200'}`}>
-              <CheckCircle className={isDarkMode ? 'text-white' : 'text-black'} size={20} />
-            </div>
-            <span className={`flex-1 font-semibold ${isDarkMode ? 'text-white' : 'text-black'}`}>{success}</span>
-            <button onClick={() => setSuccess('')} className={`p-2 rounded-lg hover:bg-opacity-20 transition-colors ${isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-200'}`}>
-              <X size={18} className={isDarkMode ? 'text-white' : 'text-black'} />
+          <div className={`mb-4 p-3 rounded-lg border flex items-center gap-3 ${
+            isDarkMode 
+              ? 'bg-green-900/20 border-green-700/30' 
+              : 'bg-green-50 border-green-200'
+          }`}>
+            <CheckCircle className={isDarkMode ? 'text-green-400' : 'text-green-600'} size={18} />
+            <span className={`flex-1 text-sm font-medium ${
+              isDarkMode ? 'text-green-300' : 'text-green-700'
+            }`}>
+              {success}
+            </span>
+            <button 
+              onClick={() => setSuccess('')} 
+              className={`p-1 rounded transition-colors ${
+                isDarkMode ? 'hover:bg-green-900/30' : 'hover:bg-green-100'
+              }`}
+            >
+              <X size={16} className={isDarkMode ? 'text-green-400' : 'text-green-600'} />
             </button>
           </div>
         )}
 
         {/* Companies List */}
         {loading ? (
-          <div className="flex justify-center items-center py-24">
+          <div className="flex justify-center items-center py-20">
             <div className="text-center">
-              <div className="relative inline-block">
-                <div className={`w-20 h-20 border-4 ${isDarkMode ? 'border-gray-800' : 'border-gray-200'} rounded-full`}></div>
-                <div className={`w-20 h-20 border-4 ${isDarkMode ? 'border-white' : 'border-black'} border-t-transparent rounded-full animate-spin absolute top-0 left-0`}></div>
+              <div className="relative inline-block mb-4">
+                <div className={`w-12 h-12 border-3 ${
+                  isDarkMode ? 'border-gray-700' : 'border-gray-200'
+                } border-t-blue-600 rounded-full animate-spin`}></div>
               </div>
-              <p className={`mt-6 text-lg font-semibold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Loading companies...</p>
+              <p className={`text-sm font-medium ${
+                isDarkMode ? 'text-gray-400' : 'text-gray-600'
+              }`}>
+                Loading companies...
+              </p>
             </div>
           </div>
         ) : companies.length === 0 ? (
-          <div className={`text-center py-24 ${isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'} border-2 rounded-3xl shadow-2xl`}>
-            <div className={`inline-flex p-8 rounded-3xl ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'} mb-6 shadow-lg`}>
-              <Building2 size={72} className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+          <div className={`text-center py-16 px-4 rounded-lg border ${
+            isDarkMode 
+              ? 'bg-gray-800 border-gray-700' 
+              : 'bg-white border-gray-200'
+          }`}>
+            <div className={`inline-flex p-4 rounded-full mb-4 ${
+              isDarkMode ? 'bg-gray-700' : 'bg-gray-100'
+            }`}>
+              <Building2 size={40} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
             </div>
-            <p className={`text-2xl font-black mb-3 ${isDarkMode ? 'text-white' : 'text-black'}`}>No companies yet</p>
-            <p className={`text-base ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-6`}>Create your first company to get started</p>
+            <p className={`text-lg font-semibold mb-2 ${
+              isDarkMode ? 'text-white' : 'text-gray-900'
+            }`}>
+              No companies yet
+            </p>
+            <p className={`text-sm mb-6 ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              Create your first company to get started
+            </p>
             <button 
-              onClick={() => setShowModal(true)} 
-              className={`inline-flex items-center gap-2 ${isDarkMode ? 'bg-white hover:bg-gray-100 text-black' : 'bg-black hover:bg-gray-900 text-white'} px-8 py-4 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105`}
+              onClick={() => navigate('/super-admin/add-company')} 
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                isDarkMode 
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+              }`}
             >
-              <Plus size={20} /> Create First Company
+              <Plus size={16} /> Create First Company
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {companies.map(company => (
               <div 
                 key={company.companyId} 
-                className={`group relative overflow-hidden ${isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'} border-2 rounded-3xl p-6 sm:p-8 shadow-2xl hover:shadow-3xl cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1`} 
                 onClick={() => viewCompanyDetails(company.companyId)}
+                className={`group relative rounded-lg border shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer ${
+                  isDarkMode 
+                    ? 'bg-gray-800 border-gray-700 hover:border-gray-600' 
+                    : 'bg-white border-gray-200 hover:border-gray-300'
+                }`}
               >
-                {/* Status indicator line */}
-                <div className={`absolute top-0 left-0 right-0 h-1.5 ${company.status === 'active' ? (isDarkMode ? 'bg-white' : 'bg-black') : 'bg-gray-500'} shadow-lg`}></div>
-                
-                <div className="relative flex flex-col gap-6">
-                  <div className="flex flex-col items-center gap-4">
-                    {/* Logo Section */}
-                    <div className="relative flex-shrink-0">
-                      {company.branding?.logo ? (
-                        <div className="relative">
-                          <img src={company.branding.logo} alt={company.name} className="w-24 h-24 sm:w-28 sm:h-28 object-contain rounded-2xl p-3 bg-white/90 shadow-xl border-2 border-gray-200" onError={(e) => { e.target.parentElement.innerHTML = `<div class="w-24 h-24 sm:w-28 sm:h-28 p-4 ${isDarkMode ? 'bg-white' : 'bg-black'} rounded-2xl shadow-xl flex items-center justify-center border-2 border-gray-200"><svg class="w-10 h-10 ${isDarkMode ? 'text-black' : 'text-white'}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path></svg></div>`; }} />
-                          <div className={`absolute -top-1 -right-1 w-5 h-5 rounded-full ${company.status === 'active' ? (isDarkMode ? 'bg-white' : 'bg-black') : 'bg-gray-500'} border-2 ${isDarkMode ? 'border-gray-900' : 'border-white'} shadow-lg animate-pulse`}></div>
-                        </div>
-                      ) : (
-                        <div className="relative">
-                          <div className={`w-24 h-24 sm:w-28 sm:h-28 p-4 ${isDarkMode ? 'bg-white' : 'bg-black'} rounded-2xl shadow-xl flex items-center justify-center border-2 ${isDarkMode ? 'border-gray-800' : 'border-gray-200'}`}>
-                            <Building2 size={40} className={isDarkMode ? 'text-black' : 'text-white'} />
-                          </div>
-                          <div className={`absolute -top-1 -right-1 w-5 h-5 rounded-full ${company.status === 'active' ? (isDarkMode ? 'bg-white' : 'bg-black') : 'bg-gray-500'} border-2 ${isDarkMode ? 'border-gray-900' : 'border-white'} shadow-lg animate-pulse`}></div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Company Info */}
-                    <div className="flex flex-col items-center w-full gap-3">
-                      <h3 className={`text-2xl sm:text-3xl font-black ${isDarkMode ? 'text-white' : 'text-gray-900'} text-center leading-tight`}>
-                        {company.name}
-                      </h3>
-                      <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl w-full ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-gray-100 border border-gray-200'} justify-center`}>
-                        <div className={`p-1.5 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
-                          <Users size={14} className={isDarkMode ? 'text-white' : 'text-black'} />
-                        </div>
-                        <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} truncate`}>
-                          {company.adminEmail}
-                        </p>
+                {/* Three-dot menu */}
+                <div className="absolute top-3 right-3 z-10 menu-container" onClick={(e) => e.stopPropagation()}>
+                  <div className="relative">
+                    <button
+                      onClick={() => setOpenMenuId(openMenuId === company.companyId ? null : company.companyId)}
+                      className={`p-1.5 rounded-full transition-colors ${
+                        isDarkMode 
+                          ? 'hover:bg-gray-700' 
+                          : 'hover:bg-gray-100'
+                      }`}
+                    >
+                      <MoreVertical size={16} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
+                    </button>
+                    {openMenuId === company.companyId && (
+                      <div className={`absolute right-0 top-8 w-40 rounded-lg border shadow-lg z-20 ${
+                        isDarkMode 
+                          ? 'bg-gray-800 border-gray-700' 
+                          : 'bg-white border-gray-200'
+                      }`}>
+                        <button
+                          onClick={() => {
+                            viewCompanyDetails(company.companyId);
+                            setOpenMenuId(null);
+                          }}
+                          className={`w-full text-left px-4 py-2 text-sm hover:bg-opacity-50 transition-colors ${
+                            isDarkMode 
+                              ? 'hover:bg-gray-700 text-gray-300' 
+                              : 'hover:bg-gray-100 text-gray-700'
+                          } flex items-center gap-2`}
+                        >
+                          <Eye size={14} />
+                          View Details
+                        </button>
+                        <button
+                          onClick={() => {
+                            toggleStatus(company.companyId, company.status);
+                            setOpenMenuId(null);
+                          }}
+                          className={`w-full text-left px-4 py-2 text-sm hover:bg-opacity-50 transition-colors ${
+                            isDarkMode 
+                              ? 'hover:bg-gray-700 text-gray-300' 
+                              : 'hover:bg-gray-100 text-gray-700'
+                          } flex items-center gap-2`}
+                        >
+                          {(() => {
+                            // Calculate effective status based on grace period and deadline
+                            const now = new Date();
+                            const paymentDeadline = company.paymentDeadline ? new Date(company.paymentDeadline) : null;
+                            const gracePeriodDeadline = company.gracePeriodDeadline ? new Date(company.gracePeriodDeadline) : null;
+                            const deadlinePassed = paymentDeadline && now >= paymentDeadline && 
+                                                  company.paymentMode === 'paid' && !company.hasPaid;
+                            const gracePeriodExpired = gracePeriodDeadline && now >= gracePeriodDeadline && 
+                                                       company.paymentMode === 'paid' && !company.hasPaid;
+                            
+                            // If grace period expired, company should be paused
+                            const effectiveStatus = (gracePeriodExpired || company.status === 'paused') ? 'paused' : 'active';
+                            return effectiveStatus === 'active' ? (
+                              <>
+                                <Pause size={14}/>
+                                Pause
+                              </>
+                            ) : (
+                              <>
+                                <Play size={14}/>
+                                Activate
+                              </>
+                            );
+                          })()}
+                        </button>
+                        <button
+                          onClick={() => {
+                            deleteCompany(company.companyId);
+                            setOpenMenuId(null);
+                          }}
+                          className={`w-full text-left px-4 py-2 text-sm hover:bg-opacity-50 transition-colors ${
+                            isDarkMode 
+                              ? 'hover:bg-red-900/30 text-red-400' 
+                              : 'hover:bg-red-50 text-red-600'
+                          } flex items-center gap-2`}
+                        >
+                          <Trash2 size={14}/>
+                          Delete
+                        </button>
                       </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Card Content */}
+                <div className="p-5 pt-6">
+                  {/* Profile Picture (Logo) */}
+                  <div className="flex justify-center mb-4">
+                    <div className="relative">
+                      {company.branding?.logo ? (
+                        <img 
+                          src={company.branding.logo} 
+                          alt={company.name} 
+                          className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
+                          onError={(e) => { 
+                            e.target.style.display = 'none';
+                            e.target.nextElementSibling.style.display = 'flex';
+                          }} 
+                        />
+                      ) : null}
+                      <div 
+                        className={`w-20 h-20 rounded-full flex items-center justify-center border-2 ${
+                          isDarkMode 
+                            ? 'bg-gray-700 border-gray-600' 
+                            : 'bg-gray-100 border-gray-200'
+                        }`}
+                        style={{ display: company.branding?.logo ? 'none' : 'flex' }}
+                      >
+                        <Building2 size={32} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
+                      </div>
+                      {/* Status indicator */}
+                      <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 ${
+                        isDarkMode ? 'border-gray-800' : 'border-white'
+                      } ${
+                        company.status === 'active' ? 'bg-green-500' : 'bg-gray-400'
+                      }`}></div>
                     </div>
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className={`relative flex gap-2.5 w-full pt-5 border-t ${isDarkMode ? 'border-gray-800' : 'border-gray-200'}`} onClick={(e) => e.stopPropagation()}>
-                    <button 
-                      onClick={() => viewCompanyDetails(company.companyId)} 
-                      className={`flex-1 flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl font-bold transition-all duration-300 active:scale-95 ${isDarkMode ? 'bg-white hover:bg-gray-100 text-black' : 'bg-black hover:bg-gray-900 text-white'} shadow-lg hover:shadow-xl hover:scale-105`}
+                  {/* Company Name */}
+                  <h3 className={`text-base font-bold text-center mb-1 ${
+                    isDarkMode ? 'text-white' : 'text-gray-900'
+                  }`}>
+                    {company.name}
+                  </h3>
+
+                  {/* Admin Email (like role) */}
+                  <p className={`text-xs text-center mb-3 ${
+                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
+                    {company.adminEmail}
+                  </p>
+
+                  {/* Company ID */}
+                  <div className={`text-xs text-center mb-2 px-2 py-1 rounded-md ${
+                    isDarkMode 
+                      ? 'bg-gray-700/50 text-gray-300' 
+                      : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {company.companyId}
+                  </div>
+
+                  {/* Created Date */}
+                  {company.createdAt && (
+                    <p className={`text-xs text-center mb-4 ${
+                      isDarkMode ? 'text-gray-500' : 'text-gray-500'
+                    }`}>
+                      {new Date(company.createdAt).toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric', 
+                        year: 'numeric' 
+                      })}
+                    </p>
+                  )}
+
+                  {/* Action Icons */}
+                  <div className={`flex justify-center gap-3 pt-3 border-t ${
+                    isDarkMode ? 'border-gray-700' : 'border-gray-200'
+                  }`}>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (company.adminPhone) {
+                          window.location.href = `tel:${company.adminPhone}`;
+                        }
+                      }}
+                      className={`p-2 rounded-full transition-colors ${
+                        isDarkMode 
+                          ? 'hover:bg-gray-700 text-gray-400' 
+                          : 'hover:bg-gray-100 text-gray-500'
+                      } ${!company.adminPhone ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      title="Call Admin"
                     >
-                      <Eye size={18} />
-                      <span className="hidden sm:inline">View</span>
+                      <Phone size={16} />
                     </button>
-                    <button 
-                      onClick={() => toggleStatus(company.companyId, company.status)} 
-                      className={`flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl font-bold transition-all duration-300 active:scale-95 ${isDarkMode ? 'bg-gray-800 hover:bg-gray-700 text-white' : 'bg-gray-200 hover:bg-gray-300 text-black'} shadow-lg hover:shadow-xl hover:scale-105`} 
-                      title={company.status === 'active' ? 'Pause Company' : 'Activate Company'}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (company.adminEmail) {
+                          window.location.href = `mailto:${company.adminEmail}`;
+                        }
+                      }}
+                      className={`p-2 rounded-full transition-colors ${
+                        isDarkMode 
+                          ? 'hover:bg-gray-700 text-gray-400' 
+                          : 'hover:bg-gray-100 text-gray-500'
+                      }`}
+                      title="Email Admin"
                     >
-                      {company.status === 'active' ? <Pause size={18}/> : <Play size={18}/>}
-                      <span className="hidden sm:inline">{company.status === 'active' ? 'Pause' : 'Play'}</span>
+                      <Mail size={16} />
                     </button>
-                    <button 
-                      onClick={() => deleteCompany(company.companyId)} 
-                      className={`flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl font-bold transition-all duration-300 active:scale-95 ${isDarkMode ? 'bg-gray-800 hover:bg-gray-700 text-white' : 'bg-gray-300 hover:bg-gray-400 text-black'} shadow-lg hover:shadow-xl hover:scale-105`} 
-                      title="Delete Company"
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        viewCompanyDetails(company.companyId);
+                      }}
+                      className={`p-2 rounded-full transition-colors ${
+                        isDarkMode 
+                          ? 'hover:bg-gray-700 text-gray-400' 
+                          : 'hover:bg-gray-100 text-gray-500'
+                      }`}
+                      title="View Details"
                     >
-                      <Trash2 size={18}/>
-                      <span className="hidden sm:inline">Delete</span>
+                      <Info size={16} />
                     </button>
                   </div>
                 </div>
@@ -563,98 +804,179 @@ const SuperAdminPage = () => {
 
         {/* Modal */}
         {showModal && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 z-50 animate-fadeIn">
-            <div className={`${isDarkMode ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-gray-700' : 'bg-gradient-to-br from-white via-gray-50 to-white border-gray-200'} border-2 rounded-2xl sm:rounded-3xl w-full max-w-3xl shadow-2xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto transform transition-all duration-300 scale-100 hover:shadow-3xl`}>
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className={`${
+              isDarkMode ? 'bg-gray-800' : 'bg-white'
+            } rounded-lg border ${
+              isDarkMode ? 'border-gray-700' : 'border-gray-200'
+            } w-full max-w-2xl max-h-[90vh] shadow-lg overflow-y-auto`}>
               {/* Header */}
-              <div className={`flex justify-between items-center p-5 sm:p-7 border-b-2 ${isDarkMode ? 'border-gray-700 bg-gray-900/50' : 'border-gray-200 bg-white/50'} sticky top-0 backdrop-blur-sm z-10`}>
-                <div className="flex items-center gap-4">
-                  <div className={`p-3 sm:p-4 rounded-2xl ${isDarkMode ? 'bg-gradient-to-br from-gray-700 to-gray-800' : 'bg-gradient-to-br from-gray-800 to-black'} shadow-lg`}>
-                    <Building2 size={28} className="text-white" />
+              <div className={`flex justify-between items-center p-4 border-b ${
+                isDarkMode ? 'border-gray-700' : 'border-gray-200'
+              }`}>
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${
+                    isDarkMode ? 'bg-gray-700' : 'bg-gray-100'
+                  }`}>
+                    <Building2 size={20} className={isDarkMode ? 'text-gray-300' : 'text-gray-700'} />
                   </div>
                   <div>
-                    <h2 className={`text-2xl sm:text-3xl font-black ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                      {createdCompany ? '🎉 Company Created!' : 'Add New Company'}
+                    <h2 className={`text-lg font-semibold ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    }`}>
+                      {createdCompany ? 'Company Created!' : 'Add New Company'}
                     </h2>
-                    <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mt-1`}>
+                    <p className={`text-xs ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>
                       {createdCompany ? 'Successfully set up new organization' : 'Create a new organization with admin access'}
                     </p>
                   </div>
                 </div>
-                <button onClick={closeModal} className={`p-3 rounded-xl ${isDarkMode ? 'hover:bg-gray-800 bg-gray-800/50' : 'hover:bg-gray-100 bg-gray-100/50'} active:scale-95 transition-all duration-200`}>
-                  <X size={22} className={isDarkMode ? 'text-gray-400' : 'text-gray-600'} />
+                <button 
+                  onClick={closeModal} 
+                  className={`p-1.5 rounded transition-colors ${
+                    isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+                  }`}
+                >
+                  <X size={18} className={isDarkMode ? 'text-gray-400' : 'text-gray-600'} />
                 </button>
               </div>
               
               {createdCompany ? (
-                <div className="p-5 sm:p-7 space-y-5 sm:space-y-6">
+                <div className="p-5 space-y-4">
                   {/* Success Animation */}
                   <div className="text-center py-4">
-                    <div className="relative inline-block">
-                      <div className={`w-24 h-24 rounded-full ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'} flex items-center justify-center mb-4 animate-bounce`}>
-                        <CheckCircle size={56} className={`${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
-                      </div>
-                      <div className="absolute inset-0 w-24 h-24 rounded-full bg-green-500 opacity-20 animate-ping"></div>
+                    <div className={`w-16 h-16 rounded-full ${
+                      isDarkMode ? 'bg-green-900/30' : 'bg-green-100'
+                    } flex items-center justify-center mx-auto mb-3`}>
+                      <CheckCircle size={32} className={isDarkMode ? 'text-green-400' : 'text-green-600'} />
                     </div>
-                    <h3 className={`text-3xl font-black mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{createdCompany.company.name}</h3>
-                    <p className={`text-base ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Company created and ready to use!</p>
+                    <h3 className={`text-xl font-semibold mb-1 ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    }`}>
+                      {createdCompany.company.name}
+                    </h3>
+                    <p className={`text-sm ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>
+                      Company created and ready to use!
+                    </p>
                   </div>
 
                   {/* Info Cards */}
-                  <div className="space-y-4">
-                    <div className={`p-5 rounded-2xl ${isDarkMode ? 'bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700' : 'bg-gradient-to-br from-white to-gray-50 border border-gray-200'} shadow-lg hover:shadow-xl transition-all duration-300`}>
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
-                          <Building2 size={18} className={isDarkMode ? 'text-gray-300' : 'text-gray-700'} />
-                        </div>
-                        <label className={`text-xs font-black uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Company ID</label>
+                  <div className="space-y-3">
+                    <div className={`p-4 rounded-lg border ${
+                      isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
+                    }`}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Building2 size={16} className={isDarkMode ? 'text-gray-400' : 'text-gray-600'} />
+                        <label className={`text-xs font-semibold ${
+                          isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                        }`}>
+                          Company ID
+                        </label>
                       </div>
                       <div className="flex items-center gap-2">
-                        <code className={`flex-1 font-mono text-base sm:text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} p-3 rounded-lg ${isDarkMode ? 'bg-gray-900/50' : 'bg-white'}`}>{createdCompany.company.companyId}</code>
-                        <button onClick={() => copyToClipboard(createdCompany.company.companyId)} className={`p-3 ${isDarkMode ? 'hover:bg-gray-700 bg-gray-700/50' : 'hover:bg-gray-200 bg-gray-200/50'} rounded-lg transition-all active:scale-95`}>
-                          <Copy size={18} className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+                        <code className={`flex-1 font-mono text-sm font-medium ${
+                          isDarkMode ? 'text-white' : 'text-gray-900'
+                        } p-2 rounded ${
+                          isDarkMode ? 'bg-gray-900' : 'bg-white'
+                        }`}>
+                          {createdCompany.company.companyId}
+                        </code>
+                        <button 
+                          onClick={() => copyToClipboard(createdCompany.company.companyId)} 
+                          className={`p-2 rounded transition-colors ${
+                            isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
+                          }`}
+                        >
+                          <Copy size={16} className={isDarkMode ? 'text-gray-400' : 'text-gray-600'} />
                         </button>
                       </div>
                     </div>
 
-                    <div className={`p-5 rounded-2xl ${isDarkMode ? 'bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700' : 'bg-gradient-to-br from-white to-gray-50 border border-gray-200'} shadow-lg hover:shadow-xl transition-all duration-300`}>
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
-                          <User size={18} className={isDarkMode ? 'text-gray-300' : 'text-gray-700'} />
-                        </div>
-                        <label className={`text-xs font-black uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Admin Username</label>
+                    <div className={`p-4 rounded-lg border ${
+                      isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
+                    }`}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <User size={16} className={isDarkMode ? 'text-gray-400' : 'text-gray-600'} />
+                        <label className={`text-xs font-semibold ${
+                          isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                        }`}>
+                          Admin Username
+                        </label>
                       </div>
                       <div className="flex items-center gap-2">
-                        <code className={`flex-1 font-mono text-base sm:text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} p-3 rounded-lg ${isDarkMode ? 'bg-gray-900/50' : 'bg-white'}`}>{createdCompany.adminUsername}</code>
-                        <button onClick={() => copyToClipboard(createdCompany.adminUsername)} className={`p-3 ${isDarkMode ? 'hover:bg-gray-700 bg-gray-700/50' : 'hover:bg-gray-200 bg-gray-200/50'} rounded-lg transition-all active:scale-95`}>
-                          <Copy size={18} className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+                        <code className={`flex-1 font-mono text-sm font-medium ${
+                          isDarkMode ? 'text-white' : 'text-gray-900'
+                        } p-2 rounded ${
+                          isDarkMode ? 'bg-gray-900' : 'bg-white'
+                        }`}>
+                          {createdCompany.adminUsername}
+                        </code>
+                        <button 
+                          onClick={() => copyToClipboard(createdCompany.adminUsername)} 
+                          className={`p-2 rounded transition-colors ${
+                            isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
+                          }`}
+                        >
+                          <Copy size={16} className={isDarkMode ? 'text-gray-400' : 'text-gray-600'} />
                         </button>
                       </div>
                     </div>
 
-                    <div className={`p-5 rounded-2xl ${isDarkMode ? 'bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700' : 'bg-gradient-to-br from-white to-gray-50 border border-gray-200'} shadow-lg hover:shadow-xl transition-all duration-300`}>
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
-                          <LinkIcon size={18} className={isDarkMode ? 'text-gray-300' : 'text-gray-700'} />
-                        </div>
-                        <label className={`text-xs font-black uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Company Login Link</label>
+                    <div className={`p-4 rounded-lg border ${
+                      isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
+                    }`}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <LinkIcon size={16} className={isDarkMode ? 'text-gray-400' : 'text-gray-600'} />
+                        <label className={`text-xs font-semibold ${
+                          isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                        }`}>
+                          Company Login Link
+                        </label>
                       </div>
                       <div className="flex items-center gap-2">
-                        <code className={`flex-1 font-mono text-xs sm:text-sm break-all ${isDarkMode ? 'text-white' : 'text-gray-900'} p-3 rounded-lg ${isDarkMode ? 'bg-gray-900/50' : 'bg-white'}`}>{createdCompany.companyLink}</code>
-                        <button onClick={() => copyToClipboard(createdCompany.companyLink)} className={`p-3 ${isDarkMode ? 'hover:bg-gray-700 bg-gray-700/50' : 'hover:bg-gray-200 bg-gray-200/50'} rounded-lg transition-all active:scale-95 flex-shrink-0`}>
-                          <Copy size={18} className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+                        <code className={`flex-1 font-mono text-xs break-all ${
+                          isDarkMode ? 'text-white' : 'text-gray-900'
+                        } p-2 rounded ${
+                          isDarkMode ? 'bg-gray-900' : 'bg-white'
+                        }`}>
+                          {createdCompany.companyLink}
+                        </code>
+                        <button 
+                          onClick={() => copyToClipboard(createdCompany.companyLink)} 
+                          className={`p-2 rounded transition-colors flex-shrink-0 ${
+                            isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
+                          }`}
+                        >
+                          <Copy size={16} className={isDarkMode ? 'text-gray-400' : 'text-gray-600'} />
                         </button>
                       </div>
                     </div>
 
                     {/* Next Steps */}
-                    <div className={`p-5 rounded-2xl border-2 ${isDarkMode ? 'bg-white/10 border-white/20' : 'bg-black/10 border-black/20'}`}>
+                    <div className={`p-4 rounded-lg border ${
+                      isDarkMode 
+                        ? 'bg-blue-900/20 border-blue-700/30' 
+                        : 'bg-blue-50 border-blue-200'
+                    }`}>
                       <div className="flex items-start gap-3">
-                        <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-blue-900/50' : 'bg-blue-100'} flex-shrink-0`}>
-                          <AlertCircle size={20} className={isDarkMode ? 'text-blue-400' : 'text-blue-600'} />
+                        <div className={`p-1.5 rounded ${
+                          isDarkMode ? 'bg-blue-900/50' : 'bg-blue-100'
+                        } flex-shrink-0`}>
+                          <AlertCircle size={16} className={isDarkMode ? 'text-blue-400' : 'text-blue-600'} />
                         </div>
                         <div>
-                          <h4 className={`font-bold mb-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Next Steps</h4>
-                          <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                          <h4 className={`text-sm font-semibold mb-1 ${
+                            isDarkMode ? 'text-white' : 'text-gray-900'
+                          }`}>
+                            Next Steps
+                          </h4>
+                          <p className={`text-xs ${
+                            isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                          }`}>
                             Share the company link and admin credentials with the client. They can login immediately and manage their own users.
                           </p>
                         </div>
@@ -662,7 +984,14 @@ const SuperAdminPage = () => {
                     </div>
                   </div>
 
-                  <button onClick={closeModal} className={`w-full ${isDarkMode ? 'bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700' : 'bg-gradient-to-r from-gray-900 to-black hover:from-gray-800 hover:to-gray-900'} text-white py-4 rounded-2xl font-black text-lg shadow-lg hover:shadow-xl transition-all duration-200 active:scale-95`}>
+                  <button 
+                    onClick={closeModal} 
+                    className={`w-full py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+                      isDarkMode 
+                        ? 'bg-gray-700 hover:bg-gray-600 text-white' 
+                        : 'bg-gray-900 hover:bg-gray-800 text-white'
+                    }`}
+                  >
                     Done
                   </button>
                 </div>
@@ -926,43 +1255,103 @@ const SuperAdminPage = () => {
 
               <div className="p-5 sm:p-7 space-y-5 sm:space-y-6">
                 {/* Quick Stats */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-                  <div className={`p-4 sm:p-5 rounded-2xl ${isDarkMode ? 'bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700' : 'bg-gradient-to-br from-white to-gray-50 border border-gray-200'} shadow-lg hover:shadow-xl transition-all`}>
-                    <div className={`p-2 rounded-lg ${selectedCompany.status === 'active' ? 'bg-green-500/20' : 'bg-orange-500/20'} inline-block mb-2`}>
-                      <Activity size={18} className={selectedCompany.status === 'active' ? 'text-green-500' : 'text-orange-500'} />
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className={`p-4 rounded-lg border transition-all ${
+                    isDarkMode 
+                      ? 'bg-gray-800 border-gray-700 hover:border-gray-600' 
+                      : 'bg-white border-gray-200 hover:border-gray-300'
+                  }`}>
+                    <div className={`p-2 rounded-lg inline-block mb-2 ${
+                      selectedCompany.status === 'active' 
+                        ? (isDarkMode ? 'bg-green-900/30' : 'bg-green-100') 
+                        : (isDarkMode ? 'bg-orange-900/30' : 'bg-orange-100')
+                    }`}>
+                      <Activity size={16} className={
+                        selectedCompany.status === 'active' 
+                          ? (isDarkMode ? 'text-green-400' : 'text-green-600') 
+                          : (isDarkMode ? 'text-orange-400' : 'text-orange-600')
+                      } />
                     </div>
-                    <p className={`text-xs font-black uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-1`}>Status</p>
-                    <span className={`inline-block px-3 py-1 rounded-xl text-xs font-black uppercase ${selectedCompany.status === 'active' ? (isDarkMode ? 'bg-white text-black' : 'bg-black text-white') : (isDarkMode ? 'bg-gray-700 text-white' : 'bg-gray-300 text-black')}`}>
+                    <p className={`text-xs font-semibold uppercase tracking-wide mb-1.5 ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>
+                      Status
+                    </p>
+                    <span className={`inline-block px-2 py-1 rounded-md text-xs font-semibold uppercase ${
+                      selectedCompany.status === 'active' 
+                        ? (isDarkMode ? 'bg-green-600 text-white' : 'bg-green-600 text-white')
+                        : (isDarkMode ? 'bg-gray-600 text-white' : 'bg-gray-300 text-gray-900')
+                    }`}>
                       {selectedCompany.status}
                     </span>
                     {/* Unpause button for paused companies */}
                     {selectedCompany.status === 'paused' && (
                       <button
                         onClick={() => unpauseCompany(selectedCompany.companyId)}
-                        className={`mt-3 w-full ${isDarkMode ? 'bg-white hover:bg-gray-200 text-black' : 'bg-black hover:bg-gray-800 text-white'} px-4 py-2.5 rounded-xl font-bold text-sm shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2`}
+                        className={`mt-3 w-full px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
+                          isDarkMode 
+                            ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                            : 'bg-blue-600 hover:bg-blue-700 text-white'
+                        } flex items-center justify-center gap-1.5`}
                       >
-                        <Play size={16} />
-                        Unpause Company (24h to pay)
+                        <Play size={14} />
+                        Unpause (24h)
                       </button>
                     )}
                   </div>
-                  <div className={`p-4 sm:p-5 rounded-2xl ${isDarkMode ? 'bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700' : 'bg-gradient-to-br from-white to-gray-50 border border-gray-200'} shadow-lg hover:shadow-xl transition-all`}>
-                    <div className={`p-2 rounded-lg ${selectedCompany.subscriptionStatus === 'paid' ? 'bg-green-500/20' : 'bg-gray-500/20'} inline-block mb-2`}>
-                      <DollarSign size={18} className={selectedCompany.subscriptionStatus === 'paid' ? 'text-green-500' : 'text-gray-500'} />
+                  <div className={`p-4 rounded-lg border transition-all ${
+                    isDarkMode 
+                      ? 'bg-gray-800 border-gray-700 hover:border-gray-600' 
+                      : 'bg-white border-gray-200 hover:border-gray-300'
+                  }`}>
+                    <div className={`p-2 rounded-lg inline-block mb-2 ${
+                      selectedCompany.subscriptionStatus === 'paid' 
+                        ? (isDarkMode ? 'bg-green-900/30' : 'bg-green-100') 
+                        : (isDarkMode ? 'bg-gray-700/50' : 'bg-gray-100')
+                    }`}>
+                      <DollarSign size={16} className={
+                        selectedCompany.subscriptionStatus === 'paid' 
+                          ? (isDarkMode ? 'text-green-400' : 'text-green-600') 
+                          : (isDarkMode ? 'text-gray-400' : 'text-gray-600')
+                      } />
                     </div>
-                    <p className={`text-xs font-black uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-1`}>Subscription</p>
-                    <span className={`inline-block px-3 py-1 rounded-xl text-xs font-black uppercase ${selectedCompany.subscriptionStatus === 'paid' ? 'bg-gradient-to-r from-gray-700 to-gray-900 text-white shadow-lg' : 'bg-gradient-to-r from-gray-500 to-gray-600 text-white shadow-lg'}`}>
+                    <p className={`text-xs font-semibold uppercase tracking-wide mb-1.5 ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>
+                      Subscription
+                    </p>
+                    <span className={`inline-block px-2 py-1 rounded-md text-xs font-semibold uppercase ${
+                      selectedCompany.subscriptionStatus === 'paid' 
+                        ? (isDarkMode ? 'bg-green-600 text-white' : 'bg-green-600 text-white')
+                        : (isDarkMode ? 'bg-gray-600 text-white' : 'bg-gray-300 text-gray-900')
+                    }`}>
                       {selectedCompany.subscriptionStatus}
                     </span>
                   </div>
-                  <div className={`p-4 sm:p-5 rounded-2xl ${isDarkMode ? 'bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700' : 'bg-gradient-to-br from-white to-gray-50 border border-gray-200'} shadow-lg hover:shadow-xl transition-all sm:col-span-2`}>
-                    <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-blue-500/20' : 'bg-blue-100'} inline-block mb-2`}>
-                      <Users size={18} className={isDarkMode ? 'text-blue-400' : 'text-blue-600'} />
+                  <div className={`p-4 rounded-lg border transition-all sm:col-span-2 ${
+                    isDarkMode 
+                      ? 'bg-gray-800 border-gray-700 hover:border-gray-600' 
+                      : 'bg-white border-gray-200 hover:border-gray-300'
+                  }`}>
+                    <div className={`p-2 rounded-lg inline-block mb-2 ${
+                      isDarkMode ? 'bg-blue-900/30' : 'bg-blue-100'
+                    }`}>
+                      <Users size={16} className={isDarkMode ? 'text-blue-400' : 'text-blue-600'} />
                     </div>
-                    <p className={`text-xs font-black uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-1`}>Admin Contact</p>
-                    <p className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} truncate`}>{selectedCompany.adminEmail}</p>
+                    <p className={`text-xs font-semibold uppercase tracking-wide mb-1.5 ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>
+                      Admin Contact
+                    </p>
+                    <p className={`text-sm font-medium ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    } truncate`}>
+                      {selectedCompany.adminEmail}
+                    </p>
                     {selectedCompany.adminPhone && (
-                      <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} flex items-center gap-1 mt-1`}>
+                      <p className={`text-xs ${
+                        isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                      } flex items-center gap-1 mt-1`}>
                         <Phone size={12} />
                         {selectedCompany.adminPhone}
                       </p>
@@ -971,91 +1360,101 @@ const SuperAdminPage = () => {
                 </div>
 
                 {/* Payment Mode Toggle */}
-                <div className={`p-4 sm:p-5 rounded-xl border-2 ${isDarkMode ? 'bg-white/10 border-white/20' : 'bg-black/10 border-black/20'}`}>
+                <div className={`p-4 rounded-lg border ${
+                  isDarkMode 
+                    ? 'bg-blue-900/20 border-blue-700/30' 
+                    : 'bg-blue-50 border-blue-200'
+                }`}>
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div className="flex items-center gap-3">
-                      <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-blue-500/20' : 'bg-blue-100'}`}>
-                        <DollarSign className={`w-6 h-6 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+                      <div className={`p-2 rounded-lg ${
+                        isDarkMode ? 'bg-blue-900/50' : 'bg-blue-100'
+                      }`}>
+                        <DollarSign className={`w-5 h-5 ${
+                          isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                        }`} />
                       </div>
                       <div>
-                        <h3 className={`text-base sm:text-lg font-bold mb-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        <h3 className={`text-base font-semibold mb-1 ${
+                          isDarkMode ? 'text-white' : 'text-gray-900'
+                        }`}>
                           Payment Mode
                         </h3>
-                        <p className={`text-xs sm:text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        <p className={`text-xs ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
                           {(selectedCompany.paymentMode || 'paid') === 'paid' 
-                            ? 'Company needs payment to work' 
-                            : 'Company is free - no payment required'}
+                            ? 'Requires payment' 
+                            : 'Free mode - no payment required'}
                         </p>
                       </div>
                     </div>
                     <button
                       onClick={handleTogglePaymentMode}
                       disabled={updatingPaymentMode}
-                      className={`flex items-center gap-3 px-5 py-3 rounded-xl font-bold transition-all duration-300 active:scale-95 disabled:opacity-50 ${
+                      className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 ${
                         (selectedCompany.paymentMode || 'paid') === 'paid'
-                          ? isDarkMode
-                            ? 'bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white'
-                            : 'bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white'
-                          : isDarkMode
-                            ? 'bg-white hover:bg-gray-200 text-black'
-                            : 'bg-black hover:bg-gray-800 text-white'
+                          ? 'bg-green-600 hover:bg-green-700 text-white'
+                          : 'bg-orange-600 hover:bg-orange-700 text-white'
                       }`}
                     >
                       {updatingPaymentMode ? (
                         <>
-                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                           Updating...
                         </>
                       ) : (
                         <>
                           {(selectedCompany.paymentMode || 'paid') === 'paid' ? (
                             <>
-                              <ToggleLeft className="w-5 h-5" />
-                              <span>Switch to Free</span>
+                              <CheckCircle className="w-4 h-4" />
+                              <span>Make FREE</span>
                             </>
                           ) : (
                             <>
-                              <ToggleRight className="w-5 h-5" />
-                              <span>Switch to Paid</span>
+                              <Clock className="w-4 h-4" />
+                              <span>Make PAID</span>
                             </>
                           )}
                         </>
                       )}
                     </button>
                   </div>
-                  <div className={`mt-4 p-3 rounded-lg ${isDarkMode ? 'bg-gray-800/50' : 'bg-white/80'}`}>
-                    <div className="flex items-center justify-between">
-                      <span className={`text-sm font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                        Current Mode:
-                      </span>
-                      <span className={`px-4 py-1.5 rounded-lg text-sm font-bold ${
-                        (selectedCompany.paymentMode || 'paid') === 'paid'
-                          ? isDarkMode
-                            ? 'bg-orange-900/30 text-orange-300 border border-orange-500/50'
-                            : 'bg-orange-100 text-orange-700 border border-orange-300'
-                          : isDarkMode
-                            ? 'bg-green-900/30 text-green-300 border border-green-500/50'
-                            : 'bg-green-100 text-green-700 border border-green-300'
-                      }`}>
-                        {(selectedCompany.paymentMode || 'paid') === 'paid' ? 'PAID' : 'FREE'}
-                      </span>
-                    </div>
-                  </div>
                 </div>
+
+                {/* Payment Status with Countdown */}
+                <CompanyPaymentStatus 
+                  company={selectedCompany} 
+                  onRefresh={() => viewCompanyDetails(selectedCompany.companyId)} 
+                />
 
 
 
                 {/* Company Limits */}
-                <div className={`p-3 sm:p-4 rounded-lg sm:rounded-xl ${isDarkMode ? 'bg-gray-800 border border-gray-600' : 'bg-gray-100 border border-gray-300'}`}>
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-3">
+                <div className={`p-4 rounded-lg border ${
+                  isDarkMode 
+                    ? 'bg-gray-800 border-gray-700' 
+                    : 'bg-gray-50 border-gray-200'
+                }`}>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
                     <div className="flex items-center gap-2">
-                      <Users className={`w-4 h-4 sm:w-5 sm:h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
-                      <h3 className={`text-base sm:text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Company Limits</h3>
+                      <Users className={`w-5 h-5 ${
+                        isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                      }`} />
+                      <h3 className={`text-base font-semibold ${
+                        isDarkMode ? 'text-white' : 'text-gray-900'
+                      }`}>
+                        Company Limits
+                      </h3>
                     </div>
                     {!editingLimits && (
                       <button
                         onClick={() => setEditingLimits(true)}
-                        className={`self-start sm:self-auto px-3 py-1.5 sm:py-1 ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-800 hover:bg-gray-900'} text-white text-xs sm:text-sm rounded-lg transition-colors`}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+                          isDarkMode 
+                            ? 'bg-gray-700 hover:bg-gray-600 text-white' 
+                            : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
+                        }`}
                       >
                         Edit Limits
                       </button>
@@ -1102,9 +1501,19 @@ const SuperAdminPage = () => {
                       </div>
                     </div>
                   ) : (
-                    <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
-                      <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Max Users</p>
-                      <p className={`text-xl sm:text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    <div className={`p-3 rounded-lg border ${
+                      isDarkMode 
+                        ? 'bg-gray-700 border-gray-600' 
+                        : 'bg-white border-gray-200'
+                    }`}>
+                      <p className={`text-xs font-medium mb-1 ${
+                        isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                      }`}>
+                        Max Users
+                      </p>
+                      <p className={`text-xl font-bold ${
+                        isDarkMode ? 'text-white' : 'text-gray-900'
+                      }`}>
                         {selectedCompany.limits?.maxUsers || 50}
                       </p>
                     </div>
@@ -1114,22 +1523,68 @@ const SuperAdminPage = () => {
                 {/* Stats */}
                 {companyDetails && (
                   <div>
-                    <h3 className={`text-base sm:text-lg font-bold mb-3 sm:mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Company Statistics</h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
-                      <div className={`p-3 sm:p-4 rounded-lg sm:rounded-xl ${isDarkMode ? 'bg-gray-800 border border-gray-600' : 'bg-gray-100 border border-gray-300'}`}>
-                        <Users size={20} className={`sm:w-6 sm:h-6 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-2`} />
-                        <p className={`text-xl sm:text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{companyDetails.userCount}</p>
-                        <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Users</p>
+                    <h3 className={`text-base font-semibold mb-3 ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    }`}>
+                      Company Statistics
+                    </h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      <div className={`p-4 rounded-lg border ${
+                        isDarkMode 
+                          ? 'bg-gray-800 border-gray-700' 
+                          : 'bg-white border-gray-200'
+                      }`}>
+                        <Users size={20} className={`${
+                          isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                        } mb-2`} />
+                        <p className={`text-xl font-bold ${
+                          isDarkMode ? 'text-white' : 'text-gray-900'
+                        }`}>
+                          {companyDetails.userCount}
+                        </p>
+                        <p className={`text-xs ${
+                          isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                        }`}>
+                          Total Users
+                        </p>
                       </div>
-                      <div className={`p-3 sm:p-4 rounded-lg sm:rounded-xl ${isDarkMode ? 'bg-gray-800 border border-gray-600' : 'bg-gray-100 border border-gray-300'}`}>
-                        <Activity size={20} className={`sm:w-6 sm:h-6 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-2`} />
-                        <p className={`text-xl sm:text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{companyDetails.activeUsers}</p>
-                        <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Active Users</p>
+                      <div className={`p-4 rounded-lg border ${
+                        isDarkMode 
+                          ? 'bg-gray-800 border-gray-700' 
+                          : 'bg-white border-gray-200'
+                      }`}>
+                        <Activity size={20} className={`${
+                          isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                        } mb-2`} />
+                        <p className={`text-xl font-bold ${
+                          isDarkMode ? 'text-white' : 'text-gray-900'
+                        }`}>
+                          {companyDetails.activeUsers}
+                        </p>
+                        <p className={`text-xs ${
+                          isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                        }`}>
+                          Active Users
+                        </p>
                       </div>
-                      <div className={`p-3 sm:p-4 rounded-lg sm:rounded-xl col-span-2 sm:col-span-1 ${isDarkMode ? 'bg-gray-800 border border-gray-600' : 'bg-gray-100 border border-gray-300'}`}>
-                        <Building2 size={20} className={`sm:w-6 sm:h-6 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-2`} />
-                        <p className={`text-xl sm:text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{selectedCompany.limits?.maxUsers || 50}</p>
-                        <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>User Limit</p>
+                      <div className={`p-4 rounded-lg border col-span-2 sm:col-span-1 ${
+                        isDarkMode 
+                          ? 'bg-gray-800 border-gray-700' 
+                          : 'bg-white border-gray-200'
+                      }`}>
+                        <Building2 size={20} className={`${
+                          isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                        } mb-2`} />
+                        <p className={`text-xl font-bold ${
+                          isDarkMode ? 'text-white' : 'text-gray-900'
+                        }`}>
+                          {selectedCompany.limits?.maxUsers || 50}
+                        </p>
+                        <p className={`text-xs ${
+                          isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                        }`}>
+                          User Limit
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1139,12 +1594,33 @@ const SuperAdminPage = () => {
                 <CompanyCalendar company={selectedCompany} />
 
                 {/* Company Link */}
-                <div className={`p-3 sm:p-4 rounded-lg sm:rounded-xl ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
-                  <p className={`text-xs font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-2`}>COMPANY LOGIN LINK</p>
+                <div className={`p-4 rounded-lg border ${
+                  isDarkMode 
+                    ? 'bg-gray-800 border-gray-700' 
+                    : 'bg-gray-50 border-gray-200'
+                }`}>
+                  <p className={`text-xs font-semibold uppercase tracking-wide mb-2 ${
+                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
+                    Company Login Link
+                  </p>
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-                    <code className={`flex-1 font-mono text-xs break-all ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{selectedCompany.companyLink}</code>
-                    <button onClick={() => copyToClipboard(selectedCompany.companyLink)} className={`p-2 ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'} rounded-lg transition-colors flex-shrink-0 self-start sm:self-auto`}>
-                      <Copy size={16} className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+                    <code className={`flex-1 font-mono text-xs break-all p-2 rounded-md ${
+                      isDarkMode 
+                        ? 'bg-gray-900 text-white' 
+                        : 'bg-white text-gray-900'
+                    }`}>
+                      {selectedCompany.companyLink}
+                    </code>
+                    <button 
+                      onClick={() => copyToClipboard(selectedCompany.companyLink)} 
+                      className={`p-2 rounded-md transition-colors flex-shrink-0 ${
+                        isDarkMode 
+                          ? 'hover:bg-gray-700 bg-gray-700/50' 
+                          : 'hover:bg-gray-200 bg-gray-200/50'
+                      }`}
+                    >
+                      <Copy size={16} className={isDarkMode ? 'text-gray-400' : 'text-gray-600'} />
                     </button>
                   </div>
                 </div>
@@ -1168,32 +1644,53 @@ const SuperAdminPage = () => {
                       <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>No payments submitted yet</p>
                     </div>
                   ) : (
-                    <div className="space-y-2 sm:space-y-3 max-h-96 overflow-y-auto">
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
                       {companyPayments.map((payment) => (
                         <div
                           key={payment._id}
-                          className={`p-3 sm:p-4 rounded-lg sm:rounded-xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}
+                          className={`p-4 rounded-lg border transition-all ${
+                            isDarkMode 
+                              ? 'bg-gray-800 border-gray-700 hover:border-gray-600' 
+                              : 'bg-white border-gray-200 hover:border-gray-300'
+                          }`}
                         >
-                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                          <div className="flex items-start justify-between gap-3">
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-2 flex-wrap">
-                                <span className={`text-base sm:text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className={`text-lg font-bold ${
+                                  isDarkMode ? 'text-white' : 'text-gray-900'
+                                }`}>
                                   {payment.amount.toFixed(2)} ETB
                                 </span>
+                                <span className={`px-2 py-0.5 rounded-md text-xs font-semibold ${
+                                  payment.status === 'approved'
+                                    ? (isDarkMode ? 'bg-green-900/30 text-green-400' : 'bg-green-100 text-green-700')
+                                    : (isDarkMode ? 'bg-red-900/30 text-red-400' : 'bg-red-100 text-red-700')
+                                }`}>
+                                  {payment.status}
+                                </span>
                               </div>
-                              <p className={`text-xs sm:text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                <strong>For:</strong> {payment.period.months && payment.period.months.length > 0
+                              <p className={`text-xs mb-1 ${
+                                isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                              }`}>
+                                <span className="font-medium">Period:</span> {payment.period.months && payment.period.months.length > 0
                                   ? payment.period.months.map(m => 
                                       new Date(2000, m - 1).toLocaleString('default', { month: 'short' })
                                     ).join(', ') + ' ' + payment.period.year
                                   : 'N/A'}
                               </p>
-                              <p className={`text-xs sm:text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                <strong>Submitted:</strong> {new Date(payment.createdAt).toLocaleDateString()}
+                              <p className={`text-xs ${
+                                isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                              }`}>
+                                <span className="font-medium">Submitted:</span> {new Date(payment.createdAt).toLocaleDateString()}
                               </p>
                               {payment.note && payment.paymentMethod !== 'chapa' && (
-                                <p className={`text-xs sm:text-sm mt-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} line-clamp-2`}>
-                                  <strong>Note:</strong> {payment.note}
+                                <p className={`text-xs mt-2 p-2 rounded-md ${
+                                  isDarkMode 
+                                    ? 'bg-gray-700 text-gray-300' 
+                                    : 'bg-gray-100 text-gray-700'
+                                }`}>
+                                  <span className="font-medium">Note:</span> {payment.note}
                                 </p>
                               )}
                             </div>

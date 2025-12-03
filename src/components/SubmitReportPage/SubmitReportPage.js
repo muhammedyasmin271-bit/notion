@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
+import { useAppContext } from '../../context/AppContext';
 import { ArrowLeft, Send, Paperclip, X, Bug, Lightbulb, Shield, Zap, MessageSquare, CheckCircle, Upload, FileText, Plus, Sparkles, GripVertical, Type, Hash, List, Quote, Code, Trash2, Copy, ArrowUp, ArrowDown, ArrowRight, CheckSquare, Table, Minus, AlertCircle, Star, Tag, MapPin, Mail, ListOrdered, Calendar, Clock, Target, BarChart3, Info, AlertTriangle, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, Palette, Link, Image, Video, FileIcon, Bookmark, Flag, Users, Settings, Eye, EyeOff, Lock, Unlock, Share2, ChevronDown } from 'lucide-react';
 
 // Share Report Component
@@ -170,8 +171,13 @@ const ShareReportSection = ({ reportData, selectedUsers, setSelectedUsers }) => 
 
 const SubmitReportPage = () => {
   const { isDarkMode } = useTheme();
+  const { user } = useAppContext();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const params = useParams();
+  
+  // Get companyId from URL params, query params, or user context
+  const companyId = params.companyId || searchParams.get('company') || user?.companyId || localStorage.getItem('currentCompanyId');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [report, setReport] = useState({
@@ -1445,7 +1451,8 @@ const SubmitReportPage = () => {
       
       if (response.ok && data.success) {
         alert(`✅ ${data.message}`);
-        navigate('/reports');
+        const backUrl = companyId ? `/reports?company=${companyId}` : '/reports';
+        navigate(backUrl);
       } else {
         console.error('❌ Report submission failed:', data);
         alert(`❌ ${data.message || 'Failed to save report. Please try again.'}`);
@@ -1468,7 +1475,10 @@ const SubmitReportPage = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 mb-8 sm:mb-12">
           <button
-            onClick={() => navigate('/')}
+            onClick={() => {
+              const backUrl = companyId ? `/reports?company=${companyId}` : '/reports';
+              navigate(backUrl);
+            }}
             className={`p-2 sm:p-3 rounded-lg sm:rounded-xl transition-all duration-200 border ${
               isDarkMode 
                 ? 'hover:bg-gray-800/50 text-gray-400 hover:text-white border-gray-700 hover:border-gray-600'
@@ -1975,7 +1985,8 @@ const SubmitReportPage = () => {
 
                       if (response.ok) {
                         alert('Report deleted successfully');
-                        navigate('/reports');
+                        const backUrl = companyId ? `/reports?company=${companyId}` : '/reports';
+                        navigate(backUrl);
                       } else {
                         const errorData = await response.json();
                         alert(`Failed to delete report: ${errorData.message || 'Unknown error'}`);

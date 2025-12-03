@@ -46,19 +46,35 @@ const PaymentReminder = () => {
           
           if (response.ok) {
             const companyData = await response.json();
-            const needsPayment = companyData.selectedPlan !== 'free_trial' && !companyData.hasPaid;
             const now = new Date();
             const paymentDeadline = companyData.paymentDeadline ? new Date(companyData.paymentDeadline) : null;
             const isDeadlinePassed = paymentDeadline && paymentDeadline < now;
             
+            // Payment flow:
+            // 1. 24h window: can access app
+            // 2. Grace period (7 days): only admin can access
+            // 3. After grace: payment required for all
+            const gracePeriodDeadline = companyData.gracePeriodDeadline ? new Date(companyData.gracePeriodDeadline) : null;
+            const gracePeriodExpired = gracePeriodDeadline && now >= gracePeriodDeadline;
+            const inGracePeriod = isDeadlinePassed && !gracePeriodExpired;
+            
+            const needsPayment = companyData.paymentMode === 'paid' && 
+                                !companyData.hasPaid &&
+                                gracePeriodExpired; // Only need payment AFTER grace period
+            
             setPaymentInfo({
               paymentDeadline: paymentDeadline,
+              gracePeriodDeadline: gracePeriodDeadline,
               isDeadlinePassed: isDeadlinePassed,
+              inGracePeriod: inGracePeriod,
+              gracePeriodExpired: gracePeriodExpired,
               needsPayment: needsPayment,
               selectedPlan: companyData.selectedPlan,
               subscriptionStatus: companyData.subscriptionStatus,
               hasPaid: companyData.hasPaid,
-              status: companyData.status
+              status: companyData.status,
+              paymentMode: companyData.paymentMode,
+              isWithin24Hours: paymentDeadline && !isDeadlinePassed // Within 24h window
             });
           }
         }
@@ -88,6 +104,25 @@ const PaymentReminder = () => {
 
     const updateTimer = () => {
       const now = new Date();
+      
+      // If in grace period, show grace period countdown
+      if (paymentInfo.inGracePeriod && paymentInfo.gracePeriodDeadline) {
+        const graceDeadline = new Date(paymentInfo.gracePeriodDeadline);
+        const diff = graceDeadline - now;
+        
+        if (diff <= 0) {
+          setTimeRemaining('Grace period expired');
+          return;
+        }
+        
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        
+        setTimeRemaining(`${days}d ${hours}h remaining in grace period`);
+        return;
+      }
+      
+      // Otherwise show payment deadline countdown
       const deadline = new Date(paymentInfo.paymentDeadline);
       const diff = deadline - now;
 
@@ -116,11 +151,19 @@ const PaymentReminder = () => {
   }, [paymentInfo, navigate, isAuthenticated, user, companyId]);
 
   const handleContinue = () => {
-    // Only allow continue if payment is not needed or already paid
-    if (paymentInfo && paymentInfo.needsPayment && !paymentInfo.hasPaid) {
-      // Don't allow continue if payment is required
+    // Allow continue if:
+    // 1. Company is in free mode, OR
+    // 2. Payment is not needed (deadline not passed), OR 
+    // 3. Already paid
+    const canContinue = paymentInfo?.paymentMode === 'free' || 
+                       !paymentInfo?.needsPayment || 
+                       paymentInfo?.hasPaid;
+    
+    if (!canContinue) {
+      // Don't allow continue if payment is actually required (deadline passed)
       return;
     }
+    
     // Navigate to home with company ID in URL
     if (companyId) {
       navigate(`/home?company=${companyId}`);
@@ -212,40 +255,72 @@ const PaymentReminder = () => {
               </h2>
             </div>
             <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              You selected the <strong>{planNames[paymentInfo.selectedPlan] || paymentInfo.selectedPlan}</strong> plan. 
-              {paymentInfo.selectedPlan === 'free_trial' 
-                ? ' Your 7-day free trial period is active.' 
-                : ' Please complete payment within 24 hours to activate your subscription.'}
+              {paymentInfo.paymentMode === 'free' ? (
+                <span>Your company is in <strong>FREE mode</strong>. No payment is required.</span>
+              ) : paymentInfo.selectedPlan === 'free_trial' ? (
+                <span>You selected the <strong>{planNames[paymentInfo.selectedPlan] || paymentInfo.selectedPlan}</strong> plan. Your 7-day free trial period is active.</span>
+              ) : paymentInfo.isWithin24Hours ? (
+                <span>You selected the <strong>{planNames[paymentInfo.selectedPlan] || paymentInfo.selectedPlan}</strong> plan. You have 24 hours to complete payment (optional during this period).</span>
+              ) : (
+                <span>You selected the <strong>{planNames[paymentInfo.selectedPlan] || paymentInfo.selectedPlan}</strong> plan. Payment is now required to continue.</span>
+              )}
             </p>
           </div>
 
-          {/* Deadline Info */}
-          <div className={`p-6 rounded-2xl ${isDarkMode ? 'bg-red-500/10 border border-red-500/30' : 'bg-red-50 border border-red-200'}`}>
-            <div className="flex items-center gap-3 mb-4">
-              <Clock size={24} className="text-red-500" />
-              <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                Payment Deadline
-              </h2>
-            </div>
-            <div className="space-y-2">
-              <p className={`text-2xl font-black ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
-                {timeRemaining || 'Calculating...'}
-              </p>
-              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Deadline: {formatDeadline(paymentInfo.paymentDeadline)}
-              </p>
-              {paymentInfo.selectedPlan !== 'free_trial' && (
-                <p className={`text-sm font-semibold ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>
-                  ⚠️ Your account will be paused if payment is not completed by the deadline.
+          {/* Deadline Info - Only show if not in free mode */}
+          {paymentInfo.paymentMode !== 'free' && paymentInfo.paymentDeadline && (
+            <div className={`p-6 rounded-2xl ${paymentInfo.isWithin24Hours ? (isDarkMode ? 'bg-orange-500/10 border border-orange-500/30' : 'bg-orange-50 border border-orange-200') : (isDarkMode ? 'bg-red-500/10 border border-red-500/30' : 'bg-red-50 border border-red-200')}`}>
+              <div className="flex items-center gap-3 mb-4">
+                <Clock size={24} className={paymentInfo.isWithin24Hours ? 'text-orange-500' : 'text-red-500'} />
+                <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  {paymentInfo.isWithin24Hours ? '24-Hour Window' : 'Payment Deadline'}
+                </h2>
+              </div>
+              <div className="space-y-2">
+                <p className={`text-2xl font-black ${paymentInfo.isWithin24Hours ? (isDarkMode ? 'text-orange-400' : 'text-orange-600') : (isDarkMode ? 'text-red-400' : 'text-red-600')}`}>
+                  {timeRemaining || 'Calculating...'}
                 </p>
-              )}
+                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Deadline: {formatDeadline(paymentInfo.paymentDeadline)}
+                </p>
+                {paymentInfo.isWithin24Hours ? (
+                  <p className={`text-sm font-semibold ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>
+                    ℹ️ You can continue using the app during this 24-hour window.
+                  </p>
+                ) : (
+                  <p className={`text-sm font-semibold ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
+                    ⚠️ Payment is now required to continue using the app.
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
+          )}
+          
+          {/* Free Mode Info */}
+          {paymentInfo.paymentMode === 'free' && (
+            <div className={`p-6 rounded-2xl ${isDarkMode ? 'bg-green-500/10 border border-green-500/30' : 'bg-green-50 border border-green-200'}`}>
+              <div className="flex items-center gap-3 mb-4">
+                <CreditCard size={24} className="text-green-500" />
+                <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  Free Access
+                </h2>
+              </div>
+              <div className="space-y-2">
+                <p className={`text-2xl font-black ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
+                  No Payment Required
+                </p>
+                <p className={`text-sm font-semibold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
+                  ✅ Your company has free access to all features.
+                </p>
+              </div>
+            </div>
+          )}
 
         </div>
 
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-4">
+          {/* Show payment button only if deadline has passed and not paid */}
           {paymentInfo.needsPayment && !paymentInfo.hasPaid && (
             <button
               onClick={handleGoToPayment}
@@ -256,16 +331,32 @@ const PaymentReminder = () => {
               <ArrowRight size={20} />
             </button>
           )}
-          {(!paymentInfo.needsPayment || paymentInfo.hasPaid) && (
+          
+          {/* Show continue button if: free mode, within 24h window, or already paid */}
+          {(paymentInfo.paymentMode === 'free' || !paymentInfo.needsPayment || paymentInfo.hasPaid) && (
             <button
               onClick={handleContinue}
               className={`flex-1 flex items-center justify-center gap-2 py-4 px-6 rounded-xl font-bold text-lg transition-all duration-200 ${
-                isDarkMode 
-                  ? 'bg-gray-700 hover:bg-gray-600 text-white' 
-                  : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
+                paymentInfo.paymentMode === 'free'
+                  ? 'bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white'
+                  : isDarkMode 
+                    ? 'bg-gray-700 hover:bg-gray-600 text-white' 
+                    : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
               }`}
             >
               Continue to App
+              <ArrowRight size={20} />
+            </button>
+          )}
+          
+          {/* Show both buttons if within 24h window (can continue OR pay early) */}
+          {paymentInfo.isWithin24Hours && paymentInfo.paymentMode === 'paid' && !paymentInfo.hasPaid && (
+            <button
+              onClick={handleGoToPayment}
+              className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white py-4 px-6 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-200"
+            >
+              <CreditCard size={20} />
+              Pay Now (Optional)
             </button>
           )}
         </div>

@@ -97,13 +97,17 @@ export default function SavedNotesPage() {
 
   const openInEditor = (id) => {
     try { localStorage.setItem('notepad-active-id', id); } catch {}
-    navigate('/notepad');
+    const companyId = new URLSearchParams(window.location.search).get('company') || JSON.parse(localStorage.getItem('user') || '{}')?.companyId || localStorage.getItem('currentCompanyId');
+    const notepadUrl = companyId ? `/notepad?company=${companyId}` : '/notepad';
+    navigate(notepadUrl);
   };
 
   const createNewNote = () => {
     // Hint the editor to create a new note on next open
     try { localStorage.setItem('notepad-create-new', '1'); } catch {}
-    navigate('/notepad');
+    const companyId = new URLSearchParams(window.location.search).get('company') || JSON.parse(localStorage.getItem('user') || '{}')?.companyId || localStorage.getItem('currentCompanyId');
+    const notepadUrl = companyId ? `/notepad?company=${companyId}` : '/notepad';
+    navigate(notepadUrl);
   };
 
   return (

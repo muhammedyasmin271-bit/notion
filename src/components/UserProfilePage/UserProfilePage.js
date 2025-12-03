@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
-import { User, Mail, Shield, Calendar, Settings, Save, Eye, EyeOff, CheckCircle, AlertCircle, Edit3, Palette, Moon, Sun, Bell, Volume2, VolumeX, Type, Clock, Keyboard } from 'lucide-react';
+import { User, Mail, Shield, Calendar, Save, Eye, EyeOff, CheckCircle, AlertCircle, Edit3 } from 'lucide-react';
 
 const UserProfilePage = () => {
-  const { user, updateUserPreferences, changePassword, apiService } = useAppContext();
-  const { isDarkMode, toggleTheme, navbarBgColor, updateNavbarBgColor } = useTheme();
+  const { user, changePassword, apiService } = useAppContext();
+  const { isDarkMode } = useTheme();
 
   const [activeTab, setActiveTab] = useState('profile');
   const [isEditing, setIsEditing] = useState(false);
@@ -35,46 +35,6 @@ const UserProfilePage = () => {
     confirm: false
   });
 
-  // Preferences state
-  const [preferences, setPreferences] = useState({
-    theme: user?.preferences?.theme || 'auto',
-    notifications: {
-      email: {
-        mentions: user?.preferences?.notifications?.email?.mentions || true,
-        assignments: user?.preferences?.notifications?.email?.assignments || true,
-        deadlines: user?.preferences?.notifications?.email?.deadlines || true,
-        general: user?.preferences?.notifications?.email?.general || true
-      },
-      inApp: {
-        enabled: user?.preferences?.notifications?.inApp?.enabled || true,
-        sound: user?.preferences?.notifications?.inApp?.sound || true,
-        desktop: user?.preferences?.notifications?.inApp?.desktop || true
-      },
-      push: {
-        enabled: user?.preferences?.notifications?.push?.enabled || true,
-        mentions: user?.preferences?.notifications?.push?.mentions || true,
-        assignments: user?.preferences?.notifications?.push?.assignments || true,
-        deadlines: user?.preferences?.notifications?.push?.deadlines || true
-      }
-    },
-    editor: {
-      fontSize: user?.preferences?.editor?.fontSize || '14',
-      fontFamily: user?.preferences?.editor?.fontFamily || 'Inter',
-      autoSave: user?.preferences?.editor?.autoSave || '30',
-      markdownShortcuts: user?.preferences?.editor?.markdownShortcuts || true,
-      wordWrap: user?.preferences?.editor?.wordWrap || true,
-      lineNumbers: user?.preferences?.editor?.lineNumbers || true
-    }
-  });
-
-  const handleDarkModeToggle = () => {
-    toggleTheme();
-    showMessage('success', `Switched to ${!isDarkMode ? 'dark' : 'light'} mode successfully!`);
-
-    setTimeout(() => {
-      window.dispatchEvent(new Event('theme-changed'));
-    }, 100);
-  };
 
   useEffect(() => {
     if (user) {
@@ -85,36 +45,6 @@ const UserProfilePage = () => {
         department: user.department || '',
         phoneNumber: user.phone || '',
         location: user.location || ''
-      });
-      setPreferences({
-        theme: user.preferences?.theme || 'auto',
-        notifications: {
-          email: {
-            mentions: user.preferences?.notifications?.email?.mentions || true,
-            assignments: user.preferences?.notifications?.email?.assignments || true,
-            deadlines: user.preferences?.notifications?.email?.deadlines || true,
-            general: user.preferences?.notifications?.email?.general || true
-          },
-          inApp: {
-            enabled: user.preferences?.notifications?.inApp?.enabled || true,
-            sound: user.preferences?.notifications?.inApp?.sound || true,
-            desktop: user.preferences?.notifications?.inApp?.desktop || true
-          },
-          push: {
-            enabled: user.preferences?.notifications?.push?.enabled || true,
-            mentions: user.preferences?.notifications?.push?.mentions || true,
-            assignments: user.preferences?.notifications?.push?.assignments || true,
-            deadlines: user.preferences?.notifications?.push?.deadlines || true
-          }
-        },
-        editor: {
-          fontSize: user.preferences?.editor?.fontSize || '14',
-          fontFamily: user.preferences?.editor?.fontFamily || 'Inter',
-          autoSave: user.preferences?.editor?.autoSave || '30',
-          markdownShortcuts: user.preferences?.editor?.markdownShortcuts || true,
-          wordWrap: user.preferences?.editor?.wordWrap || true,
-          lineNumbers: user.preferences?.editor?.lineNumbers || true
-        }
       });
     }
   }, [user]);
@@ -177,17 +107,6 @@ const UserProfilePage = () => {
     }
   };
 
-  const handlePreferencesUpdate = async () => {
-    setLoading(true);
-    try {
-      await updateUserPreferences(preferences);
-      showMessage('success', 'Preferences updated successfully');
-    } catch (error) {
-      showMessage('error', error.message || 'Failed to update preferences');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const formatDate = (dateString) => {
     if (!dateString) return 'Not available';
@@ -241,8 +160,7 @@ const UserProfilePage = () => {
         <div className="flex space-x-1 mb-8">
           {[
             { id: 'profile', label: 'Profile', icon: User },
-            { id: 'security', label: 'Security', icon: Shield },
-            { id: 'preferences', label: 'Preferences', icon: Settings }
+            { id: 'security', label: 'Security', icon: Shield }
           ].map(tab => {
             const Icon = tab.icon;
             return (
@@ -568,71 +486,6 @@ const UserProfilePage = () => {
           </div>
         )}
 
-        {/* Preferences Tab */}
-        {activeTab === 'preferences' && (
-          <div className="p-8">
-            <h2 className={`text-2xl font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-              Preferences
-            </h2>
-
-            <div className="space-y-8">
-              {/* Appearance Section */}
-              <div>
-                <div className="flex items-center gap-3 mb-6">
-                  <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'
-                    }`}>
-                    <Palette className={`w-5 h-5 ${isDarkMode ? 'text-white' : 'text-black'}`} />
-                  </div>
-                  <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                    Appearance
-                  </h3>
-                </div>
-
-                <div className="space-y-4">
-                  {/* Theme Mode */}
-                  <div className={`p-4 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
-                    }`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        {isDarkMode ? (
-                          <Moon className={`w-6 h-6 ${isDarkMode ? 'text-white' : 'text-black'}`} />
-                        ) : (
-                          <Sun className={`w-6 h-6 ${isDarkMode ? 'text-white' : 'text-black'}`} />
-                        )}
-                        <div>
-                          <p className={`font-semibold ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                            Theme Mode
-                          </p>
-                          <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                            {isDarkMode ? 'Dark mode is active' : 'Light mode is active'}
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={handleDarkModeToggle}
-                        className={`relative inline-flex h-8 w-16 items-center rounded-full transition-colors duration-300 focus:outline-none ${isDarkMode ? 'bg-white' : 'bg-black'
-                          }`}
-                      >
-                        <span
-                          className={`inline-block h-6 w-6 transform rounded-full transition-transform duration-300 ${isDarkMode ? 'translate-x-9 bg-black' : 'translate-x-1 bg-white'
-                            }`}
-                        >
-                          <span className="flex h-full w-full items-center justify-center">
-                            {isDarkMode ? (
-                              <Moon className="h-3 w-3 text-white" />
-                            ) : (
-                              <Sun className="h-3 w-3 text-black" />
-                            )}
-                          </span>
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

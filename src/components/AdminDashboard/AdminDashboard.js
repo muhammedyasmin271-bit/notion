@@ -7,7 +7,8 @@ import {
   Download, Upload, RefreshCw, AlertTriangle,
   Activity, Database, Server, Zap, PieChart,
   BarChart, LineChart, MapPin, Mail, Phone,
-  Lock, Unlock, Ban, Award, Target, CalendarDays, DollarSign
+  Lock, Unlock, Ban, Award, Target, CalendarDays, DollarSign,
+  MoreVertical, ChevronDown
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAppContext } from '../../context/AppContext';
@@ -34,6 +35,7 @@ const AdminDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [dateRange, setDateRange] = useState('all');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showBulkActions, setShowBulkActions] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState([]);
@@ -207,25 +209,16 @@ const AdminDashboard = () => {
     return matchesSearch && matchesRole && matchesStatus;
   });
 
-  const StatCard = ({ title, value, icon: Icon, gradient, change }) => (
-    <div className="group relative overflow-hidden rounded-3xl bg-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
-      <div className={`absolute inset-0 ${isDarkMode ? 'bg-white/5' : 'bg-black/5'} group-hover:opacity-20 transition-opacity`}></div>
-      <div className="relative p-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-gray-600 mb-2">{title}</p>
-            <p className="text-4xl font-black text-gray-900 mb-1">{value}</p>
-            {change && (
-              <p className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                {change > 0 ? '↗' : '↘'} {Math.abs(change)}% from last month
-              </p>
-            )}
-          </div>
-          <div className={`p-4 rounded-2xl ${isDarkMode ? 'bg-white' : 'bg-black'} shadow-lg`}>
-            <Icon className={`w-8 h-8 ${isDarkMode ? 'text-black' : 'text-white'}`} />
-          </div>
-        </div>
+  const StatCard = ({ title, value, subtitle, colorLine }) => (
+    <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} p-6`}>
+      <div className="mb-4">
+        <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-1`}>{title}</p>
+        <p className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+          {value.toLocaleString()}
+        </p>
+        <p className={`text-xs mt-2 ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>{subtitle}</p>
       </div>
+      <div className={`h-1 rounded-full ${colorLine}`}></div>
     </div>
   );
 
@@ -239,7 +232,7 @@ const AdminDashboard = () => {
         </div>
       </div>
     }>
-      <div className={`min-h-screen ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
+      <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
         {/* Fixed Payment Button */}
         <div className="fixed top-6 right-6 z-50">
           <button
@@ -255,111 +248,113 @@ const AdminDashboard = () => {
         </div>
 
         <div className="max-w-7xl mx-auto p-6">
-          {/* Header */}
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-4 mb-6">
-              <div className={`p-4 rounded-full ${isDarkMode ? 'bg-white' : 'bg-black'} shadow-xl`}>
-                <Shield className={`w-12 h-12 ${isDarkMode ? 'text-black' : 'text-white'}`} />
-              </div>
-              <div>
-                <h1 className={`text-6xl font-black ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                  Admin Center
-                </h1>
-                <p className="text-xl text-gray-600 mt-2">
-                  Welcome back, {user?.name || 'Admin'}
-                </p>
-              </div>
-            </div>
-          </div>
-
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <StatCard
               title="Total Users"
               value={stats.totalUsers}
-              icon={Users}
-              gradient="from-blue-500 to-blue-600"
-              change={stats.growthMetrics.monthly}
+              subtitle="Total Users last 365 days"
+              colorLine="bg-green-500"
             />
             <StatCard
               title="Active Users"
               value={stats.activeUsers}
-              icon={CheckCircle}
-              gradient="from-green-500 to-emerald-600"
-              change={5}
+              subtitle="Active Users last 365 days"
+              colorLine="bg-orange-500"
             />
             <StatCard
               title="Pending Users"
               value={stats.pendingUsers}
-              icon={Clock}
-              gradient="from-yellow-500 to-orange-500"
+              subtitle="Pending Users last 365 days"
+              colorLine="bg-green-500"
             />
             <StatCard
-              title="Managers"
-              value={stats.managers}
-              icon={Crown}
-              gradient="from-purple-500 to-indigo-600"
+              title="Inactive Users"
+              value={stats.inactiveUsers}
+              subtitle="Inactive Users last 365 days"
+              colorLine="bg-red-500"
             />
           </div>
 
           {/* User Management Section */}
-          <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-3xl shadow-2xl overflow-hidden mb-8`}>
-            <div className={`${isDarkMode ? 'bg-white text-black' : 'bg-black text-white'} p-8`}>
-              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-                <div className="flex items-center gap-4 mb-6 lg:mb-0">
-                  <div className="p-3 rounded-full bg-white/20 backdrop-blur-sm">
-                    <Users className="w-8 h-8 text-white" />
-                  </div>
-                  <div>
-                    <h2 className={`text-3xl font-bold ${isDarkMode ? 'text-black' : 'text-white'}`}>User Management</h2>
-                    <p className={isDarkMode ? 'text-black/80' : 'text-white/80'}>Manage your team members and permissions</p>
-                  </div>
+          <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} overflow-hidden mb-8`}>
+            <div className="p-6">
+              {/* Search and Filters */}
+              <div className="flex flex-col md:flex-row gap-4 mb-6">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    placeholder="Search by name, User ID..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className={`pl-12 pr-4 py-3 w-full rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all`}
+                  />
                 </div>
                 <div className="flex gap-3">
+                  <div className="relative">
+                    <select
+                      value={filterStatus}
+                      onChange={(e) => setFilterStatus(e.target.value)}
+                      className={`px-4 py-3 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none pr-8 cursor-pointer`}
+                    >
+                      <option value="all">All Status</option>
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                      <option value="pending">Pending</option>
+                    </select>
+                    <ChevronDown className={`absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 pointer-events-none ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+                  </div>
+                  <div className="relative">
+                    <Calendar className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 pointer-events-none ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+                    <select
+                      value={dateRange}
+                      onChange={(e) => setDateRange(e.target.value)}
+                      className={`pl-10 pr-8 py-3 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer`}
+                    >
+                      <option value="all">All Time</option>
+                      <option value="today">Today</option>
+                      <option value="week">This Week</option>
+                      <option value="month">This Month</option>
+                      <option value="year">This Year</option>
+                    </select>
+                    <ChevronDown className={`absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 pointer-events-none ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+                  </div>
                   <button
                     onClick={() => setShowBulkActions(!showBulkActions)}
-                    className="flex items-center gap-2 px-6 py-3 bg-white/20 backdrop-blur-sm text-white rounded-2xl hover:bg-white/30 transition-all duration-300 font-semibold"
+                    className={`flex items-center gap-2 px-4 py-3 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white hover:bg-gray-600' : 'bg-white border-gray-300 text-gray-900 hover:bg-gray-50'} transition-colors`}
                   >
-                    <Settings className="w-5 h-5" />
-                    Bulk Actions
-                  </button>
-                  <button
-                    onClick={() => setShowCreateForm(true)}
-                    className="flex items-center gap-2 px-6 py-3 bg-white text-indigo-600 rounded-2xl hover:bg-gray-50 transition-all duration-300 font-bold shadow-lg"
-                  >
-                    <Plus className="w-5 h-5" />
-                    Add User
+                    <Filter className="w-4 h-4" />
+                    More Filter
                   </button>
                 </div>
               </div>
-            </div>
 
-            <div className="p-8">
               {/* Bulk Actions Panel */}
               {showBulkActions && (
-                <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'} rounded-2xl p-6 mb-8 border ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
-                  <div className="flex flex-wrap items-center justify-between">
-                    <div className="mb-4 lg:mb-0">
-                      <span className="text-lg font-bold text-gray-800">{selectedUsers.length} users selected</span>
+                <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'} rounded-lg p-4 mb-6 border ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <span className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>{selectedUsers.length} users selected</span>
                     </div>
-                    <div className="flex gap-3">
+                    <div className="flex gap-2">
                       <button
                         onClick={handleBulkActivate}
-                        className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors font-semibold"
+                        className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-semibold"
                       >
                         <Unlock className="w-4 h-4" />
                         Activate
                       </button>
                       <button
                         onClick={handleBulkDelete}
-                        className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors font-semibold"
+                        className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-semibold"
                       >
                         <Trash2 className="w-4 h-4" />
                         Delete
                       </button>
                       <button
                         onClick={() => setSelectedUsers([])}
-                        className="px-4 py-2 bg-gray-500 text-white rounded-xl hover:bg-gray-600 transition-colors font-semibold"
+                        className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm font-semibold"
                       >
                         Clear
                       </button>
@@ -368,102 +363,104 @@ const AdminDashboard = () => {
                 </div>
               )}
 
-              {/* Filters */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                <div className="relative">
-                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="text"
-                    placeholder="Search users..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-12 pr-4 py-4 w-full rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 transition-all text-gray-900 font-medium"
-                  />
-                </div>
-                <select
-                  value={filterRole}
-                  onChange={(e) => setFilterRole(e.target.value)}
-                  className="px-4 py-4 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 transition-all text-gray-900 font-medium"
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3 mb-6">
+                <button
+                  onClick={() => setShowCreateForm(true)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-colors ${
+                    isDarkMode 
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                      : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  }`}
                 >
-                  <option value="all">All Roles</option>
-                  <option value="user">User</option>
-                  <option value="manager">Manager</option>
-                  <option value="admin">Admin</option>
-                </select>
-                <select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                  className="px-4 py-4 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 transition-all text-gray-900 font-medium"
-                >
-                  <option value="all">All Statuses</option>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                  <option value="pending">Pending</option>
-                </select>
+                  <Plus className="w-4 h-4" />
+                  Add User
+                </button>
               </div>
 
               {/* Users Table */}
-              <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className={isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} border-b ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
+                    <tr>
+                      <th className="text-left py-4 px-6">
+                        <input
+                          type="checkbox"
+                          checked={selectedUsers.length > 0 && selectedUsers.length === filteredUsers.length && filteredUsers.length > 0}
+                          onChange={handleSelectAll}
+                          className="rounded w-4 h-4 text-blue-600 cursor-pointer"
+                        />
+                      </th>
+                      <th className={`text-left py-4 px-6 font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>User Name</th>
+                      <th className={`text-left py-4 px-6 font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Contact</th>
+                      <th className={`text-left py-4 px-6 font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>User ID</th>
+                      <th className={`text-left py-4 px-6 font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Role</th>
+                      <th className={`text-left py-4 px-6 font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Status</th>
+                      <th className={`text-left py-4 px-6 font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredUsers.length === 0 ? (
                       <tr>
-                        <th className="text-left py-4 px-6">
-                          <input
-                            type="checkbox"
-                            checked={selectedUsers.length > 0 && selectedUsers.length === filteredUsers.length}
-                            onChange={handleSelectAll}
-                            className="rounded-lg w-5 h-5 text-indigo-600"
-                          />
-                        </th>
-                        <th className="text-left py-4 px-6 font-bold text-gray-900">User</th>
-                        <th className="text-left py-4 px-6 font-bold text-gray-900">Contact</th>
-                        <th className="text-left py-4 px-6 font-bold text-gray-900">Role</th>
-                        <th className="text-left py-4 px-6 font-bold text-gray-900">Status</th>
-                        <th className="text-left py-4 px-6 font-bold text-gray-900">Joined</th>
-                        <th className="text-left py-4 px-6 font-bold text-gray-900">Actions</th>
+                        <td colSpan="7" className={`py-12 text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                          No users found
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {filteredUsers.map((u) => (
-                        <tr key={u._id} className={`border-t ${isDarkMode ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-100 hover:bg-gray-50'} transition-all duration-200`}>
+                    ) : (
+                      filteredUsers.map((u) => (
+                        <tr 
+                          key={u._id} 
+                          className={`border-b ${isDarkMode ? 'border-gray-700 hover:bg-gray-700/50' : 'border-gray-200 hover:bg-gray-50'} transition-colors`}
+                        >
                           <td className="py-4 px-6">
                             <input
                               type="checkbox"
                               checked={selectedUsers.includes(u._id)}
                               onChange={() => handleUserSelection(u._id)}
-                              className="rounded-lg w-5 h-5 text-indigo-600"
+                              className="rounded w-4 h-4 text-blue-600 cursor-pointer"
                             />
                           </td>
                           <td className="py-4 px-6">
-                            <div className="flex items-center">
-                              <div className={`w-12 h-12 rounded-2xl ${isDarkMode ? 'bg-white text-black' : 'bg-black text-white'} flex items-center justify-center mr-4 shadow-lg`}>
-                                <span className="text-lg font-bold">{u.name.charAt(0).toUpperCase()}</span>
+                            <div className="flex items-center gap-3">
+                              <div className={`w-10 h-10 rounded-lg ${isDarkMode ? 'bg-blue-600' : 'bg-blue-100'} flex items-center justify-center`}>
+                                <span className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-blue-700'}`}>
+                                  {u.name.charAt(0).toUpperCase()}
+                                </span>
                               </div>
                               <div>
-                                <div className="font-bold text-gray-900">{u.name}</div>
-                                <div className="text-sm text-gray-600">@{u.username}</div>
+                                <div className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{u.name}</div>
+                                <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                  {u.role === 'admin' ? 'Admin User' : u.role === 'manager' ? 'Manager User' : 'Regular User'}
+                                </div>
                               </div>
                             </div>
                           </td>
                           <td className="py-4 px-6">
                             <div className="space-y-1">
                               {u.email && (
-                                <div className="flex items-center text-sm text-gray-600">
-                                  <Mail className="w-4 h-4 mr-2" />
+                                <div className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                                   {u.email}
                                 </div>
                               )}
                               {u.phone && (
-                                <div className="flex items-center text-sm text-gray-600">
-                                  <Phone className="w-4 h-4 mr-2" />
+                                <div className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
                                   {u.phone}
                                 </div>
                               )}
                             </div>
                           </td>
                           <td className="py-4 px-6">
-                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                            <div>
+                              <div className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                #{u._id.slice(-8).toUpperCase()}
+                              </div>
+                              <div className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                                {new Date(u.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-4 px-6">
+                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
                               u.role === 'admin' ? 'bg-red-100 text-red-800' :
                               u.role === 'manager' ? 'bg-purple-100 text-purple-800' :
                               'bg-blue-100 text-blue-800'
@@ -472,62 +469,86 @@ const AdminDashboard = () => {
                             </span>
                           </td>
                           <td className="py-4 px-6">
-                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                              u.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                              u.isActive ? 'bg-green-100 text-green-800' :
-                              'bg-red-100 text-red-800'
-                            }`}>
-                              {u.status === 'pending' ? 'Pending' : u.isActive ? 'Active' : 'Inactive'}
-                            </span>
-                          </td>
-                          <td className="py-4 px-6 text-sm text-gray-600">
-                            {new Date(u.createdAt).toLocaleDateString()}
+                            <div className="flex items-center gap-2">
+                              <div className={`w-2 h-2 rounded-full ${
+                                u.status === 'pending' ? 'bg-orange-500' :
+                                u.isActive ? 'bg-green-500' :
+                                'bg-red-500'
+                              }`}></div>
+                              <span className={`text-sm font-medium ${
+                                u.status === 'pending' ? 'text-orange-600' :
+                                u.isActive ? 'text-green-600' :
+                                'text-red-600'
+                              }`}>
+                                {u.status === 'pending' ? 'Pending' : u.isActive ? 'Active' : 'Inactive'}
+                              </span>
+                            </div>
                           </td>
                           <td className="py-4 px-6">
-                            <div className="flex gap-2">
-                              {u.role === 'user' && (
-                                <button
-                                  onClick={() => handleMakeManager(u._id)}
-                                  className="p-2 rounded-xl bg-purple-100 text-purple-700 hover:bg-purple-200 transition-colors"
-                                  title="Make Manager"
-                                >
-                                  <Crown className="w-4 h-4" />
-                                </button>
-                              )}
-                              {u.role === 'manager' && (
-                                <button
-                                  onClick={() => handleMakeUser(u._id)}
-                                  className="p-2 rounded-xl bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
-                                  title="Make User"
-                                >
-                                  <User className="w-4 h-4" />
-                                </button>
-                              )}
+                            <div className="flex items-center gap-2">
                               <button
-                                onClick={() => handleToggleUserStatus(u._id)}
-                                className={`p-2 rounded-xl transition-colors ${
-                                  u.isActive
-                                    ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                                    : 'bg-green-100 text-green-700 hover:bg-green-200'
+                                onClick={() => {
+                                  // Details action - you can add a modal or navigation here
+                                  alert(`User Details:\nName: ${u.name}\nEmail: ${u.email || 'N/A'}\nRole: ${u.role}\nStatus: ${u.isActive ? 'Active' : 'Inactive'}`);
+                                }}
+                                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                                  isDarkMode 
+                                    ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                                    : 'bg-blue-50 hover:bg-blue-100 text-blue-700'
                                 }`}
-                                title={u.isActive ? 'Deactivate User' : 'Activate User'}
                               >
-                                {u.isActive ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                Details
                               </button>
-                              <button
-                                onClick={() => handleDeleteUser(u._id)}
-                                className="p-2 rounded-xl bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
-                                title="Delete User"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                              <div className="relative group">
+                                <button
+                                  className={`p-2 rounded-lg ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
+                                >
+                                  <MoreVertical className={`w-4 h-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+                                </button>
+                                <div className={`absolute right-0 mt-2 w-48 rounded-lg shadow-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10`}>
+                                  <div className="py-2">
+                                    {u.role === 'user' && (
+                                      <button
+                                        onClick={() => handleMakeManager(u._id)}
+                                        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                                      >
+                                        <Crown className="w-4 h-4" />
+                                        Make Manager
+                                      </button>
+                                    )}
+                                    {u.role === 'manager' && (
+                                      <button
+                                        onClick={() => handleMakeUser(u._id)}
+                                        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                                      >
+                                        <User className="w-4 h-4" />
+                                        Make User
+                                      </button>
+                                    )}
+                                    <button
+                                      onClick={() => handleToggleUserStatus(u._id)}
+                                      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}
+                                    >
+                                      {u.isActive ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                      {u.isActive ? 'Deactivate' : 'Activate'}
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteUser(u._id)}
+                                      className="w-full text-left px-4 py-2 text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                      Delete
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
                           </td>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>

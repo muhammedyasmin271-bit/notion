@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const SystemSettings = require('../models/SystemSettings');
+const User = require('../models/User');
 const auth = require('../middleware/auth');
 
 // Middleware to check if user is super admin
@@ -98,6 +99,38 @@ router.put('/:settingKey', auth, isSuperAdmin, async (req, res) => {
     });
   } catch (error) {
     console.error('Error updating setting:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   PUT /api/settings/contact-info
+// @desc    Update user contact information
+// @access  Private
+router.put('/contact-info', auth, async (req, res) => {
+  try {
+    const { name, email, phone, department, jobTitle, location } = req.body;
+    
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (email !== undefined) updateData.email = email;
+    if (phone !== undefined) updateData.phone = phone;
+    if (department !== undefined) updateData.department = department;
+    if (jobTitle !== undefined) updateData.jobTitle = jobTitle;
+    if (location !== undefined) updateData.location = location;
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      updateData,
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({ message: 'Contact information updated successfully', user });
+  } catch (error) {
+    console.error('Error updating contact info:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

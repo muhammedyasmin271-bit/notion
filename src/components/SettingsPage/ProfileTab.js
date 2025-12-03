@@ -86,14 +86,8 @@ const ProfileTab = () => {
     setSaving(true);
     try {
       const token = localStorage.getItem('token');
-      console.log('Saving profile data:', {
-        name: profile.name,
-        email: profile.email,
-        department: profile.department,
-        phone: profile.phoneNumber
-      });
       
-      const response = await fetch('http://localhost:9000/api/users/profile', {
+      const response = await fetch('http://localhost:9000/api/settings/contact-info', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -103,26 +97,23 @@ const ProfileTab = () => {
           name: profile.name,
           email: profile.email,
           department: profile.department,
+          jobTitle: profile.jobTitle,
           phone: profile.phoneNumber
         })
       });
       
-      console.log('Response status:', response.status);
-      
       if (response.ok) {
         const data = await response.json();
-        console.log('Profile updated:', data);
-        alert('Profile updated successfully!');
+        alert('Contact information saved successfully!');
         const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
         localStorage.setItem('user', JSON.stringify({ ...currentUser, ...data.user }));
       } else {
         const errorData = await response.json();
-        console.error('Update failed:', errorData);
-        alert(`Error: ${errorData.message || 'Failed to update profile'}`);
+        alert(`Error: ${errorData.message || 'Failed to save contact information'}`);
       }
     } catch (error) {
-      console.error('Error saving profile:', error);
-      alert('Failed to save profile. Please try again.');
+      console.error('Error saving contact info:', error);
+      alert('Failed to save contact information. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -226,7 +217,7 @@ const ProfileTab = () => {
         className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 rounded-lg transition-colors"
       >
         <Save className="w-4 h-4" />
-        {saving ? 'Saving...' : 'Save Changes'}
+        {saving ? 'Saving...' : 'Save Contact Information'}
       </button>
     </div>
   );

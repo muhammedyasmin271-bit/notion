@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Send, FileText } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAppContext } from '../../context/AppContext';
@@ -9,6 +9,10 @@ const WorkerReports = () => {
   const navigate = useNavigate();
   const { isDarkMode } = useTheme();
   const { user } = useAppContext();
+  const [searchParams] = useSearchParams();
+  
+  // Get companyId from query params or user context
+  const companyId = searchParams.get('company') || user?.companyId || localStorage.getItem('currentCompanyId');
   
   const [project, setProject] = useState(null);
   const [report, setReport] = useState('');
@@ -71,7 +75,8 @@ const WorkerReports = () => {
       console.log('Submitting report:', reportData);
       await new Promise(resolve => setTimeout(resolve, 1000));
       alert('Report submitted successfully!');
-      navigate(`/projects/${projectId}`);
+      const projectUrl = companyId ? `/projects/${projectId}?company=${companyId}` : `/projects/${projectId}`;
+      navigate(projectUrl);
     } catch (error) {
       console.error('Error submitting report:', error);
       alert('Failed to submit report. Please try again.');
@@ -100,7 +105,10 @@ const WorkerReports = () => {
       <div className="max-w-4xl mx-auto p-6">
         <div className="flex items-center gap-4 mb-8">
           <button
-            onClick={() => navigate(`/projects/${projectId}`)}
+            onClick={() => {
+              const projectUrl = companyId ? `/projects/${projectId}?company=${companyId}` : `/projects/${projectId}`;
+              navigate(projectUrl);
+            }}
             className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-200'}`}
           >
             <ArrowLeft className="w-5 h-5" />

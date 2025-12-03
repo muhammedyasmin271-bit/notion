@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../../context/ThemeContext';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useAppContext } from '../../context/AppContext';
 import './MeetingEditorPage.css';
 import { Save, ArrowLeft, Calendar, Clock, Users, Plus, X, CheckCircle, Circle, Sparkles, GripVertical, Type, Hash, List, Quote, Code, Trash2, Copy, ArrowUp, ArrowDown, ArrowRight, CheckSquare, Table, Minus, AlertCircle, Star, Tag, MapPin, Mail, ListOrdered, FileText, Lightbulb, Info, AlertTriangle, Target, BarChart3, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, Palette, Link, Image, Video, FileIcon, Bookmark, Flag, Eye, EyeOff } from 'lucide-react';
 import { getMeetingById, createMeeting, updateMeeting, addMeetingActionItem, getUsers, deleteMeeting } from '../../services/api';
@@ -8,9 +9,14 @@ import { getMeetingById, createMeeting, updateMeeting, addMeetingActionItem, get
 
 const MeetingEditorPage = () => {
   const { isDarkMode } = useTheme();
-  const { meetingId } = useParams();
+  const { user } = useAppContext();
+  const { meetingId, companyId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const isNewMeeting = !meetingId || meetingId === 'new';
+  
+  // Get companyId from URL params, query params, or user context
+  const currentCompanyId = companyId || searchParams.get('company') || user?.companyId || localStorage.getItem('currentCompanyId');
 
   const [meeting, setMeeting] = useState({
     title: '',
@@ -416,7 +422,8 @@ const MeetingEditorPage = () => {
 
   const handleDelete = async () => {
     if (isNewMeeting) {
-      navigate('/meeting-notes');
+      const backUrl = currentCompanyId ? `/meeting-notes?company=${currentCompanyId}` : '/meeting-notes';
+      navigate(backUrl);
       return;
     }
 
@@ -424,7 +431,8 @@ const MeetingEditorPage = () => {
       try {
         await deleteMeeting(meetingId);
         alert('Meeting deleted successfully!');
-        navigate('/meeting-notes');
+        const backUrl = currentCompanyId ? `/meeting-notes?company=${currentCompanyId}` : '/meeting-notes';
+        navigate(backUrl);
       } catch (error) {
         console.error('Error deleting meeting:', error);
         alert(`Failed to delete meeting: ${error.message}`);
@@ -1333,7 +1341,10 @@ const MeetingEditorPage = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <button
-                  onClick={() => navigate('/meeting-notes')}
+                  onClick={() => {
+                    const backUrl = currentCompanyId ? `/meeting-notes?company=${currentCompanyId}` : '/meeting-notes';
+                    navigate(backUrl);
+                  }}
                   className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'text-gray-400 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-100'}`}
                 >
                   <ArrowLeft className="w-5 h-5" />

@@ -4,13 +4,19 @@ import { useTheme } from '../../context/ThemeContext';
 import { askPageAI } from '../../services/aiService';
 import { useLocation } from 'react-router-dom';
 
-const AIAssistant = () => {
+const AIAssistant = ({ hideOnAIPage = false }) => {
   const { isDarkMode } = useTheme();
   const location = useLocation();
   const [showAIPopup, setShowAIPopup] = useState(false);
   const [aiQuery, setAiQuery] = useState('');
   const [aiResponse, setAiResponse] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // Hide on AI page (/home)
+  const isAIPage = location.pathname === '/home' || location.pathname.startsWith('/home');
+  if (hideOnAIPage && isAIPage) {
+    return null;
+  }
 
   // Get current page context
   const getPageContext = () => {

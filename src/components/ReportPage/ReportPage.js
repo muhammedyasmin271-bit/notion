@@ -465,67 +465,85 @@ const ReportPage = () => {
   };
 
   return (
-    <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+    <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
       <div className="max-w-4xl mx-auto p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
+        {/* Header */}
+        <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} p-6 mb-6`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate(`/projects/${projectId}`)}
+                className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <div>
+                <h1 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Project Report</h1>
+                <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  {project?.name || 'Project'}
+                </p>
+              </div>
+            </div>
             <button
-              onClick={() => navigate(`/projects/${projectId}`)}
-              className={`p-2 rounded-lg ${isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-200'}`}
+              onClick={handleSave}
+              disabled={saving}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-colors ${
+                isDarkMode 
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+              } disabled:opacity-50`}
             >
-              <ArrowLeft className="w-5 h-5" />
+              <Save className="w-4 h-4" />
+              {saving ? 'Saving...' : 'Save'}
             </button>
-            <div>
-              <h1 className="text-2xl font-bold">Project Report</h1>
-              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                {project?.name || 'Project'}
-              </p>
+          </div>
+        </div>
+
+        {/* Report Editor */}
+        <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} overflow-hidden mb-6`}>
+          <div className={`p-6 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+            <div className="flex items-center gap-2">
+              <FileText className={`w-5 h-5 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+              <h2 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Report Details</h2>
             </div>
           </div>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 flex items-center gap-2"
-          >
-            <Save className="w-4 h-4" />
-            {saving ? 'Saving...' : 'Save'}
-          </button>
+          <div className="p-6 min-h-[600px]">
+            <div className="space-y-2">
+              {blocks.map((block, index) => renderBlock(block, index))}
+            </div>
+
+            <button
+              onClick={() => addBlock(blocks.length - 1)}
+              className={`flex items-center mt-4 px-4 py-2 rounded-lg transition-colors font-medium ${
+                isDarkMode 
+                  ? 'text-gray-300 hover:bg-gray-700' 
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              Add block
+            </button>
+          </div>
         </div>
 
-        <div className={`rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} p-6 min-h-[600px] relative`}>
-          <div className="flex items-center gap-2 mb-6">
-            <FileText className="w-5 h-5 text-blue-500" />
-            <h2 className="text-lg font-semibold">Report Details</h2>
+        {/* Project Completion Questions */}
+        <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} overflow-hidden`}>
+          <div className={`p-6 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+            <div className="flex items-center gap-2">
+              <CheckSquare className={`w-5 h-5 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
+              <h2 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Project Completion Questions</h2>
+            </div>
           </div>
-
-          <div className="space-y-2">
-            {blocks.map((block, index) => renderBlock(block, index))}
-          </div>
-
-          <button
-            onClick={() => addBlock(blocks.length - 1)}
-            className={`flex items-center mt-4 px-4 py-2 rounded-lg transition-colors ${isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'}`}
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Add block
-          </button>
-        </div>
-
-        <div className={`rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} p-6 mt-6`}>
-          <div className="flex items-center gap-2 mb-6">
-            <CheckSquare className="w-5 h-5 text-green-500" />
-            <h2 className="text-lg font-semibold">Project Completion Questions</h2>
-          </div>
-
-          <div className="space-y-6">
+          <div className="p-6">
+            <div className="space-y-6">
             <div>
-              <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+              <label className={`block text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                 1. Were all project objectives achieved?
               </label>
               <textarea
                 value={answers.objectives}
                 onChange={(e) => updateAnswer('objectives', e.target.value)}
-                className={`w-full h-20 p-3 rounded-lg border resize-none ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                className={`w-full h-20 p-3 rounded-lg border resize-none transition-all ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 placeholder="Describe which objectives were met and any that weren't..."
               />
             </div>
@@ -653,11 +671,16 @@ const ReportPage = () => {
               <button
                 onClick={handleSaveAnswers}
                 disabled={savingAnswers}
-                className="w-full px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 flex items-center justify-center gap-2 font-medium"
+                className={`w-full px-6 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2 ${
+                  isDarkMode 
+                    ? 'bg-green-600 hover:bg-green-700 text-white' 
+                    : 'bg-green-600 hover:bg-green-700 text-white'
+                }`}
               >
                 <CheckSquare className="w-5 h-5" />
                 {savingAnswers ? 'Saving Answers...' : 'Confirm & Save Answers'}
               </button>
+            </div>
             </div>
           </div>
         </div>
@@ -666,7 +689,7 @@ const ReportPage = () => {
       {showFormattingMenu && (
         <div
           ref={formattingMenuRef}
-          className={`absolute z-50 mt-1 rounded-xl shadow-xl border overflow-hidden ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
+          className={`fixed z-50 rounded-xl shadow-2xl border overflow-hidden ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
           style={{
             minWidth: '280px',
             maxHeight: '400px',

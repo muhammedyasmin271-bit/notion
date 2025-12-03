@@ -133,56 +133,68 @@ const CreateCompanyPage = () => {
   };
 
   return (
-    <div className={`min-h-screen ${isDarkMode ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' : 'bg-gradient-to-br from-blue-50 via-white to-purple-50'} relative overflow-hidden py-8 px-4`}>
-      {/* Background Elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-20 left-10 w-96 h-96 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse"></div>
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse animation-delay-2000"></div>
-      </div>
-
-      <div className="relative max-w-4xl mx-auto">
+    <div className={`min-h-screen transition-colors duration-300 ${
+      isDarkMode 
+        ? 'bg-gray-900 text-white' 
+        : 'bg-gray-100 text-gray-900'
+    }`} style={!isDarkMode ? {
+      backgroundImage: "url('data:image/svg+xml,%3Csvg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"none\" fill-rule=\"evenodd\"%3E%3Cg fill=\"%23999\" fill-opacity=\"0.4\"%3E%3Ccircle cx=\"30\" cy=\"30\" r=\"1.5\"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')"
+    } : {}}>
+      <div className="relative max-w-5xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-4 mb-4">
-            <img 
-              src="/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png" 
-              alt="Mela Note Logo" 
-              className={`h-16 w-16 drop-shadow-lg ${isDarkMode ? 'filter brightness-0 invert' : ''}`}
-            />
-            <h1 className={`text-4xl font-black ${isDarkMode ? 'bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent' : 'text-gray-900'}`}>
-              Mela Note
+        <div className="text-center mb-12">
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <div className={`p-2 rounded-xl transition-colors duration-300 ${
+              isDarkMode ? 'bg-gray-800/50' : 'bg-white/80'
+            } shadow-md`}>
+              <img 
+                src="/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png" 
+                alt="Mela Note Logo" 
+                className={`h-12 w-12 object-contain transition-all duration-300 ${
+                  isDarkMode ? 'brightness-0 invert' : ''
+                }`}
+              />
+            </div>
+            <h1 className={`text-3xl sm:text-4xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              Create Your Workspace
             </h1>
           </div>
-          <p className={`text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            Create your workspace and start collaborating
+          <p className={`text-base sm:text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} max-w-2xl mx-auto`}>
+            Set up your company account and start collaborating with your team
           </p>
         </div>
 
         {/* Selected Plan Badge */}
-        <div className={`mb-8 p-6 rounded-2xl border-2 ${isDarkMode ? 'bg-gray-800/50 border-gray-700' : 'bg-white/80 border-gray-200'} backdrop-blur-sm shadow-xl`}>
+        <div className={`mb-8 p-5 rounded-xl border shadow-sm transition-all duration-300 ${
+          isDarkMode 
+            ? 'bg-gray-800/80 border-gray-700 backdrop-blur-sm' 
+            : 'bg-white border-gray-200'
+        }`}>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className={`w-3 h-3 rounded-full ${
-                  selectedPlan === 'free_trial' ? 'bg-green-400' :
-                  selectedPlan === 'one_month' ? 'bg-blue-400' :
-                  selectedPlan === 'three_month' ? 'bg-purple-400' : 'bg-gray-400'
-                } animate-pulse`}></div>
-                <h3 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  Selected Plan: {currentPlan.name}
+            <div className="flex items-center gap-3">
+              <div className={`w-2 h-2 rounded-full ${
+                selectedPlan === 'free_trial' ? 'bg-green-500' :
+                selectedPlan === 'one_month' ? 'bg-blue-500' :
+                selectedPlan === 'three_month' ? 'bg-purple-500' : 'bg-gray-500'
+              }`}></div>
+              <div>
+                <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  {currentPlan.name}
                 </h3>
+                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  {selectedPlan === 'free_trial' 
+                    ? 'Free for 7 days'
+                    : `Billed per ${currentPlan.period}`
+                  }
+                </p>
               </div>
-              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                {selectedPlan === 'free_trial' 
-                  ? '✨ Free for 7 days, then choose a plan'
-                  : `💰 Price: User Limit × Price/User × ${currentPlan.period}`
-                }
-              </p>
             </div>
             <Link 
               to="/#pricing" 
-              className={`px-6 py-3 rounded-xl font-bold transition-all duration-300 hover:scale-105 ${
-                isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isDarkMode 
+                  ? 'bg-gray-700 hover:bg-gray-600 text-white' 
+                  : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
               }`}
             >
               Change Plan
@@ -191,99 +203,169 @@ const CreateCompanyPage = () => {
         </div>
 
         {/* Main Form Card */}
-        <div className={`rounded-3xl border-2 ${isDarkMode ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border-gray-700' : 'bg-gradient-to-br from-white via-gray-50 to-white border-gray-200'} shadow-2xl overflow-hidden`}>
+        <div className={`rounded-xl border shadow-lg transition-all duration-300 overflow-hidden ${
+          isDarkMode 
+            ? 'bg-gray-800/80 border-gray-700 backdrop-blur-sm' 
+            : 'bg-white border-gray-200'
+        }`}>
           {/* Card Header */}
-          <div className={`flex justify-between items-center p-7 border-b-2 ${isDarkMode ? 'border-gray-700 bg-gray-900/50' : 'border-gray-200 bg-white/50'} backdrop-blur-sm`}>
-            <div className="flex items-center gap-4">
-              <div className={`p-4 rounded-2xl ${isDarkMode ? 'bg-gradient-to-br from-gray-700 to-gray-800' : 'bg-gradient-to-br from-gray-800 to-black'} shadow-lg`}>
-                <Building2 size={28} className="text-white" />
-              </div>
-              <div>
-                <h2 className={`text-3xl font-black ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  {createdCompany ? '🎉 Company Created!' : 'Add New Company'}
+          {!createdCompany && (
+            <div className={`px-6 py-5 border-b ${
+              isDarkMode ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-gray-50'
+            }`}>
+              <div className="flex items-center justify-between">
+                <h2 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  Company Details
                 </h2>
-                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mt-1`}>
-                  {createdCompany ? 'Successfully set up new organization' : 'Create a new organization with admin access'}
-                </p>
+                <Link 
+                  to="/" 
+                  className={`p-2 rounded-lg transition-colors ${
+                    isDarkMode 
+                      ? 'hover:bg-gray-700 text-gray-400' 
+                      : 'hover:bg-gray-100 text-gray-600'
+                  }`}
+                >
+                  <X size={18} />
+                </Link>
               </div>
             </div>
-            <button onClick={closeModal} className={`p-3 rounded-xl ${isDarkMode ? 'hover:bg-gray-800 bg-gray-800/50' : 'hover:bg-gray-100 bg-gray-100/50'} active:scale-95 transition-all duration-200`}>
-              <X size={22} className={isDarkMode ? 'text-gray-400' : 'text-gray-600'} />
-            </button>
-          </div>
+          )}
 
           {createdCompany ? (
             /* Success View */
-            <div className="p-7 space-y-6">
+            <div className="p-8 space-y-6">
               {/* Success Animation */}
-              <div className="text-center py-4">
-                <div className="relative inline-block">
-                  <div className={`w-24 h-24 rounded-full ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'} flex items-center justify-center mb-4 animate-bounce`}>
-                    <CheckCircle size={56} className={`${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
+              <div className="text-center py-6">
+                <div className="relative inline-block mb-6">
+                  <div className={`w-20 h-20 rounded-full flex items-center justify-center ${
+                    isDarkMode ? 'bg-green-900/30' : 'bg-green-100'
+                  }`}>
+                    <CheckCircle size={48} className={isDarkMode ? 'text-green-400' : 'text-green-600'} />
                   </div>
-                  <div className="absolute inset-0 w-24 h-24 rounded-full bg-green-500 opacity-20 animate-ping"></div>
                 </div>
-                <h3 className={`text-3xl font-black mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{createdCompany.companyName}</h3>
-                <p className={`text-base ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Company created and ready to use!</p>
+                <h3 className={`text-2xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  {createdCompany.companyName}
+                </h3>
+                <p className={`text-base ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Company created successfully!
+                </p>
               </div>
 
               {/* Info Cards */}
-              <div className="space-y-4">
-                <div className={`p-5 rounded-2xl ${isDarkMode ? 'bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700' : 'bg-gradient-to-br from-white to-gray-50 border border-gray-200'} shadow-lg hover:shadow-xl transition-all duration-300`}>
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
-                      <Building2 size={18} className={isDarkMode ? 'text-gray-300' : 'text-gray-700'} />
-                    </div>
-                    <label className={`text-xs font-black uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Company ID</label>
-                  </div>
+              <div className="space-y-3">
+                <div className={`p-4 rounded-lg border transition-all duration-200 ${
+                  isDarkMode 
+                    ? 'bg-gray-700/50 border-gray-600' 
+                    : 'bg-gray-50 border-gray-200'
+                }`}>
+                  <label className={`text-xs font-semibold uppercase tracking-wide mb-2 block ${
+                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
+                    Company ID
+                  </label>
                   <div className="flex items-center gap-2">
-                    <code className={`flex-1 font-mono text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} p-3 rounded-lg ${isDarkMode ? 'bg-gray-900/50' : 'bg-white'}`}>{createdCompany.companyId}</code>
-                    <button onClick={() => copyToClipboard(createdCompany.companyId)} className={`p-3 ${isDarkMode ? 'hover:bg-gray-700 bg-gray-700/50' : 'hover:bg-gray-200 bg-gray-200/50'} rounded-lg transition-all active:scale-95`}>
-                      <CheckCircle size={18} className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+                    <code className={`flex-1 font-mono text-sm font-medium ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    } p-2.5 rounded-md ${
+                      isDarkMode ? 'bg-gray-800' : 'bg-white'
+                    }`}>
+                      {createdCompany.companyId}
+                    </code>
+                    <button 
+                      onClick={() => copyToClipboard(createdCompany.companyId)} 
+                      className={`p-2.5 rounded-md transition-colors ${
+                        isDarkMode 
+                          ? 'hover:bg-gray-600 bg-gray-600/50' 
+                          : 'hover:bg-gray-200 bg-gray-200/50'
+                      }`}
+                    >
+                      <CheckCircle size={16} className={isDarkMode ? 'text-gray-400' : 'text-gray-600'} />
                     </button>
                   </div>
                 </div>
 
-                <div className={`p-5 rounded-2xl ${isDarkMode ? 'bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700' : 'bg-gradient-to-br from-white to-gray-50 border border-gray-200'} shadow-lg hover:shadow-xl transition-all duration-300`}>
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
-                      <User size={18} className={isDarkMode ? 'text-gray-300' : 'text-gray-700'} />
-                    </div>
-                    <label className={`text-xs font-black uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Admin Username</label>
-                  </div>
+                <div className={`p-4 rounded-lg border transition-all duration-200 ${
+                  isDarkMode 
+                    ? 'bg-gray-700/50 border-gray-600' 
+                    : 'bg-gray-50 border-gray-200'
+                }`}>
+                  <label className={`text-xs font-semibold uppercase tracking-wide mb-2 block ${
+                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
+                    Admin Username
+                  </label>
                   <div className="flex items-center gap-2">
-                    <code className={`flex-1 font-mono text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} p-3 rounded-lg ${isDarkMode ? 'bg-gray-900/50' : 'bg-white'}`}>{createdCompany.adminUsername}</code>
-                    <button onClick={() => copyToClipboard(createdCompany.adminUsername)} className={`p-3 ${isDarkMode ? 'hover:bg-gray-700 bg-gray-700/50' : 'hover:bg-gray-200 bg-gray-200/50'} rounded-lg transition-all active:scale-95`}>
-                      <CheckCircle size={18} className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+                    <code className={`flex-1 font-mono text-sm font-medium ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    } p-2.5 rounded-md ${
+                      isDarkMode ? 'bg-gray-800' : 'bg-white'
+                    }`}>
+                      {createdCompany.adminUsername}
+                    </code>
+                    <button 
+                      onClick={() => copyToClipboard(createdCompany.adminUsername)} 
+                      className={`p-2.5 rounded-md transition-colors ${
+                        isDarkMode 
+                          ? 'hover:bg-gray-600 bg-gray-600/50' 
+                          : 'hover:bg-gray-200 bg-gray-200/50'
+                      }`}
+                    >
+                      <CheckCircle size={16} className={isDarkMode ? 'text-gray-400' : 'text-gray-600'} />
                     </button>
                   </div>
                 </div>
 
-                <div className={`p-5 rounded-2xl ${isDarkMode ? 'bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700' : 'bg-gradient-to-br from-white to-gray-50 border border-gray-200'} shadow-lg hover:shadow-xl transition-all duration-300`}>
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
-                      <Mail size={18} className={isDarkMode ? 'text-gray-300' : 'text-gray-700'} />
-                    </div>
-                    <label className={`text-xs font-black uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Company Login Link</label>
-                  </div>
+                <div className={`p-4 rounded-lg border transition-all duration-200 ${
+                  isDarkMode 
+                    ? 'bg-gray-700/50 border-gray-600' 
+                    : 'bg-gray-50 border-gray-200'
+                }`}>
+                  <label className={`text-xs font-semibold uppercase tracking-wide mb-2 block ${
+                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
+                    Company Login Link
+                  </label>
                   <div className="flex items-center gap-2">
-                    <code className={`flex-1 font-mono text-sm break-all ${isDarkMode ? 'text-white' : 'text-gray-900'} p-3 rounded-lg ${isDarkMode ? 'bg-gray-900/50' : 'bg-white'}`}>{createdCompany.companyLink}</code>
-                    <button onClick={() => copyToClipboard(createdCompany.companyLink)} className={`p-3 ${isDarkMode ? 'hover:bg-gray-700 bg-gray-700/50' : 'hover:bg-gray-200 bg-gray-200/50'} rounded-lg transition-all active:scale-95 flex-shrink-0`}>
-                      <CheckCircle size={18} className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+                    <code className={`flex-1 font-mono text-xs break-all ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    } p-2.5 rounded-md ${
+                      isDarkMode ? 'bg-gray-800' : 'bg-white'
+                    }`}>
+                      {createdCompany.companyLink}
+                    </code>
+                    <button 
+                      onClick={() => copyToClipboard(createdCompany.companyLink)} 
+                      className={`p-2.5 rounded-md transition-colors flex-shrink-0 ${
+                        isDarkMode 
+                          ? 'hover:bg-gray-600 bg-gray-600/50' 
+                          : 'hover:bg-gray-200 bg-gray-200/50'
+                      }`}
+                    >
+                      <CheckCircle size={16} className={isDarkMode ? 'text-gray-400' : 'text-gray-600'} />
                     </button>
                   </div>
                 </div>
 
                 {/* Next Steps */}
-                <div className={`p-5 rounded-2xl border-2 ${isDarkMode ? 'bg-gradient-to-br from-blue-900/20 to-purple-900/20 border-blue-700/50' : 'bg-gradient-to-br from-blue-50 to-purple-50 border-blue-300'}`}>
+                <div className={`p-4 rounded-lg border ${
+                  isDarkMode 
+                    ? 'bg-blue-900/20 border-blue-700/30' 
+                    : 'bg-blue-50 border-blue-200'
+                }`}>
                   <div className="flex items-start gap-3">
-                    <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-blue-900/50' : 'bg-blue-100'} flex-shrink-0`}>
-                      <AlertCircle size={20} className={isDarkMode ? 'text-blue-400' : 'text-blue-600'} />
-                    </div>
+                    <AlertCircle size={18} className={`flex-shrink-0 mt-0.5 ${
+                      isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                    }`} />
                     <div>
-                      <h4 className={`font-bold mb-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Next Steps</h4>
-                      <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                        An SMS with your login credentials has been sent to your phone. Use the company link to access your workspace.
+                      <h4 className={`text-sm font-semibold mb-1 ${
+                        isDarkMode ? 'text-white' : 'text-gray-900'
+                      }`}>
+                        Next Steps
+                      </h4>
+                      <p className={`text-xs ${
+                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                      }`}>
+                        An SMS with your login credentials has been sent. Use the company link above to access your workspace.
                       </p>
                     </div>
                   </div>
@@ -301,7 +383,7 @@ const CreateCompanyPage = () => {
                         : `${createdCompany.companyLink}?redirect=payment`;
                       window.location.href = loginUrl;
                     }}
-                    className={`flex-1 ${isDarkMode ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700' : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'} text-white py-4 rounded-2xl font-black text-lg shadow-lg hover:shadow-xl transition-all duration-200 active:scale-95`}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition-colors"
                   >
                     Login & Pay Now
                   </button>
@@ -311,7 +393,11 @@ const CreateCompanyPage = () => {
                     // Redirect to login with company ID
                     window.location.href = createdCompany.companyLink;
                   }}
-                  className={`flex-1 ${isDarkMode ? 'bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700' : 'bg-gradient-to-r from-gray-900 to-black hover:from-gray-800 hover:to-gray-900'} text-white py-4 rounded-2xl font-black text-lg shadow-lg hover:shadow-xl transition-all duration-200 active:scale-95`}
+                  className={`flex-1 py-3 rounded-lg font-semibold transition-colors ${
+                    isDarkMode 
+                      ? 'bg-gray-700 hover:bg-gray-600 text-white' 
+                      : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
+                  }`}
                 >
                   {selectedPlan === 'free_trial' ? 'Login Now' : 'Login Later'}
                 </button>
@@ -319,13 +405,13 @@ const CreateCompanyPage = () => {
             </div>
           ) : (
             /* Form View */
-            <form onSubmit={handleSubmit} className="p-7 space-y-6">
+            <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6">
               {/* Error/Success Messages */}
               {message.text && (
-                <div className={`p-4 rounded-xl border-2 flex items-center ${
+                <div className={`p-4 rounded-lg border flex items-center ${
                   message.type === 'success'
-                    ? (isDarkMode ? 'bg-green-900/20 border-green-700 text-green-300' : 'bg-green-50 border-green-200 text-green-700')
-                    : (isDarkMode ? 'bg-red-900/20 border-red-700 text-red-300' : 'bg-red-50 border-red-200 text-red-700')
+                    ? (isDarkMode ? 'bg-green-900/20 border-green-700/50 text-green-300' : 'bg-green-50 border-green-200 text-green-700')
+                    : (isDarkMode ? 'bg-red-900/20 border-red-700/50 text-red-300' : 'bg-red-50 border-red-200 text-red-700')
                 }`}>
                   {message.type === 'success' ? <CheckCircle className="w-5 h-5 mr-3 flex-shrink-0" /> : <AlertCircle className="w-5 h-5 mr-3 flex-shrink-0" />}
                   <span className="text-sm font-medium">{message.text}</span>
@@ -334,11 +420,16 @@ const CreateCompanyPage = () => {
 
               {/* Logo Upload Section */}
               <div>
-                <label className={`text-sm font-bold mb-3 flex items-center gap-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  <Upload size={18} />
-                  Company Logo
+                <label className={`text-sm font-semibold mb-3 block ${
+                  isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                }`}>
+                  Company Logo <span className="text-gray-500 font-normal">(Optional)</span>
                 </label>
-                <div className={`relative border-3 border-dashed rounded-2xl p-8 text-center ${isDarkMode ? 'border-gray-700 hover:border-gray-600 bg-gray-800/30' : 'border-gray-300 hover:border-gray-400 bg-gray-50'} transition-all duration-300 cursor-pointer group hover:scale-[1.02]`}>
+                <div className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-all duration-200 cursor-pointer group ${
+                  isDarkMode 
+                    ? 'border-gray-700 hover:border-gray-600 bg-gray-800/30' 
+                    : 'border-gray-300 hover:border-gray-400 bg-gray-50'
+                }`}>
                   <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" id="logo-upload" />
                   <label htmlFor="logo-upload" className="cursor-pointer">
                     {formData.logo ? (
@@ -362,14 +453,17 @@ const CreateCompanyPage = () => {
               </div>
 
               {/* Company Information */}
-              <div className={`p-5 rounded-2xl ${isDarkMode ? 'bg-gray-800/50 border border-gray-700' : 'bg-gray-50 border border-gray-200'}`}>
-                <h3 className={`text-base font-bold mb-4 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  <Building2 size={18} />
-                  Company Information
-                </h3>
-                <div className="space-y-3">
+              <div className="space-y-4">
+                <div>
+                  <label className={`text-sm font-semibold mb-2 block ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Company Name <span className="text-red-500">*</span>
+                  </label>
                   <div className="relative">
-                    <div className={`absolute left-4 top-1/2 -translate-y-1/2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                    <div className={`absolute left-3 top-1/2 -translate-y-1/2 ${
+                      isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                    }`}>
                       <Building2 size={18} />
                     </div>
                     <input
@@ -377,10 +471,12 @@ const CreateCompanyPage = () => {
                       name="companyName"
                       value={formData.companyName}
                       onChange={handleInputChange}
-                      placeholder="Company Name *"
+                      placeholder="Enter company name"
                       required
-                      className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${
-                        isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                      className={`w-full pl-10 pr-4 py-3 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${
+                        isDarkMode 
+                          ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500' 
+                          : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
                       }`}
                     />
                   </div>
@@ -388,14 +484,17 @@ const CreateCompanyPage = () => {
               </div>
 
               {/* Admin Contact Information */}
-              <div className={`p-5 rounded-2xl ${isDarkMode ? 'bg-gray-800/50 border border-gray-700' : 'bg-gray-50 border border-gray-200'}`}>
-                <h3 className={`text-base font-bold mb-4 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  <Phone size={18} />
-                  Admin Contact Information
-                </h3>
-                <div className="space-y-3">
+              <div className="space-y-4">
+                <div>
+                  <label className={`text-sm font-semibold mb-2 block ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Admin Email <span className="text-red-500">*</span>
+                  </label>
                   <div className="relative">
-                    <div className={`absolute left-4 top-1/2 -translate-y-1/2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                    <div className={`absolute left-3 top-1/2 -translate-y-1/2 ${
+                      isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                    }`}>
                       <Mail size={18} />
                     </div>
                     <input
@@ -403,16 +502,27 @@ const CreateCompanyPage = () => {
                       name="adminEmail"
                       value={formData.adminEmail}
                       onChange={handleInputChange}
-                      placeholder="Admin Email *"
+                      placeholder="admin@company.com"
                       required
-                      className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${
-                        isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                      className={`w-full pl-10 pr-4 py-3 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${
+                        isDarkMode 
+                          ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500' 
+                          : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
                       }`}
                     />
                   </div>
+                </div>
 
+                <div>
+                  <label className={`text-sm font-semibold mb-2 block ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Admin Phone <span className="text-red-500">*</span>
+                  </label>
                   <div className="relative">
-                    <div className={`absolute left-4 top-1/2 -translate-y-1/2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                    <div className={`absolute left-3 top-1/2 -translate-y-1/2 ${
+                      isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                    }`}>
                       <Phone size={18} />
                     </div>
                     <input
@@ -420,10 +530,12 @@ const CreateCompanyPage = () => {
                       name="adminPhone"
                       value={formData.adminPhone}
                       onChange={handleInputChange}
-                      placeholder="Admin Phone (e.g. +251912345678) *"
+                      placeholder="+251912345678"
                       required
-                      className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${
-                        isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                      className={`w-full pl-10 pr-4 py-3 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${
+                        isDarkMode 
+                          ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500' 
+                          : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
                       }`}
                     />
                   </div>
@@ -431,17 +543,17 @@ const CreateCompanyPage = () => {
               </div>
 
               {/* Admin Login Credentials */}
-              <div className={`p-5 rounded-2xl ${isDarkMode ? 'bg-gray-800/50 border border-gray-700' : 'bg-gray-50 border border-gray-200'}`}>
-                <h3 className={`text-base font-bold mb-4 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  <Lock size={18} />
-                  Admin Login Credentials
-                </h3>
-                <p className={`text-xs mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  These credentials will be used by the company admin to access their account.
-                </p>
-                <div className="space-y-3">
+              <div className="space-y-4">
+                <div>
+                  <label className={`text-sm font-semibold mb-2 block ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Username <span className="text-red-500">*</span>
+                  </label>
                   <div className="relative">
-                    <div className={`absolute left-4 top-1/2 -translate-y-1/2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                    <div className={`absolute left-3 top-1/2 -translate-y-1/2 ${
+                      isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                    }`}>
                       <User size={18} />
                     </div>
                     <input
@@ -449,16 +561,27 @@ const CreateCompanyPage = () => {
                       name="adminUsername"
                       value={formData.adminUsername}
                       onChange={handleInputChange}
-                      placeholder="Username *"
+                      placeholder="Choose a username"
                       required
-                      className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${
-                        isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                      className={`w-full pl-10 pr-4 py-3 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${
+                        isDarkMode 
+                          ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500' 
+                          : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
                       }`}
                     />
                   </div>
+                </div>
 
+                <div>
+                  <label className={`text-sm font-semibold mb-2 block ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                    Password <span className="text-red-500">*</span>
+                  </label>
                   <div className="relative">
-                    <div className={`absolute left-4 top-1/2 -translate-y-1/2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                    <div className={`absolute left-3 top-1/2 -translate-y-1/2 ${
+                      isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                    }`}>
                       <Lock size={18} />
                     </div>
                     <input
@@ -466,10 +589,12 @@ const CreateCompanyPage = () => {
                       name="adminPassword"
                       value={formData.adminPassword}
                       onChange={handleInputChange}
-                      placeholder="Password *"
+                      placeholder="Create a password"
                       required
-                      className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${
-                        isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                      className={`w-full pl-10 pr-4 py-3 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${
+                        isDarkMode 
+                          ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500' 
+                          : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
                       }`}
                     />
                   </div>
@@ -477,16 +602,25 @@ const CreateCompanyPage = () => {
               </div>
 
               {/* User Limit */}
-              <div className={`p-5 rounded-2xl border-2 ${isDarkMode ? 'bg-gradient-to-br from-blue-900/20 to-purple-900/20 border-blue-700/50' : 'bg-gradient-to-br from-blue-50 to-purple-50 border-blue-300'}`}>
-                <h3 className={`text-base font-bold mb-4 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  <Users size={18} />
-                  User Limit
-                </h3>
-                <p className={`text-xs mb-4 ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>
-                  💡 Payment is calculated based on: <strong>User Limit × Price Per User × Subscription Period</strong>
+              <div className={`p-4 rounded-lg border ${
+                isDarkMode 
+                  ? 'bg-blue-900/20 border-blue-700/30' 
+                  : 'bg-blue-50 border-blue-200'
+              }`}>
+                <label className={`text-sm font-semibold mb-2 block ${
+                  isDarkMode ? 'text-white' : 'text-gray-900'
+                }`}>
+                  Maximum Users <span className="text-red-500">*</span>
+                </label>
+                <p className={`text-xs mb-3 ${
+                  isDarkMode ? 'text-blue-300' : 'text-blue-700'
+                }`}>
+                  Payment = User Limit × Price Per User × Subscription Period
                 </p>
                 <div className="relative">
-                  <div className={`absolute left-4 top-1/2 -translate-y-1/2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                  <div className={`absolute left-3 top-1/2 -translate-y-1/2 ${
+                    isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                  }`}>
                     <Users size={18} />
                   </div>
                   <input
@@ -494,16 +628,20 @@ const CreateCompanyPage = () => {
                     name="maxUsers"
                     value={formData.maxUsers}
                     onChange={handleInputChange}
-                    placeholder="Maximum number of users"
+                    placeholder="10"
                     min="1"
                     required
-                    className={`w-full pl-12 pr-4 py-3 rounded-xl border-2 text-base font-bold focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${
-                      isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                    className={`w-full pl-10 pr-4 py-3 rounded-lg border text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${
+                      isDarkMode 
+                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500' 
+                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
                     }`}
                   />
                 </div>
-                <p className={`text-xs mt-3 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
-                  Example: {formData.maxUsers || 10} users will determine your subscription cost
+                <p className={`text-xs mt-2 ${
+                  isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                }`}>
+                  Example: {formData.maxUsers || 10} users × price per user × {currentPlan.period}
                 </p>
               </div>
 
@@ -511,10 +649,10 @@ const CreateCompanyPage = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className={`w-full py-4 rounded-2xl font-black text-lg transition-all duration-200 active:scale-95 shadow-lg hover:shadow-xl flex items-center justify-center gap-2 ${
+                className={`w-full py-3.5 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg ${
                   loading
                     ? 'bg-gray-500 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700'
+                    : 'bg-blue-600 hover:bg-blue-700 active:scale-[0.98]'
                 } text-white`}
               >
                 {loading ? (
@@ -524,7 +662,7 @@ const CreateCompanyPage = () => {
                   </>
                 ) : (
                   <>
-                    <CheckCircle size={20} />
+                    <CheckCircle size={18} />
                     Create Company
                   </>
                 )}
@@ -537,8 +675,10 @@ const CreateCompanyPage = () => {
         <div className="text-center mt-8">
           <Link 
             to="/" 
-            className={`inline-flex items-center gap-2 font-bold text-lg transition-all hover:scale-105 ${
-              isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'
+            className={`inline-flex items-center gap-2 font-semibold transition-colors ${
+              isDarkMode 
+                ? 'text-blue-400 hover:text-blue-300' 
+                : 'text-blue-600 hover:text-blue-700'
             }`}
           >
             ← Back to Landing Page
