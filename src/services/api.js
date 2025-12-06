@@ -300,7 +300,7 @@ class ApiService {
     }
 
     async createUser(userData) {
-        const response = await this.request('/auth/register-user', {
+        const response = await this.request('/users', {
             method: 'POST',
             body: JSON.stringify(userData),
         });

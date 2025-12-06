@@ -525,141 +525,6 @@ const UserManagementPage = () => {
                 } ${isPickerMode ? 'cursor-pointer hover:scale-105' : ''}`}
               onClick={() => isPickerMode ? handleUserSelection(userItem.name) : null}
             >
-              {/* Ellipsis Menu */}
-              {!isPickerMode && (
-                <div className="absolute top-3 right-3 z-10">
-                  <div className="relative">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setOpenMenuId(openMenuId === userItem.id ? null : userItem.id);
-                      }}
-                      className={`p-1.5 rounded-full hover:bg-opacity-20 transition-colors ${isDarkMode ? 'hover:bg-white' : 'hover:bg-gray-200'}`}
-                    >
-                      <MoreVertical className={`w-5 h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
-                    </button>
-                    
-                    {openMenuId === userItem.id && (
-                      <>
-                        <div 
-                          className="fixed inset-0 z-20" 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setOpenMenuId(null);
-                          }}
-                        />
-                        <div className={`absolute right-0 mt-2 w-48 rounded-lg shadow-lg border z-30 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-                          <div className="py-2">
-                            {canManageUsers && (
-                              <>
-                                {userItem.status === 'pending' ? (
-                                  <>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleApprove(userItem.id);
-                                        setOpenMenuId(null);
-                                      }}
-                                      className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${isDarkMode ? 'hover:bg-gray-700 text-green-400' : 'hover:bg-gray-100 text-green-600'}`}
-                                    >
-                                      <Check className="w-4 h-4" />
-                                      Approve
-                                    </button>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleDecline(userItem.id);
-                                        setOpenMenuId(null);
-                                      }}
-                                      className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${isDarkMode ? 'hover:bg-gray-700 text-red-400' : 'hover:bg-gray-100 text-red-600'}`}
-                                    >
-                                      <X className="w-4 h-4" />
-                                      Decline
-                                    </button>
-                                  </>
-                                ) : (
-                                  <>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleEditUser(userItem);
-                                        setOpenMenuId(null);
-                                      }}
-                                      className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${isDarkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}
-                                    >
-                                      <Edit3 className="w-4 h-4" />
-                                      Edit
-                                    </button>
-                                    {isAdmin && userItem.role === 'user' && (
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleMakeManager(userItem.id);
-                                          setOpenMenuId(null);
-                                        }}
-                                        className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${isDarkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}
-                                      >
-                                        <Crown className="w-4 h-4" />
-                                        Make Manager
-                                      </button>
-                                    )}
-                                    {isAdmin && userItem.role === 'manager' && (
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleMakeUser(userItem.id);
-                                          setOpenMenuId(null);
-                                        }}
-                                        className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${isDarkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}
-                                      >
-                                        <UserIcon className="w-4 h-4" />
-                                        Make User
-                                      </button>
-                                    )}
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleToggleStatus(userItem.id);
-                                        setOpenMenuId(null);
-                                      }}
-                                      className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${isDarkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}
-                                    >
-                                      {userItem.isActive ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
-                                      {userItem.isActive ? 'Deactivate' : 'Activate'}
-                                    </button>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleDeleteUser(userItem.id);
-                                        setOpenMenuId(null);
-                                      }}
-                                      className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${isDarkMode ? 'hover:bg-gray-700 text-red-400' : 'hover:bg-gray-100 text-red-600'}`}
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                      Delete
-                                    </button>
-                                  </>
-                                )}
-                              </>
-                            )}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setShowUserProfile(userItem);
-                                setOpenMenuId(null);
-                              }}
-                              className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${isDarkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}
-                            >
-                              <Eye className="w-4 h-4" />
-                              View Details
-                            </button>
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
 
               {/* Card Content */}
               <div className="p-6 pb-4">
@@ -689,47 +554,98 @@ const UserManagementPage = () => {
                   </div>
                 </div>
 
-                {/* Action Icons */}
-                <div className="flex justify-center gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (userItem.phone && userItem.phone !== 'Not provided') {
-                        window.location.href = `tel:${userItem.phone}`;
-                      } else {
-                        alert('Phone number not available');
-                      }
-                    }}
-                    className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-                    title="Call"
-                  >
-                    <Phone className={`w-5 h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (userItem.email) {
-                        window.location.href = `mailto:${userItem.email}`;
-                      } else {
-                        alert('Email not available');
-                      }
-                    }}
-                    className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-                    title="Message"
-                  >
-                    <MessageSquare className={`w-5 h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowUserProfile(userItem);
-                    }}
-                    className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-                    title="View Profile"
-                  >
-                    <UserPlus className={`w-5 h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
-                  </button>
-                </div>
+                {/* Action Buttons */}
+                {!isPickerMode && canManageUsers && (
+                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                    {userItem.status === 'pending' ? (
+                      // Pending users: Show Approve and Disapprove buttons
+                      <div className="flex gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleApprove(userItem.id);
+                          }}
+                          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all hover:scale-105 ${
+                            isDarkMode
+                              ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-500/50'
+                              : 'bg-green-500 hover:bg-green-600 text-white shadow-md'
+                          }`}
+                        >
+                          <Check className="w-4 h-4" />
+                          Approve
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDecline(userItem.id);
+                          }}
+                          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all hover:scale-105 ${
+                            isDarkMode
+                              ? 'bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-500/50'
+                              : 'bg-red-500 hover:bg-red-600 text-white shadow-md'
+                          }`}
+                        >
+                          <X className="w-4 h-4" />
+                          Disapprove
+                        </button>
+                      </div>
+                    ) : (
+                      // Approved users: Show action icons horizontally
+                      <div className="flex items-center justify-center gap-4">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleStatus(userItem.id);
+                          }}
+                          className={`flex items-center justify-center p-2 transition-all hover:scale-110 ${
+                            userItem.isActive
+                              ? isDarkMode
+                                ? 'text-orange-400 hover:text-orange-300'
+                                : 'text-orange-600 hover:text-orange-700'
+                              : isDarkMode
+                                ? 'text-green-400 hover:text-green-300'
+                                : 'text-green-600 hover:text-green-700'
+                          }`}
+                          title={userItem.isActive ? 'Deactivate' : 'Activate'}
+                        >
+                          {userItem.isActive ? (
+                            <UserX className="w-5 h-5" />
+                          ) : (
+                            <UserCheck className="w-5 h-5" />
+                          )}
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteUser(userItem.id);
+                          }}
+                          className={`flex items-center justify-center p-2 transition-all hover:scale-110 ${
+                            isDarkMode
+                              ? 'text-red-400 hover:text-red-300'
+                              : 'text-red-600 hover:text-red-700'
+                          }`}
+                          title="Delete"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowUserProfile(userItem);
+                          }}
+                          className={`flex items-center justify-center p-2 transition-all hover:scale-110 ${
+                            isDarkMode
+                              ? 'text-blue-400 hover:text-blue-300'
+                              : 'text-blue-600 hover:text-blue-700'
+                          }`}
+                          title="View Details"
+                        >
+                          <Eye className="w-5 h-5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Picker Mode Selection Indicator */}

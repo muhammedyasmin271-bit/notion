@@ -248,34 +248,6 @@ const AdminDashboard = () => {
         </div>
 
         <div className="max-w-7xl mx-auto p-6">
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <StatCard
-              title="Total Users"
-              value={stats.totalUsers}
-              subtitle="Total Users last 365 days"
-              colorLine="bg-green-500"
-            />
-            <StatCard
-              title="Active Users"
-              value={stats.activeUsers}
-              subtitle="Active Users last 365 days"
-              colorLine="bg-orange-500"
-            />
-            <StatCard
-              title="Pending Users"
-              value={stats.pendingUsers}
-              subtitle="Pending Users last 365 days"
-              colorLine="bg-green-500"
-            />
-            <StatCard
-              title="Inactive Users"
-              value={stats.inactiveUsers}
-              subtitle="Inactive Users last 365 days"
-              colorLine="bg-red-500"
-            />
-          </div>
-
           {/* User Management Section */}
           <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} overflow-hidden mb-8`}>
             <div className="p-6">

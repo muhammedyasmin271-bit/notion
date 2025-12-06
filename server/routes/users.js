@@ -83,8 +83,9 @@ router.post('/',
     body('password', 'Please enter a password with 6 or more characters').isLength({ min: 6 }),
     body('email').optional().isEmail().normalizeEmail(),
     body('role').optional().isIn(['user', 'manager', 'admin']),
-    body('phone').optional().isMobilePhone(),
-    body('department').optional().trim().escape()
+    body('phone').optional({ checkFalsy: true }).trim(),
+    body('department').optional().trim().escape(),
+    body('location').optional().trim().escape()
   ],
   async (req, res) => {
     try {
@@ -93,7 +94,7 @@ router.post('/',
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { name, username, password, email, role, phone, department } = req.body;
+      const { name, username, password, email, role, phone, department, location } = req.body;
       const normalizedUsername = String(username).toLowerCase();
 
       // Check if user already exists
@@ -118,7 +119,7 @@ router.post('/',
         return res.status(403).json({ message: limitCheck.message });
       }
 
-      // Create new user with companyId
+      // Create new user with companyId - auto-approve users created by admin/manager
       const user = new User({
         name,
         username: normalizedUsername,
@@ -127,8 +128,11 @@ router.post('/',
         role: role || 'user',
         phone,
         department,
+        location,
         companyId: req.user.companyId,
-        createdBy: req.user.id
+        createdBy: req.user.id,
+        status: 'approved', // Auto-approve users created by admin/manager
+        isActive: true // Auto-activate users created by admin/manager
       });
 
       await user.save();
@@ -136,6 +140,34 @@ router.post('/',
       // Check if we reached 100% limit and send SMS if needed
       if (limitCheck.reachedLimit) {
         console.log('📱 Company reached 100% user limit, SMS notification sent');
+      }
+
+      // Send welcome SMS to the newly created user if phone is provided
+      if (user.phone && user.phone.trim()) {
+        try {
+          const { sendSMS } = require('../services/smsService');
+          const welcomeMessage = `Welcome to Notion App!\n\nYour account has been created.\nUsername: ${user.username}\nPassword: ${password}\n\nYou can now log in and start using the app.\n\n- Notion App Team`;
+          const smsResult = await sendSMS(user.phone, welcomeMessage);
+          if (smsResult.success) {
+            console.log(`✅ Welcome SMS sent to ${user.phone} for user ${user.username}`);
+          } else {
+            console.log(`⚠️ Failed to send welcome SMS to ${user.phone}: ${smsResult.message}`);
+          }
+        } catch (smsError) {
+          console.error('Error sending welcome SMS:', smsError);
+          // Don't fail the request if SMS fails
+        }
+      }
+
+      // Send welcome email if user has email
+      if (user.email) {
+        try {
+          const emailService = require('../services/emailService');
+          await emailService.sendWelcomeEmail(user);
+          console.log(`✅ Welcome email sent to ${user.email}`);
+        } catch (emailError) {
+          console.error(`Error sending welcome email to ${user.email}:`, emailError.message);
+        }
       }
 
       // Clear cache
@@ -153,6 +185,7 @@ router.post('/',
           role: user.role,
           phone: user.phone,
           department: user.department,
+          location: user.location,
           isActive: user.isActive,
           createdAt: user.createdAt,
           updatedAt: user.updatedAt

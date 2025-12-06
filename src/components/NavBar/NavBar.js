@@ -17,6 +17,9 @@ import {
   Moon,
   LogOut,
   Brain,
+  Settings,
+  MoreVertical,
+  Circle,
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -32,6 +35,7 @@ const NavBar = () => {
   const [userFiles, setUserFiles] = useState([]);
   const [loadingFiles, setLoadingFiles] = useState(false);
   const [expandedFiles, setExpandedFiles] = useState(true);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const navRef = useRef(null);
 
   // Get companyId from URL path, query params, or localStorage
@@ -100,69 +104,49 @@ const NavBar = () => {
       
       setLoadingFiles(true);
       try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          setLoadingFiles(false);
-          return;
-        }
-
-        // Fetch documents that belong to the user or are shared with them
-        const response = await fetch('http://localhost:9000/api/documents', {
-          headers: {
-            'x-auth-token': token,
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (response.ok) {
-          const documents = await response.json();
-          const userId = user.id || user._id;
-          const userIdString = String(userId);
-          
-          console.log('Fetched documents:', documents.length);
-          console.log('Current user ID:', userIdString);
-          
-          // Filter to only show files that belong to the user or are shared with them
-          // Handle different author formats: object with _id, string ID, or direct match
-          const userSpecificFiles = documents
-            .filter(doc => {
-              // Check if user is the owner
-              const authorId = doc.author?._id || doc.author;
-              const authorIdString = authorId ? String(authorId) : null;
-              const isOwner = authorIdString === userIdString;
-              
-              // Check if file is shared with user
-              const isSharedWith = doc.sharedWith?.some(shared => {
-                const sharedUserId = shared.user?._id || shared.user;
-                return sharedUserId ? String(sharedUserId) === userIdString : false;
-              });
-              
-              return isOwner || isSharedWith;
-            })
-            .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
-            .slice(0, 10)
-            .map(doc => {
-              const authorId = doc.author?._id || doc.author;
-              const authorIdString = authorId ? String(authorId) : null;
-              const isOwner = authorIdString === userIdString;
-              
-              return {
-                id: doc._id || doc.id,
-                name: doc.title || 'Untitled',
-                type: doc.type || 'document',
-                isOwner: isOwner,
-                isShared: !isOwner,
-                updatedAt: doc.updatedAt || doc.createdAt
-              };
-            });
-          
-          console.log('User-specific files:', userSpecificFiles.length);
-          setUserFiles(userSpecificFiles);
-        } else {
-          console.error('Failed to fetch documents:', response.status);
-        }
+        // Use the API service instead of hardcoded URL
+        const apiService = (await import('../../services/api')).default;
+        const documents = await apiService.get('/documents');
+        
+        const userId = user.id || user._id;
+        const userIdString = String(userId);
+        
+        console.log('Fetched documents:', documents.length);
+        console.log('Current user ID:', userIdString);
+        console.log('Sample document:', documents[0]);
+        
+        // The API already filters documents based on visibility, so show all returned documents
+        // Just exclude deleted ones and map to the format we need
+        const userSpecificFiles = (documents || [])
+          .filter(doc => !doc.deleted) // Only exclude deleted documents
+          .sort((a, b) => {
+            const dateA = new Date(a.updatedAt || a.createdAt || 0);
+            const dateB = new Date(b.updatedAt || b.createdAt || 0);
+            return dateB - dateA;
+          })
+          .slice(0, 10)
+          .map(doc => {
+            // Determine if user is owner
+            const authorId = doc.author?._id || doc.author?.id || doc.author;
+            const authorIdString = authorId ? String(authorId) : null;
+            const isOwner = authorIdString === userIdString;
+            
+            return {
+              id: doc._id || doc.id,
+              name: doc.title || 'Untitled',
+              type: doc.type || 'document',
+              isOwner: isOwner,
+              isShared: !isOwner,
+              updatedAt: doc.updatedAt || doc.createdAt
+            };
+          });
+        
+        console.log('User-specific files after filtering:', userSpecificFiles.length);
+        setUserFiles(userSpecificFiles);
       } catch (error) {
         console.error('Error fetching user files:', error);
+        console.error('Error details:', error.response || error.message);
+        setUserFiles([]); // Set empty array on error
       } finally {
         setLoadingFiles(false);
       }
@@ -222,40 +206,50 @@ const NavBar = () => {
     navigate(targetPath, { replace: false });
   };
 
-  // Main navigation items - different for superadmin vs regular users
-  const mainNavItems = user?.role === 'superadmin' 
+  // Organize navigation items into categories
+  const navigationCategories = user?.role === 'superadmin' 
     ? [
-        { name: 'Super Admin', icon: Shield, path: '/super-admin' },
+        {
+          title: 'ADMINISTRATION',
+          items: [
+            { name: 'Super Admin', icon: Shield, path: '/super-admin' },
+          ]
+        }
       ]
     : [
-        { name: 'Projects', icon: LayoutGrid, path: '/projects' },
-        { name: 'Documents', icon: Folder, path: '/documents' },
-        { name: 'Notepad', icon: FileText, path: '/notepad' },
-        { name: 'Meeting Notes', icon: Newspaper, path: '/meeting-notes' },
-        { name: 'Reports', icon: BarChart3, path: '/reports' },
-        { name: 'MELA AI', icon: Brain, path: '/home' },
-        { name: 'Profile', icon: User, path: '/profile' },
-        { name: 'User Management', icon: Users, path: '/user-management' },
-        { name: 'Admin', icon: Shield, path: '/admin' },
-      ].filter(item => {
-        // Filter out Admin button for non-admin users
-        if (item.path === '/admin' && user?.role !== 'admin') {
-          return false;
+        {
+          title: 'WORKSPACE',
+          items: [
+            { name: 'Projects', icon: LayoutGrid, path: '/projects' },
+            { name: 'Documents', icon: Folder, path: '/documents' },
+            { name: 'Notepad', icon: FileText, path: '/notepad' },
+            { name: 'Meeting Notes', icon: Newspaper, path: '/meeting-notes' },
+            { name: 'Reports', icon: BarChart3, path: '/reports' },
+          ]
+        },
+        {
+          title: 'TOOLS',
+          items: [
+            { name: 'MELA AI', icon: Brain, path: '/home' },
+          ]
+        },
+        {
+          title: 'MANAGEMENT',
+          items: [
+            ...(user?.role === 'admin' ? [{ name: 'Admin', icon: Shield, path: '/admin' }] : []),
+            ...(['admin', 'manager'].includes(user?.role) ? [{ name: 'User Management', icon: Users, path: '/user-management' }] : []),
+            { name: 'Profile', icon: User, path: '/profile' },
+          ]
         }
-        // Filter out User Management for regular users (only show to admin and manager)
-        if (item.path === '/user-management' && !['admin', 'manager'].includes(user?.role)) {
-          return false;
-        }
-        return true;
-      });
+      ];
 
 
   return (
     <>
-      {/* Mobile Menu Button */}
+      {/* Mobile Menu Button - visible on all pages for mobile */}
       <button
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className={`lg:hidden sticky left-0 top-0 z-50 mobile-menu-button p-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
+        className={`lg:hidden fixed left-3 top-3 z-50 p-2.5 rounded-lg transition-all duration-200 shadow-md ${isDarkMode ? 'bg-gray-800 hover:bg-gray-700 text-white border border-gray-700' : 'bg-white hover:bg-gray-50 text-gray-900 border border-gray-200'} flex items-center justify-center`}
         title="Toggle menu"
       >
         <Menu size={20} />
@@ -272,129 +266,139 @@ const NavBar = () => {
       {/* Sidebar Navigation */}
       <nav
         ref={navRef}
-        className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} transition-all duration-300 ease-in-out border-r ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} w-64 min-h-screen fixed z-50 lg:translate-x-0 ${
+        className={`${isDarkMode ? 'bg-gray-900' : 'bg-white'} transition-all duration-300 ease-in-out border-r ${isDarkMode ? 'border-gray-800' : 'border-gray-200'} w-64 min-h-screen fixed z-50 lg:translate-x-0 ${
           isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         } flex flex-col overflow-hidden`}
       >
-        {/* Header Section with Company Logo, Name, and Theme Toggle */}
-        <div className={`flex items-center justify-between p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} flex-shrink-0`}>
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            {/* Company Logo */}
-            <img
-              src={company?.branding?.logo || "/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png"}
-              alt={`${company?.name || 'Company'} Logo`}
-              className="h-12 w-12 object-contain flex-shrink-0"
-            />
-            {/* Company Name */}
-            <h2 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} truncate`}>
-              {company?.branding?.companyName || company?.name || 'Company'}
-            </h2>
+        {/* Header Section with Logo and Company Name */}
+        <div className={`${isDarkMode ? 'bg-gray-900' : 'bg-white'} flex-shrink-0 border-b ${isDarkMode ? 'border-gray-800' : 'border-gray-200'}`}>
+          {/* Logo, Company Name, and Theme Toggle */}
+          <div className="flex items-center justify-between gap-3 px-4 py-4">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <img
+                src={
+                  company?.branding?.logo 
+                    ? (company.branding.logo.startsWith('data:') || 
+                        company.branding.logo.startsWith('http') || 
+                        company.branding.logo.startsWith('/ChatGPT') ||
+                        company.branding.logo.startsWith('/uploads'))
+                        ? company.branding.logo 
+                        : `http://localhost:9000${company.branding.logo}`
+                    : "/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png"
+                }
+                alt={`${company?.name || 'Company'} Logo`}
+                className="h-8 w-8 object-contain flex-shrink-0"
+                onError={(e) => {
+                  // Fallback to default logo if image fails to load
+                  e.target.src = "/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png";
+                }}
+              />
+              <h2 className={`text-base font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} truncate`}>
+                {company?.branding?.companyName || company?.name || 'Untitled UI'}
+              </h2>
+            </div>
+            {/* Theme Toggle Button */}
+            <button
+              onClick={toggleTheme}
+              className={`p-2.5 rounded-lg transition-colors flex-shrink-0 ${
+                isDarkMode ? 'hover:bg-gray-800 text-gray-400 hover:text-gray-300' : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
+              }`}
+              title={`Switch to ${isDarkMode ? 'light' : 'dark'} mode`}
+            >
+              {isDarkMode ? (
+                <Sun className="w-5 h-5" />
+              ) : (
+                <Moon className="w-5 h-5" />
+              )}
+            </button>
           </div>
-          {/* Theme Toggle Button */}
-          <button
-            onClick={toggleTheme}
-            className={`p-1.5 ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} rounded flex-shrink-0 transition-colors`}
-            title={`Switch to ${isDarkMode ? 'light' : 'dark'} mode`}
-          >
-            {isDarkMode ? (
-              <Sun className="w-5 h-5 text-yellow-500" />
-            ) : (
-              <Moon className="w-5 h-5 text-gray-600" />
-            )}
-          </button>
         </div>
 
         {/* Main Navigation Section */}
-        <div className="flex-1 overflow-y-auto p-3">
-          <div className="space-y-1">
-            {mainNavItems.map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.path);
-              const navPath = buildNavPath(item.path);
-              
-              return (
-                <Link
-                  key={item.path}
-                  to={navPath}
-                  onClick={(e) => {
-                    handleNavClick(e, item.path);
-                    // Ensure the Link navigation happens
-                  }}
-                  className={`flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
-                    active
-                      ? isDarkMode ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-900'
-                      : isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Icon className="w-4 h-4" />
-                    <span className="text-sm font-medium">{item.name}</span>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-
-          {/* User Files Section */}
-          <div className="mt-6">
-            <button
-              onClick={toggleFiles}
-              className={`flex items-center gap-2 w-full px-3 py-2 text-sm font-medium ${isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'} rounded-lg transition-colors`}
-            >
-              {expandedFiles ? (
-                <ChevronDown className="w-4 h-4" />
-              ) : (
-                <ChevronRight className="w-4 h-4" />
-              )}
-              <span>My Files</span>
-            </button>
-            
-            {expandedFiles && (
-              <div className="ml-4 mt-1 space-y-1">
-                {loadingFiles ? (
-                  <div className={`px-3 py-2 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    Loading...
-                  </div>
-                ) : userFiles.length === 0 ? (
-                  <div className={`px-3 py-2 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    No files yet
-                  </div>
-                ) : (
-                  userFiles.map((file) => (
-                    <Link
-                      key={file.id}
-                      to={currentCompanyId ? `/documents?company=${currentCompanyId}&file=${file.id}` : `/documents?file=${file.id}`}
-                      onClick={(e) => handleNavClick(e, '/documents')}
-                      className={`flex items-center gap-2 w-full px-3 py-2 text-sm ${isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'} rounded-lg transition-colors`}
-                      title={file.name}
-                    >
-                      <FileText className="w-4 h-4" />
-                      <span className="truncate flex-1">{file.name}</span>
-                      {file.isShared && (
-                        <span className={`text-xs px-1.5 py-0.5 rounded ${isDarkMode ? 'bg-blue-900 text-blue-300' : 'bg-blue-100 text-blue-700'}`}>
-                          Shared
-                        </span>
-                      )}
-                    </Link>
-                  ))
-                )}
+        <div className="flex-1 overflow-y-auto px-3 py-4">
+          {navigationCategories.map((category, categoryIndex) => (
+            <div key={categoryIndex} className="mb-6">
+              {/* Category Title */}
+              <div className={`text-xs font-semibold uppercase tracking-wider mb-2 px-3 ${
+                isDarkMode ? 'text-gray-500' : 'text-gray-500'
+              }`}>
+                {category.title}
               </div>
-            )}
-          </div>
+              
+              {/* Category Items */}
+              <div className="space-y-1">
+                {category.items.map((item) => {
+                  const Icon = item.icon;
+                  const active = isActive(item.path);
+                  const navPath = buildNavPath(item.path);
+                  
+                  return (
+                    <Link
+                      key={item.path}
+                      to={navPath}
+                      onClick={(e) => {
+                        handleNavClick(e, item.path);
+                      }}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                        active
+                          ? isDarkMode 
+                            ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' 
+                            : 'bg-blue-50 text-blue-600 border border-blue-200'
+                          : isDarkMode 
+                            ? 'text-gray-400 hover:bg-gray-800 hover:text-gray-300' 
+                            : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4 flex-shrink-0" />
+                      <span className="text-sm font-medium">{item.name}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
 
-          {/* Logout Button at Bottom */}
-          <div className={`mt-auto border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} p-3`}>
-            <button
-              onClick={handleLogout}
-              className={`flex items-center gap-3 w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                isDarkMode 
-                  ? 'text-red-400 hover:bg-red-900/20 hover:text-red-300' 
-                  : 'text-red-600 hover:bg-red-50 hover:text-red-700'
-              }`}
-            >
-              <LogOut className="w-4 h-4" />
-              <span>Logout</span>
-            </button>
+        </div>
+
+        {/* Bottom Section - Logout and User Profile */}
+        <div className={`flex-shrink-0 border-t ${isDarkMode ? 'border-gray-800' : 'border-gray-200'} p-3 space-y-1`}>
+          {/* Logout Button */}
+          <button
+            onClick={handleLogout}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-colors ${
+              isDarkMode
+                ? 'bg-gray-800 text-white hover:bg-gray-700'
+                : 'bg-gray-900 text-white hover:bg-gray-800'
+            }`}
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Logout</span>
+          </button>
+
+          {/* User Profile Section */}
+          <div className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-opacity-50 transition-colors">
+            {/* Avatar */}
+            <div className={`h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+              isDarkMode ? 'bg-gray-700' : 'bg-gray-200'
+            }`}>
+              {user?.name ? (
+                <span className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  {user.name.charAt(0).toUpperCase()}
+                </span>
+              ) : (
+                <User className={`w-5 h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+              )}
+            </div>
+            
+            {/* User Info */}
+            <div className="flex-1 min-w-0">
+              <div className={`text-sm font-semibold truncate ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                {user?.name || 'User'}
+              </div>
+              <div className={`text-xs truncate ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                {user?.email || user?.username || 'user@example.com'}
+              </div>
+            </div>
           </div>
         </div>
       </nav>

@@ -387,16 +387,22 @@ router.put('/:id', async (req, res) => {
 
     const { title, description, status, priority, forPerson, viewers, startDate, endDate, blocks, content, blockData, tableData, toggleStates, toggleContent } = req.body;
     console.log('PUT /api/projects/:id - Received data:');
+    console.log('🔵 forPerson received:', forPerson, 'Type:', typeof forPerson);
+    console.log('🔵 User role:', req.user.role);
     console.log('blockData:', blockData);
     console.log('tableData:', tableData);
     console.log('toggleStates:', toggleStates);
     
     const isManager = req.user.role === 'manager';
+    const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin';
+    const canUpdateFields = isManager || isAdmin; // Allow both managers and admins
+    console.log('🔵 canUpdateFields:', canUpdateFields, '(isManager:', isManager, ', isAdmin:', isAdmin, ')');
     const User = require('../models/User');
     const Notification = require('../models/Notification');
 
     // Store previous assignment for comparison
     const previousAssignedTo = [...(p.assignedTo || [])];
+    console.log('🔵 Previous assignedTo:', previousAssignedTo);
 
     // Allow status updates and blocks/content for all users with access
     if (status) p.status = status;
@@ -417,15 +423,21 @@ router.put('/:id', async (req, res) => {
       }
     }
 
-    // Only managers can update other fields
-    if (isManager) {
+    // Managers and admins can update other fields (title, description, priority, assignments, viewers, dates)
+    if (canUpdateFields) {
       if (title) p.title = title;
       if (description !== undefined) p.description = description;
       if (priority) p.priority = priority;
       if (forPerson !== undefined) {
-        const assignedUsers = forPerson ? forPerson.split(',').map(u => u.trim()).filter(u => u) : [];
+        console.log('🔵 Processing forPerson:', forPerson, 'Type:', typeof forPerson, 'Length:', forPerson?.length);
+        // Handle both string and empty string cases
+        const assignedUsers = (forPerson && String(forPerson).trim()) 
+          ? String(forPerson).split(',').map(u => u.trim()).filter(u => u && u.length > 0) 
+          : [];
+        console.log('🔵 Parsed assignedUsers:', assignedUsers, 'Length:', assignedUsers.length);
         p.assignedTo = assignedUsers;
-        p.tags = forPerson ? [forPerson] : [];
+        p.tags = (forPerson && String(forPerson).trim()) ? [String(forPerson)] : [];
+        console.log('🔵 Set p.assignedTo to:', p.assignedTo, 'Array length:', p.assignedTo?.length);
         
         // Send notifications for new assignments
         if (assignedUsers.length > 0) {
@@ -478,11 +490,18 @@ router.put('/:id', async (req, res) => {
       }
       if (startDate) p.startDate = new Date(startDate);
       if (endDate) p.dueDate = new Date(endDate);
+    } else {
+      console.log('🔴 User does not have permission to update fields (canUpdateFields is false)');
     }
 
+    console.log('🔵 Before save - p.assignedTo:', p.assignedTo);
     await p.save();
+    console.log('🔵 After save - p.assignedTo:', p.assignedTo);
     await p.populate('owner', 'name email');
-    res.json(mapProject(p));
+    const mappedProject = mapProject(p);
+    console.log('🔵 Mapped project forPerson:', mappedProject.forPerson);
+    console.log('🔵 Mapped project assignedTo:', mappedProject.assignedTo);
+    res.json(mappedProject);
   } catch (e) {
     console.error('Project update error:', e.message);
     res.status(500).json({ message: 'Server error', error: e.message });

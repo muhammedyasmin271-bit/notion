@@ -855,34 +855,59 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
   };
 
   const selectUser = (selectedUser) => {
-    const userName = selectedUser.username;
+    // Use user's name instead of username for better matching with backend
+    const userName = selectedUser.name || selectedUser.username;
     
     if (pickerType === 'assign') {
-      // Multi-selection for assign
-      const currentAssigned = project.forPerson ? project.forPerson.split(', ').filter(v => v) : [];
-      const isSelected = currentAssigned.includes(userName);
+      // Multi-selection for assign - handle both comma and comma-space separators
+      const currentAssigned = project.forPerson 
+        ? project.forPerson.split(',').map(u => u.trim()).filter(v => v) 
+        : [];
+      const isSelected = currentAssigned.some(u => 
+        u.toLowerCase() === userName.toLowerCase() || 
+        u.toLowerCase() === (selectedUser.username || '').toLowerCase() || 
+        u.toLowerCase() === (selectedUser.name || '').toLowerCase()
+      );
       
       let newAssigned;
       if (isSelected) {
-        newAssigned = currentAssigned.filter(v => v !== userName);
+        // Remove by matching name, username, or both (case-insensitive)
+        newAssigned = currentAssigned.filter(v => {
+          const vLower = v.toLowerCase();
+          return vLower !== userName.toLowerCase() && 
+                 vLower !== (selectedUser.username || '').toLowerCase() && 
+                 vLower !== (selectedUser.name || '').toLowerCase();
+        });
       } else {
         newAssigned = [...currentAssigned, userName];
       }
       
-      updateProject('forPerson', newAssigned.join(', '));
+      // Join with comma (backend expects comma-separated, not comma-space)
+      updateProject('forPerson', newAssigned.join(','));
     } else {
       // Multi-selection for viewers
-      const currentViewers = project.viewers ? project.viewers.split(', ').filter(v => v) : [];
-      const isSelected = currentViewers.includes(userName);
+      const currentViewers = project.viewers 
+        ? project.viewers.split(',').map(u => u.trim()).filter(v => v) 
+        : [];
+      const isSelected = currentViewers.some(u => 
+        u.toLowerCase() === userName.toLowerCase() || 
+        u.toLowerCase() === (selectedUser.username || '').toLowerCase() || 
+        u.toLowerCase() === (selectedUser.name || '').toLowerCase()
+      );
       
       let newViewers;
       if (isSelected) {
-        newViewers = currentViewers.filter(v => v !== userName);
+        newViewers = currentViewers.filter(v => {
+          const vLower = v.toLowerCase();
+          return vLower !== userName.toLowerCase() && 
+                 vLower !== (selectedUser.username || '').toLowerCase() && 
+                 vLower !== (selectedUser.name || '').toLowerCase();
+        });
       } else {
         newViewers = [...currentViewers, userName];
       }
       
-      updateProject('viewers', newViewers.join(', '));
+      updateProject('viewers', newViewers.join(','));
     }
   };
 
@@ -1839,37 +1864,47 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
             {showBlockMenu === block.id && (
               <div
                 ref={blockMenuRef}
-                className="absolute left-0 top-0 mt-8 w-52 rounded-xl shadow-lg border bg-white border-gray-200 z-10 overflow-hidden"
+                className={`absolute left-0 top-0 mt-8 rounded-xl shadow-lg border z-10 overflow-hidden ${
+                  isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+                } w-44 sm:w-52`}
               >
                 <div className="py-1.5">
                   <button
                     onClick={() => duplicateBlock(block.id)}
-                    className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors"
+                    className={`flex items-center w-full px-3 sm:px-4 py-2 sm:py-2.5 text-left transition-colors justify-center sm:justify-start ${
+                      isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+                    }`}
                   >
-                    <Copy className="w-4 h-4 mr-3 text-gray-600" />
-                    <span className="text-gray-800">Duplicate</span>
+                    <Copy className={`w-4 h-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} sm:mr-3`} />
+                    <span className={`hidden sm:inline ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Duplicate</span>
                   </button>
                   <button
                     onClick={() => moveBlockUp(block.id)}
-                    className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors"
+                    className={`flex items-center w-full px-3 sm:px-4 py-2 sm:py-2.5 text-left transition-colors justify-center sm:justify-start ${
+                      isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+                    }`}
                   >
-                    <ChevronUp className="w-4 h-4 mr-3 text-gray-600" />
-                    <span className="text-gray-800">Move up</span>
+                    <ChevronUp className={`w-4 h-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} sm:mr-3`} />
+                    <span className={`hidden sm:inline ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Move up</span>
                   </button>
                   <button
                     onClick={() => moveBlockDown(block.id)}
-                    className="flex items-center w-full px-4 py-2.5 text-left hover:bg-gray-100 transition-colors"
+                    className={`flex items-center w-full px-3 sm:px-4 py-2 sm:py-2.5 text-left transition-colors justify-center sm:justify-start ${
+                      isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+                    }`}
                   >
-                    <ChevronDown className="w-4 h-4 mr-3 text-gray-600" />
-                    <span className="text-gray-800">Move down</span>
+                    <ChevronDown className={`w-4 h-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} sm:mr-3`} />
+                    <span className={`hidden sm:inline ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Move down</span>
                   </button>
-                  <hr className="my-1 border-gray-200" />
+                  <hr className={`my-1 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`} />
                   <button
                     onClick={() => deleteBlock(block.id)}
-                    className="flex items-center w-full px-4 py-2.5 text-left text-red-600 hover:bg-red-50 transition-colors"
+                    className={`flex items-center w-full px-3 sm:px-4 py-2 sm:py-2.5 text-left transition-colors justify-center sm:justify-start ${
+                      isDarkMode ? 'text-red-400 hover:bg-red-900/20' : 'text-red-600 hover:bg-red-50'
+                    }`}
                   >
-                    <Trash2 className="w-4 h-4 mr-3" />
-                    <span>Delete</span>
+                    <Trash2 className="w-4 h-4 sm:mr-3" />
+                    <span className="hidden sm:inline">Delete</span>
                   </button>
                 </div>
               </div>
@@ -2673,11 +2708,11 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
     <>
       {/* Show ProjectsPage at full size when not in fullscreen mode */}
       {!isFullscreen && (
-        <div className={`fixed top-0 left-0 w-full h-screen ${isDarkMode ? 'bg-black' : 'bg-white'} z-0`}>
+        <div className={`fixed top-0 left-0 lg:left-64 w-full lg:w-[calc(100%-16rem)] h-screen ${isDarkMode ? 'bg-black' : 'bg-white'} z-0`}>
           <ProjectsPage />
           {/* Overlay to detect clicks on ProjectsPage and close detail page */}
           <div
-            className="absolute top-0 left-0 w-1/2 h-full cursor-pointer"
+            className="absolute top-0 left-0 w-full h-full cursor-pointer"
             onClick={() => {
               const backUrl = companyId ? `/projects?company=${companyId}` : '/projects';
               navigate(backUrl);
@@ -2686,66 +2721,58 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
         </div>
       )}
 
-      <div className={`${isDarkMode ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-gray-100 border-l border-gray-700/50' : 'bg-white text-gray-900 border-l border-gray-200'} font-sans antialiased fixed top-0 z-10 transition-all duration-300 h-screen overflow-y-auto shadow-2xl ${isFullscreen ? 'left-0 w-full' : 'right-0 w-full md:w-1/2'
+      <div className={`${isDarkMode ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-gray-100 border-l border-gray-700/50' : 'bg-white text-gray-900 border-l border-gray-200'} font-sans antialiased fixed top-0 z-20 transition-all duration-300 h-screen overflow-y-auto shadow-2xl ${isFullscreen ? 'left-0 w-full' : 'right-0 w-full md:w-1/2'
         }`}>
-        <div className={`sticky top-0 z-40 backdrop-blur-sm transition-all duration-300 border-b ${isDarkMode ? 'bg-gray-900/95 border-gray-800' : 'bg-white/95 border-gray-200'} ${isFullscreen ? 'px-4 sm:px-10 md:px-64' : 'px-4 sm:px-6'
+        <div className={`sticky top-0 z-40 backdrop-blur-sm transition-all duration-300 border-b ${isDarkMode ? 'bg-gray-900/95 border-gray-800' : 'bg-white/95 border-gray-200'} ${isFullscreen ? 'px-2 sm:px-4 md:px-10 lg:px-64' : 'px-2 sm:px-4 md:px-6'
           }`}>
-          <div className="flex items-center justify-between h-14">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between h-12 sm:h-14 gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
+              {/* Fullscreen toggle button - hidden on mobile */}
               <button
                 onClick={() => setIsFullscreen(!isFullscreen)}
-                className={`p-2 rounded-lg transition-all duration-200 ${isDarkMode ? 'text-gray-400 hover:bg-gray-800/60' : 'text-gray-500 hover:bg-gray-100'}`}
+                className={`hidden sm:flex p-1.5 sm:p-2 rounded-lg transition-all duration-200 ${isDarkMode ? 'text-gray-400 hover:bg-gray-800/60' : 'text-gray-500 hover:bg-gray-100'}`}
                 title={isFullscreen ? 'Half screen' : 'Full screen'}
               >
                 {isFullscreen ? (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M15 15v4.5M15 15h4.5M15 15l5.25 5.25" />
                   </svg>
                 ) : (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9m11.25 11.25v-4.5m0 4.5h-4.5m4.5 0L15 15" />
                   </svg>
                 )}
               </button>
-
-              <button
-                onClick={() => {
-                  const backUrl = companyId ? `/projects?company=${companyId}` : '/projects';
-                  navigate(backUrl);
-                }}
-                className={`p-2 rounded-lg transition-all duration-200 border ${isDarkMode ? 'text-gray-400 hover:text-red-400 hover:bg-red-900/20 hover:border-red-900/40' : 'text-gray-500 hover:text-red-600 hover:bg-red-50 hover:border-red-200'}`}
-                title="Close"
-              >
-                <X className="w-4 h-4" />
-              </button>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               {/* Tasks Button - Show for existing projects */}
               {project.id !== 'new' && (
                 <button
                   onClick={() => navigate(`/projects/${project.id}/tasks`)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${isDarkMode ? 'bg-green-600 hover:bg-green-700' : 'bg-green-600 hover:bg-green-700'} text-white shadow-sm hover:shadow-md flex items-center gap-2`}
+                  className={`p-2 sm:px-3 md:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 ${isDarkMode ? 'bg-green-600 hover:bg-green-700' : 'bg-green-600 hover:bg-green-700'} text-white shadow-sm hover:shadow-md flex items-center justify-center gap-1 sm:gap-2`}
+                  title="Tasks"
                 >
-                  <CheckSquare className="w-4 h-4" />
-                  Tasks
+                  <CheckSquare className="w-4 h-4 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Tasks</span>
                 </button>
               )}
               {canCreateProjects() && (
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700' : 'bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400'} text-white shadow-sm hover:shadow-md disabled:shadow-none`}
+                  className={`p-2 sm:px-3 md:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700' : 'bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400'} text-white shadow-sm hover:shadow-md disabled:shadow-none flex items-center justify-center`}
+                  title={project.id === 'new' ? 'Create' : 'Update'}
                 >
                   {saving ? (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 sm:gap-2">
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      {project.id === 'new' ? 'Creating...' : 'Updating...'}
+                      <span className="hidden sm:inline">{project.id === 'new' ? 'Creating...' : 'Updating...'}</span>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 sm:gap-2">
                       <Save className="w-4 h-4" />
-                      {project.id === 'new' ? 'Create' : 'Update'}
+                      <span className="hidden sm:inline">{project.id === 'new' ? 'Create' : 'Update'}</span>
                     </div>
                   )}
                 </button>
@@ -2754,14 +2781,25 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                 <button
                   onClick={handleDelete}
                   disabled={saving}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${isDarkMode ? 'bg-red-600 hover:bg-red-700 disabled:bg-gray-700' : 'bg-red-600 hover:bg-red-700 disabled:bg-gray-400'} text-white shadow-sm hover:shadow-md disabled:shadow-none`}
+                  className={`p-2 sm:px-3 md:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 ${isDarkMode ? 'bg-red-600 hover:bg-red-700 disabled:bg-gray-700' : 'bg-red-600 hover:bg-red-700 disabled:bg-gray-400'} text-white shadow-sm hover:shadow-md disabled:shadow-none flex items-center justify-center`}
+                  title="Delete"
                 >
-                  <div className="flex items-center gap-2">
-                    <Trash2 className="w-4 h-4" />
-                    Delete
-                  </div>
+                  <Trash2 className="w-4 h-4" />
+                  <span className="hidden sm:inline">Delete</span>
                 </button>
               )}
+              
+              {/* Close button - moved to right side */}
+              <button
+                onClick={() => {
+                  const backUrl = companyId ? `/projects?company=${companyId}` : '/projects';
+                  navigate(backUrl);
+                }}
+                className={`p-1.5 sm:p-2 rounded-lg transition-all duration-200 border ${isDarkMode ? 'text-gray-400 hover:text-red-400 hover:bg-red-900/20 hover:border-red-900/40' : 'text-gray-500 hover:text-red-600 hover:bg-red-50 hover:border-red-200'}`}
+                title="Close"
+              >
+                <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </button>
             </div>
           </div>
         </div>
@@ -2772,10 +2810,10 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
           }`}>
 
           <div className={`w-full ${isFullscreen
-            ? 'max-w-5xl px-5 sm:px-12 lg:px-20 py-8 sm:py-12'
-            : 'px-3 sm:px-4 py-4 sm:py-6'
+            ? 'max-w-5xl px-4 sm:px-5 lg:px-12 xl:px-20 py-6 sm:py-8 lg:py-12'
+            : 'px-2 sm:px-3 md:px-4 py-3 sm:py-4 md:py-6'
             }`}>
-            <div className={`${isFullscreen ? 'mb-8 ml-16' : 'mb-3 ml-4'}`}>
+            <div className={`${isFullscreen ? 'mb-6 sm:mb-8 ml-0 sm:ml-16' : 'mb-2 sm:mb-3 ml-0 sm:ml-4'}`}>
               {project.id === 'new' || canCreateProjects() ? (
                 <input
                   ref={titleInputRef}
@@ -2784,50 +2822,50 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                   onChange={(e) => setTitle(e.target.value)}
                   onKeyDown={handleTitleKeyDown}
                   placeholder="Untitled Project"
-                  className={`${isFullscreen ? 'text-3xl sm:text-5xl' : 'text-2xl sm:text-3xl'} font-bold bg-transparent border-none outline-none w-full ${isDarkMode ? 'text-white placeholder-gray-400' : 'text-gray-900 placeholder-gray-500'} leading-tight mb-1`}
+                  className={`${isFullscreen ? 'text-2xl sm:text-3xl lg:text-5xl' : 'text-xl sm:text-2xl md:text-3xl'} font-bold bg-transparent border-none outline-none w-full ${isDarkMode ? 'text-white placeholder-gray-400' : 'text-gray-900 placeholder-gray-500'} leading-tight mb-1`}
                 />
               ) : (
-                <h1 className={`${isFullscreen ? 'text-3xl sm:text-5xl' : 'text-2xl sm:text-3xl'} font-bold leading-tight mb-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{title}</h1>
+                <h1 className={`${isFullscreen ? 'text-2xl sm:text-3xl lg:text-5xl' : 'text-xl sm:text-2xl md:text-3xl'} font-bold leading-tight mb-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{title}</h1>
               )}
-              <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              <p className={`text-xs sm:text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                 Created by {project.creatorName || project.ownerName || 'Unknown'}
               </p>
               {!canCreateProjects() && project.id !== 'new' && (
-                <div className={`mt-1 px-2 py-1 rounded text-xs ${isDarkMode ? 'bg-blue-900/20 text-blue-300 border border-blue-800/30' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
-                  <span className="font-medium">View Mode:</span> You can view this project and update its status.
+                <div className={`mt-1 px-2 sm:px-3 py-1 rounded text-xs ${isDarkMode ? 'bg-blue-900/20 text-blue-300 border border-blue-800/30' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
+                  <span className="font-medium">View Mode:</span> <span className="hidden sm:inline">You can view this project and update its status.</span>
                 </div>
               )}
             </div>
 
-            <div className={`flex flex-wrap items-center gap-1 ${isFullscreen ? 'mb-1 ml-16' : 'mb-1 ml-4'} ${isFullscreen ? 'text-sm' : 'text-xs'}`}>
-              <div className={`flex items-center gap-1.5 ${isFullscreen ? 'px-4 py-2' : 'px-2 py-1'} rounded-lg ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} shadow-sm`}>
-                <CheckCircle className={`${isFullscreen ? 'h-4 w-4' : 'h-3 w-3'} text-green-500`} />
-                <span className={`px-1.5 py-0.5 rounded ${isFullscreen ? 'text-xs' : 'text-[10px]'} font-medium ${getStatusColor(project.status)}`}>
+            <div className={`flex flex-wrap items-center gap-1.5 sm:gap-2 ${isFullscreen ? 'mb-1 ml-0 sm:ml-16' : 'mb-1 ml-0 sm:ml-4'} ${isFullscreen ? 'text-sm' : 'text-xs'}`}>
+              <div className={`flex items-center gap-1 sm:gap-1.5 ${isFullscreen ? 'px-3 sm:px-4 py-1.5 sm:py-2' : 'px-2 py-1'} rounded-lg ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} shadow-sm`}>
+                <CheckCircle className={`${isFullscreen ? 'h-3.5 w-3.5 sm:h-4 sm:w-4' : 'h-3 w-3'} text-green-500 flex-shrink-0`} />
+                <span className={`px-1 sm:px-1.5 py-0.5 rounded ${isFullscreen ? 'text-xs' : 'text-[10px]'} font-medium ${getStatusColor(project.status)} whitespace-nowrap`}>
                   {project.status === 'Done' ? '✓ Done' : project.status}
                 </span>
               </div>
 
-              <div className={`flex items-center gap-1.5 ${isFullscreen ? 'px-4 py-2' : 'px-2 py-1'} rounded-lg ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} shadow-sm`}>
-                <Calendar className={`${isFullscreen ? 'h-4 w-4' : 'h-3 w-3'} text-blue-500`} />
-                <span className={`${isDarkMode ? 'text-gray-200' : 'text-black'} font-medium ${isFullscreen ? 'text-sm' : 'text-xs'}`}>{getDaysLeft(project.endDate)}</span>
+              <div className={`flex items-center gap-1 sm:gap-1.5 ${isFullscreen ? 'px-3 sm:px-4 py-1.5 sm:py-2' : 'px-2 py-1'} rounded-lg ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} shadow-sm`}>
+                <Calendar className={`${isFullscreen ? 'h-3.5 w-3.5 sm:h-4 sm:w-4' : 'h-3 w-3'} text-blue-500 flex-shrink-0`} />
+                <span className={`${isDarkMode ? 'text-gray-200' : 'text-black'} font-medium ${isFullscreen ? 'text-xs sm:text-sm' : 'text-xs'} whitespace-nowrap`}>{getDaysLeft(project.endDate)}</span>
               </div>
 
-              <div className={`flex items-center gap-1.5 ${isFullscreen ? 'px-4 py-2' : 'px-2 py-1'} rounded-lg ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} shadow-sm`}>
-                <Tag className={`${isFullscreen ? 'h-4 w-4' : 'h-3 w-3'} text-orange-500`} />
-                <span className={`px-1.5 py-0.5 rounded ${isFullscreen ? 'text-xs' : 'text-[10px]'} font-medium ${getPriorityColor(project.priority)}`}>
+              <div className={`flex items-center gap-1 sm:gap-1.5 ${isFullscreen ? 'px-3 sm:px-4 py-1.5 sm:py-2' : 'px-2 py-1'} rounded-lg ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} shadow-sm`}>
+                <Tag className={`${isFullscreen ? 'h-3.5 w-3.5 sm:h-4 sm:w-4' : 'h-3 w-3'} text-orange-500 flex-shrink-0`} />
+                <span className={`px-1 sm:px-1.5 py-0.5 rounded ${isFullscreen ? 'text-xs' : 'text-[10px]'} font-medium ${getPriorityColor(project.priority)} whitespace-nowrap`}>
                   {project.priority}
                 </span>
               </div>
             </div>
 
-            <div className={`${isFullscreen ? 'mb-2 ml-16' : 'mb-2 ml-4'}`}>
-              <div className={`${isFullscreen ? 'p-6' : 'p-2'}`}>
-                <div className={`grid grid-cols-1 ${isFullscreen ? 'gap-3' : 'gap-2'} ${isFullscreen ? 'text-sm' : 'text-xs'}`}>
-                  <div className="space-y-1">
-                    <div className="flex items-center">
-                      <div className="flex items-center gap-3 w-32">
-                        <CheckCircle className="h-4 w-4 text-gray-500" />
-                        <span className="text-gray-600 font-medium">Status</span>
+            <div className={`${isFullscreen ? 'mb-2 ml-0 sm:ml-16' : 'mb-2 ml-0 sm:ml-4'}`}>
+              <div className={`${isFullscreen ? 'p-4 sm:p-6' : 'p-2 sm:p-3'}`}>
+                <div className={`grid grid-cols-1 ${isFullscreen ? 'gap-3' : 'gap-2 sm:gap-3'} ${isFullscreen ? 'text-sm' : 'text-xs sm:text-sm'}`}>
+                  <div className="space-y-2 sm:space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-0">
+                      <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-32 flex-shrink-0">
+                        <CheckCircle className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                        <span className="text-gray-600 font-medium text-xs sm:text-sm">Status</span>
                       </div>
                       <select
                         value={project.status}
@@ -2838,7 +2876,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                             handleStatusUpdate(e.target.value);
                           }
                         }}
-                        className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} rounded font-medium bg-transparent ${isDarkMode ? 'text-white' : 'text-black'} focus:outline-none ${isFullscreen ? 'min-w-[120px]' : ''}`}
+                        className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm'} rounded font-medium bg-transparent ${isDarkMode ? 'text-white' : 'text-black'} focus:outline-none w-full sm:w-auto ${isFullscreen ? 'sm:min-w-[120px]' : ''}`}
                       >
                         <option value="Not started">Not started</option>
                         <option value="In Progress">In Progress</option>
@@ -2847,10 +2885,10 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                       </select>
                     </div>
 
-                    <div className="flex items-center">
-                      <div className="flex items-center gap-3 w-32">
-                        <Tag className="h-4 w-4 text-gray-500" />
-                        <span className="text-gray-600 font-medium">Priority</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-0">
+                      <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-32 flex-shrink-0">
+                        <Tag className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                        <span className="text-gray-600 font-medium text-xs sm:text-sm">Priority</span>
                       </div>
                       {canCreateProjects() ? (
                         <PrioritySelector
@@ -2872,58 +2910,58 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                       )}
                     </div>
 
-                    <div className="flex items-center">
-                      <div className="flex items-center gap-3 w-32">
-                        <Calendar className="h-4 w-4 text-gray-500" />
-                        <span className="text-gray-600 font-medium">Start Day</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-0">
+                      <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-32 flex-shrink-0">
+                        <Calendar className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                        <span className="text-gray-600 font-medium text-xs sm:text-sm">Start Day</span>
                       </div>
                       {canCreateProjects() ? (
                         <input
                           type="date"
                           value={project.startDate}
                           onChange={(e) => updateProject('startDate', e.target.value)}
-                          className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} rounded bg-transparent ${isDarkMode ? 'text-white' : 'text-black'} focus:outline-none`}
+                          className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm'} rounded bg-transparent ${isDarkMode ? 'text-white' : 'text-black'} focus:outline-none w-full sm:w-auto`}
                         />
                       ) : (
-                        <span className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} rounded ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                        <span className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm'} rounded ${isDarkMode ? 'text-white' : 'text-black'}`}>
                           {formatDate(project.startDate)}
                         </span>
                       )}
                     </div>
 
-                    <div className="flex items-center">
-                      <div className="flex items-center gap-3 w-32">
-                        <Calendar className="h-4 w-4 text-gray-500" />
-                        <span className="text-gray-600 font-medium">End Day</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-0">
+                      <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-32 flex-shrink-0">
+                        <Calendar className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                        <span className="text-gray-600 font-medium text-xs sm:text-sm">End Day</span>
                       </div>
                       {canCreateProjects() ? (
                         <input
                           type="date"
                           value={project.endDate}
                           onChange={(e) => updateProject('endDate', e.target.value)}
-                          className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} rounded bg-transparent ${isDarkMode ? 'text-white' : 'text-black'} focus:outline-none`}
+                          className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm'} rounded bg-transparent ${isDarkMode ? 'text-white' : 'text-black'} focus:outline-none w-full sm:w-auto`}
                         />
                       ) : (
-                        <span className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} rounded ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                        <span className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm'} rounded ${isDarkMode ? 'text-white' : 'text-black'}`}>
                           {formatDate(project.endDate)}
                         </span>
                       )}
                     </div>
 
                     {/* Only show assignment fields to managers and admins */}
-                    {(user?.role === 'manager' || user?.role === 'admin') && (
+                    {(user?.role === 'manager' || user?.role === 'admin' || user?.role === 'superadmin') && (
                       <>
-                        <div className="flex items-center">
-                          <div className="flex items-center gap-3 w-32">
-                            <User className="h-4 w-4 text-gray-500" />
-                            <span className="text-gray-600 font-medium">Assign To</span>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-0">
+                          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-32 flex-shrink-0">
+                            <User className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                            <span className="text-gray-600 font-medium text-xs sm:text-sm">Assign To</span>
                           </div>
                           {canCreateProjects() ? (
-                            <div className="flex items-center gap-2">
-                              <div className="flex flex-wrap gap-1 min-w-[100px]">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
+                              <div className="flex flex-wrap gap-1 min-w-0 flex-1 sm:flex-initial">
                                 {project.forPerson && project.forPerson !== 'None' ? (
-                                  project.forPerson.split(', ').map((person, index) => (
-                                    <span key={index} className={`${isFullscreen ? 'px-2 py-1 text-xs' : 'px-1.5 py-0.5 text-xs'} bg-blue-100 text-blue-800 rounded`}>
+                                  project.forPerson.split(',').map(u => u.trim()).filter(u => u).map((person, index) => (
+                                    <span key={index} className={`${isFullscreen ? 'px-2 py-1 text-xs' : 'px-1.5 py-0.5 text-xs'} bg-blue-100 text-blue-800 rounded whitespace-nowrap`}>
                                       {person}
                                     </span>
                                   ))
@@ -2934,22 +2972,22 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                               <button
                                 type="button"
                                 onClick={() => handlePickUser('assign')}
-                                className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors`}
+                                className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm'} bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors whitespace-nowrap w-full sm:w-auto`}
                               >
                                 Pick
                               </button>
                             </div>
                           ) : (
-                            <span className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} rounded ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                            <span className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm'} rounded ${isDarkMode ? 'text-white' : 'text-black'}`}>
                               {project.forPerson || 'None'}
                             </span>
                           )}
                         </div>
 
-                        <div className="flex items-center">
-                          <div className="flex items-center gap-3 w-32">
-                            <Eye className="h-4 w-4 text-gray-500" />
-                            <span className="text-gray-600 font-medium">Viewers</span>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-0">
+                          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-32 flex-shrink-0">
+                            <Eye className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                            <span className="text-gray-600 font-medium text-xs sm:text-sm">Viewers</span>
                           </div>
                           {canCreateProjects() ? (
                             <div className="flex items-center gap-2">
@@ -3007,9 +3045,9 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
             </div>
 
             {/* Notes Section */}
-            <div className={`${isFullscreen ? 'mb-20 ml-4 mr-4' : 'mb-4 ml-2 mr-2'}`}>
+            <div className={`${isFullscreen ? 'mb-20 ml-0 sm:ml-4 mr-0 sm:mr-4' : 'mb-4 ml-0 sm:ml-2 mr-0 sm:mr-2'}`}>
               {/* Top horizontal line */}
-              <div className={`border-t-2 ${isDarkMode ? 'border-gray-600' : 'border-gray-300'} mb-4`}></div>
+              <div className={`border-t-2 ${isDarkMode ? 'border-gray-600' : 'border-gray-300'} mb-3 sm:mb-4`}></div>
               
               <div className="flex items-center justify-between mb-4">
                 <h3 className={`${isFullscreen ? 'text-lg' : 'text-base'} font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Project Notes</h3>
@@ -3165,10 +3203,16 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
           ) : availableUsers.length > 0 ? (
             <div className="py-1.5">
               {availableUsers.map((user) => {
-                const userName = user.username;
-                const isSelected = pickerType === 'viewer' 
-                  ? (project.viewers && project.viewers.split(', ').includes(userName))
-                  : (project.forPerson && project.forPerson.split(', ').includes(userName));
+                const userName = user.name || user.username;
+                // Check selection using both comma and comma-space separators, and match by name or username
+                const currentList = pickerType === 'viewer' 
+                  ? (project.viewers ? project.viewers.split(',').map(u => u.trim()) : [])
+                  : (project.forPerson ? project.forPerson.split(',').map(u => u.trim()) : []);
+                const isSelected = currentList.some(u => 
+                  u === userName || 
+                  u === user.username || 
+                  u === user.name
+                );
                 
                 return (
                   <button
@@ -3204,7 +3248,106 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                   Click to select/deselect multiple {pickerType === 'assign' ? 'workers' : 'viewers'}
                 </div>
                 <button
-                  onClick={() => {
+                  onClick={async () => {
+                    // Save the assignment immediately when clicking Update
+                    if (pickerType === 'assign') {
+                      try {
+                        const token = localStorage.getItem('token');
+                        if (!token) {
+                          alert('Please log in to update assignments');
+                          return;
+                        }
+                        
+                        if (!project.id || project.id === 'new') {
+                          alert('Please save the project first before assigning users');
+                          return;
+                        }
+                        
+                        // Check if user has permission (manager, admin, or superadmin)
+                        const canAssign = user?.role === 'manager' || user?.role === 'admin' || user?.role === 'superadmin';
+                        if (!canAssign) {
+                          alert('Only managers and admins can assign users to projects');
+                          return;
+                        }
+                        
+                        const forPersonValue = project.forPerson || '';
+                        console.log('🔵 Saving assignment:', { 
+                          projectId: project.id, 
+                          forPerson: forPersonValue,
+                          forPersonLength: forPersonValue.length,
+                          userRole: user?.role,
+                          currentProjectState: project
+                        });
+                        
+                        const requestBody = { forPerson: forPersonValue };
+                        console.log('🔵 Request body:', JSON.stringify(requestBody));
+                        
+                        const response = await fetch(`http://localhost:9000/api/projects/${project.id}`, {
+                          method: 'PUT',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'x-auth-token': token
+                          },
+                          body: JSON.stringify(requestBody)
+                        });
+                        
+                        const responseData = await response.json().catch((err) => {
+                          console.error('🔴 Error parsing response:', err);
+                          return { error: 'Failed to parse response' };
+                        });
+                        
+                        console.log('🔵 Response status:', response.status);
+                        console.log('🔵 Response data:', responseData);
+                        
+                        if (response.ok) {
+                          console.log('✅ Assignment saved successfully:', responseData);
+                          console.log('✅ Response forPerson:', responseData.forPerson);
+                          console.log('✅ Response assignedTo:', responseData.assignedTo);
+                          
+                          // Update project state with the response from backend
+                          // Backend returns forPerson with comma-space format, which is fine
+                          const updatedProject = {
+                            ...project,
+                            ...responseData,
+                            // Ensure forPerson is set correctly from response
+                            forPerson: responseData.forPerson || ''
+                          };
+                          
+                          console.log('✅ Updated project state:', updatedProject);
+                          setProject(updatedProject);
+                          
+                          alert('Project assignment updated successfully!');
+                          
+                          // Force a refresh to ensure UI is in sync
+                          const idToFetch = projectId || project.id;
+                          if (idToFetch && idToFetch !== 'new') {
+                            try {
+                              console.log('🔄 Refreshing project data...');
+                              const refreshResponse = await fetch(`http://localhost:9000/api/projects/${idToFetch}`, {
+                                headers: { 'x-auth-token': localStorage.getItem('token') }
+                              });
+                              if (refreshResponse.ok) {
+                                const refreshedData = await refreshResponse.json();
+                                console.log('✅ Refreshed project data:', refreshedData);
+                                console.log('✅ Refreshed forPerson:', refreshedData.forPerson);
+                                setProject(refreshedData);
+                              } else {
+                                console.error('🔴 Failed to refresh project:', refreshResponse.status);
+                              }
+                            } catch (refreshError) {
+                              console.error('🔴 Error refreshing project:', refreshError);
+                            }
+                          }
+                        } else {
+                          console.error('🔴 Failed to update assignment:', response.status, responseData);
+                          alert(`Failed to update assignment: ${responseData.message || responseData.error || 'Unknown error'}. Please check if you have manager permissions.`);
+                        }
+                      } catch (error) {
+                        console.error('Error saving assignment:', error);
+                        alert(`Failed to save assignment: ${error.message || 'Please try again.'}`);
+                      }
+                    }
+                    
                     if (pickerType === 'assign') {
                       setShowUserPicker(false);
                     } else {
@@ -3213,7 +3356,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                   }}
                   className={`px-3 py-1 text-xs rounded ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white transition-colors`}
                 >
-                  Confirm
+                  Update
                 </button>
               </div>
             </div>
