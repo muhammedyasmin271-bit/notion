@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Plus,
@@ -21,6 +21,7 @@ import {
   Star,
   CheckSquare,
   Circle,
+  ChevronDown,
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -35,6 +36,122 @@ const ProjectsPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterPriority, setFilterPriority] = useState('all');
   const [loading, setLoading] = useState(true);
+
+  // Priority Selector Component
+  const PrioritySelector = ({ priority, onChange, projectId, onClick }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef(null);
+
+    const priorityOptions = [
+      { value: 'Low', label: 'Low', hoverColor: isDarkMode ? 'hover:bg-green-500/20' : 'hover:bg-green-50' },
+      { value: 'Medium', label: 'Medium', hoverColor: isDarkMode ? 'hover:bg-yellow-500/20' : 'hover:bg-yellow-50' },
+      { value: 'High', label: 'High', hoverColor: isDarkMode ? 'hover:bg-orange-500/20' : 'hover:bg-orange-50' },
+      { value: 'Critical', label: 'Critical', hoverColor: isDarkMode ? 'hover:bg-red-500/20' : 'hover:bg-red-50' }
+    ];
+
+    const currentPriority = priorityOptions.find(option => option.value === priority) || priorityOptions[1];
+
+    useEffect(() => {
+      const handleClickOutside = (event) => {
+        if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+          setIsOpen(false);
+        }
+      };
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    return (
+      <div className="relative" ref={dropdownRef} onClick={(e) => { e.stopPropagation(); if (onClick) onClick(e); }}>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}
+          className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md text-xs font-medium flex items-center gap-1.5 bg-transparent focus:outline-none min-w-[80px] ${isDarkMode ? 'hover:bg-gray-800/50' : 'hover:bg-gray-100/50'} transition-colors`}
+        >
+          <span className={`${isDarkMode ? 'text-gray-100' : 'text-black'}`}>{currentPriority.label}</span>
+          <ChevronDown className={`h-3 w-3 ml-auto transition-transform ${isOpen ? 'rotate-180' : ''} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+        </button>
+        {isOpen && (
+          <div className={`absolute left-0 mt-1 rounded-xl shadow-2xl z-50 overflow-hidden ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} w-full min-w-[100px]`}>
+            <div className="py-1">
+              {priorityOptions.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onChange(projectId, option.value, e);
+                    setIsOpen(false);
+                  }}
+                  className={`w-full flex items-center px-3 py-2 text-left ${option.hoverColor} transition-colors ${isDarkMode ? 'text-gray-200' : 'text-black'}`}
+                >
+                  <span className={`font-medium ${isDarkMode ? 'text-gray-200' : 'text-black'}`}>{option.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Status Selector Component
+  const StatusSelector = ({ status, onChange, projectId, onClick }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef(null);
+
+    const statusOptions = [
+      { value: 'Not Started', label: 'Not Started', hoverColor: isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100' },
+      { value: 'In Progress', label: 'In Progress', hoverColor: isDarkMode ? 'hover:bg-blue-500/20' : 'hover:bg-blue-50' },
+      { value: 'Completed', label: 'Completed', hoverColor: isDarkMode ? 'hover:bg-green-500/20' : 'hover:bg-green-50' }
+    ];
+
+    const normalizedStatus = status === 'Done' || status === 'done' ? 'Completed' : 
+                             status === 'Not started' || status === 'Not Started' || !status ? 'Not Started' : 
+                             'In Progress';
+    const currentStatus = statusOptions.find(option => option.value === normalizedStatus) || statusOptions[0];
+
+    useEffect(() => {
+      const handleClickOutside = (event) => {
+        if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+          setIsOpen(false);
+        }
+      };
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    return (
+      <div className="relative" ref={dropdownRef} onClick={(e) => { e.stopPropagation(); if (onClick) onClick(e); }}>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}
+          className={`px-2.5 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 bg-transparent focus:outline-none min-w-[100px] ${isDarkMode ? 'hover:bg-gray-800/50' : 'hover:bg-gray-100/50'} transition-colors`}
+        >
+          <span className={`${isDarkMode ? 'text-gray-100' : 'text-black'}`}>{currentStatus.label}</span>
+          <ChevronDown className={`h-3 w-3 ml-auto transition-transform ${isOpen ? 'rotate-180' : ''} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+        </button>
+        {isOpen && (
+          <div className={`absolute left-0 mt-1 rounded-xl shadow-2xl z-50 overflow-hidden ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} w-full min-w-[120px]`}>
+            <div className="py-1">
+              {statusOptions.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onChange(projectId, option.value, e);
+                    setIsOpen(false);
+                  }}
+                  className={`w-full flex items-center px-3 py-2 text-left ${option.hoverColor} transition-colors ${isDarkMode ? 'text-gray-200' : 'text-black'}`}
+                >
+                  <span className={`font-medium ${isDarkMode ? 'text-gray-200' : 'text-black'}`}>{option.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   useEffect(() => {
     fetchProjects();
@@ -139,11 +256,58 @@ const ProjectsPage = () => {
   };
 
   const getStatusCounts = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
     const counts = {
       All: projects.length,
-      'Not Started': projects.filter(p => !p.status || p.status === 'Not started' || p.status === 'Not Started' || p.status === 'not started' || p.status === '').length,
-      'In Progress': projects.filter(p => p.status === 'In Progress' || p.status === 'in progress').length,
-      Completed: projects.filter(p => p.status === 'Done' || p.status === 'done').length,
+      'Not Started': projects.filter(p => {
+        const status = (p.status || '').toLowerCase();
+        const isNotStarted = !p.status || status === 'not started' || status === '';
+        
+        if (!isNotStarted) return false;
+        
+        // Exclude projects that have passed their due date (they belong in Unfinished)
+        if (p.endDate) {
+          const endDate = new Date(p.endDate);
+          endDate.setHours(0, 0, 0, 0);
+          if (today > endDate) return false;
+        }
+        
+        return true;
+      }).length,
+      'In Progress': projects.filter(p => {
+        const status = (p.status || '').toLowerCase();
+        const isInProgress = status === 'in progress';
+        
+        if (!isInProgress) return false;
+        
+        // Exclude projects that have passed their due date (they belong in Unfinished)
+        if (p.endDate) {
+          const endDate = new Date(p.endDate);
+          endDate.setHours(0, 0, 0, 0);
+          if (today > endDate) return false;
+        }
+        
+        return true;
+      }).length,
+      Completed: projects.filter(p => {
+        const status = (p.status || '').toLowerCase();
+        return status === 'done';
+      }).length,
+      Unfinished: projects.filter(p => {
+        const status = (p.status || '').toLowerCase();
+        if (status === 'done') return false;
+        
+        // Check if project has passed its due date
+        if (p.endDate) {
+          const endDate = new Date(p.endDate);
+          endDate.setHours(0, 0, 0, 0);
+          return today > endDate;
+        }
+        
+        return false;
+      }).length,
     };
     return counts;
   };
@@ -164,11 +328,60 @@ const ProjectsPage = () => {
     
     let matchesStatus = true;
     if (statusFilter === 'Not Started') {
-      matchesStatus = !project.status || project.status === 'Not started' || project.status === 'Not Started' || project.status === 'not started' || project.status === '';
+      const status = (project.status || '').toLowerCase();
+      const isNotStarted = !project.status || status === 'not started' || status === '';
+      
+      if (!isNotStarted) {
+        matchesStatus = false;
+      } else {
+        // Exclude projects that have passed their due date (they belong in Unfinished)
+        if (project.endDate) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const endDate = new Date(project.endDate);
+          endDate.setHours(0, 0, 0, 0);
+          matchesStatus = today <= endDate; // Only show if due date hasn't passed
+        } else {
+          matchesStatus = true; // No due date, so it's still "Not Started"
+        }
+      }
     } else if (statusFilter === 'In Progress') {
-      matchesStatus = project.status === 'In Progress' || project.status === 'in progress';
+      const status = (project.status || '').toLowerCase();
+      const isInProgress = status === 'in progress';
+      
+      if (!isInProgress) {
+        matchesStatus = false;
+      } else {
+        // Exclude projects that have passed their due date (they belong in Unfinished)
+        if (project.endDate) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const endDate = new Date(project.endDate);
+          endDate.setHours(0, 0, 0, 0);
+          matchesStatus = today <= endDate; // Only show if due date hasn't passed
+        } else {
+          matchesStatus = true; // No due date, so it's still "In Progress"
+        }
+      }
     } else if (statusFilter === 'Completed') {
-      matchesStatus = project.status === 'Done' || project.status === 'done';
+      const status = (project.status || '').toLowerCase();
+      matchesStatus = status === 'done';
+    } else if (statusFilter === 'Unfinished') {
+      const status = (project.status || '').toLowerCase();
+      if (status === 'done') {
+        matchesStatus = false;
+      } else {
+        // Check if project has passed its due date
+        if (project.endDate) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const endDate = new Date(project.endDate);
+          endDate.setHours(0, 0, 0, 0);
+          matchesStatus = today > endDate;
+        } else {
+          matchesStatus = false;
+        }
+      }
     }
     
     return matchesSearch && matchesPriority && matchesStatus;
@@ -247,11 +460,13 @@ const ProjectsPage = () => {
   };
 
   const statusCounts = getStatusCounts();
-  const statusFilters = ['All', 'Not Started', 'In Progress', 'Completed'];
+  const statusFilters = ['All', 'Not Started', 'In Progress', 'Completed', 'Unfinished'];
 
   if (loading) {
     return (
-      <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
+      <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? 'bg-[#141414]' : 'bg-white'}`}
+        style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+      >
         <div className="text-center">
           <div className={`animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4 ${isDarkMode ? 'border-white' : 'border-gray-900'}`}></div>
           <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Loading projects...</p>
@@ -261,7 +476,9 @@ const ProjectsPage = () => {
   }
 
   return (
-    <div className={`min-h-screen p-3 sm:p-6 ${isDarkMode ? 'bg-black text-white' : 'bg-gray-50 text-gray-900'}`}>
+    <div className={`min-h-screen p-3 sm:p-6 ${isDarkMode ? 'bg-[#141414] text-white' : 'bg-gray-50 text-gray-900'}`}
+      style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+    >
       {/* Header Section */}
       <div className="mb-4 sm:mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
@@ -274,7 +491,12 @@ const ProjectsPage = () => {
         {canCreateProjects() && (
           <button
             onClick={addNewProject}
-            className="bg-blue-600 text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-2 hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg w-full sm:w-auto justify-center"
+            className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-2 transition-colors shadow-md hover:shadow-lg w-full sm:w-auto justify-center ${
+              isDarkMode 
+                ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' 
+                : 'bg-white hover:bg-gray-100 text-black border border-black'
+            }`}
+            style={isDarkMode ? { backgroundColor: '#141414' } : {}}
           >
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">Create new project</span>
@@ -291,18 +513,20 @@ const ProjectsPage = () => {
             onClick={() => setStatusFilter(status)}
             className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-1 sm:gap-1.5 whitespace-nowrap transition-all ${
               statusFilter === status
-                ? isDarkMode ? 'bg-blue-900 text-blue-300 border border-blue-700' : 'bg-blue-50 text-blue-700 border border-blue-200'
+                ? isDarkMode ? 'bg-[#141414] text-white border border-white' : 'bg-white text-black border border-black'
                 : isDarkMode ? 'text-gray-400 hover:bg-gray-800 border border-transparent' : 'text-gray-600 hover:bg-gray-50 border border-transparent'
             }`}
+            style={statusFilter === status && isDarkMode ? { backgroundColor: '#141414' } : {}}
           >
             {status === 'Not Started' && <Circle className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
             {status === 'In Progress' && <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
+            {status === 'Unfinished' && <Pause className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
             {status === 'Completed' && <CheckCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
             <span className="hidden sm:inline">{status}</span>
-            <span className="sm:hidden">{status === 'Not Started' ? 'Not Started' : status === 'In Progress' ? 'Progress' : 'Done'}</span>
+            <span className="sm:hidden">{status === 'Not Started' ? 'Not Started' : status === 'In Progress' ? 'Progress' : status === 'Unfinished' ? 'Unfinished' : 'Done'}</span>
             <span className={`px-1 sm:px-1.5 py-0.5 rounded text-xs font-semibold ${
               statusFilter === status 
-                ? isDarkMode ? 'bg-blue-800 text-blue-200' : 'bg-blue-100 text-blue-800'
+                ? isDarkMode ? 'bg-white text-black' : 'bg-black text-white'
                 : isDarkMode ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-600'
             }`}>
               {statusCounts[status] || 0}
@@ -320,7 +544,7 @@ const ProjectsPage = () => {
             placeholder="Search projects"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className={`w-full pl-10 pr-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${
+            className={`w-full pl-10 pr-4 py-2 rounded-lg focus:outline-none focus:ring-2 ${isDarkMode ? 'focus:ring-white focus:border-white' : 'focus:ring-black focus:border-black'} text-sm ${
               isDarkMode 
                 ? 'bg-gray-900 border border-gray-700 text-white placeholder-gray-500' 
                 : 'bg-white border border-gray-300 text-gray-700 placeholder-gray-400'
@@ -348,10 +572,10 @@ const ProjectsPage = () => {
             return (
               <div
                 key={projectId}
-                className={`rounded-xl p-3 sm:p-4 lg:p-5 shadow-sm hover:shadow-lg transition-all cursor-pointer transform hover:-translate-y-1 ${
+                className={`rounded-xl p-3 sm:p-4 lg:p-5 shadow-sm transition-all cursor-pointer ${
                   isDarkMode 
-                    ? 'bg-gray-900 border border-gray-800 hover:border-gray-700' 
-                    : 'bg-white border border-gray-200 hover:border-gray-300'
+                    ? 'bg-gray-900 border border-gray-800' 
+                    : 'bg-white border border-gray-200'
                 }`}
                 onClick={() => handleOpenProject(projectId)}
               >
@@ -379,7 +603,7 @@ const ProjectsPage = () => {
                   {/* Progress Bar */}
                   <div className={`w-full rounded-full h-2 sm:h-2.5 overflow-hidden ${isDarkMode ? 'bg-gray-800' : 'bg-gray-200'}`}>
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-600"
+                      className={`h-full rounded-full ${isDarkMode ? 'bg-white' : 'bg-black'}`}
                       style={{ width: `${progressPercent}%` }}
                     />
                   </div>
@@ -395,11 +619,13 @@ const ProjectsPage = () => {
                         <div className="flex -space-x-1.5 sm:-space-x-2">
                           {assignedUsers.slice(0, 3).map((userName, index) => {
                             const initials = userName.trim().charAt(0).toUpperCase();
-                            const colors = ['bg-blue-500', 'bg-purple-500', 'bg-green-500', 'bg-orange-500', 'bg-pink-500'];
+                            const colors = isDarkMode 
+                              ? ['bg-white', 'bg-gray-300', 'bg-gray-400', 'bg-gray-500', 'bg-gray-600']
+                              : ['bg-black', 'bg-gray-700', 'bg-gray-600', 'bg-gray-500', 'bg-gray-400'];
                             return (
                               <div
                                 key={index}
-                                className={`w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 rounded-full ${colors[index % colors.length]} border-2 ${isDarkMode ? 'border-gray-900' : 'border-white'} flex items-center justify-center text-white text-xs font-medium`}
+                                className={`w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 rounded-full ${colors[index % colors.length]} border-2 ${isDarkMode ? 'border-[#141414]' : 'border-white'} flex items-center justify-center ${isDarkMode ? 'text-black' : 'text-white'} text-xs font-medium`}
                                 title={userName}
                               >
                                 {initials}
@@ -431,55 +657,18 @@ const ProjectsPage = () => {
                 {/* Tags Row with Editable Dropdowns */}
                 <div className="flex flex-wrap gap-1.5 sm:gap-2">
                   {/* Priority Dropdown */}
-                  <select
-                    value={project.priority || 'Medium'}
-                    onChange={(e) => handlePriorityChange(projectId, e.target.value, e)}
-                    onClick={(e) => e.stopPropagation()}
-                    className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md text-xs font-medium cursor-pointer border-0 outline-none appearance-none ${
-                      isDarkMode
-                        ? (project.priority || 'Medium')?.toLowerCase() === 'high' || (project.priority || 'Medium')?.toLowerCase() === 'critical'
-                          ? 'bg-red-900 text-red-200'
-                          : (project.priority || 'Medium')?.toLowerCase() === 'medium'
-                          ? 'bg-orange-900 text-orange-200'
-                          : 'bg-green-900 text-green-200'
-                        : (project.priority || 'Medium')?.toLowerCase() === 'high' || (project.priority || 'Medium')?.toLowerCase() === 'critical'
-                        ? 'bg-red-100 text-gray-900'
-                        : (project.priority || 'Medium')?.toLowerCase() === 'medium'
-                        ? 'bg-orange-100 text-gray-900'
-                        : 'bg-green-100 text-gray-900'
-                    }`}
-                  >
-                    <option value="Low" className={isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}>Low</option>
-                    <option value="Medium" className={isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}>Medium</option>
-                    <option value="High" className={isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}>High</option>
-                    <option value="Critical" className={isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}>Critical</option>
-                  </select>
+                  <PrioritySelector
+                    priority={project.priority || 'Medium'}
+                    onChange={handlePriorityChange}
+                    projectId={projectId}
+                  />
                   
                   {/* Status Dropdown */}
-                  <select
-                    value={project.status === 'Done' || project.status === 'done' ? 'Completed' : 
-                           project.status === 'Not started' || project.status === 'Not Started' || !project.status ? 'Not Started' : 
-                           'In Progress'}
-                    onChange={(e) => handleStatusChange(projectId, e.target.value, e)}
-                    onClick={(e) => e.stopPropagation()}
-                    className={`px-2.5 py-1 rounded-md text-xs font-medium cursor-pointer border-0 outline-none appearance-none ${
-                      isDarkMode
-                        ? project.status === 'Done' || project.status === 'done'
-                          ? 'bg-green-900 text-green-200'
-                          : project.status === 'Not started' || project.status === 'Not Started' || !project.status
-                          ? 'bg-gray-800 text-gray-300'
-                          : 'bg-blue-900 text-blue-200'
-                        : project.status === 'Done' || project.status === 'done'
-                        ? 'bg-green-100 text-gray-900'
-                        : project.status === 'Not started' || project.status === 'Not Started' || !project.status
-                        ? 'bg-gray-100 text-gray-900'
-                        : 'bg-blue-100 text-gray-900'
-                    }`}
-                  >
-                    <option value="Not Started" className={isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}>Not Started</option>
-                    <option value="In Progress" className={isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}>In Progress</option>
-                    <option value="Completed" className={isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}>Completed</option>
-                  </select>
+                  <StatusSelector
+                    status={project.status}
+                    onChange={handleStatusChange}
+                    projectId={projectId}
+                  />
                 </div>
               </div>
             );
@@ -493,7 +682,12 @@ const ProjectsPage = () => {
           {canCreateProjects() && (
             <button
               onClick={addNewProject}
-              className="mt-4 bg-blue-600 text-white px-6 py-3 rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
+              className={`mt-4 px-6 py-3 rounded-xl text-sm font-medium transition-colors ${
+                isDarkMode 
+                  ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' 
+                  : 'bg-white hover:bg-gray-100 text-black border border-black'
+              }`}
+              style={isDarkMode ? { backgroundColor: '#141414' } : {}}
             >
               Create your first project
             </button>

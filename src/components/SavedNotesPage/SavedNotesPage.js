@@ -111,7 +111,9 @@ export default function SavedNotesPage() {
   };
 
   return (
-    <div className={`px-6 py-8 max-w-7xl mx-auto min-h-screen ${isDarkMode ? 'bg-black text-white' : 'bg-gray-50 text-gray-900'}`}>
+    <div className={`px-6 py-8 max-w-7xl mx-auto min-h-screen ${isDarkMode ? 'bg-[#141414] text-white' : 'bg-gray-50 text-gray-900'}`}
+      style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+    >
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Saved Notes</h1>

@@ -163,8 +163,10 @@ const RegisterPage = () => {
 
   return (
     <div className={`min-h-screen flex items-center justify-center p-3 sm:p-6 transition-all duration-500 relative overflow-hidden ${
-      isDarkMode ? 'bg-black' : 'bg-white'
-    }`}>
+      isDarkMode ? 'bg-[#141414]' : 'bg-white'
+    }`}
+    style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+    >
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className={`absolute -top-40 -right-40 w-80 h-80 rounded-full blur-3xl opacity-20 ${

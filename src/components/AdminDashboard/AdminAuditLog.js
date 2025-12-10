@@ -155,11 +155,13 @@ const AdminAuditLog = () => {
                 <p className="text-gray-600">You need admin privileges to access this page.</p>
             </div>
         }>
-            <div className={`min-h-screen p-6 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+            <div className={`min-h-screen p-6 ${isDarkMode ? 'bg-[#141414] text-white' : 'bg-gray-50 text-gray-900'}`}
+              style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+            >
                 <div className="max-w-7xl mx-auto">
                     <div className="mb-8">
                         <div className="flex items-center mb-4">
-                            <FileText className="w-8 h-8 mr-3 text-blue-500" />
+                            <FileText className={`w-8 h-8 mr-3 ${isDarkMode ? 'text-white' : 'text-black'}`} />
                             <h1 className="text-3xl font-bold">Audit Log</h1>
                         </div>
                         <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -303,8 +305,10 @@ const AdminAuditLog = () => {
                                     <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Activities</p>
                                     <p className="text-3xl font-bold mt-2">1,248</p>
                                 </div>
-                                <div className="p-3 bg-blue-100 rounded-xl">
-                                    <FileText className="w-8 h-8 text-blue-600" />
+                                <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-white' : 'bg-black'}`}
+                                  style={isDarkMode ? { backgroundColor: '#ffffff' } : { backgroundColor: '#000000' }}
+                                >
+                                    <FileText className={`w-8 h-8 ${isDarkMode ? 'text-black' : 'text-white'}`} />
                                 </div>
                             </div>
                         </div>

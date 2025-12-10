@@ -58,7 +58,9 @@ const AddCompanyPage = () => {
   };
 
   return (
-    <div className={`min-h-screen ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
+    <div className={`min-h-screen ${isDarkMode ? 'bg-[#141414]' : 'bg-white'}`}
+      style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+    >
       <NavBar />
       
       <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">

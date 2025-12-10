@@ -620,9 +620,10 @@ const DocumentsPage = () => {
     return (
         <div
             className={`min-h-screen font-['Inter'] ${isDarkMode
-                ? 'bg-black text-white'
+                ? 'bg-[#141414] text-white'
                 : 'bg-white text-black'
                 }`}
+            style={isDarkMode ? { backgroundColor: '#141414' } : {}}
             ref={dropZoneRef}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}

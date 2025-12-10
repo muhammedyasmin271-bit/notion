@@ -1069,7 +1069,7 @@ const MeetingEditorPage = () => {
       const highlightColors = {
         yellow: { bg: 'bg-yellow-900/30', border: 'border-yellow-500/50', text: 'text-yellow-200' },
         green: { bg: 'bg-green-900/30', border: 'border-green-500/50', text: 'text-green-200' },
-        blue: { bg: 'bg-blue-900/30', border: 'border-blue-500/50', text: 'text-blue-200' },
+        blue: { bg: isDarkMode ? 'bg-white/30' : 'bg-black/30', border: isDarkMode ? 'border-white/50' : 'border-black/50', text: isDarkMode ? 'text-white' : 'text-black' },
         red: { bg: 'bg-red-900/30', border: 'border-red-500/50', text: 'text-red-200' },
         purple: { bg: 'bg-purple-900/30', border: 'border-purple-500/50', text: 'text-purple-200' }
       };
@@ -1111,8 +1111,10 @@ const MeetingEditorPage = () => {
 
     if (block.type === 'link') {
       return (
-        <div className={`flex items-center gap-2 p-2 border rounded ${isDarkMode ? 'bg-blue-900/20 border-blue-500/30' : 'bg-blue-100/50 border-blue-300/50'}`}>
-          <Link className="w-4 h-4 text-blue-400" />
+        <div className={`flex items-center gap-2 p-2 border rounded ${isDarkMode ? 'bg-white/20 border-white/30' : 'bg-black/20 border-black/30'}`}
+          style={isDarkMode ? { backgroundColor: 'rgba(255, 255, 255, 0.2)' } : { backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+        >
+          <Link className={`w-4 h-4 ${isDarkMode ? 'text-white' : 'text-black'}`} />
           <input
             ref={(el) => inputRefs.current[block.id] = el}
             type="text"
@@ -1120,7 +1122,7 @@ const MeetingEditorPage = () => {
             onChange={(e) => updateBlockContent(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Link text..."
-            className={`flex-1 bg-transparent focus:outline-none ${isDarkMode ? 'text-blue-300 placeholder-gray-400' : 'text-blue-700 placeholder-gray-500'}`}
+            className={`flex-1 bg-transparent focus:outline-none ${isDarkMode ? 'text-white placeholder-gray-400' : 'text-black placeholder-gray-500'}`}
           />
           <input
             type="url"
@@ -1139,7 +1141,7 @@ const MeetingEditorPage = () => {
 
     if (block.type === 'tag') {
       const tagColors = {
-        blue: { bg: 'bg-blue-900/30', border: 'border-blue-500/50', text: 'text-blue-300' },
+        blue: { bg: isDarkMode ? 'bg-white/30' : 'bg-black/30', border: isDarkMode ? 'border-white/50' : 'border-black/50', text: isDarkMode ? 'text-white' : 'text-black' },
         green: { bg: 'bg-green-900/30', border: 'border-green-500/50', text: 'text-green-300' },
         red: { bg: 'bg-red-900/30', border: 'border-red-500/50', text: 'text-red-300' },
         yellow: { bg: 'bg-yellow-900/30', border: 'border-yellow-500/50', text: 'text-yellow-300' },
@@ -1334,9 +1336,15 @@ const MeetingEditorPage = () => {
   };
 
   return (
-    <div className={`min-h-screen ${isDarkMode ? 'bg-black text-white' : 'bg-white text-gray-900'}`}>
-      <div className={`w-full min-h-screen overflow-y-auto ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
-        <div className={`sticky top-0 z-10 ${isDarkMode ? 'bg-gray-900/95 backdrop-blur-sm' : 'bg-white/95 backdrop-blur-sm'} border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+    <div className={`min-h-screen ${isDarkMode ? 'bg-[#141414] text-white' : 'bg-white text-gray-900'}`}
+      style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+    >
+      <div className={`w-full min-h-screen overflow-y-auto ${isDarkMode ? 'bg-[#141414]' : 'bg-white'}`}
+        style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+      >
+        <div className={`sticky top-0 z-10 ${isDarkMode ? 'bg-[#141414]/95 backdrop-blur-sm' : 'bg-white/95 backdrop-blur-sm'} border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}
+          style={isDarkMode ? { backgroundColor: 'rgba(20, 20, 20, 0.95)' } : {}}
+        >
           <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
@@ -1371,7 +1379,8 @@ const MeetingEditorPage = () => {
                     <button
                       onClick={handleSave}
                       disabled={isSaving}
-                      className="flex items-center justify-center gap-2 px-6 py-2 rounded-lg font-medium transition-all bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 text-white"
+                      className={`flex items-center justify-center gap-2 px-6 py-2 rounded-lg font-medium transition-all disabled:bg-gray-700 ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'}`}
+                      style={isDarkMode ? { backgroundColor: '#141414' } : {}}
                     >
                       {isSaving ? (
                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -1396,21 +1405,26 @@ const MeetingEditorPage = () => {
           )}
           <div className="w-full">
             <div>
-              <div className={`rounded-lg pt-0 pb-0 px-0 sm:px-6 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
+              <div className={`rounded-lg pt-0 pb-0 px-0 sm:px-6 ${isDarkMode ? 'bg-[#141414]' : 'bg-white'}`}
+                style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+              >
                 <input
                   type="text"
                   value={meeting.title}
                   onChange={isOwner ? (e) => setMeeting(prev => ({ ...prev, title: e.target.value })) : undefined}
                   placeholder="Untitled"
                   readOnly={!isOwner}
-                  className={`w-full px-0 sm:px-4 py-3 text-2xl sm:text-4xl ml-0 sm:ml-8 rounded-lg transition-colors ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'} placeholder-gray-400 focus:outline-none ${!isOwner ? 'cursor-not-allowed opacity-75' : ''}`}
+                  className={`w-full px-0 sm:px-4 py-3 text-2xl sm:text-4xl ml-0 sm:ml-8 rounded-lg transition-colors ${isDarkMode ? 'bg-[#141414] text-white' : 'bg-white text-gray-900'} placeholder-gray-400 focus:outline-none ${!isOwner ? 'cursor-not-allowed opacity-75' : ''}`}
+                  style={isDarkMode ? { backgroundColor: '#141414' } : {}}
                 />
                 <div className="ml-0 sm:ml-12 mt-2">
                   <span className={`text-xs sm:text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Created 9/28/2025</span>
                 </div>
               </div>
 
-              <div className={`rounded-lg ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
+              <div className={`rounded-lg ${isDarkMode ? 'bg-[#141414]' : 'bg-white'}`}
+                style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+              >
                 <div className="p-6">
                   <div className="flex flex-col lg:flex-row gap-4 lg:gap-8 ml-2 sm:ml-8 lg:ml-24">
                     <div className="flex-1 space-y-1">
@@ -1467,7 +1481,7 @@ const MeetingEditorPage = () => {
 
                           <div className="flex items-center gap-3">
                             <Circle className={`w-4 h-4 ${meeting.status === 'active' ? 'text-green-400' :
-                                meeting.status === 'completed' ? 'text-blue-400' :
+                                meeting.status === 'completed' ? (isDarkMode ? 'text-white' : 'text-black') :
                                   meeting.status === 'cancelled' ? 'text-red-400' :
                                     'text-gray-400'
                               }`} />
@@ -1536,12 +1550,15 @@ const MeetingEditorPage = () => {
                             </label>
                             <button
                               onClick={() => setShowUserDropdown(!showUserDropdown)}
-                              className="p-1 rounded bg-blue-600 hover:bg-blue-700 text-white"
+                              className={`p-1 rounded text-white ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'}`}
+                style={isDarkMode ? { backgroundColor: '#141414' } : {}}
                             >
                               <Plus className="w-4 h-4" />
                             </button>
                             {showUserDropdown && (
-                              <div className={`absolute right-0 top-8 w-72 sm:w-80 max-h-80 overflow-hidden rounded-lg shadow-xl border z-50 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                              <div className={`fixed sm:absolute right-2 sm:right-0 top-auto sm:top-8 bottom-auto sm:bottom-auto mt-0 sm:mt-0 w-[calc(100vw-1rem)] sm:w-72 md:w-80 max-h-[calc(100vh-200px)] sm:max-h-80 overflow-hidden rounded-lg shadow-xl border z-50 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
+                                style={{ maxHeight: 'calc(100vh - 200px)' }}
+                              >
                                 <div className={`p-3 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                                   <div className="flex items-center justify-between">
                                     <div className={`flex items-center gap-2 text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
@@ -1581,13 +1598,13 @@ const MeetingEditorPage = () => {
                                             }
                                           }}
                                           className={`w-full flex items-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 ${isSelected
-                                            ? `${isDarkMode ? 'bg-blue-600/20 border border-blue-500/30 text-blue-300' : 'bg-blue-100 border border-blue-300 text-blue-700'} shadow-sm`
+                                            ? `${isDarkMode ? 'bg-white/20 border border-white/30 text-white' : 'bg-black/20 border border-black/30 text-black'} shadow-sm`
                                             : `${isDarkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'} hover:shadow-sm`
                                             }`}
                                         >
                                           <div className="mr-3">
                                             {isSelected ? (
-                                              <CheckCircle className="w-5 h-5 text-blue-400" />
+                                              <CheckCircle className={`w-5 h-5 ${isDarkMode ? 'text-white' : 'text-black'}`} />
                                             ) : (
                                               <Circle className="w-5 h-5 text-gray-500" />
                                             )}
@@ -1706,7 +1723,7 @@ const MeetingEditorPage = () => {
                               <div className="p-2 space-y-1">
                                 <div className="text-xs text-gray-400 px-2 py-1 font-medium">MEETING TYPES</div>
                                 <button onClick={() => { const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: '📋 Strategic Planning Meeting Agenda', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'Meeting Information:', style: {} }, { id: `block-${Date.now()}-3`, type: 'bullet', content: '• Date: [Meeting Date] | Time: [Start Time] - [End Time] | Duration: [X] hours', style: {} }, { id: `block-${Date.now()}-4`, type: 'bullet', content: '• Location: [Conference Room / Virtual Link] | Facilitator: [Name]', style: {} }, { id: `block-${Date.now()}-5`, type: 'bullet', content: '• Required Attendees: [List] | Optional: [List] | Recording: [Yes/No]', style: {} }, { id: `block-${Date.now()}-6`, type: 'divider', content: '', style: {} }, { id: `block-${Date.now()}-7`, type: 'text', content: 'Meeting Objectives & Success Criteria:', style: {} }, { id: `block-${Date.now()}-8`, type: 'bullet', content: '• Review Q3 performance metrics and KPI achievements (Target: 95% completion)', style: {} }, { id: `block-${Date.now()}-9`, type: 'bullet', content: '• Finalize Q4 strategic initiatives and budget allocation ($X approved)', style: {} }, { id: `block-${Date.now()}-10`, type: 'bullet', content: '• Identify and mitigate top 3 project risks with action plans', style: {} }, { id: `block-${Date.now()}-11`, type: 'bullet', content: '• Align cross-functional teams on delivery timelines and dependencies', style: {} }, { id: `block-${Date.now()}-12`, type: 'text', content: 'Detailed Agenda (Time-boxed):', style: {} }, { id: `block-${Date.now()}-13`, type: 'numbered', content: '1. Opening & Introductions (5 min) - Welcome, agenda review, ground rules', style: {} }, { id: `block-${Date.now()}-14`, type: 'numbered', content: '2. Executive Summary Presentation (15 min) - Q3 performance dashboard review', style: {} }, { id: `block-${Date.now()}-15`, type: 'numbered', content: '3. Financial Performance Analysis (20 min) - Revenue, costs, ROI metrics', style: {} }, { id: `block-${Date.now()}-16`, type: 'numbered', content: '4. Strategic Initiative Deep Dive (30 min) - Priority projects, resource needs', style: {} }, { id: `block-${Date.now()}-17`, type: 'numbered', content: '5. Risk Assessment & Mitigation (20 min) - Risk register review, action plans', style: {} }, { id: `block-${Date.now()}-18`, type: 'numbered', content: '6. Cross-Team Dependencies (15 min) - Integration points, timeline alignment', style: {} }, { id: `block-${Date.now()}-19`, type: 'numbered', content: '7. Decision Points & Next Steps (10 min) - Action items, owners, deadlines', style: {} }, { id: `block-${Date.now()}-20`, type: 'numbered', content: '8. Closing & Follow-up (5 min) - Summary, next meeting, feedback', style: {} }, { id: `block-${Date.now()}-21`, type: 'text', content: 'Pre-Meeting Preparation Required:', style: {} }, { id: `block-${Date.now()}-22`, type: 'todo', content: '☐ Review Q3 performance dashboard and metrics report', style: {} }, { id: `block-${Date.now()}-23`, type: 'todo', content: '☐ Prepare department budget proposals and justifications', style: {} }, { id: `block-${Date.now()}-24`, type: 'todo', content: '☐ Update project status reports and risk assessments', style: {} }, { id: `block-${Date.now()}-25`, type: 'todo', content: '☐ Review cross-team dependency mapping document', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(null); }} className="w-full flex items-start gap-3 px-3 py-2.5 text-left hover:bg-gray-700 rounded-lg text-gray-300 transition-colors">
-                                  <FileText className="w-4 h-4 text-blue-400 mt-0.5" />
+                                  <FileText className={`w-4 h-4 mt-0.5 ${isDarkMode ? 'text-white' : 'text-black'}`} />
                                   <div>
                                     <div className="font-medium text-sm">Strategic Meeting Agenda</div>
                                     <div className="text-xs text-gray-400 mt-0.5">Comprehensive agenda with time-boxing and preparation</div>
@@ -1853,7 +1870,7 @@ const MeetingEditorPage = () => {
 
                                     <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-2">FUNCTIONAL</div>
                                     <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'date', content: new Date().toISOString().split('T')[0], style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
-                                      <Calendar className="w-4 h-4 text-blue-400" /> Date
+                                      <Calendar className={`w-4 h-4 ${isDarkMode ? 'text-white' : 'text-black'}`} /> Date
                                     </button>
                                     <button onClick={() => { const newBlocks = [...blocks]; const now = new Date(); const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0'); newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'time', content: timeStr, style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
                                       <Clock className="w-4 h-4 text-green-400" /> Time
@@ -1887,7 +1904,7 @@ const MeetingEditorPage = () => {
 
                                     <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-2">CALLOUTS</div>
                                     <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'callout', calloutType: 'info', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
-                                      <Info className="w-4 h-4 text-blue-400" /> Info Callout
+                                      <Info className={`w-4 h-4 ${isDarkMode ? 'text-white' : 'text-black'}`} /> Info Callout
                                     </button>
                                     <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'callout', calloutType: 'warning', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
                                       <AlertTriangle className="w-4 h-4 text-yellow-400" /> Warning Callout
@@ -1907,10 +1924,10 @@ const MeetingEditorPage = () => {
                                         <Palette className="w-4 h-4 text-yellow-400" /> Highlight
                                       </button>
                                       <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'link', content: '', url: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
-                                        <Link className="w-4 h-4 text-blue-400" /> Link
+                                        <Link className={`w-4 h-4 ${isDarkMode ? 'text-white' : 'text-black'}`} /> Link
                                       </button>
                                       <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'tag', content: '', tagColor: 'blue', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
-                                        <Tag className="w-4 h-4 text-blue-400" /> Tag
+                                        <Tag className={`w-4 h-4 ${isDarkMode ? 'text-white' : 'text-black'}`} /> Tag
                                       </button>
                                       <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'flag', content: '', flagColor: 'red', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
                                         <Flag className="w-4 h-4 text-red-400" /> Flag
@@ -2044,7 +2061,9 @@ const MeetingEditorPage = () => {
 
         {/* Mobile Bottom Action Bar */}
         {isOwner && (
-          <div className={`sm:hidden fixed bottom-0 left-0 right-0 z-20 border-t ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'}`}>
+          <div className={`sm:hidden fixed bottom-0 left-0 right-0 z-20 border-t ${isDarkMode ? 'bg-[#141414] border-gray-700' : 'bg-white border-gray-200'}`}
+            style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+          >
             <div className="max-w-6xl mx-auto px-3 py-3">
               <div className="flex gap-3 justify-end">
                 {!isNewMeeting && (

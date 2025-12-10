@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Users, Plus, Search, UserCheck, UserX, Trash2,
   Shield, Crown, User as UserIcon, Calendar,
   Edit3, Mail, Phone, Building, Check, X, Clock,
-  MessageSquare, UserPlus, MoreVertical, Eye
+  MessageSquare, UserPlus, MoreVertical, Eye, ChevronDown
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -341,8 +341,10 @@ const UserManagementPage = () => {
   };
 
   return (
-    <div className={`content p-3 sm:p-6 lg:p-8 font-sans min-h-screen ${isDarkMode ? 'bg-black text-white' : 'bg-white text-gray-900'
-      }`}>
+    <div className={`content p-3 sm:p-6 lg:p-8 font-sans min-h-screen ${isDarkMode ? 'bg-[#141414] text-white' : 'bg-white text-gray-900'
+      }`}
+      style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+    >
       {/* Header */}
       <div className="mb-6 sm:mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-4">
@@ -371,7 +373,8 @@ const UserManagementPage = () => {
               </button>
               <button
                 onClick={handleConfirmSelection}
-                className="flex items-center px-6 py-3 text-sm font-semibold rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                className={`flex items-center px-6 py-3 text-sm font-semibold rounded-xl ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'}`}
+                style={isDarkMode ? { backgroundColor: '#141414' } : {}}
               >
                 <Check className="w-4 h-4 mr-2" />
                 Confirm Selection ({selectedUsers.length})
@@ -381,7 +384,8 @@ const UserManagementPage = () => {
             canManageUsers && (
               <button
                 onClick={() => setShowCreateForm(true)}
-                className="flex items-center px-6 py-3 text-sm font-semibold rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                className={`flex items-center px-6 py-3 text-sm font-semibold rounded-xl ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'}`}
+                style={isDarkMode ? { backgroundColor: '#141414' } : {}}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Member
@@ -454,8 +458,10 @@ const UserManagementPage = () => {
                   Managers
                 </p>
               </div>
-              <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-blue-900' : 'bg-blue-100'}`}>
-                <Crown className={`h-8 w-8 ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`} />
+              <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-white' : 'bg-black'}`}
+                style={isDarkMode ? { backgroundColor: '#ffffff' } : { backgroundColor: '#000000' }}
+              >
+                <Crown className={`h-8 w-8 ${isDarkMode ? 'text-black' : 'text-white'}`} />
               </div>
             </div>
           </div>
@@ -477,29 +483,15 @@ const UserManagementPage = () => {
           </div>
 
           <div className="flex gap-2 sm:gap-3">
-            <select
+            <RoleFilterSelector
               value={filterRole}
-              onChange={(e) => setFilterRole(e.target.value)}
-              className={`flex-1 sm:w-auto px-3 py-3 rounded-lg text-sm border ${isDarkMode ? 'bg-gray-900 border-gray-700 text-white' : 'bg-white border-gray-300 text-gray-900'
-                }`}
-            >
-              <option value="all">All Roles</option>
-              <option value="admin">Admins</option>
-              <option value="manager">Managers</option>
-              <option value="user">Team Members</option>
-            </select>
+              onChange={setFilterRole}
+            />
 
-            <select
+            <StatusFilterSelector
               value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className={`flex-1 sm:w-auto px-3 py-3 rounded-lg text-sm border ${isDarkMode ? 'bg-gray-900 border-gray-700 text-white' : 'bg-white border-gray-300 text-gray-900'
-                }`}
-            >
-              <option value="all">All Statuses</option>
-              <option value="pending">Pending</option>
-              <option value="approved">Approved</option>
-              <option value="declined">Declined</option>
-            </select>
+              onChange={setFilterStatus}
+            />
           </div>
         </div>
       </div>
@@ -518,7 +510,7 @@ const UserManagementPage = () => {
             <div
               key={userItem.id}
               className={`relative rounded-xl shadow-lg border overflow-hidden transition-all duration-200 ${isPickerMode && selectedUsers.includes(userItem.name)
-                ? (isDarkMode ? 'bg-blue-900/20 border-blue-600 ring-2 ring-blue-500/30' : 'bg-blue-50 border-blue-400 ring-2 ring-blue-400/30')
+                ? (isDarkMode ? 'bg-white/20 border-white ring-2 ring-white/30' : 'bg-black/20 border-black ring-2 ring-black/30')
                 : userItem.status === 'pending'
                   ? (isDarkMode ? 'bg-yellow-900/10 border-yellow-700 ring-2 ring-yellow-600/20' : 'bg-yellow-50 border-yellow-300 ring-2 ring-yellow-400/20')
                   : (isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200')
@@ -635,8 +627,8 @@ const UserManagementPage = () => {
                           }}
                           className={`flex items-center justify-center p-2 transition-all hover:scale-110 ${
                             isDarkMode
-                              ? 'text-blue-400 hover:text-blue-300'
-                              : 'text-blue-600 hover:text-blue-700'
+                              ? 'text-white hover:text-gray-300'
+                              : 'text-black hover:text-gray-700'
                           }`}
                           title="View Details"
                         >
@@ -651,7 +643,9 @@ const UserManagementPage = () => {
               {/* Picker Mode Selection Indicator */}
               {isPickerMode && (
                 <div className={`absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 transition-opacity ${selectedUsers.includes(userItem.name) ? 'opacity-100' : 'opacity-0'}`}>
-                  <div className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2">
+                  <div className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-2 ${isDarkMode ? 'bg-white text-black' : 'bg-black text-white'}`}
+                    style={isDarkMode ? { backgroundColor: '#ffffff' } : { backgroundColor: '#000000' }}
+                  >
                     <Check className="w-5 h-5" />
                     Selected
                   </div>
@@ -695,7 +689,7 @@ const UserManagementPage = () => {
                         ? 'bg-red-100 text-red-800 border-red-300'
                         : showUserProfile.role === 'manager'
                           ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
-                          : 'bg-blue-100 text-blue-800 border-blue-300'
+                          : isDarkMode ? 'bg-white/20 text-white border-white/30' : 'bg-black/20 text-black border-black/30'
                       }`}>
                       {showUserProfile.role === 'admin' ? 'Admin' : showUserProfile.role === 'manager' ? 'Manager' : 'Team Member'}
                     </span>
@@ -770,8 +764,10 @@ const UserManagementPage = () => {
                       <div key={index} className={`p-4 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
                         }`}>
                         <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isDarkMode ? 'bg-blue-900 text-blue-300' : 'bg-blue-100 text-blue-600'
-                            }`}>
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isDarkMode ? 'bg-white text-black' : 'bg-black text-white'
+                            }`}
+                            style={isDarkMode ? { backgroundColor: '#ffffff' } : { backgroundColor: '#000000' }}
+                          >
                             📄
                           </div>
                           <div className="flex-1 min-w-0">
@@ -985,7 +981,8 @@ const UserManagementPage = () => {
                   </button>
                   <button
                     type="submit"
-                    className="px-8 py-3 text-base font-bold text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl hover:from-blue-700 hover:to-purple-700"
+                    className={`px-8 py-3 text-base font-bold rounded-2xl ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'}`}
+                    style={isDarkMode ? { backgroundColor: '#141414' } : {}}
                   >
                     {editingUser ? '✏️ Update Member' : '🎉 Create Member'}
                   </button>

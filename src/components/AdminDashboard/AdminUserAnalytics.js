@@ -40,7 +40,7 @@ const AdminUserAnalytics = () => {
     ];
 
     const demographicsData = [
-        { category: 'Age 18-25', percentage: 25, color: 'bg-blue-500' },
+        { category: 'Age 18-25', percentage: 25, color: isDarkMode ? 'bg-white' : 'bg-black' },
         { category: 'Age 26-35', percentage: 35, color: 'bg-green-500' },
         { category: 'Age 36-45', percentage: 20, color: 'bg-yellow-500' },
         { category: 'Age 46-55', percentage: 15, color: 'bg-purple-500' },
@@ -48,16 +48,16 @@ const AdminUserAnalytics = () => {
     ];
 
     const technologyData = [
-        { platform: 'Desktop', percentage: 65, color: 'bg-blue-500', icon: Monitor },
+        { platform: 'Desktop', percentage: 65, color: isDarkMode ? 'bg-white' : 'bg-black', icon: Monitor },
         { platform: 'Mobile', percentage: 30, color: 'bg-green-500', icon: Smartphone },
         { platform: 'Tablet', percentage: 5, color: 'bg-yellow-500', icon: Database }
     ];
 
     const browserData = [
-        { browser: 'Chrome', percentage: 55, color: 'bg-blue-500', icon: Chrome },
+        { browser: 'Chrome', percentage: 55, color: isDarkMode ? 'bg-white' : 'bg-black', icon: Chrome },
         { browser: 'Firefox', percentage: 20, color: 'bg-orange-500', icon: Globe },
         { browser: 'Safari', percentage: 15, color: 'bg-gray-500', icon: Globe2 },
-        { browser: 'Edge', percentage: 7, color: 'bg-blue-700', icon: Monitor },
+        { browser: 'Edge', percentage: 7, color: isDarkMode ? 'bg-gray-300' : 'bg-gray-700', icon: Monitor },
         { browser: 'Other', percentage: 3, color: 'bg-gray-300', icon: Monitor }
     ];
 
@@ -70,8 +70,10 @@ const AdminUserAnalytics = () => {
                             <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Users</p>
                             <p className="text-3xl font-bold mt-2">1,248</p>
                         </div>
-                        <div className="p-3 bg-blue-100 rounded-xl">
-                            <Users className="w-8 h-8 text-blue-600" />
+                        <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-white' : 'bg-black'}`}
+                          style={isDarkMode ? { backgroundColor: '#ffffff' } : { backgroundColor: '#000000' }}
+                        >
+                            <Users className={`w-8 h-8 ${isDarkMode ? 'text-black' : 'text-white'}`} />
                         </div>
                     </div>
                 </div>
@@ -120,7 +122,7 @@ const AdminUserAnalytics = () => {
                         {userGrowthData.map((data, index) => (
                             <div key={index} className="flex flex-col items-center">
                                 <div
-                                    className="w-12 bg-gradient-to-t from-blue-500 to-blue-300 rounded-t"
+                                    className={`w-12 rounded-t ${isDarkMode ? 'bg-gradient-to-t from-white to-gray-300' : 'bg-gradient-to-t from-black to-gray-700'}`}
                                     style={{ height: `${(data.users / 600) * 100}%` }}
                                 ></div>
                                 <span className="text-xs mt-2">{data.month}</span>
@@ -133,7 +135,7 @@ const AdminUserAnalytics = () => {
                     <h3 className="text-lg font-bold mb-4">User Distribution by Role</h3>
                     <div className="flex items-center justify-center h-64">
                         <div className="relative w-48 h-48">
-                            <div className="absolute inset-0 rounded-full border-8 border-blue-500"></div>
+                            <div className={`absolute inset-0 rounded-full border-8 ${isDarkMode ? 'border-white' : 'border-black'}`}></div>
                             <div className="absolute inset-0 rounded-full border-8 border-purple-500 transform -rotate-45"></div>
                             <div className="absolute inset-0 rounded-full border-8 border-green-500 transform rotate-45"></div>
                             <div className="absolute inset-0 rounded-full border-8 border-red-500 transform rotate-90"></div>
@@ -144,7 +146,7 @@ const AdminUserAnalytics = () => {
                     </div>
                     <div className="flex flex-wrap justify-center gap-4 mt-4">
                         <div className="flex items-center">
-                            <div className="w-4 h-4 bg-blue-500 rounded mr-2"></div>
+                            <div className={`w-4 h-4 rounded mr-2 ${isDarkMode ? 'bg-white' : 'bg-black'}`}></div>
                             <span className="text-sm">Users (892)</span>
                         </div>
                         <div className="flex items-center">
@@ -185,7 +187,7 @@ const AdminUserAnalytics = () => {
                         {[120, 150, 180, 140, 200, 190, 220, 210, 240, 230, 260, 250, 280, 270].map((value, index) => (
                             <div key={index} className="flex flex-col items-center flex-1">
                                 <div
-                                    className="w-full bg-gradient-to-t from-blue-500 to-blue-300 rounded-t"
+                                    className={`w-full rounded-t ${isDarkMode ? 'bg-gradient-to-t from-white to-gray-300' : 'bg-gradient-to-t from-black to-gray-700'}`}
                                     style={{ height: `${(value / 300) * 100}%` }}
                                 ></div>
                                 <span className="text-xs mt-1">{index + 1}</span>
@@ -203,7 +205,7 @@ const AdminUserAnalytics = () => {
                                 <span>85%</span>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-2">
-                                <div className="bg-blue-600 h-2 rounded-full" style={{ width: '85%' }}></div>
+                                <div className={`h-2 rounded-full ${isDarkMode ? 'bg-white' : 'bg-black'}`} style={{ width: '85%' }}></div>
                             </div>
                         </div>
                         <div>
@@ -246,7 +248,7 @@ const AdminUserAnalytics = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="flex items-center justify-center">
                         <div className="relative w-64 h-64">
-                            <div className="absolute inset-0 rounded-full border-8 border-blue-500" style={{ clipPath: 'inset(0 75% 0 0)' }}></div>
+                            <div className={`absolute inset-0 rounded-full border-8 ${isDarkMode ? 'border-white' : 'border-black'}`} style={{ clipPath: 'inset(0 75% 0 0)' }}></div>
                             <div className="absolute inset-0 rounded-full border-8 border-green-500" style={{ clipPath: 'inset(0 40% 0 25%)' }}></div>
                             <div className="absolute inset-0 rounded-full border-8 border-yellow-500" style={{ clipPath: 'inset(0 20% 0 60%)' }}></div>
                             <div className="absolute inset-0 rounded-full border-8 border-purple-500" style={{ clipPath: 'inset(0 5% 0 80%)' }}></div>
@@ -277,14 +279,14 @@ const AdminUserAnalytics = () => {
                     <h3 className="text-lg font-bold mb-4">Geographic Distribution</h3>
                     <div className="space-y-4">
                         <div className="flex items-center">
-                            <MapPin className="w-5 h-5 text-blue-500 mr-3" />
+                            <MapPin className={`w-5 h-5 mr-3 ${isDarkMode ? 'text-white' : 'text-black'}`} />
                             <div className="flex-1">
                                 <div className="flex justify-between">
                                     <span>North America</span>
                                     <span>42%</span>
                                 </div>
                                 <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
-                                    <div className="bg-blue-500 h-2 rounded-full" style={{ width: '42%' }}></div>
+                                    <div className={`h-2 rounded-full ${isDarkMode ? 'bg-white' : 'bg-black'}`} style={{ width: '42%' }}></div>
                                 </div>
                             </div>
                         </div>
@@ -333,7 +335,7 @@ const AdminUserAnalytics = () => {
                         {[30, 45, 60, 80, 120, 150, 180, 200, 180, 150, 120, 80, 60, 45, 30, 25, 20, 15, 10, 5, 8, 12, 18, 25].map((value, index) => (
                             <div key={index} className="flex flex-col items-center flex-1">
                                 <div
-                                    className="w-full bg-gradient-to-t from-blue-500 to-blue-300 rounded-t"
+                                    className={`w-full rounded-t ${isDarkMode ? 'bg-gradient-to-t from-white to-gray-300' : 'bg-gradient-to-t from-black to-gray-700'}`}
                                     style={{ height: `${(value / 200) * 100}%` }}
                                 ></div>
                                 <span className="text-xs mt-1">{index}:00</span>
@@ -352,7 +354,7 @@ const AdminUserAnalytics = () => {
                     <h3 className="text-lg font-bold mb-6">Device Platform</h3>
                     <div className="flex items-center justify-center mb-6">
                         <div className="relative w-48 h-48">
-                            <div className="absolute inset-0 rounded-full border-8 border-blue-500" style={{ clipPath: 'inset(0 35% 0 0)' }}></div>
+                            <div className={`absolute inset-0 rounded-full border-8 ${isDarkMode ? 'border-white' : 'border-black'}`} style={{ clipPath: 'inset(0 35% 0 0)' }}></div>
                             <div className="absolute inset-0 rounded-full border-8 border-green-500" style={{ clipPath: 'inset(0 5% 0 65%)' }}></div>
                             <div className="absolute inset-0 rounded-full border-8 border-yellow-500" style={{ clipPath: 'inset(0 0 0 95%)' }}></div>
                         </div>
@@ -407,8 +409,10 @@ const AdminUserAnalytics = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
                         <div className="flex items-center">
-                            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-                                <Monitor className="w-6 h-6 text-blue-600" />
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 ${isDarkMode ? 'bg-white' : 'bg-black'}`}
+                              style={isDarkMode ? { backgroundColor: '#ffffff' } : { backgroundColor: '#000000' }}
+                            >
+                                <Monitor className={`w-6 h-6 ${isDarkMode ? 'text-black' : 'text-white'}`} />
                             </div>
                             <div>
                                 <p className="font-bold">Windows</p>
@@ -468,11 +472,13 @@ const AdminUserAnalytics = () => {
                 <p className="text-gray-600">You need admin privileges to access this page.</p>
             </div>
         }>
-            <div className={`min-h-screen p-6 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+            <div className={`min-h-screen p-6 ${isDarkMode ? 'bg-[#141414] text-white' : 'bg-gray-50 text-gray-900'}`}
+              style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+            >
                 <div className="max-w-7xl mx-auto">
                     <div className="mb-8">
                         <div className="flex items-center mb-4">
-                            <Users className="w-8 h-8 mr-3 text-blue-500" />
+                            <Users className={`w-8 h-8 mr-3 ${isDarkMode ? 'text-white' : 'text-black'}`} />
                             <h1 className="text-3xl font-bold">User Analytics</h1>
                         </div>
                         <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -489,7 +495,7 @@ const AdminUserAnalytics = () => {
                                         key={tab.id}
                                         onClick={() => setActiveTab(tab.id)}
                                         className={`flex items-center px-4 py-2 rounded-lg transition-colors ${activeTab === tab.id
-                                                ? 'bg-blue-600 text-white'
+                                                ? (isDarkMode ? 'bg-[#141414] text-white border border-white' : 'bg-white text-black border border-black')
                                                 : `${isDarkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-gray-100'}`
                                             }`}
                                     >
@@ -521,7 +527,9 @@ const AdminUserAnalytics = () => {
                                 />
                             </div>
 
-                            <button className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            <button className={`flex items-center px-4 py-2 rounded-lg ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'}`}
+                              style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+                            >
                                 <Download className="w-4 h-4 mr-2" />
                                 Export
                             </button>

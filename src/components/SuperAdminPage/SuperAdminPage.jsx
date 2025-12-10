@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, Users, Pause, Play, Trash2, Plus, X, TrendingUp, DollarSign, Activity, AlertCircle, CheckCircle, Upload, Copy, Link as LinkIcon, Eye, XCircle, Settings, Phone, User, Lock, ToggleLeft, ToggleRight, Mail, Clock, MoreVertical, MessageCircle, Info } from 'lucide-react';
+import { Building2, Users, Pause, Play, Trash2, Plus, X, TrendingUp, DollarSign, Activity, AlertCircle, CheckCircle, Upload, Copy, Link as LinkIcon, Eye, XCircle, Settings, Phone, User, Lock, ToggleLeft, ToggleRight, Mail, Clock, MessageCircle, Info } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../../context/AppContext';
@@ -116,7 +116,7 @@ const SuperAdminPage = () => {
   // Don't render anything until authorized
   if (authLoading || !isAuthorized) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900">
+      <div className="min-h-screen flex items-center justify-center" style={isDarkMode ? { backgroundColor: '#141414' } : {}}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
           <p className="text-white text-lg">Verifying access...</p>
@@ -360,14 +360,22 @@ const SuperAdminPage = () => {
   };
 
   const toggleStatus = async (companyId, currentStatus) => {
-    const newStatus = currentStatus === 'active' ? 'paused' : 'active';
     try {
-      await fetch(`http://localhost:9000/api/admin/companies/${companyId}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') },
-        body: JSON.stringify({ status: newStatus })
-      });
-      setSuccess(`Company ${newStatus === 'active' ? 'activated' : 'paused'}!`);
+      if (currentStatus === 'active') {
+        // Pause the company
+        await fetch(`http://localhost:9000/api/payments/company/${companyId}/pause`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') }
+        });
+        setSuccess('Company paused successfully!');
+      } else {
+        // Reactivate the company (24-hour window)
+        await fetch(`http://localhost:9000/api/payments/company/${companyId}/play`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') }
+        });
+        setSuccess('Company reactivated for 24 hours!');
+      }
       fetchCompanies();
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
@@ -415,40 +423,53 @@ const SuperAdminPage = () => {
   };
 
   return (
-    <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
-      <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-            <div className="flex items-center gap-3">
-              <div className={`p-3 rounded-lg ${
-                isDarkMode ? 'bg-gray-800' : 'bg-gray-100'
-              }`}>
-                <Building2 size={24} className={isDarkMode ? 'text-gray-300' : 'text-gray-700'} />
+    <div className={`min-h-screen transition-all duration-500 ${
+      isDarkMode 
+        ? 'bg-[#141414]' 
+        : 'bg-gradient-to-br from-blue-50 via-white to-indigo-50'
+    }`}
+    style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+    >
+      <div className="max-w-7xl mx-auto p-6">
+        {/* Beautiful Header */}
+        <div className="mb-10">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-8">
+            <div className="flex items-center gap-5">
+              <div className={`relative p-4 rounded-2xl shadow-xl transition-all duration-300 hover:scale-105 ${
+                isDarkMode 
+                  ? 'bg-[#141414] shadow-gray-500/25' 
+                  : 'bg-white shadow-gray-500/30'
+              }`}
+              style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+              >
+                <Building2 size={32} className={isDarkMode ? 'text-white' : 'text-black'} />
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
               </div>
               <div>
-                <h1 className={`text-2xl sm:text-3xl font-bold ${
-                  isDarkMode ? 'text-white' : 'text-gray-900'
+                <h1 className={`text-4xl font-black mb-2 bg-gradient-to-r ${
+                  isDarkMode 
+                    ? 'from-white via-blue-100 to-purple-200 text-transparent bg-clip-text' 
+                    : 'from-gray-900 via-blue-800 to-indigo-900 text-transparent bg-clip-text'
                 }`}>
                   Super Admin
                 </h1>
-                <p className={`text-sm ${
-                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                <p className={`text-base font-medium ${
+                  isDarkMode ? 'text-gray-300' : 'text-gray-600'
                 }`}>
-                  Manage all companies and subscriptions
+                  ✨ Master Control Center • Manage companies with elegance
                 </p>
               </div>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-3">
               <button 
                 onClick={() => navigate('/super-admin/messages')} 
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                className={`group flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg ${
                   isDarkMode 
-                    ? 'bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700' 
-                    : 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200'
+                    ? 'bg-gray-800/80 hover:bg-gray-700 text-gray-300 border border-gray-600 backdrop-blur-sm' 
+                    : 'bg-white/80 hover:bg-white text-gray-700 border border-gray-200 backdrop-blur-sm shadow-sm'
                 }`}
               >
-                <Mail size={16} /> 
+                <Mail size={16} className="group-hover:animate-pulse" /> 
                 <span className="hidden sm:inline">Messages</span>
               </button>
               <button 
@@ -456,75 +477,86 @@ const SuperAdminPage = () => {
                   const token = new URLSearchParams(window.location.search).get('token');
                   navigate(`/super-admin/settings${token ? `?token=${token}` : ''}`);
                 }} 
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                className={`group flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg ${
                   isDarkMode 
-                    ? 'bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700' 
-                    : 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200'
+                    ? 'bg-gray-800/80 hover:bg-gray-700 text-gray-300 border border-gray-600 backdrop-blur-sm' 
+                    : 'bg-white/80 hover:bg-white text-gray-700 border border-gray-200 backdrop-blur-sm shadow-sm'
                 }`}
               >
-                <Settings size={16} /> 
+                <Settings size={16} className="group-hover:rotate-90 transition-transform duration-300" /> 
                 <span className="hidden sm:inline">Settings</span>
               </button>
               <button 
                 onClick={() => navigate('/super-admin/add-company')} 
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors border ${
+                className={`group flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all duration-300 hover:scale-105 hover:shadow-xl ${
                   isDarkMode 
-                    ? 'bg-white hover:bg-gray-100 text-gray-900 border-gray-300' 
-                    : 'bg-white hover:bg-gray-50 text-gray-900 border-gray-200'
+                    ? 'bg-[#141414] hover:bg-gray-800 text-white shadow-gray-500/25' 
+                    : 'bg-white hover:bg-gray-100 text-black shadow-gray-500/30'
                 }`}
+                style={isDarkMode ? { backgroundColor: '#141414' } : {}}
               >
-                <Plus size={16} /> 
+                <Plus size={16} className="group-hover:rotate-90 transition-transform duration-300" /> 
                 <span className="hidden sm:inline">Add Company</span>
               </button>
             </div>
           </div>
         </div>
 
-        {/* Alerts */}
+        {/* Beautiful Alerts */}
         {error && (
-          <div className={`mb-4 p-3 rounded-lg border flex items-center gap-3 ${
+          <div className={`mb-6 p-4 rounded-2xl border-2 flex items-center gap-4 animate-in slide-in-from-top-2 ${
             isDarkMode 
-              ? 'bg-red-900/20 border-red-700/30' 
-              : 'bg-red-50 border-red-200'
-          }`}>
-            <AlertCircle className={isDarkMode ? 'text-red-400' : 'text-red-600'} size={18} />
-            <span className={`flex-1 text-sm font-medium ${
+              ? 'bg-gradient-to-r from-red-900/30 to-red-800/30 border-red-600/50 shadow-red-500/25 backdrop-blur-sm' 
+              : 'bg-gradient-to-r from-red-50 to-red-100 border-red-300 shadow-red-500/25 backdrop-blur-sm'
+          } shadow-lg`}>
+            <div className={`p-2 rounded-xl ${
+              isDarkMode ? 'bg-red-600/20' : 'bg-red-100'
+            }`}>
+              <AlertCircle className={isDarkMode ? 'text-red-400' : 'text-red-600'} size={20} />
+            </div>
+            <span className={`flex-1 text-sm font-bold ${
               isDarkMode ? 'text-red-300' : 'text-red-700'
             }`}>
-              {error}
+              ⚠️ {error}
             </span>
             <button 
               onClick={() => setError('')} 
-              className={`p-1 rounded transition-colors ${
-                isDarkMode ? 'hover:bg-red-900/30' : 'hover:bg-red-100'
+              className={`p-2 rounded-xl transition-all duration-300 hover:scale-110 ${
+                isDarkMode ? 'hover:bg-red-900/30' : 'hover:bg-red-200'
               }`}
             >
-              <X size={16} className={isDarkMode ? 'text-red-400' : 'text-red-600'} />
+              <X size={18} className={isDarkMode ? 'text-red-400' : 'text-red-600'} />
             </button>
           </div>
         )}
         {success && (
-          <div className={`mb-4 p-3 rounded-lg border flex items-center gap-3 ${
+          <div className={`mb-6 p-4 rounded-2xl border-2 flex items-center gap-4 animate-in slide-in-from-top-2 ${
             isDarkMode 
-              ? 'bg-green-900/20 border-green-700/30' 
-              : 'bg-green-50 border-green-200'
-          }`}>
-            <CheckCircle className={isDarkMode ? 'text-green-400' : 'text-green-600'} size={18} />
-            <span className={`flex-1 text-sm font-medium ${
+              ? 'bg-gradient-to-r from-green-900/30 to-green-800/30 border-green-600/50 shadow-green-500/25 backdrop-blur-sm' 
+              : 'bg-gradient-to-r from-green-50 to-green-100 border-green-300 shadow-green-500/25 backdrop-blur-sm'
+          } shadow-lg`}>
+            <div className={`p-2 rounded-xl ${
+              isDarkMode ? 'bg-green-600/20' : 'bg-green-100'
+            }`}>
+              <CheckCircle className={isDarkMode ? 'text-green-400' : 'text-green-600'} size={20} />
+            </div>
+            <span className={`flex-1 text-sm font-bold ${
               isDarkMode ? 'text-green-300' : 'text-green-700'
             }`}>
-              {success}
+              ✅ {success}
             </span>
             <button 
               onClick={() => setSuccess('')} 
-              className={`p-1 rounded transition-colors ${
-                isDarkMode ? 'hover:bg-green-900/30' : 'hover:bg-green-100'
+              className={`p-2 rounded-xl transition-all duration-300 hover:scale-110 ${
+                isDarkMode ? 'hover:bg-green-900/30' : 'hover:bg-green-200'
               }`}
             >
-              <X size={16} className={isDarkMode ? 'text-green-400' : 'text-green-600'} />
+              <X size={18} className={isDarkMode ? 'text-green-400' : 'text-green-600'} />
             </button>
           </div>
         )}
+
+
 
         {/* Companies List */}
         {loading ? (
@@ -543,147 +575,64 @@ const SuperAdminPage = () => {
             </div>
           </div>
         ) : companies.length === 0 ? (
-          <div className={`text-center py-16 px-4 rounded-lg border ${
+          <div className={`text-center py-20 px-6 rounded-3xl border-2 border-dashed transition-all duration-300 hover:scale-105 ${
             isDarkMode 
-              ? 'bg-gray-800 border-gray-700' 
-              : 'bg-white border-gray-200'
+              ? 'bg-gradient-to-br from-gray-800/50 to-gray-900/50 border-gray-600 hover:border-blue-500/50 backdrop-blur-sm' 
+              : 'bg-gradient-to-br from-white/50 to-gray-50/50 border-gray-300 hover:border-blue-400 backdrop-blur-sm'
           }`}>
-            <div className={`inline-flex p-4 rounded-full mb-4 ${
-              isDarkMode ? 'bg-gray-700' : 'bg-gray-100'
+            <div className={`inline-flex p-6 rounded-full mb-6 ${
+              isDarkMode 
+                ? 'bg-gradient-to-br from-blue-600 to-purple-600 shadow-lg shadow-blue-500/25' 
+                : 'bg-gradient-to-br from-blue-600 to-indigo-600 shadow-lg shadow-blue-500/30'
             }`}>
-              <Building2 size={40} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
+              <Building2 size={48} className="text-white" />
             </div>
-            <p className={`text-lg font-semibold mb-2 ${
+            <h3 className={`text-2xl font-black mb-3 ${
               isDarkMode ? 'text-white' : 'text-gray-900'
             }`}>
-              No companies yet
-            </p>
-            <p className={`text-sm mb-6 ${
-              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+              No Companies Yet
+            </h3>
+            <p className={`text-base font-medium mb-8 max-w-md mx-auto ${
+              isDarkMode ? 'text-gray-300' : 'text-gray-600'
             }`}>
-              Create your first company to get started
+              ✨ Ready to get started? Create your first company and begin managing subscriptions with style!
             </p>
             <button 
               onClick={() => navigate('/super-admin/add-company')} 
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+              className={`group inline-flex items-center gap-3 px-8 py-4 rounded-2xl text-base font-black transition-all duration-300 hover:scale-105 hover:shadow-xl ${
                 isDarkMode 
-                  ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white shadow-blue-500/25' 
+                  : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/30'
               }`}
             >
-              <Plus size={16} /> Create First Company
+              <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" /> 
+              Create First Company
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {companies.map(company => (
               <div 
                 key={company.companyId} 
                 onClick={() => viewCompanyDetails(company.companyId)}
-                className={`group relative rounded-lg border shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer ${
+                className={`relative rounded-2xl border shadow-lg transition-all duration-300 cursor-pointer ${
                   isDarkMode 
-                    ? 'bg-gray-800 border-gray-700 hover:border-gray-600' 
-                    : 'bg-white border-gray-200 hover:border-gray-300'
+                    ? 'bg-gradient-to-br from-gray-800/90 to-gray-900/90 border-gray-700/50 backdrop-blur-sm' 
+                    : 'bg-gradient-to-br from-white/90 to-gray-50/90 border-gray-200/50 backdrop-blur-sm'
                 }`}
               >
-                {/* Three-dot menu */}
-                <div className="absolute top-3 right-3 z-10 menu-container" onClick={(e) => e.stopPropagation()}>
-                  <div className="relative">
-                    <button
-                      onClick={() => setOpenMenuId(openMenuId === company.companyId ? null : company.companyId)}
-                      className={`p-1.5 rounded-full transition-colors ${
-                        isDarkMode 
-                          ? 'hover:bg-gray-700' 
-                          : 'hover:bg-gray-100'
-                      }`}
-                    >
-                      <MoreVertical size={16} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
-                    </button>
-                    {openMenuId === company.companyId && (
-                      <div className={`absolute right-0 top-8 w-40 rounded-lg border shadow-lg z-20 ${
-                        isDarkMode 
-                          ? 'bg-gray-800 border-gray-700' 
-                          : 'bg-white border-gray-200'
-                      }`}>
-                        <button
-                          onClick={() => {
-                            viewCompanyDetails(company.companyId);
-                            setOpenMenuId(null);
-                          }}
-                          className={`w-full text-left px-4 py-2 text-sm hover:bg-opacity-50 transition-colors ${
-                            isDarkMode 
-                              ? 'hover:bg-gray-700 text-gray-300' 
-                              : 'hover:bg-gray-100 text-gray-700'
-                          } flex items-center gap-2`}
-                        >
-                          <Eye size={14} />
-                          View Details
-                        </button>
-                        <button
-                          onClick={() => {
-                            toggleStatus(company.companyId, company.status);
-                            setOpenMenuId(null);
-                          }}
-                          className={`w-full text-left px-4 py-2 text-sm hover:bg-opacity-50 transition-colors ${
-                            isDarkMode 
-                              ? 'hover:bg-gray-700 text-gray-300' 
-                              : 'hover:bg-gray-100 text-gray-700'
-                          } flex items-center gap-2`}
-                        >
-                          {(() => {
-                            // Calculate effective status based on grace period and deadline
-                            const now = new Date();
-                            const paymentDeadline = company.paymentDeadline ? new Date(company.paymentDeadline) : null;
-                            const gracePeriodDeadline = company.gracePeriodDeadline ? new Date(company.gracePeriodDeadline) : null;
-                            const deadlinePassed = paymentDeadline && now >= paymentDeadline && 
-                                                  company.paymentMode === 'paid' && !company.hasPaid;
-                            const gracePeriodExpired = gracePeriodDeadline && now >= gracePeriodDeadline && 
-                                                       company.paymentMode === 'paid' && !company.hasPaid;
-                            
-                            // If grace period expired, company should be paused
-                            const effectiveStatus = (gracePeriodExpired || company.status === 'paused') ? 'paused' : 'active';
-                            return effectiveStatus === 'active' ? (
-                              <>
-                                <Pause size={14}/>
-                                Pause
-                              </>
-                            ) : (
-                              <>
-                                <Play size={14}/>
-                                Activate
-                              </>
-                            );
-                          })()}
-                        </button>
-                        <button
-                          onClick={() => {
-                            deleteCompany(company.companyId);
-                            setOpenMenuId(null);
-                          }}
-                          className={`w-full text-left px-4 py-2 text-sm hover:bg-opacity-50 transition-colors ${
-                            isDarkMode 
-                              ? 'hover:bg-red-900/30 text-red-400' 
-                              : 'hover:bg-red-50 text-red-600'
-                          } flex items-center gap-2`}
-                        >
-                          <Trash2 size={14}/>
-                          Delete
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
 
-                {/* Card Content */}
-                <div className="p-5 pt-6">
-                  {/* Profile Picture (Logo) */}
-                  <div className="flex justify-center mb-4">
+
+                {/* Beautiful Card Content */}
+                <div className="p-6 pt-8">
+                  {/* Enhanced Profile Picture (Logo) */}
+                  <div className="flex justify-center mb-6">
                     <div className="relative">
                       {company.branding?.logo ? (
                         <img 
                           src={company.branding.logo} 
                           alt={company.name} 
-                          className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
+                          className="w-24 h-24 rounded-2xl object-cover border-3 border-white shadow-xl"
                           onError={(e) => { 
                             e.target.style.display = 'none';
                             e.target.nextElementSibling.style.display = 'flex';
@@ -691,53 +640,70 @@ const SuperAdminPage = () => {
                         />
                       ) : null}
                       <div 
-                        className={`w-20 h-20 rounded-full flex items-center justify-center border-2 ${
+                        className={`w-24 h-24 rounded-2xl flex items-center justify-center border-3 shadow-xl ${
                           isDarkMode 
-                            ? 'bg-gray-700 border-gray-600' 
-                            : 'bg-gray-100 border-gray-200'
+                            ? 'bg-gradient-to-br from-gray-700 to-gray-800 border-gray-600' 
+                            : 'bg-gradient-to-br from-gray-100 to-gray-200 border-gray-300'
                         }`}
                         style={{ display: company.branding?.logo ? 'none' : 'flex' }}
                       >
-                        <Building2 size={32} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
+                        <Building2 size={36} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
                       </div>
-                      {/* Status indicator */}
-                      <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 ${
+                      {/* Beautiful Status indicator */}
+                      <div className={`absolute -bottom-2 -right-2 w-6 h-6 rounded-full border-3 shadow-lg ${
                         isDarkMode ? 'border-gray-800' : 'border-white'
                       } ${
-                        company.status === 'active' ? 'bg-green-500' : 'bg-gray-400'
-                      }`}></div>
+                        company.status === 'active' 
+                          ? 'bg-gradient-to-r from-green-400 to-green-500 animate-pulse' 
+                          : 'bg-gradient-to-r from-gray-400 to-gray-500'
+                      }`}>
+                        <div className={`absolute inset-1 rounded-full ${
+                          company.status === 'active' ? 'bg-green-300 animate-ping' : 'bg-gray-300'
+                        }`}></div>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Company Name */}
-                  <h3 className={`text-base font-bold text-center mb-1 ${
+                  {/* Beautiful Company Name */}
+                  <h3 className={`text-lg font-black text-center mb-2 ${
                     isDarkMode ? 'text-white' : 'text-gray-900'
                   }`}>
                     {company.name}
                   </h3>
 
-                  {/* Admin Email (like role) */}
-                  <p className={`text-xs text-center mb-3 ${
-                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                  {/* Enhanced Admin Email */}
+                  <p className={`text-sm text-center mb-4 font-medium ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-600'
                   }`}>
                     {company.adminEmail}
                   </p>
 
-                  {/* Company ID */}
-                  <div className={`text-xs text-center mb-2 px-2 py-1 rounded-md ${
+                  {/* Beautiful Company ID */}
+                  <div className={`text-xs text-center mb-3 px-3 py-2 rounded-xl font-mono font-bold ${
                     isDarkMode 
-                      ? 'bg-gray-700/50 text-gray-300' 
-                      : 'bg-gray-100 text-gray-600'
+                      ? 'bg-gradient-to-r from-gray-700 to-gray-800 text-gray-200 border border-gray-600' 
+                      : 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 border border-gray-300'
                   }`}>
                     {company.companyId}
                   </div>
 
+                  {/* Status Badge */}
+                  <div className="flex justify-center mb-4">
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${
+                      company.status === 'active'
+                        ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-green-500/25'
+                        : 'bg-gradient-to-r from-gray-500 to-gray-600 text-white shadow-gray-500/25'
+                    } shadow-lg`}>
+                      {company.status === 'active' ? '🟢 Active' : '⏸️ Paused'}
+                    </span>
+                  </div>
+
                   {/* Created Date */}
                   {company.createdAt && (
-                    <p className={`text-xs text-center mb-4 ${
-                      isDarkMode ? 'text-gray-500' : 'text-gray-500'
+                    <p className={`text-xs text-center mb-6 font-medium ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-500'
                     }`}>
-                      {new Date(company.createdAt).toLocaleDateString('en-US', { 
+                      📅 Created {new Date(company.createdAt).toLocaleDateString('en-US', { 
                         month: 'short', 
                         day: 'numeric', 
                         year: 'numeric' 
@@ -745,55 +711,79 @@ const SuperAdminPage = () => {
                     </p>
                   )}
 
-                  {/* Action Icons */}
-                  <div className={`flex justify-center gap-3 pt-3 border-t ${
-                    isDarkMode ? 'border-gray-700' : 'border-gray-200'
+                  {/* Action Buttons */}
+                  <div className={`grid grid-cols-2 gap-3 pt-6 mt-4 border-t ${
+                    isDarkMode ? 'border-gray-700/50' : 'border-gray-200/50'
                   }`}>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (company.adminPhone) {
-                          window.location.href = `tel:${company.adminPhone}`;
-                        }
+                        // Use actual company status for toggle
+                        toggleStatus(company.companyId, company.status);
                       }}
-                      className={`p-2 rounded-full transition-colors ${
-                        isDarkMode 
-                          ? 'hover:bg-gray-700 text-gray-400' 
-                          : 'hover:bg-gray-100 text-gray-500'
-                      } ${!company.adminPhone ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      title="Call Admin"
+                      className={`flex items-center justify-center gap-2 px-4 py-3 border-2 rounded-lg text-sm font-semibold transition-all duration-200 shadow-sm hover:shadow-md ${
+                        isDarkMode ? 'bg-gray-800' : 'bg-white'
+                      } ${
+                        (() => {
+                          // Calculate effective status for styling
+                          const now = new Date();
+                          const paymentDeadline = company.paymentDeadline ? new Date(company.paymentDeadline) : null;
+                          const gracePeriodDeadline = company.gracePeriodDeadline ? new Date(company.gracePeriodDeadline) : null;
+                          const deadlinePassed = paymentDeadline && now >= paymentDeadline && 
+                                                company.paymentMode === 'paid' && !company.hasPaid;
+                          const gracePeriodExpired = gracePeriodDeadline && now >= gracePeriodDeadline && 
+                                                     company.paymentMode === 'paid' && !company.hasPaid;
+                          
+                          const effectiveStatus = (gracePeriodExpired || company.status === 'paused') ? 'paused' : 'active';
+                          
+                          return effectiveStatus === 'active'
+                            ? isDarkMode
+                              ? 'border-orange-500 text-orange-400 hover:bg-orange-900/20'
+                              : 'border-orange-500 text-orange-600 hover:bg-orange-50'
+                            : isDarkMode
+                              ? 'border-green-500 text-green-400 hover:bg-green-900/20'
+                              : 'border-green-500 text-green-600 hover:bg-green-50';
+                        })()
+                      }`}
                     >
-                      <Phone size={16} />
+                      {(() => {
+                        // Calculate effective status based on grace period and deadline
+                        const now = new Date();
+                        const paymentDeadline = company.paymentDeadline ? new Date(company.paymentDeadline) : null;
+                        const gracePeriodDeadline = company.gracePeriodDeadline ? new Date(company.gracePeriodDeadline) : null;
+                        const deadlinePassed = paymentDeadline && now >= paymentDeadline && 
+                                              company.paymentMode === 'paid' && !company.hasPaid;
+                        const gracePeriodExpired = gracePeriodDeadline && now >= gracePeriodDeadline && 
+                                                   company.paymentMode === 'paid' && !company.hasPaid;
+                        
+                        // If grace period expired, company should be paused
+                        const effectiveStatus = (gracePeriodExpired || company.status === 'paused') ? 'paused' : 'active';
+                        return effectiveStatus === 'active' ? (
+                          <>
+                            <Pause size={16}/>
+                            Pause
+                          </>
+                        ) : (
+                          <>
+                            <Play size={16}/>
+                            Activate
+                          </>
+                        );
+                      })()}
                     </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (company.adminEmail) {
-                          window.location.href = `mailto:${company.adminEmail}`;
-                        }
+                        deleteCompany(company.companyId);
                       }}
-                      className={`p-2 rounded-full transition-colors ${
+                      className={`flex items-center justify-center gap-2 px-4 py-3 border-2 border-red-500 rounded-lg text-sm font-semibold transition-all duration-200 shadow-sm hover:shadow-md ${
                         isDarkMode 
-                          ? 'hover:bg-gray-700 text-gray-400' 
-                          : 'hover:bg-gray-100 text-gray-500'
+                          ? 'bg-gray-800 text-red-400 hover:bg-red-900/20' 
+                          : 'bg-white text-red-600 hover:bg-red-50'
                       }`}
-                      title="Email Admin"
                     >
-                      <Mail size={16} />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        viewCompanyDetails(company.companyId);
-                      }}
-                      className={`p-2 rounded-full transition-colors ${
-                        isDarkMode 
-                          ? 'hover:bg-gray-700 text-gray-400' 
-                          : 'hover:bg-gray-100 text-gray-500'
-                      }`}
-                      title="View Details"
-                    >
-                      <Info size={16} />
+                      <Trash2 size={16}/>
+                      Delete
                     </button>
                   </div>
                 </div>

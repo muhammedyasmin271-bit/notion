@@ -112,7 +112,9 @@ const HomePage = () => {
   ];
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'bg-black text-white' : 'bg-white text-gray-900'}`}>
+    <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'bg-[#141414] text-white' : 'bg-white text-gray-900'}`}
+      style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+    >
       {/* Top Navigation Bar */}
       <div className={`${isDarkMode ? 'bg-gray-900' : 'bg-gray-900'} text-white`}>
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-4">

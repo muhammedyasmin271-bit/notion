@@ -48,8 +48,10 @@ const AdminDataManagement = () => {
                             <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Data Size</p>
                             <p className="text-3xl font-bold mt-2">{dataStats.totalSize}</p>
                         </div>
-                        <div className="p-3 bg-blue-100 rounded-xl">
-                            <Database className="w-8 h-8 text-blue-600" />
+                        <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-white' : 'bg-black'}`}
+                          style={isDarkMode ? { backgroundColor: '#ffffff' } : { backgroundColor: '#000000' }}
+                        >
+                            <Database className={`w-8 h-8 ${isDarkMode ? 'text-black' : 'text-white'}`} />
                         </div>
                     </div>
                 </div>
@@ -84,7 +86,7 @@ const AdminDataManagement = () => {
                 <h3 className="text-lg font-bold mb-4">File Type Distribution</h3>
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                     <div className={`p-4 rounded-lg text-center ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-                        <FileText className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+                        <FileText className={`w-8 h-8 mx-auto mb-2 ${isDarkMode ? 'text-white' : 'text-black'}`} />
                         <p className="font-bold">{dataStats.documents}</p>
                         <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Documents</p>
                     </div>
@@ -125,7 +127,7 @@ const AdminDataManagement = () => {
                                 <span>1.2 GB (50%)</span>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-2">
-                                <div className="bg-blue-600 h-2 rounded-full" style={{ width: '50%' }}></div>
+                                <div className={`h-2 rounded-full ${isDarkMode ? 'bg-white' : 'bg-black'}`} style={{ width: '50%' }}></div>
                             </div>
                         </div>
 
@@ -176,7 +178,7 @@ const AdminDataManagement = () => {
 
                         <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
                             <div className="flex items-center">
-                                <FileText className="w-5 h-5 text-blue-500 mr-3" />
+                                <FileText className={`w-5 h-5 mr-3 ${isDarkMode ? 'text-white' : 'text-black'}`} />
                                 <div>
                                     <p className="font-medium">New document uploaded</p>
                                     <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>5 hours ago</p>
@@ -204,7 +206,9 @@ const AdminDataManagement = () => {
             <div className={`p-6 rounded-2xl shadow-lg ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
                 <div className="flex items-center justify-between mb-6">
                     <h3 className="text-xl font-bold">Backup Management</h3>
-                    <button className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    <button className={`flex items-center px-4 py-2 rounded-lg ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'}`}
+                      style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+                    >
                         <RefreshCw className="w-4 h-4 mr-2" />
                         Create Backup
                     </button>
@@ -251,7 +255,7 @@ const AdminDataManagement = () => {
                                     </td>
                                     <td className="py-3 px-4">
                                         <div className="flex space-x-2">
-                                            <button className="p-2 rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200">
+                                            <button className={`p-2 rounded-lg ${isDarkMode ? 'bg-white/20 text-white hover:bg-white/30' : 'bg-black/20 text-black hover:bg-black/30'}`}>
                                                 <Download className="w-4 h-4" />
                                             </button>
                                             <button className="p-2 rounded-lg bg-green-100 text-green-700 hover:bg-green-200">
@@ -433,7 +437,9 @@ const AdminDataManagement = () => {
                             </div>
                         </div>
 
-                        <button className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        <button className={`w-full flex items-center justify-center px-4 py-2 rounded-lg ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'}`}
+                          style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+                        >
                             <Upload className="w-4 h-4 mr-2" />
                             Import Data
                         </button>
@@ -466,11 +472,13 @@ const AdminDataManagement = () => {
                 <p className="text-gray-600">You need admin privileges to access this page.</p>
             </div>
         }>
-            <div className={`min-h-screen p-6 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+            <div className={`min-h-screen p-6 ${isDarkMode ? 'bg-[#141414] text-white' : 'bg-gray-50 text-gray-900'}`}
+              style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+            >
                 <div className="max-w-7xl mx-auto">
                     <div className="mb-8">
                         <div className="flex items-center mb-4">
-                            <Database className="w-8 h-8 mr-3 text-blue-500" />
+                            <Database className={`w-8 h-8 mr-3 ${isDarkMode ? 'text-white' : 'text-black'}`} />
                             <h1 className="text-3xl font-bold">Data Management</h1>
                         </div>
                         <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -492,7 +500,7 @@ const AdminDataManagement = () => {
                                                     key={tab.id}
                                                     onClick={() => setActiveTab(tab.id)}
                                                     className={`w-full flex items-center px-4 py-3 rounded-lg text-left transition-colors ${activeTab === tab.id
-                                                            ? 'bg-blue-100 text-blue-700'
+                                                            ? (isDarkMode ? 'bg-white/20 text-white' : 'bg-black/20 text-black')
                                                             : `${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`
                                                         }`}
                                                 >

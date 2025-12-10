@@ -9,35 +9,25 @@ const Company = require('../models/Company');
 const auth = require('../middleware/auth');
 
 /**
- * Calculate the base date for payment period extension, considering remaining time
- * from paymentPeriodEnd, gracePeriodDeadline, or paymentDeadline.
- * Uses the maximum future date among these to preserve remaining time.
+ * Calculate the base date for payment period extension.
+ * Only preserves remaining time from actual paid periods, not trial or grace periods.
  * @param {Object} company - Company object with payment dates
  * @param {Date} now - Current date
- * @returns {Date} - Base date to extend from (includes remaining time)
+ * @returns {Date} - Base date to extend from (only includes remaining paid time)
  */
 function calculatePaymentBaseDate(company, now) {
-  let baseDate = now;
-
-  // Collect all future dates
-  const futureDates = [now];
-
-  if (company.paymentPeriodEnd && new Date(company.paymentPeriodEnd) > now) {
-    futureDates.push(new Date(company.paymentPeriodEnd));
+  // Only preserve remaining time from paymentPeriodEnd if it's a paid period
+  // Don't preserve time from trial periods, grace periods, or 24-hour deadlines
+  if (company.paymentPeriodEnd && 
+      new Date(company.paymentPeriodEnd) > now && 
+      company.hasPaid && 
+      company.lastPaymentDate) {
+    // Only use paymentPeriodEnd if there was an actual payment
+    return new Date(company.paymentPeriodEnd);
   }
 
-  if (company.gracePeriodDeadline && new Date(company.gracePeriodDeadline) > now) {
-    futureDates.push(new Date(company.gracePeriodDeadline));
-  }
-
-  if (company.paymentDeadline && new Date(company.paymentDeadline) > now) {
-    futureDates.push(new Date(company.paymentDeadline));
-  }
-
-  // Use the maximum (latest) date among all future dates
-  baseDate = new Date(Math.max(...futureDates.map(d => d.getTime())));
-
-  return baseDate;
+  // For new payments or expired periods, start from now
+  return now;
 }
 
 // Configure multer for file uploads
@@ -196,9 +186,14 @@ router.post('/company/:companyId/pause', auth, async (req, res) => {
       return res.status(404).json({ message: 'Company not found' });
     }
 
-    company.status = 'suspended';
-    company.pausedAt = new Date();
-    company.deadlineStart = new Date();
+    const now = new Date();
+    company.status = 'paused';
+    company.pausedAt = now;
+    company.deadlineStart = now;
+    // Clear payment deadlines when paused
+    company.paymentDeadline = null;
+    company.gracePeriodDeadline = null;
+    company.paymentCountdownStart = null;
     await company.save();
 
     res.json({ message: 'Company paused successfully', company });
@@ -225,7 +220,9 @@ router.post('/company/:companyId/play', auth, async (req, res) => {
     const now = new Date();
     company.status = 'active';
     company.unpausedAt = now;
-    company.paymentDeadline = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
+    company.paymentDeadline = new Date(now.getTime() + 24 * 60 * 60 * 1000); // Exactly 24 hours
+    company.gracePeriodDeadline = new Date(company.paymentDeadline.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days grace
+    company.paymentCountdownStart = now; // Set countdown start
     company.deadlineStart = null; // Reset deadline counter
     await company.save();
 
@@ -346,10 +343,10 @@ router.put('/:id/verify', auth, async (req, res) => {
           currentPaymentDeadline: company.paymentDeadline
         });
         
-        // Calculate base date considering remaining time from paymentPeriodEnd, gracePeriodDeadline, or paymentDeadline
+        // Calculate base date - only preserve remaining time from actual paid periods
         const baseDate = calculatePaymentBaseDate(company, now);
         
-        // Extend payment period from the base date (which includes any remaining time)
+        // Extend payment period from the base date
         const newPeriodEnd = new Date(baseDate);
         newPeriodEnd.setMonth(newPeriodEnd.getMonth() + monthsToAdd);
         company.paymentPeriodEnd = newPeriodEnd;
@@ -787,10 +784,10 @@ router.post('/chapa/callback', async (req, res) => {
           });
           
           if (monthsToAdd > 0) {
-            // For paid subscriptions, start from today (no trial time preservation)
-            const baseDate = now;
+            // Calculate base date - only preserve remaining time from actual paid periods
+            const baseDate = calculatePaymentBaseDate(company, now);
             
-            // Extend payment period from the base date (which includes any remaining time)
+            // Extend payment period from the base date
             company.paymentPeriodEnd = new Date(baseDate);
             company.paymentPeriodEnd.setMonth(company.paymentPeriodEnd.getMonth() + monthsToAdd);
             
@@ -976,10 +973,10 @@ router.get('/chapa/verify/:tx_ref', auth, async (req, res) => {
             });
             
             if (monthsToAdd > 0) {
-              // Calculate base date considering remaining time from paymentPeriodEnd, gracePeriodDeadline, or paymentDeadline
+              // Calculate base date - only preserve remaining time from actual paid periods
               const baseDate = calculatePaymentBaseDate(company, now);
               
-              // Extend payment period from the base date (which includes any remaining time)
+              // Extend payment period from the base date
               company.paymentPeriodEnd = new Date(baseDate);
               company.paymentPeriodEnd.setMonth(company.paymentPeriodEnd.getMonth() + monthsToAdd);
               

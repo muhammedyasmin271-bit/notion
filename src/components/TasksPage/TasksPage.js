@@ -688,7 +688,9 @@ const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'P
 
   return (
     <>
-    <div className={`${embedded ? '' : `${isDarkMode ? 'bg-black text-gray-100' : 'bg-white text-black'} min-h-screen font-sans`}`}>
+    <div className={`${embedded ? '' : `${isDarkMode ? 'bg-[#141414] text-gray-100' : 'bg-white text-black'} min-h-screen font-sans`}`}
+      style={!embedded && isDarkMode ? { backgroundColor: '#141414' } : {}}
+    >
       <div className={embedded ? 'p-4' : 'max-w-6xl mx-auto px-4 py-8'}>
         {!embedded && (
           <div className={`flex items-center justify-between mb-4 sm:mb-8 p-3 sm:p-6 rounded-xl sm:rounded-2xl ${isDarkMode ? 'bg-gradient-to-r from-gray-900/80 to-gray-800/80 border border-gray-700/50' : 'bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border border-blue-100/50'} backdrop-blur-sm shadow-lg`}>

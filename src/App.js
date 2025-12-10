@@ -78,9 +78,11 @@ const Layout = ({ children, hideNav = false }) => {
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${isDarkMode
-      ? 'bg-black text-white'
+      ? 'bg-[#141414] text-white'
       : 'bg-white text-gray-900'
-      }`}>
+      }`}
+      style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+    >
       {!hideNav && <NavBar />}
       <div className="app-content">
         {children}

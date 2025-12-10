@@ -64,16 +64,76 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
   // Get companyId from URL params, query params, or user context
   const companyId = params.companyId || searchParams.get('company') || user?.companyId || localStorage.getItem('currentCompanyId');
 
+  // Status Selector Component
+  const StatusSelector = ({ status, onChange, isFullscreen, isDarkMode }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef(null);
+
+    const statusOptions = [
+      { value: 'Not started', label: 'Not started', hoverColor: isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100' },
+      { value: 'In Progress', label: 'In Progress', hoverColor: isDarkMode ? 'hover:bg-blue-500/20' : 'hover:bg-blue-50' },
+      { value: 'On hold', label: 'On Hold', hoverColor: isDarkMode ? 'hover:bg-yellow-500/20' : 'hover:bg-yellow-50' },
+      { value: 'Done', label: 'Completed', hoverColor: isDarkMode ? 'hover:bg-green-500/20' : 'hover:bg-green-50' }
+    ];
+
+    const currentStatus = statusOptions.find(option => option.value === status) || statusOptions[0];
+
+    useEffect(() => {
+      const handleClickOutside = (event) => {
+        if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+          setIsOpen(false);
+        }
+      };
+
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }, []);
+
+    return (
+      <div className="relative" ref={dropdownRef}>
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} rounded font-medium flex items-center gap-1.5 bg-transparent focus:outline-none ${isFullscreen ? 'min-w-[120px]' : 'min-w-[100px]'} ${isDarkMode ? 'hover:bg-gray-800/50' : 'hover:bg-gray-100/50'} transition-colors`}
+        >
+          <span className={`${isDarkMode ? 'text-gray-100' : 'text-black'}`}>{currentStatus.label}</span>
+          <ChevronDown className={`h-3 w-3 ml-auto transition-transform ${isOpen ? 'rotate-180' : ''} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+        </button>
+
+        {isOpen && (
+          <div className={`absolute right-0 mt-1 rounded-xl shadow-2xl z-50 overflow-hidden ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} w-full`}>
+            <div className="py-1">
+              {statusOptions.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => {
+                    onChange(option.value);
+                    setIsOpen(false);
+                  }}
+                  className={`w-full flex items-center px-3 py-2 text-left ${option.hoverColor} transition-colors ${isDarkMode ? 'text-gray-200' : 'text-black'}`}
+                >
+                  <span className={`font-medium ${isDarkMode ? 'text-gray-200' : 'text-black'}`}>{option.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // Priority Selector Component
   const PrioritySelector = ({ priority, onChange, isFullscreen, isDarkMode }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
 
     const priorityOptions = [
-      { value: 'Critical', label: 'Critical', color: 'bg-red-500', textColor: 'text-red-500', hoverColor: 'hover:bg-red-500/20' },
-      { value: 'High', label: 'High', color: 'bg-orange-500', textColor: 'text-orange-500', hoverColor: 'hover:bg-orange-500/20' },
-      { value: 'Medium', label: 'Medium', color: 'bg-yellow-500', textColor: 'text-yellow-500', hoverColor: 'hover:bg-yellow-500/20' },
-      { value: 'Low', label: 'Low', color: 'bg-green-500', textColor: 'text-green-500', hoverColor: 'hover:bg-green-500/20' }
+      { value: 'Critical', label: 'Critical', color: 'bg-red-500', textColor: 'text-red-500', hoverColor: isDarkMode ? 'hover:bg-red-500/20' : 'hover:bg-red-50' },
+      { value: 'High', label: 'High', color: 'bg-orange-500', textColor: 'text-orange-500', hoverColor: isDarkMode ? 'hover:bg-orange-500/20' : 'hover:bg-orange-50' },
+      { value: 'Medium', label: 'Medium', color: 'bg-yellow-500', textColor: 'text-yellow-500', hoverColor: isDarkMode ? 'hover:bg-yellow-500/20' : 'hover:bg-yellow-50' },
+      { value: 'Low', label: 'Low', color: 'bg-green-500', textColor: 'text-green-500', hoverColor: isDarkMode ? 'hover:bg-green-500/20' : 'hover:bg-green-50' }
     ];
 
     const currentPriority = priorityOptions.find(option => option.value === priority) || priorityOptions[2]; // Default to Medium
@@ -96,14 +156,14 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} rounded font-medium flex items-center gap-1.5 bg-transparent focus:outline-none ${isFullscreen ? 'min-w-[120px]' : 'min-w-[100px]'}`}
+          className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} rounded font-medium flex items-center gap-1.5 bg-transparent focus:outline-none ${isFullscreen ? 'min-w-[120px]' : 'min-w-[100px]'} ${isDarkMode ? 'hover:bg-gray-800/50' : 'hover:bg-gray-100/50'} transition-colors`}
         >
           <span className={`${isDarkMode ? 'text-gray-100' : 'text-black'}`}>{currentPriority.label}</span>
-          <ChevronDown className={`h-3 w-3 ml-auto ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+          <ChevronDown className={`h-3 w-3 ml-auto transition-transform ${isOpen ? 'rotate-180' : ''} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
         </button>
 
         {isOpen && (
-          <div className={`absolute right-0 mt-1 rounded-xl shadow-2xl z-50 overflow-hidden backdrop-blur-xl bg-transparent w-full`}>
+          <div className={`absolute right-0 mt-1 rounded-xl shadow-2xl z-50 overflow-hidden ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} w-full`}>
             <div className="py-1">
               {priorityOptions.map((option) => (
                 <button
@@ -112,7 +172,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                     onChange(option.value);
                     setIsOpen(false);
                   }}
-                  className={`w-full flex items-center px-3 py-2 text-left ${option.hoverColor} transition-colors`}
+                  className={`w-full flex items-center px-3 py-2 text-left ${option.hoverColor} transition-colors ${isDarkMode ? 'text-gray-200' : 'text-black'}`}
                 >
                   <span className={`font-medium ${isDarkMode ? 'text-gray-200' : 'text-black'}`}>{option.label}</span>
                 </button>
@@ -2690,7 +2750,9 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
 
   if (loading) {
     return (
-      <div className={`${isDarkMode ? 'bg-black text-gray-100' : 'bg-white text-black'} min-h-screen font-sans flex items-center justify-center`}>
+      <div className={`${isDarkMode ? 'bg-[#141414] text-gray-100' : 'bg-white text-black'} min-h-screen font-sans flex items-center justify-center`}
+        style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+      >
         <div className="text-xl">Loading...</div>
       </div>
     );
@@ -2698,7 +2760,9 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
 
   if (!project) {
     return (
-      <div className={`${isDarkMode ? 'bg-black text-gray-100' : 'bg-white text-black'} min-h-screen font-sans flex items-center justify-center`}>
+      <div className={`${isDarkMode ? 'bg-[#141414] text-gray-100' : 'bg-white text-black'} min-h-screen font-sans flex items-center justify-center`}
+        style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+      >
         <div className="text-xl">Project not found</div>
       </div>
     );
@@ -2708,7 +2772,9 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
     <>
       {/* Show ProjectsPage at full size when not in fullscreen mode */}
       {!isFullscreen && (
-        <div className={`fixed top-0 left-0 lg:left-64 w-full lg:w-[calc(100%-16rem)] h-screen ${isDarkMode ? 'bg-black' : 'bg-white'} z-0`}>
+        <div className={`fixed top-0 left-0 lg:left-64 w-full lg:w-[calc(100%-16rem)] h-screen ${isDarkMode ? 'bg-[#141414]' : 'bg-white'} z-0`}
+          style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+        >
           <ProjectsPage />
           {/* Overlay to detect clicks on ProjectsPage and close detail page */}
           <div
@@ -2721,9 +2787,11 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
         </div>
       )}
 
-      <div className={`${isDarkMode ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-gray-100 border-l border-gray-700/50' : 'bg-white text-gray-900 border-l border-gray-200'} font-sans antialiased fixed top-0 z-20 transition-all duration-300 h-screen overflow-y-auto shadow-2xl ${isFullscreen ? 'left-0 w-full' : 'right-0 w-full md:w-1/2'
-        }`}>
-        <div className={`sticky top-0 z-40 backdrop-blur-sm transition-all duration-300 border-b ${isDarkMode ? 'bg-gray-900/95 border-gray-800' : 'bg-white/95 border-gray-200'} ${isFullscreen ? 'px-2 sm:px-4 md:px-10 lg:px-64' : 'px-2 sm:px-4 md:px-6'
+      <div className={`${isDarkMode ? 'bg-[#141414] text-gray-100 border-l border-gray-700/50' : 'bg-white text-gray-900 border-l border-gray-200'} font-sans antialiased fixed top-0 z-20 transition-all duration-300 h-screen overflow-y-auto shadow-2xl ${isFullscreen ? 'left-0 w-full' : 'right-0 w-full md:w-1/2'
+        }`}
+        style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+      >
+        <div className={`sticky top-0 z-40 backdrop-blur-sm transition-all duration-300 border-b ${isDarkMode ? 'bg-[#141414]/95 border-gray-800' : 'bg-white/95 border-gray-200'} ${isFullscreen ? 'px-2 sm:px-4 md:px-10 lg:px-64' : 'px-2 sm:px-4 md:px-6'
           }`}>
           <div className="flex items-center justify-between h-12 sm:h-14 gap-2">
             <div className="flex items-center gap-1 sm:gap-2">
@@ -2867,22 +2935,20 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                         <CheckCircle className="h-4 w-4 text-gray-500 flex-shrink-0" />
                         <span className="text-gray-600 font-medium text-xs sm:text-sm">Status</span>
                       </div>
-                      <select
-                        value={project.status}
-                        onChange={(e) => {
-                          if (canCreateProjects()) {
-                            updateProject('status', e.target.value);
-                          } else {
-                            handleStatusUpdate(e.target.value);
-                          }
-                        }}
-                        className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm'} rounded font-medium bg-transparent ${isDarkMode ? 'text-white' : 'text-black'} focus:outline-none w-full sm:w-auto ${isFullscreen ? 'sm:min-w-[120px]' : ''}`}
-                      >
-                        <option value="Not started">Not started</option>
-                        <option value="In Progress">In Progress</option>
-                        <option value="On hold">On Hold</option>
-                        <option value="Done">Completed</option>
-                      </select>
+                      {canCreateProjects() ? (
+                        <StatusSelector
+                          status={project.status}
+                          onChange={(value) => {
+                            updateProject('status', value);
+                          }}
+                          isFullscreen={isFullscreen}
+                          isDarkMode={isDarkMode}
+                        />
+                      ) : (
+                        <span className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm'} rounded font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                          {project.status || 'Not started'}
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-0">
@@ -3059,7 +3125,9 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                     Templates
                   </button>
                   {showTemplates && (
-                    <div className={`absolute right-0 top-full mt-2 w-80 rounded-xl shadow-xl border z-50 ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'} max-h-96 overflow-y-auto`}>
+                    <div className={`absolute right-0 top-full mt-2 w-80 rounded-xl shadow-xl border z-50 ${isDarkMode ? 'bg-[#141414] border-gray-700' : 'bg-white border-gray-200'} max-h-96 overflow-y-auto`}
+                      style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+                    >
                       <div className="p-3">
                         <h4 className={`text-sm font-semibold mb-3 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Project Templates</h4>
                         <div className="space-y-2">
@@ -3151,7 +3219,9 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
 
 
             {showAIAssistant && (
-              <div className={`mt-6 rounded-xl border transition-all duration-200 ${isDarkMode ? 'bg-gray-900/80 border-gray-700/50 backdrop-blur-lg' : 'bg-white border-gray-200 backdrop-blur-sm'} shadow-lg`}>
+              <div className={`mt-6 rounded-xl border transition-all duration-200 ${isDarkMode ? 'bg-[#141414]/80 border-gray-700/50 backdrop-blur-lg' : 'bg-white border-gray-200 backdrop-blur-sm'} shadow-lg`}
+                style={isDarkMode ? { backgroundColor: 'rgba(20, 20, 20, 0.8)' } : {}}
+              >
                 <div className="p-4">
                   <div className="flex items-center gap-2 mb-3">
                     <div className={`p-1.5 rounded-md ${isDarkMode ? 'bg-blue-900/30' : 'bg-blue-100'}`}>
@@ -3183,7 +3253,8 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       {(showUserPicker || showViewerPicker) && (
         <div
           ref={userPickerRef}
-          className={`fixed w-72 border rounded-xl shadow-xl z-[9999] max-h-64 overflow-y-auto ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'}`}
+          className={`fixed w-72 border rounded-xl shadow-xl z-[9999] max-h-64 overflow-y-auto ${isDarkMode ? 'bg-[#141414] border-gray-700' : 'bg-white border-gray-200'}`}
+          style={isDarkMode ? { backgroundColor: '#141414' } : {}}
           style={{
             right: '20px',
             top: '50%',
@@ -3381,7 +3452,9 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       {/* AI Input - Notion Style */}
       {
         showAIPopup && (
-          <div className={`fixed bottom-24 right-6 z-[9999] w-96 rounded-xl shadow-2xl border transition-all duration-200 transform animate-in slide-in-from-bottom-2 ${isDarkMode ? 'bg-gray-900/95 border-gray-700/80 backdrop-blur-xl' : 'bg-white border-gray-200 backdrop-blur-lg'}`}>
+          <div className={`fixed bottom-24 right-6 z-[9999] w-96 rounded-xl shadow-2xl border transition-all duration-200 transform animate-in slide-in-from-bottom-2 ${isDarkMode ? 'bg-[#141414]/95 border-gray-700/80 backdrop-blur-xl' : 'bg-white border-gray-200 backdrop-blur-lg'}`}
+            style={isDarkMode ? { backgroundColor: 'rgba(20, 20, 20, 0.95)' } : {}}
+          >
             <div className="p-4">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
@@ -3442,7 +3515,8 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
         showFormattingMenu && (
           <div
             ref={formattingMenuRef}
-            className={`absolute z-50 mt-1 rounded-xl shadow-xl border overflow-hidden ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'}`}
+            className={`absolute z-50 mt-1 rounded-xl shadow-xl border overflow-hidden ${isDarkMode ? 'bg-[#141414] border-gray-700' : 'bg-white border-gray-200'}`}
+            style={isDarkMode ? { backgroundColor: '#141414' } : {}}
             style={{
               minWidth: '280px',
               maxHeight: '400px',

@@ -177,7 +177,9 @@ const InviteMembersPage = () => {
   };
 
   return (
-    <div className={`ml-64 p-8 min-h-screen ${isDarkMode ? 'bg-black text-white' : 'bg-gray-50 text-gray-900'}`}>
+    <div className={`ml-64 p-8 min-h-screen ${isDarkMode ? 'bg-[#141414] text-white' : 'bg-gray-50 text-gray-900'}`}
+      style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+    >
       <PageHeader
         title="Invite Members"
         subtitle="Manage team invitations and member access"

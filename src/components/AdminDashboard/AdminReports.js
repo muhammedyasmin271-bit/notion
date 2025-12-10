@@ -36,7 +36,7 @@ const AdminReports = () => {
 
     const projectMetricsData = [
         { status: 'Completed', count: 24, color: 'bg-green-500' },
-        { status: 'In Progress', count: 32, color: 'bg-blue-500' },
+        { status: 'In Progress', count: 32, color: isDarkMode ? 'bg-white' : 'bg-black' },
         { status: 'Pending', count: 12, color: 'bg-yellow-500' },
         { status: 'On Hold', count: 8, color: 'bg-red-500' }
     ];
@@ -61,11 +61,13 @@ const AdminReports = () => {
                             <p className={`text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Users</p>
                             <p className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>1,248</p>
                         </div>
-                        <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-blue-600' : 'bg-blue-100'}`}>
-                            <Users className={`w-8 h-8 ${isDarkMode ? 'text-white' : 'text-blue-600'}`} />
+                        <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-white' : 'bg-black'}`}
+                          style={isDarkMode ? { backgroundColor: '#ffffff' } : { backgroundColor: '#000000' }}
+                        >
+                            <Users className={`w-8 h-8 ${isDarkMode ? 'text-black' : 'text-white'}`} />
                         </div>
                     </div>
-                    <div className="h-1 rounded-full bg-blue-500 mt-4"></div>
+                    <div className={`h-1 rounded-full mt-4 ${isDarkMode ? 'bg-white' : 'bg-black'}`}></div>
                 </div>
 
                 <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} p-6`}>
@@ -116,7 +118,7 @@ const AdminReports = () => {
                             <div key={index} className="flex flex-col items-center flex-1">
                                 <div className="flex items-end justify-center w-full h-48">
                                     <div
-                                        className="w-3/4 bg-gradient-to-t from-blue-500 to-blue-300 rounded-t"
+                                        className={`w-3/4 rounded-t ${isDarkMode ? 'bg-gradient-to-t from-white to-gray-300' : 'bg-gradient-to-t from-black to-gray-700'}`}
                                         style={{ height: `${(data.activeUsers / 70) * 100}%` }}
                                     ></div>
                                 </div>
@@ -131,7 +133,7 @@ const AdminReports = () => {
                     <div className="flex items-center justify-center h-64">
                         <div className="relative w-48 h-48">
                             <div className="absolute inset-0 rounded-full border-8 border-green-500"></div>
-                            <div className="absolute inset-0 rounded-full border-8 border-blue-500 transform -rotate-45"></div>
+                            <div className={`absolute inset-0 rounded-full border-8 transform -rotate-45 ${isDarkMode ? 'border-white' : 'border-black'}`}></div>
                             <div className="absolute inset-0 rounded-full border-8 border-yellow-500 transform rotate-45"></div>
                             <div className="absolute inset-0 rounded-full border-8 border-red-500 transform rotate-90"></div>
                             <div className="absolute inset-0 flex items-center justify-center">
@@ -175,8 +177,10 @@ const AdminReports = () => {
                                 <tr key={item} className={`border-b ${isDarkMode ? 'border-gray-700 hover:bg-gray-700/50' : 'border-gray-200 hover:bg-gray-50'} transition-colors`}>
                                     <td className="py-4 px-6">
                                         <div className="flex items-center">
-                                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center mr-3 ${isDarkMode ? 'bg-blue-600' : 'bg-blue-100'}`}>
-                                                <span className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-blue-700'}`}>U</span>
+                                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center mr-3 ${isDarkMode ? 'bg-white' : 'bg-black'}`}
+                                              style={isDarkMode ? { backgroundColor: '#ffffff' } : { backgroundColor: '#000000' }}
+                                            >
+                                                <span className={`text-sm font-bold ${isDarkMode ? 'text-black' : 'text-white'}`}>U</span>
                                             </div>
                                             <div>
                                                 <div className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>User {item}</div>
@@ -270,13 +274,17 @@ const AdminReports = () => {
                 </div>
             </div>
         }>
-            <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+            <div className={`min-h-screen ${isDarkMode ? 'bg-[#141414]' : 'bg-gray-50'}`}
+              style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+            >
                 <div className="max-w-7xl mx-auto p-6">
                     {/* Header */}
                     <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} p-6 mb-6`}>
                         <div className="flex items-center gap-4 mb-2">
-                            <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-blue-600' : 'bg-blue-100'}`}>
-                                <BarChart3 className={`w-6 h-6 ${isDarkMode ? 'text-white' : 'text-blue-700'}`} />
+                            <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-white' : 'bg-black'}`}
+                              style={isDarkMode ? { backgroundColor: '#ffffff' } : { backgroundColor: '#000000' }}
+                            >
+                                <BarChart3 className={`w-6 h-6 ${isDarkMode ? 'text-black' : 'text-white'}`} />
                             </div>
                             <div>
                                 <h1 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Admin Reports</h1>
@@ -299,7 +307,7 @@ const AdminReports = () => {
                                             onClick={() => setActiveTab(tab.id)}
                                             className={`flex items-center px-4 py-2 rounded-lg font-semibold transition-colors ${
                                                 activeTab === tab.id
-                                                    ? 'bg-blue-600 text-white'
+                                                    ? (isDarkMode ? 'bg-[#141414] text-white border border-white' : 'bg-white text-black border border-black')
                                                     : isDarkMode
                                                         ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                                                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -320,7 +328,7 @@ const AdminReports = () => {
                                         isDarkMode 
                                             ? 'bg-gray-700 border-gray-600 text-white' 
                                             : 'bg-white border-gray-300 text-gray-900'
-                                    } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                                    } focus:outline-none focus:ring-2 ${isDarkMode ? 'focus:ring-white' : 'focus:ring-black'}`}
                                 >
                                     <option value="last7days">Last 7 Days</option>
                                     <option value="last30days">Last 30 Days</option>
@@ -337,7 +345,7 @@ const AdminReports = () => {
                                             isDarkMode 
                                                 ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
                                                 : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                                        } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                                        } focus:outline-none focus:ring-2 ${isDarkMode ? 'focus:ring-white' : 'focus:ring-black'}`}
                                     />
                                 </div>
 

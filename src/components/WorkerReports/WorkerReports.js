@@ -94,14 +94,18 @@ const WorkerReports = () => {
 
   if (loading) {
     return (
-      <div className={`min-h-screen ${isDarkMode ? 'bg-black text-white' : 'bg-gray-50 text-gray-900'} flex items-center justify-center`}>
+      <div className={`min-h-screen ${isDarkMode ? 'bg-[#141414] text-white' : 'bg-gray-50 text-gray-900'} flex items-center justify-center`}
+        style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+      >
         <div className="text-xl">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className={`min-h-screen ${isDarkMode ? 'bg-black text-white' : 'bg-gray-50 text-gray-900'}`}>
+    <div className={`min-h-screen ${isDarkMode ? 'bg-[#141414] text-white' : 'bg-gray-50 text-gray-900'}`}
+      style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+    >
       <div className="max-w-4xl mx-auto p-6">
         <div className="flex items-center gap-4 mb-8">
           <button

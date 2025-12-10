@@ -46,8 +46,10 @@ const MeetingDetailPage = ({ meeting, onClose, onUpdate, isNewMeeting }) => {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className={`w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden ${
-        isDarkMode ? 'bg-gray-900 border border-gray-700' : 'bg-white border border-gray-200'
-      }`}>
+        isDarkMode ? 'bg-[#141414] border border-gray-700' : 'bg-white border border-gray-200'
+      }`}
+      style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+      >
         {/* Header */}
         <div className={`p-6 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
           <div className="flex items-center justify-between">

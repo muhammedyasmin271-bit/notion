@@ -349,10 +349,11 @@ router.patch('/companies/:companyId/payment-mode', auth, isSuperAdmin, async (re
     if (paymentMode === 'paid' && currentMode === 'free') {
       // Switching from free to paid - start 24-hour countdown
       updateData.paymentCountdownStart = now;
-      updateData.paymentDeadline = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
+      updateData.paymentDeadline = new Date(now.getTime() + 24 * 60 * 60 * 1000); // Exactly 24 hours
       updateData.gracePeriodDeadline = new Date(updateData.paymentDeadline.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days grace after payment deadline
       updateData.status = 'active';
       updateData.hasPaid = false; // Ensure hasPaid is false when switching to paid mode
+      updateData.deadlineStart = null; // Clear any old deadline data
       
       console.log(`✅ Company ${company.name} switched to PAID mode - 24 hour countdown started`);
       console.log(`   Payment deadline: ${updateData.paymentDeadline}`);
@@ -361,6 +362,7 @@ router.patch('/companies/:companyId/payment-mode', auth, isSuperAdmin, async (re
       updateData.paymentCountdownStart = null;
       updateData.paymentDeadline = null;
       updateData.gracePeriodDeadline = null;
+      updateData.deadlineStart = null;
       updateData.status = 'active'; // Ensure company is active when switching to free
       
       console.log(`✅ Company ${company.name} switched to FREE mode - no payment required`);
@@ -378,7 +380,8 @@ router.patch('/companies/:companyId/payment-mode', auth, isSuperAdmin, async (re
       countdown: paymentMode === 'paid' && currentMode === 'free' ? {
         started: updateData.paymentCountdownStart,
         deadline: updateData.paymentDeadline,
-        hoursRemaining: 24
+        hoursRemaining: 24,
+        minutesRemaining: 0
       } : null
     });
   } catch (error) {
@@ -415,23 +418,34 @@ router.get('/companies/:companyId/payment-status', auth, isSuperAdmin, async (re
       hoursRemaining: null,
       minutesRemaining: null,
       deadline: null,
-      isFree: paymentMode === 'free'
+      isFree: paymentMode === 'free',
+      expired: false
     };
 
-    if (paymentMode === 'paid' && company.paymentCountdownStart && company.paymentDeadline) {
-      const timeRemaining = company.paymentDeadline.getTime() - now.getTime();
-      
-      if (timeRemaining > 0) {
-        status.isCountingDown = true;
-        status.hoursRemaining = Math.floor(timeRemaining / (1000 * 60 * 60));
-        status.minutesRemaining = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
-        status.deadline = company.paymentDeadline;
-      } else {
-        // Countdown expired
-        status.isCountingDown = false;
-        status.hoursRemaining = 0;
-        status.minutesRemaining = 0;
-        status.expired = true;
+    if (paymentMode === 'paid' && !company.hasPaid) {
+      // Check if company has a valid payment deadline
+      if (company.paymentDeadline) {
+        const timeRemaining = new Date(company.paymentDeadline).getTime() - now.getTime();
+        
+        if (timeRemaining > 0) {
+          // Still within payment window
+          status.isCountingDown = true;
+          status.hoursRemaining = Math.max(0, Math.floor(timeRemaining / (1000 * 60 * 60)));
+          status.minutesRemaining = Math.max(0, Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60)));
+          status.deadline = company.paymentDeadline;
+          
+          // Ensure we don't show more than 24 hours for a 24-hour window
+          if (status.hoursRemaining > 24) {
+            status.hoursRemaining = 24;
+            status.minutesRemaining = 0;
+          }
+        } else {
+          // Payment deadline expired
+          status.isCountingDown = false;
+          status.hoursRemaining = 0;
+          status.minutesRemaining = 0;
+          status.expired = true;
+        }
       }
     }
 
@@ -456,13 +470,17 @@ router.patch('/companies/:companyId/unpause', auth, isSuperAdmin, async (req, re
     }
 
     // Unpause the company
-    company.status = 'active';
-    company.unpausedAt = new Date();
-    
-    // Give 24 hours to pay after unpause
     const now = new Date();
+    company.status = 'active';
+    company.unpausedAt = now;
+    
+    // Give exactly 24 hours to pay after unpause
     company.paymentDeadline = new Date(now.getTime() + 24 * 60 * 60 * 1000);
     company.gracePeriodDeadline = new Date(company.paymentDeadline.getTime() + 7 * 24 * 60 * 60 * 1000);
+    
+    // Clear any old countdown data
+    company.paymentCountdownStart = now;
+    company.deadlineStart = null;
     
     await company.save();
 

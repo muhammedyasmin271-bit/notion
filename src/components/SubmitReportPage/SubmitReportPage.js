@@ -6,6 +6,7 @@ import { ArrowLeft, Send, Paperclip, X, Bug, Lightbulb, Shield, Zap, MessageSqua
 
 // Share Report Component
 const ShareReportSection = ({ reportData, selectedUsers, setSelectedUsers }) => {
+  const { isDarkMode } = useTheme();
   const [showDropdown, setShowDropdown] = useState(false);
   const [users, setUsers] = useState([]);
   const [isSharing, setIsSharing] = useState(false);
@@ -76,7 +77,9 @@ const ShareReportSection = ({ reportData, selectedUsers, setSelectedUsers }) => 
       {selectedUsers.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-3">
           {getSelectedUserNames().map(name => (
-            <span key={name} className="px-3 py-1 bg-blue-600 text-white text-sm rounded-full flex items-center gap-2">
+            <span key={name} className={`px-3 py-1 text-sm rounded-full flex items-center gap-2 ${isDarkMode ? 'bg-[#141414] text-white border border-white' : 'bg-white text-black border border-black'}`}
+              style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+            >
               {name}
               <button
                 type="button"
@@ -86,7 +89,7 @@ const ShareReportSection = ({ reportData, selectedUsers, setSelectedUsers }) => 
                     setSelectedUsers(prev => prev.filter(id => id !== userId));
                   }
                 }}
-                className="hover:bg-blue-700 rounded-full p-0.5"
+                className={`rounded-full p-0.5 ${isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-100'}`}
               >
                 <X className="w-3 h-3" />
               </button>
@@ -98,7 +101,8 @@ const ShareReportSection = ({ reportData, selectedUsers, setSelectedUsers }) => 
         <button
           type="button"
           onClick={() => setShowDropdown(!showDropdown)}
-          className="w-full flex items-center justify-between px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all duration-200 font-medium"
+          className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 font-medium ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'}`}
+          style={isDarkMode ? { backgroundColor: '#141414' } : {}}
         >
           <div className="flex items-center gap-2">
             <Share2 className="w-5 h-5" />
@@ -128,14 +132,16 @@ const ShareReportSection = ({ reportData, selectedUsers, setSelectedUsers }) => 
                       );
                     }}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-gray-700 rounded-lg transition-colors ${
-                      isSelected ? 'bg-blue-600/20 border border-blue-500/30' : ''
+                      isSelected ? (isDarkMode ? 'bg-white/20 border border-white/30' : 'bg-black/20 border border-black/30') : ''
                     }`}
                   >
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-medium text-sm ${
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-medium text-sm ${
                       isSelected 
-                        ? 'bg-blue-600' 
-                        : 'bg-gradient-to-r from-blue-500 to-purple-500'
-                    }`}>
+                        ? (isDarkMode ? 'bg-white text-black' : 'bg-black text-white')
+                        : (isDarkMode ? 'bg-white text-black' : 'bg-black text-white')
+                    }`}
+                    style={isSelected ? (isDarkMode ? { backgroundColor: '#ffffff' } : { backgroundColor: '#000000' }) : (isDarkMode ? { backgroundColor: '#ffffff' } : { backgroundColor: '#000000' })}
+                    >
                       {isSelected ? '✓' : user.name.charAt(0)}
                     </div>
                     <div className="flex-1">
@@ -313,7 +319,7 @@ const SubmitReportPage = () => {
     { value: 'feature', label: 'Feature Request', icon: Lightbulb, color: 'text-yellow-400' },
     { value: 'performance', label: 'Performance Issue', icon: Zap, color: 'text-orange-400' },
     { value: 'security', label: 'Security Concern', icon: Shield, color: 'text-purple-400' },
-    { value: 'feedback', label: 'General Feedback', icon: MessageSquare, color: 'text-blue-400' }
+    { value: 'feedback', label: 'General Feedback', icon: MessageSquare, color: 'text-gray-400' }
   ];
 
   const priorities = [
@@ -689,7 +695,7 @@ const SubmitReportPage = () => {
                                 onChange={(e) => updateCell(rowIndex, colIndex, e.target.value)}
                                 placeholder={rowIndex === 0 ? `Column ${colIndex + 1}` : ''}
                                 rows={Math.max(1, cell.split('\n').length)}
-                                className={`w-full h-full min-h-[32px] border-0 border-none outline-none bg-transparent text-sm resize-none p-2 rounded transition-all duration-200 ${rowIndex === 0 ? `font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}` : `${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`} ${isDarkMode ? 'focus:bg-blue-900/20' : 'focus:bg-blue-100/30'} hover:bg-opacity-30`}
+                                className={`w-full h-full min-h-[32px] border-0 border-none outline-none bg-transparent text-sm resize-none p-2 rounded transition-all duration-200 ${rowIndex === 0 ? `font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}` : `${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`} ${isDarkMode ? 'focus:bg-white/20' : 'focus:bg-black/30'} hover:bg-opacity-30`}
                                 style={{
                                   height: savedHeight + 'px',
                                   minHeight: '32px',
@@ -731,7 +737,9 @@ const SubmitReportPage = () => {
             </div>
             {/* Column controls - Right side */}
             <div className="absolute top-1/2 -right-6 transform -translate-y-1/2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button onClick={addColumn} className={`w-5 h-5 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all bg-blue-600 hover:bg-blue-700 text-white`} title="Add column">
+              <button onClick={addColumn} className={`w-5 h-5 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'}`}
+                style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+                title="Add column">
                 <Plus className="w-3 h-3" />
               </button>
               {table.cols > 1 && (
@@ -742,7 +750,9 @@ const SubmitReportPage = () => {
             </div>
             {/* Row controls - Bottom */}
             <div className="absolute left-1/2 -bottom-6 transform -translate-x-1/2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button onClick={addRow} className={`w-5 h-5 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all bg-blue-600 hover:bg-blue-700 text-white`} title="Add row">
+              <button onClick={addRow} className={`w-5 h-5 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'}`}
+                style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+                title="Add row">
                 <Plus className="w-3 h-3" />
               </button>
               {table.rows > 1 && (
@@ -783,7 +793,7 @@ const SubmitReportPage = () => {
 
     if (block.type === 'callout') {
       const calloutTypes = {
-        info: { bg: 'bg-blue-900/20', border: 'border-blue-500/30', icon: Info, color: 'text-blue-400' },
+        info: { bg: isDarkMode ? 'bg-white/20' : 'bg-black/20', border: isDarkMode ? 'border-white/30' : 'border-black/30', icon: Info, color: isDarkMode ? 'text-white' : 'text-black' },
         warning: { bg: 'bg-yellow-900/20', border: 'border-yellow-500/30', icon: AlertTriangle, color: 'text-yellow-400' },
         error: { bg: 'bg-red-900/20', border: 'border-red-500/30', icon: AlertCircle, color: 'text-red-400' },
         success: { bg: 'bg-green-900/20', border: 'border-green-500/30', icon: CheckCircle, color: 'text-green-400' },
@@ -984,8 +994,10 @@ const SubmitReportPage = () => {
       };
 
       return (
-        <div className="flex items-center gap-2 p-2 bg-blue-900/20 border border-blue-500/30 rounded">
-          <Calendar className="w-4 h-4 text-blue-400" />
+        <div className={`flex items-center gap-2 p-2 rounded ${isDarkMode ? 'bg-white/20 border border-white/30' : 'bg-black/20 border border-black/30'}`}
+          style={isDarkMode ? { backgroundColor: 'rgba(255, 255, 255, 0.2)' } : { backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+        >
+          <Calendar className={`w-4 h-4 ${isDarkMode ? 'text-white' : 'text-black'}`} />
           <input
             ref={(el) => inputRefs.current[block.id] = el}
             type="date"
@@ -995,7 +1007,7 @@ const SubmitReportPage = () => {
             className={`bg-transparent ${isDarkMode ? 'text-white' : 'text-black'} focus:outline-none`}
             style={{ colorScheme: 'dark' }}
           />
-          <span className="text-blue-300 text-sm">{formatDate(block.content)}</span>
+          <span className={`text-sm ${isDarkMode ? 'text-white' : 'text-black'}`}>{formatDate(block.content)}</span>
         </div>
       );
     }
@@ -1068,7 +1080,7 @@ const SubmitReportPage = () => {
       const highlightColors = {
         yellow: { bg: 'bg-yellow-900/30', border: 'border-yellow-500/50', text: 'text-yellow-200' },
         green: { bg: 'bg-green-900/30', border: 'border-green-500/50', text: 'text-green-200' },
-        blue: { bg: 'bg-blue-900/30', border: 'border-blue-500/50', text: 'text-blue-200' },
+        blue: { bg: isDarkMode ? 'bg-white/30' : 'bg-black/30', border: isDarkMode ? 'border-white/50' : 'border-black/50', text: isDarkMode ? 'text-white' : 'text-black' },
         red: { bg: 'bg-red-900/30', border: 'border-red-500/50', text: 'text-red-200' },
         purple: { bg: 'bg-purple-900/30', border: 'border-purple-500/50', text: 'text-purple-200' }
       };
@@ -1109,8 +1121,10 @@ const SubmitReportPage = () => {
 
     if (block.type === 'link') {
       return (
-        <div className="flex items-center gap-2 p-2 bg-blue-900/20 border border-blue-500/30 rounded">
-          <Link className="w-4 h-4 text-blue-400" />
+        <div className={`flex items-center gap-2 p-2 rounded ${isDarkMode ? 'bg-white/20 border border-white/30' : 'bg-black/20 border border-black/30'}`}
+          style={isDarkMode ? { backgroundColor: 'rgba(255, 255, 255, 0.2)' } : { backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+        >
+          <Link className={`w-4 h-4 ${isDarkMode ? 'text-white' : 'text-black'}`} />
           <input
             ref={(el) => inputRefs.current[block.id] = el}
             type="text"
@@ -1118,7 +1132,7 @@ const SubmitReportPage = () => {
             onChange={(e) => updateBlockContent(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Link text..."
-            className="flex-1 bg-transparent text-blue-300 placeholder-gray-400 focus:outline-none"
+            className={`flex-1 bg-transparent placeholder-gray-400 focus:outline-none ${isDarkMode ? 'text-white' : 'text-black'}`}
           />
           <input
             type="url"
@@ -1137,7 +1151,7 @@ const SubmitReportPage = () => {
 
     if (block.type === 'tag') {
       const tagColors = {
-        blue: { bg: 'bg-blue-900/30', border: 'border-blue-500/50', text: 'text-blue-300' },
+        blue: { bg: isDarkMode ? 'bg-white/30' : 'bg-black/30', border: isDarkMode ? 'border-white/50' : 'border-black/50', text: isDarkMode ? 'text-white' : 'text-black' },
         green: { bg: 'bg-green-900/30', border: 'border-green-500/50', text: 'text-green-300' },
         red: { bg: 'bg-red-900/30', border: 'border-red-500/50', text: 'text-red-300' },
         yellow: { bg: 'bg-yellow-900/30', border: 'border-yellow-500/50', text: 'text-yellow-300' },
@@ -1468,9 +1482,11 @@ const SubmitReportPage = () => {
   return (
     <div className={`min-h-screen transition-colors duration-200 ${
       isDarkMode 
-        ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white' 
+        ? 'bg-[#141414] text-white' 
         : 'bg-white text-gray-900'
-    }`}>
+    }`}
+    style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+    >
       <div className="max-w-full mx-auto px-1 sm:px-2 py-4 sm:py-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 mb-8 sm:mb-12">
@@ -1488,7 +1504,7 @@ const SubmitReportPage = () => {
             <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">{isEditMode ? 'Edit Report' : 'Submit Report'}</h1>
+            <h1 className={`text-2xl sm:text-4xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>{isEditMode ? 'Edit Report' : 'Submit Report'}</h1>
             <p className={`mt-1 sm:mt-2 text-sm sm:text-lg ${
               isDarkMode ? 'text-gray-400' : 'text-gray-600'
             }`}>{isEditMode ? 'View and edit your report content' : 'Help us improve by reporting issues or suggesting features'}</p>
@@ -1498,7 +1514,8 @@ const SubmitReportPage = () => {
               <button
                 type="button"
                 onClick={() => setShowTemplateDropdown(!showTemplateDropdown)}
-                className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
+                className={`w-full sm:w-auto px-3 sm:px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm sm:text-base ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'}`}
+                style={isDarkMode ? { backgroundColor: '#141414' } : {}}
                 title="Templates"
               >
                 <FileText className="w-4 h-4" />
@@ -1520,7 +1537,7 @@ const SubmitReportPage = () => {
                   <div className="p-2 space-y-1">
                     <div className="text-xs text-gray-400 px-2 py-1 font-medium">BUSINESS REPORTS</div>
                     <button type="button" onClick={() => { if (!report.title) setReport(prev => ({ ...prev, title: 'Quarterly Business Review - Q4 2024' })); const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: 'Executive Summary', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'This quarterly review covers our performance metrics, key achievements, and strategic initiatives for Q4 2024.', style: {} }, { id: `block-${Date.now()}-3`, type: 'heading2', content: 'Key Performance Indicators', style: {} }, { id: `block-${Date.now()}-4`, type: 'bullet', content: '• Revenue: $2.4M (12% increase from Q3)', style: {} }, { id: `block-${Date.now()}-5`, type: 'bullet', content: '• Customer Acquisition: 450 new customers (28% growth)', style: {} }, { id: `block-${Date.now()}-6`, type: 'bullet', content: '• Customer Satisfaction: 4.8/5.0 rating', style: {} }, { id: `block-${Date.now()}-7`, type: 'heading2', content: 'Major Achievements', style: {} }, { id: `block-${Date.now()}-8`, type: 'numbered', content: '1. Successfully launched new product line', style: {} }, { id: `block-${Date.now()}-9`, type: 'numbered', content: '2. Expanded to European markets', style: {} }, { id: `block-${Date.now()}-10`, type: 'numbered', content: '3. Achieved SOC 2 compliance certification', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(false); }} className="w-full flex items-start gap-3 px-3 py-2.5 text-left hover:bg-gray-700 rounded-lg text-gray-300 transition-colors">
-                      <BarChart3 className="w-4 h-4 text-blue-400 mt-0.5" />
+                      <BarChart3 className={`w-4 h-4 mt-0.5 ${isDarkMode ? 'text-white' : 'text-black'}`} />
                       <div>
                         <div className="font-medium text-sm">Quarterly Business Review</div>
                         <div className="text-xs text-gray-400 mt-0.5">Comprehensive quarterly performance analysis with KPIs and achievements</div>
@@ -1703,7 +1720,7 @@ const SubmitReportPage = () => {
                                 {/* FUNCTIONAL BLOCKS HEADING */}
                                 <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-2">FUNCTIONAL BLOCKS</div>
                                 <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'date', content: new Date().toISOString().split('T')[0], style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
-                                  <Calendar className="w-4 h-4 text-blue-400" /> Date
+                                  <Calendar className={`w-4 h-4 ${isDarkMode ? 'text-white' : 'text-black'}`} /> Date
                                 </button>
                                 <button type="button" onClick={() => { const newBlocks = [...blocks]; const now = new Date(); const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0'); newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'time', content: timeStr, style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
                                   <Clock className="w-4 h-4 text-green-400" /> Time
@@ -1712,7 +1729,7 @@ const SubmitReportPage = () => {
                                 {/* CALLOUT BLOCKS HEADING */}
                                 <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-2">CALLOUT BLOCKS</div>
                                 <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'callout', calloutType: 'info', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
-                                  <Info className="w-4 h-4 text-blue-400" /> Info Callout
+                                  <Info className={`w-4 h-4 ${isDarkMode ? 'text-white' : 'text-black'}`} /> Info Callout
                                 </button>
                                 <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'callout', calloutType: 'warning', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
                                   <AlertTriangle className="w-4 h-4 text-yellow-400" /> Warning Callout
@@ -1733,7 +1750,7 @@ const SubmitReportPage = () => {
                                   <Palette className="w-4 h-4 text-yellow-400" /> Highlight Text
                                 </button>
                                 <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'link', content: '', url: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
-                                  <Link className="w-4 h-4 text-blue-400" /> Link
+                                  <Link className={`w-4 h-4 ${isDarkMode ? 'text-white' : 'text-black'}`} /> Link
                                 </button>
                                 <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'bookmark', content: '', url: '', title: '', description: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
                                   <Bookmark className="w-4 h-4 text-indigo-400" /> Bookmark
@@ -1744,7 +1761,7 @@ const SubmitReportPage = () => {
                                 {/* ORGANIZATIONAL BLOCKS HEADING */}
                                 <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-2">ORGANIZATIONAL</div>
                                 <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'tag', content: '', tagColor: 'blue', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
-                                  <Tag className="w-4 h-4 text-blue-400" /> Tag
+                                  <Tag className={`w-4 h-4 ${isDarkMode ? 'text-white' : 'text-black'}`} /> Tag
                                 </button>
                                 <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'flag', content: '', flagColor: 'red', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
                                   <Flag className="w-4 h-4 text-red-400" /> Flag
@@ -1880,7 +1897,9 @@ const SubmitReportPage = () => {
             <label className={`block text-sm font-semibold mb-4 ${
               isDarkMode ? 'text-gray-300' : 'text-gray-700'
             }`}>Attachments</label>
-            <div className={`border-2 border-dashed rounded-xl p-8 hover:border-blue-500 transition-all duration-300 group ${
+            <div className={`border-2 border-dashed rounded-xl p-8 transition-all duration-300 group ${
+              isDarkMode ? 'hover:border-white' : 'hover:border-black'
+            } ${
               isDarkMode ? 'border-gray-600' : 'border-gray-300'
             }`}>
               <input
@@ -1895,8 +1914,8 @@ const SubmitReportPage = () => {
                 htmlFor="file-upload"
                 className="flex flex-col items-center justify-center gap-3 cursor-pointer text-gray-400 hover:text-white transition-all duration-200"
               >
-                <div className="p-4 rounded-full bg-gray-700/50 group-hover:bg-blue-500/20 transition-all duration-300">
-                  <Upload className="w-8 h-8 group-hover:text-blue-400" />
+                <div className={`p-4 rounded-full bg-gray-700/50 transition-all duration-300 ${isDarkMode ? 'group-hover:bg-white/20' : 'group-hover:bg-black/20'}`}>
+                  <Upload className={`w-8 h-8 ${isDarkMode ? 'group-hover:text-white' : 'group-hover:text-black'}`} />
                 </div>
                 <div className="text-center">
                   <div className="font-medium">Click to upload files</div>
@@ -1920,10 +1939,10 @@ const SubmitReportPage = () => {
                           alert('File not available');
                         }
                       }}
-                      className="flex items-center gap-3 flex-1 text-left hover:text-blue-300 transition-colors"
+                      className={`flex items-center gap-3 flex-1 text-left transition-colors ${isDarkMode ? 'hover:text-white' : 'hover:text-black'}`}
                     >
-                      <div className="p-2 rounded-lg bg-blue-500/20">
-                        <FileText className="w-4 h-4 text-blue-400" />
+                      <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-white/20' : 'bg-black/20'}`}>
+                        <FileText className={`w-4 h-4 ${isDarkMode ? 'text-white' : 'text-black'}`} />
                       </div>
                       <div>
                         <div className="text-sm font-medium">{file.name}</div>
@@ -2007,7 +2026,8 @@ const SubmitReportPage = () => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 text-white"
+                className={`w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all disabled:bg-gray-700 ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'}`}
+                style={isDarkMode ? { backgroundColor: '#141414' } : {}}
               >
                 {isSubmitting ? (
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

@@ -248,7 +248,9 @@ const CompanySettings = () => {
             )}
           </div>
           <div className="flex-1">
-            <label className="cursor-pointer inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+            <label className={`cursor-pointer inline-flex items-center px-4 py-2 rounded-lg transition-colors ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'}`}
+              style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+            >
               <Upload className="w-4 h-4 mr-2" />
               Upload Logo
               <input
@@ -276,7 +278,7 @@ const CompanySettings = () => {
           className={`w-full px-4 py-3 rounded-lg border ${isDarkMode
             ? 'bg-gray-800 border-gray-700 text-white'
             : 'bg-white border-gray-300 text-gray-900'
-            } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+            } focus:ring-2 ${isDarkMode ? 'focus:ring-white' : 'focus:ring-black'} focus:border-transparent`}
         />
       </div>
 
@@ -298,7 +300,7 @@ const CompanySettings = () => {
             className={`flex-1 px-4 py-3 rounded-lg border ${isDarkMode
               ? 'bg-gray-800 border-gray-700 text-white'
               : 'bg-white border-gray-300 text-gray-900'
-              } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+              } focus:ring-2 ${isDarkMode ? 'focus:ring-white' : 'focus:ring-black'} focus:border-transparent`}
           />
         </div>
       </div>
@@ -307,7 +309,8 @@ const CompanySettings = () => {
       <div className="pt-4">
         <button
           onClick={handleSaveBranding}
-          className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className={`flex items-center px-6 py-3 rounded-lg transition-colors ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'}`}
+          style={isDarkMode ? { backgroundColor: '#141414' } : {}}
         >
           <Save className="w-5 h-5 mr-2" />
           Save Branding
@@ -331,7 +334,7 @@ const CompanySettings = () => {
             className={`w-full pl-12 pr-4 py-3 rounded-lg border ${isDarkMode
               ? 'bg-gray-800 border-gray-700 text-white'
               : 'bg-white border-gray-300 text-gray-900'
-              } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+              } focus:ring-2 ${isDarkMode ? 'focus:ring-white' : 'focus:ring-black'} focus:border-transparent`}
           />
         </div>
       </div>
@@ -349,7 +352,7 @@ const CompanySettings = () => {
             className={`w-full pl-12 pr-4 py-3 rounded-lg border ${isDarkMode
               ? 'bg-gray-800 border-gray-700 text-white'
               : 'bg-white border-gray-300 text-gray-900'
-              } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+              } focus:ring-2 ${isDarkMode ? 'focus:ring-white' : 'focus:ring-black'} focus:border-transparent`}
           />
         </div>
       </div>
@@ -358,7 +361,8 @@ const CompanySettings = () => {
       <div className="pt-4">
         <button
           onClick={handleSaveContact}
-          className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className={`flex items-center px-6 py-3 rounded-lg transition-colors ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'}`}
+          style={isDarkMode ? { backgroundColor: '#141414' } : {}}
         >
           <Save className="w-5 h-5 mr-2" />
           Save Contact Info
@@ -423,8 +427,10 @@ const CompanySettings = () => {
                   Limit: {stats.users?.limit || 50}
                 </p>
               </div>
-              <div className="p-3 rounded-xl bg-blue-100">
-                <Users className="w-8 h-8 text-blue-600" />
+              <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-white' : 'bg-black'}`}
+                style={isDarkMode ? { backgroundColor: '#ffffff' } : { backgroundColor: '#000000' }}
+              >
+                <Users className={`w-8 h-8 ${isDarkMode ? 'text-black' : 'text-white'}`} />
               </div>
             </div>
           </div>
@@ -484,7 +490,9 @@ const CompanySettings = () => {
 
   if (loading) {
     return (
-      <div className={`min-h-screen p-6 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+      <div className={`min-h-screen p-6 ${isDarkMode ? 'bg-[#141414] text-white' : 'bg-gray-50 text-gray-900'}`}
+        style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+      >
         <div className="max-w-5xl mx-auto">
           <div className="animate-pulse">
             <div className="h-8 bg-gray-300 rounded w-1/3 mb-4"></div>
@@ -503,12 +511,14 @@ const CompanySettings = () => {
         <p className="text-gray-600">You need admin privileges to access company settings.</p>
       </div>
     }>
-      <div className={`min-h-screen p-6 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+      <div className={`min-h-screen p-6 ${isDarkMode ? 'bg-[#141414] text-white' : 'bg-gray-50 text-gray-900'}`}
+        style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+      >
         <div className="max-w-5xl mx-auto">
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center mb-4">
-              <Settings className="w-8 h-8 mr-3 text-blue-500" />
+              <Settings className={`w-8 h-8 mr-3 ${isDarkMode ? 'text-white' : 'text-black'}`} />
               <h1 className="text-3xl font-bold">Company Settings</h1>
             </div>
             <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -540,7 +550,7 @@ const CompanySettings = () => {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex-1 px-6 py-4 font-medium flex items-center justify-center transition-colors ${activeTab === tab.id
-                    ? 'bg-blue-600 text-white'
+                    ? (isDarkMode ? 'bg-[#141414] text-white border border-white' : 'bg-white text-black border border-black')
                     : isDarkMode
                       ? 'text-gray-400 hover:text-white hover:bg-gray-750'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'

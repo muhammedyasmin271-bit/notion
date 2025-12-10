@@ -147,7 +147,9 @@ const SuperAdminSettings = () => {
   };
 
   return (
-    <div className={`min-h-screen p-6 ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
+    <div className={`min-h-screen p-6 ${isDarkMode ? 'bg-[#141414]' : 'bg-white'}`}
+      style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+    >
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">

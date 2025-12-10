@@ -266,12 +266,15 @@ const NavBar = () => {
       {/* Sidebar Navigation */}
       <nav
         ref={navRef}
-        className={`${isDarkMode ? 'bg-gray-900' : 'bg-white'} transition-all duration-300 ease-in-out border-r ${isDarkMode ? 'border-gray-800' : 'border-gray-200'} w-64 min-h-screen fixed z-50 lg:translate-x-0 ${
+        className={`${isDarkMode ? 'bg-[#141414]' : 'bg-white'} transition-all duration-300 ease-in-out border-r ${isDarkMode ? 'border-gray-800' : 'border-gray-200'} w-64 min-h-screen fixed z-50 lg:translate-x-0 ${
           isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         } flex flex-col overflow-hidden`}
+        style={isDarkMode ? { backgroundColor: '#141414' } : {}}
       >
         {/* Header Section with Logo and Company Name */}
-        <div className={`${isDarkMode ? 'bg-gray-900' : 'bg-white'} flex-shrink-0 border-b ${isDarkMode ? 'border-gray-800' : 'border-gray-200'}`}>
+        <div className={`${isDarkMode ? 'bg-[#141414]' : 'bg-white'} flex-shrink-0 border-b ${isDarkMode ? 'border-gray-800' : 'border-gray-200'}`}
+          style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+        >
           {/* Logo, Company Name, and Theme Toggle */}
           <div className="flex items-center justify-between gap-3 px-4 py-4">
             <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -287,7 +290,7 @@ const NavBar = () => {
                     : "/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png"
                 }
                 alt={`${company?.name || 'Company'} Logo`}
-                className="h-8 w-8 object-contain flex-shrink-0"
+                className={`h-8 w-8 object-contain flex-shrink-0 ${isDarkMode ? 'filter invert' : ''}`}
                 onError={(e) => {
                   // Fallback to default logo if image fails to load
                   e.target.src = "/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png";

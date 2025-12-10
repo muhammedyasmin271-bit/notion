@@ -164,7 +164,9 @@ const MessagesPage = () => {
   });
 
   return (
-    <div className={`min-h-screen ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
+    <div className={`min-h-screen ${isDarkMode ? 'bg-[#141414]' : 'bg-white'}`}
+      style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+    >
       <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-8">

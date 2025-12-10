@@ -622,7 +622,9 @@ const PaymentSubmission = () => {
   const withdrawnChange = 0; // Mock percentage
 
   return (
-    <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
+    <div className={`min-h-screen ${isDarkMode ? 'bg-[#141414]' : 'bg-white'}`}
+      style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+    >
 
       <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
         {/* Message Alert */}
@@ -655,8 +657,8 @@ const PaymentSubmission = () => {
                 : 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-300 text-green-800'
               : verificationStatus.status === 'checking'
               ? isDarkMode
-                ? 'bg-gradient-to-r from-blue-900/30 to-indigo-900/30 border-blue-500/50 text-blue-300'
-                : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-300 text-blue-800'
+                ? 'bg-gradient-to-r from-white/30 to-gray-300/30 border-white/50 text-white'
+                : 'bg-gradient-to-r from-black/50 to-gray-700/50 border-black/50 text-black'
               : isDarkMode
                 ? 'bg-gradient-to-r from-yellow-900/30 to-orange-900/30 border-yellow-500/50 text-yellow-300'
                 : 'bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-300 text-yellow-800'
@@ -665,7 +667,7 @@ const PaymentSubmission = () => {
               {verificationStatus.status === 'success' ? 
                 <CheckCircle className={`w-6 h-6 flex-shrink-0 mt-0.5 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} /> :
               verificationStatus.status === 'checking' ?
-                <Clock className={`w-6 h-6 flex-shrink-0 mt-0.5 animate-spin ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} /> :
+                <Clock className={`w-6 h-6 flex-shrink-0 mt-0.5 animate-spin ${isDarkMode ? 'text-white' : 'text-black'}`} /> :
                 <AlertCircle className={`w-6 h-6 flex-shrink-0 mt-0.5 ${isDarkMode ? 'text-yellow-400' : 'text-yellow-600'}`} />}
               <div className="flex-1">
                 <span className="font-bold text-base sm:text-lg block">{verificationStatus.message}</span>
@@ -690,7 +692,7 @@ const PaymentSubmission = () => {
               {/* Simple Payment Calendar */}
               <div className={`mb-6 p-4 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
                 <div className="flex items-center gap-2 mb-4">
-                  <Calendar className={`w-5 h-5 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+                  <Calendar className={`w-5 h-5 ${isDarkMode ? 'text-white' : 'text-black'}`} />
                   <h3 className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                     Payment Information
                   </h3>
@@ -830,11 +832,11 @@ const PaymentSubmission = () => {
                         className={`relative p-5 rounded-xl border-2 transition-all shadow-sm hover:shadow-md ${
                           isSelected 
                             ? isDarkMode 
-                              ? 'border-blue-500 bg-gradient-to-br from-blue-900/50 to-blue-800/50 shadow-md'
-                              : 'border-blue-600 bg-gradient-to-br from-blue-50 to-blue-100 shadow-md'
+                              ? 'border-white bg-gradient-to-br from-white/50 to-gray-300/50 shadow-md'
+                              : 'border-black bg-gradient-to-br from-black/50 to-gray-700/50 shadow-md'
                             : isDarkMode 
                             ? 'border-gray-700 bg-gray-800 hover:border-gray-600 hover:bg-gray-750'
-                            : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/50'
+                            : 'border-gray-200 bg-white hover:border-black hover:bg-black/10'
                         }`}
                       >
                         {/* Discount Badge */}
@@ -849,20 +851,22 @@ const PaymentSubmission = () => {
                         )}
                         
                         {/* Plan Duration */}
-                        <div className={`text-xl font-bold mb-2 ${isSelected ? (isDarkMode ? 'text-blue-300' : 'text-blue-700') : isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        <div className={`text-xl font-bold mb-2 ${isSelected ? (isDarkMode ? 'text-white' : 'text-black') : isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                           {plan.months === 1 ? '1' : plan.months === 3 ? '3' : '6'} Monthly
                         </div>
                         
                         {/* Price */}
-                        <div className={`text-sm font-semibold ${isSelected ? (isDarkMode ? 'text-blue-400' : 'text-blue-600') : isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                        <div className={`text-sm font-semibold ${isSelected ? (isDarkMode ? 'text-white' : 'text-black') : isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                           {paymentSettings.currency} {plan.price.toLocaleString()}
                         </div>
                         
                         {/* Selection Indicator */}
                         {isSelected && (
                           <div className="mt-3 flex items-center justify-center">
-                            <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center">
-                              <CheckCircle className="w-4 h-4 text-white" />
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-white' : 'bg-black'}`}
+                              style={isDarkMode ? { backgroundColor: '#ffffff' } : { backgroundColor: '#000000' }}
+                            >
+                              <CheckCircle className={`w-4 h-4 ${isDarkMode ? 'text-black' : 'text-white'}`} />
                             </div>
                           </div>
                         )}
@@ -928,7 +932,8 @@ const PaymentSubmission = () => {
                     <button
                       onClick={handlePayWithChapa}
                       disabled={loading}
-                  className="w-full py-4 bg-blue-600 text-white rounded-lg font-bold text-lg hover:bg-blue-700 disabled:opacity-50 transition-all duration-300 shadow-lg flex items-center justify-center gap-2"
+                  className={`w-full py-4 rounded-lg font-bold text-lg disabled:opacity-50 transition-all duration-300 shadow-lg flex items-center justify-center gap-2 ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'}`}
+                  style={isDarkMode ? { backgroundColor: '#141414' } : {}}
                     >
                       {loading ? (
                         <>

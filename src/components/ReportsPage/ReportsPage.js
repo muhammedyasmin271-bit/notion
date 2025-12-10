@@ -145,7 +145,7 @@ const ReportsPage = () => {
       if (isDarkMode) {
         switch (reportType) {
           case 'my-report':
-            return { label: 'My Report', bgColor: 'bg-blue-900/30', textColor: 'text-blue-300' };
+            return { label: 'My Report', bgColor: 'bg-white/30', textColor: 'text-white' };
           case 'shared-with-me':
             return { label: 'Shared with Me', bgColor: 'bg-purple-900/30', textColor: 'text-purple-300' };
           case 'shared':
@@ -156,7 +156,7 @@ const ReportsPage = () => {
       } else {
         switch (reportType) {
           case 'my-report':
-            return { label: 'My Report', bgColor: 'bg-blue-100', textColor: 'text-blue-800' };
+            return { label: 'My Report', bgColor: 'bg-black/30', textColor: 'text-black' };
           case 'shared-with-me':
             return { label: 'Shared with Me', bgColor: 'bg-purple-100', textColor: 'text-purple-800' };
           case 'shared':
@@ -214,8 +214,10 @@ const ReportsPage = () => {
         <div className="mb-2 sm:mb-3">
           <p className={`text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Owner:</p>
           <div className="flex items-center gap-1.5 sm:gap-2">
-            <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full ${isDarkMode ? 'bg-blue-900' : 'bg-blue-100'} flex items-center justify-center flex-shrink-0`}>
-              <span className={`text-xs font-bold ${isDarkMode ? 'text-blue-200' : 'text-blue-700'}`}>
+            <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full ${isDarkMode ? 'bg-white' : 'bg-black'} flex items-center justify-center flex-shrink-0`}
+              style={isDarkMode ? { backgroundColor: '#ffffff' } : { backgroundColor: '#000000' }}
+            >
+              <span className={`text-xs font-bold ${isDarkMode ? 'text-black' : 'text-white'}`}>
                 {ownerName.charAt(0).toUpperCase()}
               </span>
             </div>
@@ -327,7 +329,9 @@ const ReportsPage = () => {
   const allReports = getAllReports();
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'bg-black text-white' : 'bg-gray-50 text-gray-900'}`}>
+    <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'bg-[#141414] text-white' : 'bg-gray-50 text-gray-900'}`}
+      style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+    >
       <div className="max-w-7xl mx-auto p-4 sm:p-6">
         {/* Header */}
         <div className="mb-4 sm:mb-6">
@@ -347,9 +351,10 @@ const ReportsPage = () => {
               }}
               className={`flex items-center gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg font-semibold transition-colors text-sm sm:text-base ${
                 isDarkMode 
-                  ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' 
+                  : 'bg-white hover:bg-gray-100 text-black border border-black'
               } shadow-sm`}
+              style={isDarkMode ? { backgroundColor: '#141414' } : {}}
             >
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">New Report</span>
@@ -377,9 +382,10 @@ const ReportsPage = () => {
               }}
               className={`px-4 py-2 rounded-lg font-semibold transition-colors text-sm sm:text-base ${
                 isDarkMode 
-                  ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' 
+                  : 'bg-white hover:bg-gray-100 text-black border border-black'
               }`}
+              style={isDarkMode ? { backgroundColor: '#141414' } : {}}
             >
               Create Your First Report
             </button>

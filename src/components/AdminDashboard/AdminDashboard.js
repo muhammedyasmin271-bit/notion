@@ -232,43 +232,45 @@ const AdminDashboard = () => {
         </div>
       </div>
     }>
-      <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+      <div className={`min-h-screen ${isDarkMode ? 'bg-[#141414]' : 'bg-gray-50'}`}
+        style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+      >
         {/* Fixed Payment Button */}
-        <div className="fixed top-6 right-6 z-50">
+        <div className="fixed top-3 right-3 sm:top-6 sm:right-6 z-50">
           <button
             onClick={() => {
               const companyId = user?.companyId;
               navigate(companyId ? `/${companyId}/admin/payments` : '/admin/payments');
             }}
-            className={`flex items-center gap-3 px-6 py-4 ${isDarkMode ? 'bg-white hover:bg-gray-200 text-black' : 'bg-black hover:bg-gray-800 text-white'} rounded-full font-bold shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-110`}
+            className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-6 py-2 sm:py-4 ${isDarkMode ? 'bg-white hover:bg-gray-200 text-black' : 'bg-black hover:bg-gray-800 text-white'} rounded-full font-bold shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-110 text-xs sm:text-base`}
           >
-            <DollarSign className="w-6 h-6" />
+            <DollarSign className="w-4 h-4 sm:w-6 sm:h-6" />
             <span className="hidden sm:inline">Payments</span>
           </button>
         </div>
 
-        <div className="max-w-7xl mx-auto p-6">
+        <div className="max-w-7xl mx-auto p-3 sm:p-6">
           {/* User Management Section */}
-          <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} overflow-hidden mb-8`}>
-            <div className="p-6">
+          <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} overflow-hidden mb-6 sm:mb-8`}>
+            <div className="p-3 sm:p-6">
               {/* Search and Filters */}
-              <div className="flex flex-col md:flex-row gap-4 mb-6">
+              <div className="flex flex-col gap-3 sm:gap-4 mb-4 sm:mb-6">
                 <div className="flex-1 relative">
-                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
                   <input
                     type="text"
                     placeholder="Search by name, User ID..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className={`pl-12 pr-4 py-3 w-full rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all`}
+                    className={`pl-9 sm:pl-12 pr-3 sm:pr-4 py-2 sm:py-3 w-full rounded-lg border text-sm sm:text-base ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} focus:outline-none focus:ring-2 ${isDarkMode ? 'focus:ring-white' : 'focus:ring-black'} transition-all`}
                   />
                 </div>
-                <div className="flex gap-3">
-                  <div className="relative">
+                <div className="flex flex-wrap gap-2 sm:gap-3">
+                  <div className="relative flex-1 sm:flex-none min-w-[120px]">
                     <select
                       value={filterStatus}
                       onChange={(e) => setFilterStatus(e.target.value)}
-                      className={`px-4 py-3 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none pr-8 cursor-pointer`}
+                      className={`w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg border text-sm sm:text-base ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 ${isDarkMode ? 'focus:ring-white' : 'focus:ring-black'} appearance-none pr-8 cursor-pointer`}
                     >
                       <option value="all">All Status</option>
                       <option value="active">Active</option>
@@ -277,12 +279,12 @@ const AdminDashboard = () => {
                     </select>
                     <ChevronDown className={`absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 pointer-events-none ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
                   </div>
-                  <div className="relative">
-                    <Calendar className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 pointer-events-none ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+                  <div className="relative flex-1 sm:flex-none min-w-[120px]">
+                    <Calendar className={`absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 pointer-events-none ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
                     <select
                       value={dateRange}
                       onChange={(e) => setDateRange(e.target.value)}
-                      className={`pl-10 pr-8 py-3 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer`}
+                      className={`w-full pl-8 sm:pl-10 pr-6 sm:pr-8 py-2 sm:py-3 rounded-lg border text-sm sm:text-base ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 ${isDarkMode ? 'focus:ring-white' : 'focus:ring-black'} appearance-none cursor-pointer`}
                     >
                       <option value="all">All Time</option>
                       <option value="today">Today</option>
@@ -294,10 +296,11 @@ const AdminDashboard = () => {
                   </div>
                   <button
                     onClick={() => setShowBulkActions(!showBulkActions)}
-                    className={`flex items-center gap-2 px-4 py-3 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white hover:bg-gray-600' : 'bg-white border-gray-300 text-gray-900 hover:bg-gray-50'} transition-colors`}
+                    className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-3 rounded-lg border text-sm sm:text-base ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white hover:bg-gray-600' : 'bg-white border-gray-300 text-gray-900 hover:bg-gray-50'} transition-colors`}
                   >
                     <Filter className="w-4 h-4" />
-                    More Filter
+                    <span className="hidden sm:inline">More Filter</span>
+                    <span className="sm:hidden">Filter</span>
                   </button>
                 </div>
               </div>
@@ -336,39 +339,42 @@ const AdminDashboard = () => {
               )}
 
               {/* Action Buttons */}
-              <div className="flex justify-end gap-3 mb-6">
+              <div className="flex justify-end gap-2 sm:gap-3 mb-4 sm:mb-6">
                 <button
                   onClick={() => setShowCreateForm(true)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-colors ${
+                  className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg text-sm sm:text-base font-semibold transition-colors ${
                     isDarkMode 
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                      : 'bg-blue-600 hover:bg-blue-700 text-white'
+                      ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' 
+                      : 'bg-white hover:bg-gray-100 text-black border border-black'
                   }`}
+                  style={isDarkMode ? { backgroundColor: '#141414' } : {}}
                 >
                   <Plus className="w-4 h-4" />
-                  Add User
+                  <span className="hidden sm:inline">Add User</span>
+                  <span className="sm:hidden">Add</span>
                 </button>
               </div>
 
-              {/* Users Table */}
+              {/* Users Table - Mobile Card View / Desktop Table View */}
               <div className="overflow-x-auto">
-                <table className="w-full">
+                {/* Desktop Table View */}
+                <table className="w-full hidden md:table">
                   <thead className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} border-b ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
                     <tr>
-                      <th className="text-left py-4 px-6">
+                      <th className="text-left py-3 sm:py-4 px-3 sm:px-6">
                         <input
                           type="checkbox"
                           checked={selectedUsers.length > 0 && selectedUsers.length === filteredUsers.length && filteredUsers.length > 0}
                           onChange={handleSelectAll}
-                          className="rounded w-4 h-4 text-blue-600 cursor-pointer"
+                          className={`rounded w-4 h-4 cursor-pointer ${isDarkMode ? 'text-white' : 'text-black'}`}
                         />
                       </th>
-                      <th className={`text-left py-4 px-6 font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>User Name</th>
-                      <th className={`text-left py-4 px-6 font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Contact</th>
-                      <th className={`text-left py-4 px-6 font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>User ID</th>
-                      <th className={`text-left py-4 px-6 font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Role</th>
-                      <th className={`text-left py-4 px-6 font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Status</th>
-                      <th className={`text-left py-4 px-6 font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Action</th>
+                      <th className={`text-left py-3 sm:py-4 px-3 sm:px-6 font-semibold text-sm sm:text-base ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>User Name</th>
+                      <th className={`text-left py-3 sm:py-4 px-3 sm:px-6 font-semibold text-sm sm:text-base ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Contact</th>
+                      <th className={`text-left py-3 sm:py-4 px-3 sm:px-6 font-semibold text-sm sm:text-base ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>User ID</th>
+                      <th className={`text-left py-3 sm:py-4 px-3 sm:px-6 font-semibold text-sm sm:text-base ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Role</th>
+                      <th className={`text-left py-3 sm:py-4 px-3 sm:px-6 font-semibold text-sm sm:text-base ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Status</th>
+                      <th className={`text-left py-3 sm:py-4 px-3 sm:px-6 font-semibold text-sm sm:text-base ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -384,33 +390,35 @@ const AdminDashboard = () => {
                           key={u._id} 
                           className={`border-b ${isDarkMode ? 'border-gray-700 hover:bg-gray-700/50' : 'border-gray-200 hover:bg-gray-50'} transition-colors`}
                         >
-                          <td className="py-4 px-6">
+                          <td className="py-3 sm:py-4 px-3 sm:px-6">
                             <input
                               type="checkbox"
                               checked={selectedUsers.includes(u._id)}
                               onChange={() => handleUserSelection(u._id)}
-                              className="rounded w-4 h-4 text-blue-600 cursor-pointer"
+                              className={`rounded w-4 h-4 cursor-pointer ${isDarkMode ? 'text-white' : 'text-black'}`}
                             />
                           </td>
-                          <td className="py-4 px-6">
-                            <div className="flex items-center gap-3">
-                              <div className={`w-10 h-10 rounded-lg ${isDarkMode ? 'bg-blue-600' : 'bg-blue-100'} flex items-center justify-center`}>
-                                <span className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-blue-700'}`}>
+                          <td className="py-3 sm:py-4 px-3 sm:px-6">
+                            <div className="flex items-center gap-2 sm:gap-3">
+                              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${isDarkMode ? 'bg-white' : 'bg-black'}`}
+                                style={isDarkMode ? { backgroundColor: '#ffffff' } : { backgroundColor: '#000000' }}
+                              >
+                                <span className={`text-xs sm:text-sm font-bold ${isDarkMode ? 'text-black' : 'text-white'}`}>
                                   {u.name.charAt(0).toUpperCase()}
                                 </span>
                               </div>
-                              <div>
-                                <div className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{u.name}</div>
+                              <div className="min-w-0">
+                                <div className={`font-semibold text-sm sm:text-base truncate ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{u.name}</div>
                                 <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                                   {u.role === 'admin' ? 'Admin User' : u.role === 'manager' ? 'Manager User' : 'Regular User'}
                                 </div>
                               </div>
                             </div>
                           </td>
-                          <td className="py-4 px-6">
+                          <td className="py-3 sm:py-4 px-3 sm:px-6">
                             <div className="space-y-1">
                               {u.email && (
-                                <div className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                                <div className={`text-xs sm:text-sm truncate ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                                   {u.email}
                                 </div>
                               )}
@@ -421,9 +429,9 @@ const AdminDashboard = () => {
                               )}
                             </div>
                           </td>
-                          <td className="py-4 px-6">
+                          <td className="py-3 sm:py-4 px-3 sm:px-6">
                             <div>
-                              <div className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                              <div className={`text-xs sm:text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                                 #{u._id.slice(-8).toUpperCase()}
                               </div>
                               <div className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
@@ -431,23 +439,23 @@ const AdminDashboard = () => {
                               </div>
                             </div>
                           </td>
-                          <td className="py-4 px-6">
-                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          <td className="py-3 sm:py-4 px-3 sm:px-6">
+                            <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold ${
                               u.role === 'admin' ? 'bg-red-100 text-red-800' :
                               u.role === 'manager' ? 'bg-purple-100 text-purple-800' :
-                              'bg-blue-100 text-blue-800'
+                              isDarkMode ? 'bg-white/20 text-white' : 'bg-black/20 text-black'
                             }`}>
                               {u.role === 'admin' ? 'Admin' : u.role === 'manager' ? 'Manager' : 'User'}
                             </span>
                           </td>
-                          <td className="py-4 px-6">
+                          <td className="py-3 sm:py-4 px-3 sm:px-6">
                             <div className="flex items-center gap-2">
                               <div className={`w-2 h-2 rounded-full ${
                                 u.status === 'pending' ? 'bg-orange-500' :
                                 u.isActive ? 'bg-green-500' :
                                 'bg-red-500'
                               }`}></div>
-                              <span className={`text-sm font-medium ${
+                              <span className={`text-xs sm:text-sm font-medium ${
                                 u.status === 'pending' ? 'text-orange-600' :
                                 u.isActive ? 'text-green-600' :
                                 'text-red-600'
@@ -456,24 +464,24 @@ const AdminDashboard = () => {
                               </span>
                             </div>
                           </td>
-                          <td className="py-4 px-6">
-                            <div className="flex items-center gap-2">
+                          <td className="py-3 sm:py-4 px-3 sm:px-6">
+                            <div className="flex items-center gap-1.5 sm:gap-2">
                               <button
                                 onClick={() => {
-                                  // Details action - you can add a modal or navigation here
                                   alert(`User Details:\nName: ${u.name}\nEmail: ${u.email || 'N/A'}\nRole: ${u.role}\nStatus: ${u.isActive ? 'Active' : 'Inactive'}`);
                                 }}
-                                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                                className={`px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition-colors ${
                                   isDarkMode 
-                                    ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                                    : 'bg-blue-50 hover:bg-blue-100 text-blue-700'
+                                    ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' 
+                                    : 'bg-white hover:bg-gray-100 text-black border border-black'
                                 }`}
+                                style={isDarkMode ? { backgroundColor: '#141414' } : {}}
                               >
                                 Details
                               </button>
                               <div className="relative group">
                                 <button
-                                  className={`p-2 rounded-lg ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
+                                  className={`p-1.5 sm:p-2 rounded-lg ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
                                 >
                                   <MoreVertical className={`w-4 h-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
                                 </button>
@@ -521,6 +529,140 @@ const AdminDashboard = () => {
                     )}
                   </tbody>
                 </table>
+
+                {/* Mobile Card View */}
+                <div className="md:hidden space-y-3">
+                  {filteredUsers.length === 0 ? (
+                    <div className={`py-12 text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                      No users found
+                    </div>
+                  ) : (
+                    filteredUsers.map((u) => (
+                      <div
+                        key={u._id}
+                        className={`${isDarkMode ? 'bg-gray-700/50 border-gray-600' : 'bg-gray-50 border-gray-200'} rounded-lg border p-4 space-y-3`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <input
+                              type="checkbox"
+                              checked={selectedUsers.includes(u._id)}
+                              onChange={() => handleUserSelection(u._id)}
+                              className={`rounded w-4 h-4 cursor-pointer flex-shrink-0 ${isDarkMode ? 'text-white' : 'text-black'}`}
+                            />
+                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${isDarkMode ? 'bg-white' : 'bg-black'}`}>
+                              <span className={`text-sm font-bold ${isDarkMode ? 'text-black' : 'text-white'}`}>
+                                {u.name.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className={`font-semibold text-base truncate ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{u.name}</div>
+                              <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                {u.role === 'admin' ? 'Admin User' : u.role === 'manager' ? 'Manager User' : 'Regular User'}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="space-y-2 pl-14">
+                          {u.email && (
+                            <div className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                              <span className="font-medium">Email: </span>{u.email}
+                            </div>
+                          )}
+                          {u.phone && (
+                            <div className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                              <span className="font-medium">Phone: </span>{u.phone}
+                            </div>
+                          )}
+                          <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                            ID: #{u._id.slice(-8).toUpperCase()}
+                          </div>
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                              u.role === 'admin' ? 'bg-red-100 text-red-800' :
+                              u.role === 'manager' ? 'bg-purple-100 text-purple-800' :
+                              isDarkMode ? 'bg-white/20 text-white' : 'bg-black/20 text-black'
+                            }`}>
+                              {u.role === 'admin' ? 'Admin' : u.role === 'manager' ? 'Manager' : 'User'}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <div className={`w-2 h-2 rounded-full ${
+                                u.status === 'pending' ? 'bg-orange-500' :
+                                u.isActive ? 'bg-green-500' :
+                                'bg-red-500'
+                              }`}></div>
+                              <span className={`text-xs font-medium ${
+                                u.status === 'pending' ? 'text-orange-600' :
+                                u.isActive ? 'text-green-600' :
+                                'text-red-600'
+                              }`}>
+                                {u.status === 'pending' ? 'Pending' : u.isActive ? 'Active' : 'Inactive'}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 pt-2">
+                            <button
+                              onClick={() => {
+                                alert(`User Details:\nName: ${u.name}\nEmail: ${u.email || 'N/A'}\nRole: ${u.role}\nStatus: ${u.isActive ? 'Active' : 'Inactive'}`);
+                              }}
+                              className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                                isDarkMode 
+                                  ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' 
+                                  : 'bg-white hover:bg-gray-100 text-black border border-black'
+                              }`}
+                              style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+                            >
+                              Details
+                            </button>
+                            <div className="relative group">
+                              <button
+                                className={`p-2 rounded-lg ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors`}
+                              >
+                                <MoreVertical className={`w-4 h-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+                              </button>
+                              <div className={`absolute right-0 mt-2 w-48 rounded-lg shadow-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10`}>
+                                <div className="py-2">
+                                  {u.role === 'user' && (
+                                    <button
+                                      onClick={() => handleMakeManager(u._id)}
+                                      className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                                    >
+                                      <Crown className="w-4 h-4" />
+                                      Make Manager
+                                    </button>
+                                  )}
+                                  {u.role === 'manager' && (
+                                    <button
+                                      onClick={() => handleMakeUser(u._id)}
+                                      className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                                    >
+                                      <User className="w-4 h-4" />
+                                      Make User
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => handleToggleUserStatus(u._id)}
+                                    className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}
+                                  >
+                                    {u.isActive ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                    {u.isActive ? 'Deactivate' : 'Activate'}
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteUser(u._id)}
+                                    className="w-full text-left px-4 py-2 text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                    Delete
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -528,67 +670,67 @@ const AdminDashboard = () => {
 
         {/* Create User Modal */}
         {showCreateForm && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-3xl shadow-2xl w-full max-w-md`}>
-              <div className={`${isDarkMode ? 'bg-white text-black' : 'bg-black text-white'} p-6 rounded-t-3xl`}>
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
+            <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-md my-4`}>
+              <div className={`${isDarkMode ? 'bg-white text-black' : 'bg-black text-white'} p-4 sm:p-6 rounded-t-2xl sm:rounded-t-3xl`}>
                 <div className="flex items-center justify-between">
-                  <h3 className="text-2xl font-bold text-white">Create New User</h3>
+                  <h3 className="text-xl sm:text-2xl font-bold text-white">Create New User</h3>
                   <button
                     onClick={() => setShowCreateForm(false)}
-                    className="p-2 rounded-xl bg-white/20 hover:bg-white/30 transition-colors"
+                    className="p-1.5 sm:p-2 rounded-xl bg-white/20 hover:bg-white/30 transition-colors"
                   >
-                    <XCircle className="w-6 h-6 text-white" />
+                    <XCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                   </button>
                 </div>
               </div>
-              <form onSubmit={handleCreateUser} className="p-8">
-                <div className="space-y-6">
+              <form onSubmit={handleCreateUser} className="p-4 sm:p-6 md:p-8">
+                <div className="space-y-4 sm:space-y-6">
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">Full Name</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-1.5 sm:mb-2">Full Name</label>
                     <input
                       type="text"
                       required
                       value={newUser.name}
                       onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-                      className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 transition-all"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-xl sm:rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 transition-all text-sm sm:text-base"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">Username</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-1.5 sm:mb-2">Username</label>
                     <input
                       type="text"
                       required
                       value={newUser.username}
                       onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-                      className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 transition-all"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-xl sm:rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 transition-all text-sm sm:text-base"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">Email</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-1.5 sm:mb-2">Email</label>
                     <input
                       type="email"
                       value={newUser.email}
                       onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                      className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 transition-all"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-xl sm:rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 transition-all text-sm sm:text-base"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">Password</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-1.5 sm:mb-2">Password</label>
                     <input
                       type="password"
                       required
                       minLength="6"
                       value={newUser.password}
                       onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                      className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 transition-all"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-xl sm:rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 transition-all text-sm sm:text-base"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">Role</label>
+                    <label className="block text-sm font-bold text-gray-700 mb-1.5 sm:mb-2">Role</label>
                     <select
                       value={newUser.role}
                       onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-                      className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 transition-all"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-xl sm:rounded-2xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 transition-all text-sm sm:text-base"
                     >
                       <option value="user">User</option>
                       <option value="manager">Manager</option>
@@ -596,17 +738,17 @@ const AdminDashboard = () => {
                     </select>
                   </div>
                 </div>
-                <div className="flex gap-4 mt-8">
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-6 sm:mt-8">
                   <button
                     type="button"
                     onClick={() => setShowCreateForm(false)}
-                    className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-2xl hover:bg-gray-200 transition-colors font-bold"
+                    className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-gray-100 text-gray-700 rounded-xl sm:rounded-2xl hover:bg-gray-200 transition-colors font-bold text-sm sm:text-base"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className={`flex-1 px-6 py-3 ${isDarkMode ? 'bg-white hover:bg-gray-200 text-black' : 'bg-black hover:bg-gray-800 text-white'} rounded-2xl transition-all font-bold shadow-lg`}
+                    className={`flex-1 px-4 sm:px-6 py-2.5 sm:py-3 ${isDarkMode ? 'bg-white hover:bg-gray-200 text-black' : 'bg-black hover:bg-gray-800 text-white'} rounded-xl sm:rounded-2xl transition-all font-bold shadow-lg text-sm sm:text-base`}
                   >
                     Create User
                   </button>

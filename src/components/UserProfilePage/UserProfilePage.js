@@ -120,7 +120,7 @@ const UserProfilePage = () => {
   };
 
   return (
-    <div className={`content p-6 lg:p-8 font-sans min-h-screen ${isDarkMode ? 'bg-black text-white' : 'bg-white text-gray-900'
+    <div className={`content p-6 lg:p-8 font-sans min-h-screen ${isDarkMode ? 'bg-[#141414] text-white' : 'bg-white text-gray-900'
       }`}>
       {/* Header */}
       <div className="mb-8">
@@ -192,8 +192,9 @@ const UserProfilePage = () => {
               </h2>
               <button
                 onClick={() => setIsEditing(!isEditing)}
-                className={`flex items-center px-4 py-2 rounded-xl font-semibold transition-all duration-200 ${isDarkMode ? 'bg-blue-900 text-blue-300 hover:bg-blue-800' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                className={`flex items-center px-4 py-2 rounded-xl font-semibold transition-all duration-200 ${isDarkMode ? 'bg-[#141414] text-white hover:bg-gray-800 border border-white' : 'bg-white text-black hover:bg-gray-100 border border-black'
                   }`}
+                  style={isDarkMode ? { backgroundColor: '#141414' } : {}}
               >
                 <Edit3 className="w-4 h-4 mr-2" />
                 {isEditing ? 'Cancel' : 'Edit'}
@@ -218,7 +219,7 @@ const UserProfilePage = () => {
                     type="text"
                     value={profileForm.name}
                     onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-                    className={`w-full px-4 py-3 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                    className={`w-full px-4 py-3 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 ${isDarkMode ? 'focus:ring-white/20 focus:border-white' : 'focus:ring-black/20 focus:border-black'} transition-all duration-200 ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                       }`}
                   />
                 ) : (
@@ -251,7 +252,7 @@ const UserProfilePage = () => {
                     type="email"
                     value={profileForm.email}
                     onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
-                    className={`w-full px-4 py-3 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                    className={`w-full px-4 py-3 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 ${isDarkMode ? 'focus:ring-white/20 focus:border-white' : 'focus:ring-black/20 focus:border-black'} transition-all duration-200 ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                       }`}
                   />
                 ) : (
@@ -273,7 +274,7 @@ const UserProfilePage = () => {
                     type="text"
                     value={profileForm.department}
                     onChange={(e) => setProfileForm({ ...profileForm, department: e.target.value })}
-                    className={`w-full px-4 py-3 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                    className={`w-full px-4 py-3 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 ${isDarkMode ? 'focus:ring-white/20 focus:border-white' : 'focus:ring-black/20 focus:border-black'} transition-all duration-200 ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                       }`}
                     placeholder="e.g., Engineering, Marketing, Sales"
                   />
@@ -294,7 +295,7 @@ const UserProfilePage = () => {
                     type="tel"
                     value={profileForm.phoneNumber}
                     onChange={(e) => setProfileForm({ ...profileForm, phoneNumber: e.target.value })}
-                    className={`w-full px-4 py-3 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                    className={`w-full px-4 py-3 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 ${isDarkMode ? 'focus:ring-white/20 focus:border-white' : 'focus:ring-black/20 focus:border-black'} transition-all duration-200 ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                       }`}
                     placeholder="e.g., +1 (555) 123-4567"
                   />
@@ -315,7 +316,7 @@ const UserProfilePage = () => {
                     type="text"
                     value={profileForm.location}
                     onChange={(e) => setProfileForm({ ...profileForm, location: e.target.value })}
-                    className={`w-full px-4 py-3 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                    className={`w-full px-4 py-3 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 ${isDarkMode ? 'focus:ring-white/20 focus:border-white' : 'focus:ring-black/20 focus:border-black'} transition-all duration-200 ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                       }`}
                     placeholder="e.g., New York, NY"
                   />
@@ -404,7 +405,7 @@ const UserProfilePage = () => {
                       type={showPasswords.current ? 'text' : 'password'}
                       value={passwordForm.currentPassword}
                       onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
-                      className={`w-full px-4 py-3 pr-12 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                      className={`w-full px-4 py-3 pr-12 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 ${isDarkMode ? 'focus:ring-white/20 focus:border-white' : 'focus:ring-black/20 focus:border-black'} transition-all duration-200 ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                         }`}
                       placeholder="Enter current password"
                     />
@@ -428,7 +429,7 @@ const UserProfilePage = () => {
                       type={showPasswords.new ? 'text' : 'password'}
                       value={passwordForm.newPassword}
                       onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                      className={`w-full px-4 py-3 pr-12 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                      className={`w-full px-4 py-3 pr-12 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 ${isDarkMode ? 'focus:ring-white/20 focus:border-white' : 'focus:ring-black/20 focus:border-black'} transition-all duration-200 ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                         }`}
                       placeholder="Enter new password"
                     />
@@ -452,7 +453,7 @@ const UserProfilePage = () => {
                       type={showPasswords.confirm ? 'text' : 'password'}
                       value={passwordForm.confirmPassword}
                       onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                      className={`w-full px-4 py-3 pr-12 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                      className={`w-full px-4 py-3 pr-12 border-2 rounded-xl text-base font-medium focus:outline-none focus:ring-4 ${isDarkMode ? 'focus:ring-white/20 focus:border-white' : 'focus:ring-black/20 focus:border-black'} transition-all duration-200 ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                         }`}
                       placeholder="Confirm new password"
                     />

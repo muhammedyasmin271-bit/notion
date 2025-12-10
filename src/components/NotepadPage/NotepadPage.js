@@ -1753,7 +1753,9 @@ const NotepadPage = () => {
 								<GripVertical className="w-4 h-4" />
 							</button>
 						</div>
-						<div className={`border-l-4 pl-4 py-2 transition-all duration-200 ${isDarkMode ? 'border-blue-500 bg-blue-900/10' : 'border-blue-400 bg-blue-50/50'}`}>
+						<div className={`border-l-4 pl-4 py-2 transition-all duration-200 ${isDarkMode ? 'border-white bg-[#141414]/50' : 'border-black bg-gray-50/50'}`}
+              style={isDarkMode ? { backgroundColor: 'rgba(20, 20, 20, 0.5)' } : {}}
+            >
 							<textarea {...commonProps} className={`${commonProps.className} italic text-lg`} style={{ ...commonProps.style, minHeight: '32px' }} />
 						</div>
 						{showBlockMenu === block.id && (
@@ -1861,7 +1863,9 @@ const NotepadPage = () => {
 				);
 			case 'callout':
 				return (
-					<div className="flex items-start group relative bg-blue-100 dark:bg-blue-900/30 rounded-lg p-4 my-2">
+					<div className={`flex items-start group relative rounded-lg p-4 my-2 ${isDarkMode ? 'bg-[#141414]/30' : 'bg-gray-50'}`}
+            style={isDarkMode ? { backgroundColor: 'rgba(20, 20, 20, 0.3)' } : {}}
+          >
 						<div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
@@ -1879,7 +1883,7 @@ const NotepadPage = () => {
 								<GripVertical className="w-4 h-4" />
 							</button>
 						</div>
-						<Lightbulb className="w-5 h-5 text-blue-500 mr-2 mt-1" />
+						<Lightbulb className={`w-5 h-5 mr-2 mt-1 ${isDarkMode ? 'text-white' : 'text-black'}`} />
 						<textarea {...commonProps} />
 						{showBlockMenu === block.id && (
 							<div
@@ -2033,7 +2037,7 @@ const NotepadPage = () => {
 																	placeholder={rowIndex === 0 ? `Column ${colIndex + 1}` : ''}
 																	rows={Math.max(1, cell.split('\n').length)}
 																	className={`w-full h-full min-h-[32px] border-none outline-none bg-transparent text-sm resize-none overflow-hidden p-2 ${rowIndex === 0 ? (isDarkMode ? 'font-semibold text-gray-200' : 'font-semibold text-gray-800') : (isDarkMode ? 'text-gray-300' : 'text-gray-700')
-																		} ${isDarkMode ? 'focus:bg-blue-900/20' : 'focus:bg-blue-50/50'}`}
+																		} ${isDarkMode ? 'focus:bg-[#141414]/20' : 'focus:bg-gray-50/50'}`}
 																	style={{
 																		height: savedHeight + 'px',
 																		minHeight: '32px',
@@ -2070,7 +2074,9 @@ const NotepadPage = () => {
 							</div>
 							{/* Column controls - Right side */}
 							<div className="absolute top-1/2 -right-6 transform -translate-y-1/2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-								<button onClick={() => addTableCol(block.id)} className={`w-5 h-5 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`} title="Add column">
+								<button onClick={() => addTableCol(block.id)} className={`w-5 h-5 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'}`}
+                  style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+                  title="Add column">
 									<Plus className="w-3 h-3" />
 								</button>
 								{table.cols > 1 && (
@@ -2081,7 +2087,9 @@ const NotepadPage = () => {
 							</div>
 							{/* Row controls - Bottom */}
 							<div className="absolute left-1/2 -bottom-6 transform -translate-x-1/2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-								<button onClick={() => addTableRow(block.id)} className={`w-5 h-5 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`} title="Add row">
+								<button onClick={() => addTableRow(block.id)} className={`w-5 h-5 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'}`}
+                  style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+                  title="Add row">
 									<Plus className="w-3 h-3" />
 								</button>
 								{table.rows > 1 && (
@@ -2132,7 +2140,8 @@ const NotepadPage = () => {
 									<p className="text-gray-500 mb-2 text-sm">Add an image</p>
 									<button
 										onClick={() => document.getElementById(`image-${block.id}`).click()}
-										className="px-3 py-1.5 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors mb-2"
+										className={`px-3 py-1.5 text-xs rounded transition-colors mb-2 ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'}`}
+                  style={isDarkMode ? { backgroundColor: '#141414' } : {}}
 									>
 										Choose File
 									</button>
@@ -2224,7 +2233,8 @@ const NotepadPage = () => {
 									<p className="text-gray-500 mb-2 text-sm">Add a video</p>
 									<button
 										onClick={() => document.getElementById(`video-${block.id}`).click()}
-										className="px-3 py-1.5 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors mb-2"
+										className={`px-3 py-1.5 text-xs rounded transition-colors mb-2 ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'}`}
+                  style={isDarkMode ? { backgroundColor: '#141414' } : {}}
 									>
 										Choose File
 									</button>
@@ -2340,7 +2350,7 @@ const NotepadPage = () => {
 				);
 			default: // text
 				return (
-					<div className={`flex items-start group relative ${aiInputBlock === block.id ? 'bg-blue-50/30 rounded-lg p-2' : ''} transition-all duration-200`}>
+					<div className={`flex items-start group relative ${aiInputBlock === block.id ? (isDarkMode ? 'bg-white/10 rounded-lg p-2' : 'bg-black/10 rounded-lg p-2') : ''} transition-all duration-200`}>
 						<div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
@@ -2500,10 +2510,14 @@ const NotepadPage = () => {
 	});
 
 	return (
-		<div className={`min-h-screen ${isDarkMode ? 'bg-black text-white' : 'bg-white text-gray-900'}`}>
+		<div className={`min-h-screen ${isDarkMode ? 'bg-[#141414] text-white' : 'bg-white text-gray-900'}`}
+      style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+    >
 			<div className="flex h-screen relative">
 				{/* Mobile Header */}
-				<div className={`md:hidden fixed top-0 left-0 right-0 z-40 p-4 border-b backdrop-blur-sm ${isDarkMode ? 'bg-gray-900/95 border-gray-700' : 'bg-white/95 border-gray-200'}`}>
+				<div className={`md:hidden fixed top-0 left-0 right-0 z-40 p-4 border-b backdrop-blur-sm ${isDarkMode ? 'bg-[#141414]/95 border-gray-700' : 'bg-white/95 border-gray-200'}`}
+          style={isDarkMode ? { backgroundColor: 'rgba(20, 20, 20, 0.95)' } : {}}
+        >
 					<div className="flex items-center justify-between">
 						<div className="w-10"></div>
 						<h1 className="text-lg font-bold">Notes</h1>
@@ -2516,26 +2530,15 @@ const NotepadPage = () => {
 					</div>
 				</div>
 
-				{/* Floating Notes Toggle Button - Always visible when sidebar is closed */}
-				{!isSidebarOpen && (
-					<button
-						onClick={() => setIsSidebarOpen(true)}
-						className={`fixed top-20 md:top-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-110 active:scale-95 shadow-2xl ${isDarkMode ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white' : 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white'} animate-pulse hover:animate-none`}
-						aria-label="Show Notes Sidebar"
-						title="Show Notes Sidebar (Press Escape to close when open)"
-					>
-						<FileText className="w-5 h-5" />
-						<span className="font-bold">Notes</span>
-					</button>
-				)}
-
 				{/* Main Content */}
 				<div className="flex-1 flex flex-col">
 					{currentNote ? (
 						<>
 							{/* Title Section */}
-							<div className={`p-4 md:p-8 pt-20 md:pt-8 ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
-								<div className={`max-w-4xl px-2 md:px-8 relative transition-all duration-300 ${isSidebarOpen ? '' : 'md:ml-20 md:mr-0'}`}>
+							<div className={`p-3 sm:p-4 md:p-8 pt-16 sm:pt-20 md:pt-8 ${isDarkMode ? 'bg-[#141414]' : 'bg-white'}`}
+                style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+              >
+								<div className={`max-w-4xl px-2 sm:px-4 md:px-8 relative transition-all duration-300 ${isSidebarOpen ? '' : 'md:ml-20 md:mr-0'}`}>
 									{isEditingTitle ? (
 										<input
 											ref={titleInputRef}
@@ -2551,11 +2554,11 @@ const NotepadPage = () => {
 												}
 												saveNote();
 											}}
-											className={`text-5xl font-bold bg-transparent border-none outline-none w-full leading-tight ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
+											className={`text-2xl sm:text-3xl md:text-5xl font-bold bg-transparent border-none outline-none w-full leading-tight ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
 											placeholder=""
 											autoFocus
 											style={{
-												fontSize: '3rem',
+												fontSize: 'clamp(1.5rem, 5vw, 3rem)',
 												lineHeight: '1.2',
 												fontWeight: '700',
 												letterSpacing: '-0.02em'
@@ -2573,9 +2576,9 @@ const NotepadPage = () => {
 											className="cursor-text"
 										>
 											{title && title !== 'Untitled' && title.trim() !== '' ? (
-												<h1 className={`text-5xl font-bold leading-tight ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
+												<h1 className={`text-2xl sm:text-3xl md:text-5xl font-bold leading-tight ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
 													style={{
-														fontSize: '3rem',
+														fontSize: 'clamp(1.5rem, 5vw, 3rem)',
 														lineHeight: '1.2',
 														fontWeight: '700',
 														letterSpacing: '-0.02em'
@@ -2585,9 +2588,9 @@ const NotepadPage = () => {
 												</h1>
 											) : (
 												<div className="w-full">
-													<div className={`text-5xl font-bold leading-tight opacity-60 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}
+													<div className={`text-2xl sm:text-3xl md:text-5xl font-bold leading-tight opacity-60 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}
 														style={{
-															fontSize: '3rem',
+															fontSize: 'clamp(1.5rem, 5vw, 3rem)',
 															lineHeight: '1.2',
 															fontWeight: '700',
 															letterSpacing: '-0.02em',
@@ -2604,8 +2607,10 @@ const NotepadPage = () => {
 							</div>
 
 							{/* Content */}
-							<div className={`flex-1 overflow-y-auto p-4 md:p-8 pb-32 ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
-								<div className={`max-w-4xl px-2 md:px-8 transition-all duration-300 ${isSidebarOpen ? '' : 'md:ml-20 md:mr-0'}`}>
+							<div className={`flex-1 overflow-y-auto p-3 sm:p-4 md:p-8 pb-24 sm:pb-32 ${isDarkMode ? 'bg-[#141414]' : 'bg-white'}`}
+                style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+              >
+								<div className={`max-w-4xl px-2 sm:px-4 md:px-8 transition-all duration-300 ${isSidebarOpen ? '' : 'md:ml-20 md:mr-0'}`}>
 									<div className="space-y-0.5 min-h-96">
 										{blocks.map((block, index) => (
 											<div key={block.id}>
@@ -2617,17 +2622,19 @@ const NotepadPage = () => {
 									{/* Add block button */}
 									<button
 										onClick={() => addBlock(blocks.length - 1)}
-										className={`flex items-center mt-40 px-4 py-2 rounded-lg transition-colors ${isDarkMode ? 'text-gray-500 hover:bg-gray-800' : 'text-gray-500 hover:bg-gray-100'}`}
+										className={`flex items-center mt-20 sm:mt-40 px-3 sm:px-4 py-2 rounded-lg transition-colors text-sm sm:text-base ${isDarkMode ? 'text-gray-500 hover:bg-gray-800' : 'text-gray-500 hover:bg-gray-100'}`}
 									>
-										<Plus className="w-5 h-5 mr-2" />
+										<Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
 										Add block
 									</button>
 								</div>
 							</div>
 
 							{/* Bottom Action Bar */}
-							<div className={`fixed bottom-0 left-0 right-0 border-t backdrop-blur-sm ${isDarkMode ? 'bg-gray-900/95 border-gray-700' : 'bg-white/95 border-gray-200'} p-2 md:p-4 shadow-lg`}>
-								<div className={`max-w-4xl px-2 md:px-8 flex flex-col md:flex-row items-center justify-between gap-2 md:gap-0 transition-all duration-300 ${isSidebarOpen ? '' : 'md:ml-20 md:mr-0'}`}>
+							<div className={`fixed bottom-0 left-0 right-0 border-t backdrop-blur-sm ${isDarkMode ? 'bg-[#141414]/95 border-gray-700' : 'bg-white/95 border-gray-200'} p-2 sm:p-3 md:p-4 shadow-lg`}
+                style={isDarkMode ? { backgroundColor: 'rgba(20, 20, 20, 0.95)' } : {}}
+              >
+								<div className={`max-w-4xl px-2 sm:px-4 md:px-8 flex flex-col md:flex-row items-center justify-between gap-2 sm:gap-3 md:gap-0 transition-all duration-300 ${isSidebarOpen ? '' : 'md:ml-20 md:mr-0'}`}>
 									{/* Note Metadata */}
 									<div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} space-y-1 hidden md:block`}>
 										<div className="flex items-center gap-2">
@@ -2663,18 +2670,19 @@ const NotepadPage = () => {
 									</div>
 									
 									{/* Action Buttons */}
-									<div className="flex items-center gap-2 md:gap-4 w-full md:w-auto justify-center">
+									<div className="flex items-center gap-2 sm:gap-3 md:gap-4 w-full md:w-auto justify-center flex-wrap">
 									<button
 										onClick={saveNote}
-										className={`flex items-center justify-center flex-1 px-4 py-3 rounded-xl font-semibold transition-all duration-200 hover:scale-105 ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'} shadow-lg text-sm`}
+										className={`flex items-center justify-center flex-1 sm:flex-none px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl font-semibold transition-all duration-200 hover:scale-105 ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'} shadow-lg text-xs sm:text-sm`}
+                  style={isDarkMode ? { backgroundColor: '#141414' } : {}}
 									>
-										<Save className="w-4 h-4 mr-2" />
+										<Save className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
 										Save
 									</button>
 
 									{/* Share button - Only visible to Managers and Admins */}
 									{(user?.role === 'manager' || user?.role === 'admin') && (
-										<div className="relative flex-1">
+										<div className="relative flex-1 sm:flex-none">
 											<button
 												onClick={async () => {
 													// Always try to fetch users when opening share modal
@@ -2701,17 +2709,28 @@ const NotepadPage = () => {
 													}
 													setShowShareModal(!showShareModal);
 												}}
-												className={`flex items-center justify-center w-full px-4 py-3 rounded-xl font-semibold transition-all duration-200 hover:scale-105 ${isDarkMode ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-green-500 hover:bg-green-600 text-white'} shadow-lg text-sm`}
+												className={`flex items-center justify-center flex-1 sm:flex-none px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl font-semibold transition-all duration-200 hover:scale-105 ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'} shadow-lg text-xs sm:text-sm`}
+                style={isDarkMode ? { backgroundColor: '#141414' } : {}}
 											>
-												<Share2 className="w-4 h-4 mr-2" />
+												<Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
 												Share
-												<ChevronDown className={`w-4 h-4 ml-2 transition-transform ${showShareModal ? 'rotate-180' : ''}`} />
+												<ChevronDown className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ml-1.5 sm:ml-2 transition-transform ${showShareModal ? 'rotate-180' : ''}`} />
 											</button>
 											{showShareModal && (
-												<div className={`absolute bottom-full mb-2 left-0 w-80 rounded-lg shadow-lg border z-50 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+												<>
+													{/* Mobile overlay backdrop */}
+													<div 
+														className="fixed inset-0 bg-black/20 z-40 sm:hidden"
+														onClick={() => setShowShareModal(false)}
+													/>
+													<div className={`fixed sm:absolute bottom-20 sm:bottom-full left-2 sm:left-0 right-2 sm:right-auto mb-0 sm:mb-2 w-auto sm:w-80 max-w-[calc(100vw-1rem)] sm:max-w-80 rounded-lg shadow-lg border z-50 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
+														style={{ 
+															maxHeight: 'calc(100vh - 250px)'
+														}}
+													>
 													<div className="p-4">
 														<h3 className="text-lg font-semibold mb-3">Share Note</h3>
-														<div className="space-y-2 max-h-48 overflow-y-auto">
+														<div className="space-y-2 max-h-[calc(100vh-300px)] sm:max-h-48 overflow-y-auto">
 															{availableUsers.length > 0 ? (
 																<>
 																	<div className={`text-sm font-medium mb-3 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
@@ -2736,7 +2755,7 @@ const NotepadPage = () => {
 																					isAlreadyShared
 																						? 'bg-green-500/20 border border-green-500 cursor-not-allowed opacity-75'
 																						: isSelected
-																							? 'bg-blue-500/20 border border-blue-500'
+																							? isDarkMode ? 'bg-white/20 border border-white' : 'bg-black/20 border border-black'
 																							: isDarkMode
 																								? 'hover:bg-gray-700'
 																								: 'hover:bg-gray-100'
@@ -2758,7 +2777,7 @@ const NotepadPage = () => {
 																							<span className="text-xs">Already shared</span>
 																						</div>
 																					) : isSelected ? (
-																						<div className="text-blue-500">
+																						<div className={isDarkMode ? 'text-white' : 'text-black'}>
 																							<Users className="w-4 h-4" />
 																						</div>
 																					) : null}
@@ -2786,7 +2805,7 @@ const NotepadPage = () => {
 																				disabled={isAlreadyShared}
 																				className={`w-full mb-2 p-3 rounded-lg transition-all duration-200 text-left ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'
 																					} ${isSelected
-																						? (isDarkMode ? 'bg-blue-600/20 border-2 border-blue-500' : 'bg-blue-50 border-2 border-blue-400')
+																						? (isDarkMode ? 'bg-white/20 border-2 border-white' : 'bg-black/20 border-2 border-black')
 																						: (isDarkMode ? 'bg-gray-700/50 border border-gray-600' : 'bg-white border border-gray-300')
 																					} ${isAlreadyShared ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
 																			>
@@ -2806,7 +2825,7 @@ const NotepadPage = () => {
 																							<span className="text-xs">Already shared</span>
 																						</div>
 																					) : isSelected ? (
-																						<div className="text-blue-500">
+																						<div className={isDarkMode ? 'text-white' : 'text-black'}>
 																							<Users className="w-4 h-4" />
 																						</div>
 																					) : null}
@@ -2826,8 +2845,8 @@ const NotepadPage = () => {
 														</div>
 														{/* Show current sharing status */}
 														{currentNote?.sharedWith && currentNote.sharedWith.length > 0 && (
-															<div className="mt-3 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
-																<div className="text-sm text-blue-600 font-medium mb-2">
+															<div className={`mt-3 p-3 rounded-lg border ${isDarkMode ? 'bg-white/10 border-white/20' : 'bg-black/10 border-black/20'}`}>
+																<div className={`text-sm font-medium mb-2 ${isDarkMode ? 'text-white' : 'text-black'}`}>
 																	📤 Currently shared with {currentNote.sharedWith.length} user{currentNote.sharedWith.length === 1 ? '' : 's'}
 																</div>
 																<div className="flex flex-wrap gap-1">
@@ -2836,7 +2855,7 @@ const NotepadPage = () => {
 																		const displayName = userObj?.name || userObj?.username || userObj?.email || 'User';
 																		const userId = userObj?._id || (typeof share === 'object' ? share.user : share);
 																		return (
-																			<span key={index} className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+																			<span key={index} className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${isDarkMode ? 'bg-white/20 text-white' : 'bg-black/20 text-black'}`}>
 																				{displayName}
 																				<button
 																					onClick={async (e) => {
@@ -2858,7 +2877,7 @@ const NotepadPage = () => {
 																							}
 																						}
 																					}}
-																					className="hover:bg-blue-200 rounded-full p-0.5 transition-colors"
+																					className={`rounded-full p-0.5 transition-colors ${isDarkMode ? 'hover:bg-white/20' : 'hover:bg-black/20'}`}
 																				>
 																					<X className="w-3 h-3" />
 																				</button>
@@ -2893,21 +2912,25 @@ const NotepadPage = () => {
 														</div>
 													</div>
 												</div>
+												</>
 											)}
 										</div>
 									)}
 
-									<div className="relative flex-1">
+									<div className="relative flex-1 sm:flex-none">
 										<button
 											onClick={() => setShowTemplates(!showTemplates)}
-											className={`flex items-center justify-center w-full px-4 py-3 rounded-xl font-semibold transition-all duration-200 hover:scale-105 ${isDarkMode ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'bg-purple-500 hover:bg-purple-600 text-white'} shadow-lg text-sm`}
+											className={`flex items-center justify-center w-full sm:w-auto px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl font-semibold transition-all duration-200 hover:scale-105 ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'} shadow-lg text-xs sm:text-sm`}
+                style={isDarkMode ? { backgroundColor: '#141414' } : {}}
 										>
-											<FileText className="w-4 h-4 mr-2" />
+											<FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
 											Templates
-											<ChevronDown className={`w-4 h-4 ml-2 transition-transform ${showTemplates ? 'rotate-180' : ''}`} />
+											<ChevronDown className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ml-1.5 sm:ml-2 transition-transform ${showTemplates ? 'rotate-180' : ''}`} />
 										</button>
 										{showTemplates && (
-											<div className={`absolute bottom-full mb-2 left-0 w-80 rounded-lg shadow-lg border z-50 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+											<div className={`absolute bottom-full mb-2 sm:bottom-full sm:mb-2 sm:left-0 left-auto right-0 sm:right-auto w-[calc(100vw-2rem)] sm:w-80 max-w-80 rounded-lg shadow-lg border z-50 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
+												style={{ maxHeight: 'calc(100vh - 200px)' }}
+											>
 												<div className="p-4">
 													<h3 className="text-lg font-semibold mb-3">Choose Template</h3>
 													<div className="space-y-2 max-h-64 overflow-y-auto">
@@ -2946,7 +2969,8 @@ const NotepadPage = () => {
 							<p className="text-gray-500 mb-6">Select a note from the sidebar or create a new one</p>
 							<button
 								onClick={createNewNote}
-								className="flex items-center px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors"
+								className={`flex items-center px-4 py-2 rounded-lg transition-colors ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'}`}
+                style={isDarkMode ? { backgroundColor: '#141414' } : {}}
 							>
 								<Plus className="w-5 h-5 mr-2" />
 								Create new note
@@ -2964,7 +2988,9 @@ const NotepadPage = () => {
 				)}
 
 				{/* Sidebar */}
-				<div className={`${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'} fixed md:fixed top-16 md:top-0 right-0 w-64 md:w-80 h-[calc(100vh-4rem)] md:h-screen border-l ${isDarkMode ? 'bg-gray-900/98 border-gray-700/60' : 'bg-white/98 border-gray-200/60'} flex flex-col shadow-2xl transition-transform duration-300 ease-in-out z-40 backdrop-blur-xl`}>
+				<div className={`${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'} fixed md:fixed top-16 md:top-0 right-0 w-64 md:w-80 h-[calc(100vh-4rem)] md:h-screen border-l ${isDarkMode ? 'bg-[#141414]/98 border-gray-700/60' : 'bg-white/98 border-gray-200/60'} flex flex-col shadow-2xl transition-transform duration-300 ease-in-out z-40 backdrop-blur-xl`}
+          style={isDarkMode ? { backgroundColor: 'rgba(20, 20, 20, 0.98)' } : {}}
+        >
 					{/* Header Section */}
 					<div className={`p-4 border-b ${isDarkMode ? 'border-gray-700/30' : 'border-gray-200/30'}`}>
 						<div className="flex items-center justify-between mb-3">
@@ -2974,8 +3000,10 @@ const NotepadPage = () => {
 								aria-label="Hide Notes Sidebar"
 								title="Click to hide sidebar (Press Escape)"
 							>
-								<div className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-200 group-hover:scale-105 ${isDarkMode ? 'bg-gradient-to-br from-purple-600 to-blue-600 shadow-lg shadow-purple-500/30' : 'bg-gradient-to-br from-purple-500 to-blue-500 shadow-lg shadow-purple-500/20'}`}>
-									<FileText className="w-6 h-6 text-white" />
+								<div className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-200 group-hover:scale-105 ${isDarkMode ? 'bg-[#141414] shadow-lg' : 'bg-white shadow-lg'}`}
+                  style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+                >
+									<FileText className={`w-6 h-6 ${isDarkMode ? 'text-white' : 'text-black'}`} />
 								</div>
 								<div>
 									<h1 className={`text-lg font-bold transition-colors ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
@@ -2994,7 +3022,8 @@ const NotepadPage = () => {
 								</button>
 								<button
 									onClick={createNewNote}
-									className={`p-2.5 rounded-xl font-bold transition-all duration-200 hover:scale-110 active:scale-95 ${isDarkMode ? 'bg-gradient-to-br from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white shadow-lg shadow-purple-500/30' : 'bg-gradient-to-br from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white shadow-lg shadow-purple-500/20'}`}
+									className={`p-2.5 rounded-xl font-bold transition-all duration-200 hover:scale-110 active:scale-95 ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white shadow-lg' : 'bg-white hover:bg-gray-100 text-black border border-black shadow-lg'}`}
+                  style={isDarkMode ? { backgroundColor: '#141414' } : {}}
 									aria-label="Create New Note"
 									title="Create New Note"
 								>
@@ -3056,8 +3085,8 @@ const NotepadPage = () => {
 										}}
 										className={`p-3 rounded-lg cursor-pointer transition-all duration-200 hover:scale-[1.01] relative group ${selectedNote === note._id
 											? isDarkMode
-												? 'bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/50 shadow-lg'
-												: 'bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-400/50 shadow-md'
+												? 'bg-white/20 border border-white/50 shadow-lg'
+												: 'bg-black/20 border border-black/50 shadow-md'
 											: isDarkMode
 												? 'bg-gray-800/30 border border-gray-700/20 hover:border-gray-600/40 hover:bg-gray-800/50'
 												: 'bg-white/60 border border-gray-200/40 hover:border-gray-300/60 hover:bg-white/80'
@@ -3383,7 +3412,7 @@ const NotepadPage = () => {
 									onClick={() => addTagToNote(newTag)}
 									disabled={!newTag.trim()}
 									className={`px-4 py-2 rounded-lg flex items-center ${newTag.trim()
-										? 'bg-blue-500 text-white hover:bg-blue-600'
+										? (isDarkMode ? 'bg-[#141414] text-white hover:bg-gray-800 border border-white' : 'bg-white text-black hover:bg-gray-100 border border-black')
 										: 'bg-gray-300 text-gray-500 cursor-not-allowed'
 										}`}
 								>
