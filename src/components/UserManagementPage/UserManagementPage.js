@@ -32,6 +32,118 @@ const UserManagementPage = () => {
   const [editingUser, setEditingUser] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
 
+  // Role Filter Selector Component
+  const RoleFilterSelector = ({ value, onChange }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef(null);
+
+    const roleOptions = [
+      { value: 'all', label: 'All Roles', hoverColor: isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100' },
+      { value: 'admin', label: 'Admins', hoverColor: isDarkMode ? 'hover:bg-purple-500/20' : 'hover:bg-purple-50' },
+      { value: 'manager', label: 'Managers', hoverColor: isDarkMode ? 'hover:bg-blue-500/20' : 'hover:bg-blue-50' },
+      { value: 'user', label: 'Team Members', hoverColor: isDarkMode ? 'hover:bg-green-500/20' : 'hover:bg-green-50' }
+    ];
+
+    const currentRole = roleOptions.find(option => option.value === value) || roleOptions[0];
+
+    useEffect(() => {
+      const handleClickOutside = (event) => {
+        if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+          setIsOpen(false);
+        }
+      };
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    return (
+      <div className="relative" ref={dropdownRef}>
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className={`flex-1 sm:w-auto px-3 py-3 rounded-lg text-sm font-medium flex items-center gap-1.5 bg-transparent focus:outline-none border ${isDarkMode ? 'bg-gray-900 border-gray-700 text-white hover:bg-gray-800' : 'bg-white border-gray-300 text-gray-900 hover:bg-gray-50'} transition-colors`}
+        >
+          <span>{currentRole.label}</span>
+          <ChevronDown className={`h-4 w-4 ml-auto transition-transform ${isOpen ? 'rotate-180' : ''} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+        </button>
+        {isOpen && (
+          <div className={`absolute left-0 mt-1 rounded-xl shadow-2xl z-50 overflow-hidden ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} w-full min-w-[150px]`}>
+            <div className="py-1">
+              {roleOptions.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => {
+                    onChange(option.value);
+                    setIsOpen(false);
+                  }}
+                  className={`w-full flex items-center px-3 py-2 text-left ${option.hoverColor} transition-colors ${isDarkMode ? 'text-gray-200' : 'text-black'}`}
+                >
+                  <span className={`font-medium ${isDarkMode ? 'text-gray-200' : 'text-black'}`}>{option.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Status Filter Selector Component
+  const StatusFilterSelector = ({ value, onChange }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef(null);
+
+    const statusOptions = [
+      { value: 'all', label: 'All Statuses', hoverColor: isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100' },
+      { value: 'pending', label: 'Pending', hoverColor: isDarkMode ? 'hover:bg-yellow-500/20' : 'hover:bg-yellow-50' },
+      { value: 'approved', label: 'Approved', hoverColor: isDarkMode ? 'hover:bg-green-500/20' : 'hover:bg-green-50' },
+      { value: 'declined', label: 'Declined', hoverColor: isDarkMode ? 'hover:bg-red-500/20' : 'hover:bg-red-50' }
+    ];
+
+    const currentStatus = statusOptions.find(option => option.value === value) || statusOptions[0];
+
+    useEffect(() => {
+      const handleClickOutside = (event) => {
+        if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+          setIsOpen(false);
+        }
+      };
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    return (
+      <div className="relative" ref={dropdownRef}>
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className={`flex-1 sm:w-auto px-3 py-3 rounded-lg text-sm font-medium flex items-center gap-1.5 bg-transparent focus:outline-none border ${isDarkMode ? 'bg-gray-900 border-gray-700 text-white hover:bg-gray-800' : 'bg-white border-gray-300 text-gray-900 hover:bg-gray-50'} transition-colors`}
+        >
+          <span>{currentStatus.label}</span>
+          <ChevronDown className={`h-4 w-4 ml-auto transition-transform ${isOpen ? 'rotate-180' : ''} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+        </button>
+        {isOpen && (
+          <div className={`absolute left-0 mt-1 rounded-xl shadow-2xl z-50 overflow-hidden ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} w-full min-w-[150px]`}>
+            <div className="py-1">
+              {statusOptions.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => {
+                    onChange(option.value);
+                    setIsOpen(false);
+                  }}
+                  className={`w-full flex items-center px-3 py-2 text-left ${option.hoverColor} transition-colors ${isDarkMode ? 'text-gray-200' : 'text-black'}`}
+                >
+                  <span className={`font-medium ${isDarkMode ? 'text-gray-200' : 'text-black'}`}>{option.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const isPicker = urlParams.get('picker') === 'true' || urlParams.get('picker') === '1';
@@ -396,72 +508,72 @@ const UserManagementPage = () => {
 
         {/* Statistics */}
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
-          <div className={`p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg border ${isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
+          <div className={`p-3 sm:p-4 lg:p-6 rounded-xl sm:rounded-2xl shadow-lg border ${isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
             }`}>
             <div className="flex items-center justify-between">
-              <div>
-                <p className={`text-xl sm:text-2xl lg:text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>
+              <div className="flex-1 min-w-0">
+                <p className={`text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>
                   {users.length}
                 </p>
                 <p className={`text-xs sm:text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} truncate`}>
                   Total Users
                 </p>
               </div>
-              <div className={`p-2 sm:p-3 rounded-lg sm:rounded-xl ${isDarkMode ? 'bg-white' : 'bg-black'}`}>
-                <Users className={`h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 ${isDarkMode ? 'text-black' : 'text-white'}`} />
+              <div className={`p-1.5 sm:p-2 lg:p-3 rounded-lg sm:rounded-xl flex-shrink-0 ${isDarkMode ? 'bg-white' : 'bg-black'}`}>
+                <Users className={`h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 xl:h-8 xl:w-8 ${isDarkMode ? 'text-black' : 'text-white'}`} />
               </div>
             </div>
           </div>
 
-          <div className={`p-6 rounded-2xl shadow-lg border ${isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
+          <div className={`p-3 sm:p-4 lg:p-6 rounded-xl sm:rounded-2xl shadow-lg border ${isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
             }`}>
             <div className="flex items-center justify-between">
-              <div>
-                <p className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>
+              <div className="flex-1 min-w-0">
+                <p className={`text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>
                   {users.filter(u => u.status === 'pending').length}
                 </p>
-                <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                <p className={`text-xs sm:text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} truncate`}>
                   Pending Approval
                 </p>
               </div>
-              <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-yellow-900' : 'bg-yellow-100'}`}>
-                <Clock className={`h-8 w-8 ${isDarkMode ? 'text-yellow-300' : 'text-yellow-600'}`} />
+              <div className={`p-1.5 sm:p-2 lg:p-3 rounded-lg sm:rounded-xl flex-shrink-0 ${isDarkMode ? 'bg-yellow-900' : 'bg-yellow-100'}`}>
+                <Clock className={`h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 xl:h-8 xl:w-8 ${isDarkMode ? 'text-yellow-300' : 'text-yellow-600'}`} />
               </div>
             </div>
           </div>
 
-          <div className={`p-6 rounded-2xl shadow-lg border ${isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
+          <div className={`p-3 sm:p-4 lg:p-6 rounded-xl sm:rounded-2xl shadow-lg border ${isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
             }`}>
             <div className="flex items-center justify-between">
-              <div>
-                <p className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>
+              <div className="flex-1 min-w-0">
+                <p className={`text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>
                   {users.filter(u => u.status === 'approved').length}
                 </p>
-                <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                <p className={`text-xs sm:text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} truncate`}>
                   Approved Users
                 </p>
               </div>
-              <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-green-900' : 'bg-green-100'}`}>
-                <Check className={`h-8 w-8 ${isDarkMode ? 'text-green-300' : 'text-green-600'}`} />
+              <div className={`p-1.5 sm:p-2 lg:p-3 rounded-lg sm:rounded-xl flex-shrink-0 ${isDarkMode ? 'bg-green-900' : 'bg-green-100'}`}>
+                <Check className={`h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 xl:h-8 xl:w-8 ${isDarkMode ? 'text-green-300' : 'text-green-600'}`} />
               </div>
             </div>
           </div>
 
-          <div className={`p-6 rounded-2xl shadow-lg border ${isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
+          <div className={`p-3 sm:p-4 lg:p-6 rounded-xl sm:rounded-2xl shadow-lg border ${isDarkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
             }`}>
             <div className="flex items-center justify-between">
-              <div>
-                <p className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>
+              <div className="flex-1 min-w-0">
+                <p className={`text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>
                   {users.filter(u => u.role === 'manager').length}
                 </p>
-                <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                <p className={`text-xs sm:text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} truncate`}>
                   Managers
                 </p>
               </div>
-              <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-white' : 'bg-black'}`}
+              <div className={`p-1.5 sm:p-2 lg:p-3 rounded-lg sm:rounded-xl flex-shrink-0 ${isDarkMode ? 'bg-white' : 'bg-black'}`}
                 style={isDarkMode ? { backgroundColor: '#ffffff' } : { backgroundColor: '#000000' }}
               >
-                <Crown className={`h-8 w-8 ${isDarkMode ? 'text-black' : 'text-white'}`} />
+                <Crown className={`h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 xl:h-8 xl:w-8 ${isDarkMode ? 'text-black' : 'text-white'}`} />
               </div>
             </div>
           </div>
@@ -670,22 +782,22 @@ const UserManagementPage = () => {
 
       {/* User Profile Modal */}
       {showUserProfile && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-          <div className={`rounded-3xl w-full max-w-2xl max-h-[95vh] overflow-y-auto shadow-2xl border ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-3 sm:p-4">
+          <div className={`rounded-2xl sm:rounded-3xl w-full max-w-2xl max-h-[95vh] overflow-y-auto shadow-2xl border ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'
             }`}>
-            <div className={`px-8 py-6 border-b ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
+            <div className={`px-4 sm:px-6 lg:px-8 py-4 sm:py-6 border-b ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
               }`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-6">
-                  <div className={`w-20 h-20 rounded-2xl flex items-center justify-center shadow-lg ${isDarkMode ? 'bg-white' : 'bg-black'
+              <div className="flex items-center justify-between gap-3 sm:gap-4">
+                <div className="flex items-center space-x-3 sm:space-x-4 lg:space-x-6 flex-1 min-w-0">
+                  <div className={`w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0 ${isDarkMode ? 'bg-white' : 'bg-black'
                     }`}>
-                    <UserIcon className={`w-10 h-10 ${isDarkMode ? 'text-black' : 'text-white'}`} />
+                    <UserIcon className={`w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 ${isDarkMode ? 'text-black' : 'text-white'}`} />
                   </div>
-                  <div>
-                    <h2 className={`text-3xl font-black mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  <div className="flex-1 min-w-0">
+                    <h2 className={`text-lg sm:text-xl lg:text-2xl xl:text-3xl font-black mb-1 sm:mb-2 truncate ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                       {showUserProfile.name}
                     </h2>
-                    <span className={`px-4 py-2 rounded-xl text-sm font-bold border-2 ${showUserProfile.role === 'admin'
+                    <span className={`px-2 sm:px-3 lg:px-4 py-1 sm:py-1.5 lg:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold border-2 inline-block ${showUserProfile.role === 'admin'
                         ? 'bg-red-100 text-red-800 border-red-300'
                         : showUserProfile.role === 'manager'
                           ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
@@ -697,16 +809,16 @@ const UserManagementPage = () => {
                 </div>
                 <button
                   onClick={() => setShowUserProfile(null)}
-                  className={`p-4 rounded-2xl ${isDarkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                  className={`p-2 sm:p-3 lg:p-4 rounded-xl sm:rounded-2xl flex-shrink-0 ${isDarkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
                     }`}
                 >
-                  <X className="w-6 h-6" />
+                  <X className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
                 </button>
               </div>
             </div>
 
-            <div className="p-8">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="p-4 sm:p-6 lg:p-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
                 <div>
                   <h3 className={`text-xl font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                     Contact Information
@@ -807,38 +919,38 @@ const UserManagementPage = () => {
 
       {/* Create Member Modal */}
       {showCreateForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-          <div className={`rounded-3xl w-full max-w-2xl max-h-[95vh] overflow-y-auto shadow-2xl border ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-3 sm:p-4">
+          <div className={`rounded-2xl sm:rounded-3xl w-full max-w-2xl max-h-[95vh] overflow-y-auto shadow-2xl border ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'
             }`}>
-            <div className={`px-8 py-6 border-b ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
+            <div className={`px-4 sm:px-6 lg:px-8 py-4 sm:py-6 border-b ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
               }`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg ${isDarkMode ? 'bg-white' : 'bg-black'
+              <div className="flex items-center justify-between gap-3 sm:gap-4">
+                <div className="flex items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
+                  <div className={`w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0 ${isDarkMode ? 'bg-white' : 'bg-black'
                     }`}>
-                    <Plus className={`w-8 h-8 ${isDarkMode ? 'text-black' : 'text-white'}`} />
+                    <Plus className={`w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 ${isDarkMode ? 'text-black' : 'text-white'}`} />
                   </div>
-                  <div>
-                    <h2 className={`text-3xl font-black mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  <div className="flex-1 min-w-0">
+                    <h2 className={`text-xl sm:text-2xl lg:text-3xl font-black mb-1 sm:mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                       {editingUser ? 'Edit Member' : 'Add New Member'}
                     </h2>
-                    <p className={`text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    <p className={`text-sm sm:text-base lg:text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                       {editingUser ? 'Update team member information' : 'Create a new team member account'}
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowCreateForm(false)}
-                  className={`p-4 rounded-2xl ${isDarkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                  className={`p-2 sm:p-3 lg:p-4 rounded-xl sm:rounded-2xl flex-shrink-0 ${isDarkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
                     }`}
                 >
-                  <X className="w-6 h-6" />
+                  <X className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
                 </button>
               </div>
             </div>
 
-            <form onSubmit={editingUser ? handleUpdateMember : handleCreateMember} className="p-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <form onSubmit={editingUser ? handleUpdateMember : handleCreateMember} className="p-4 sm:p-6 lg:p-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 lg:gap-6">
                 <div>
                   <label className={`block text-sm font-semibold mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                     Full Name *
@@ -962,26 +1074,26 @@ const UserManagementPage = () => {
                 </div>
               </div>
 
-              <div className={`flex items-center justify-between mt-10 pt-6 border-t-2 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'
+              <div className={`flex flex-col sm:flex-row items-stretch sm:items-center justify-between mt-6 sm:mt-8 lg:mt-10 pt-4 sm:pt-5 lg:pt-6 border-t-2 gap-4 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'
                 }`}>
-                <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                <div className={`text-xs sm:text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                   {editingUser ? '✏️ Update member information' : '👤 Member will receive login credentials to join the team'}
                 </div>
-                <div className="flex items-center space-x-4">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:space-x-4">
                   <button
                     type="button"
                     onClick={() => {
                       setShowCreateForm(false);
                       setEditingUser(null);
                     }}
-                    className={`px-8 py-3 text-base font-semibold rounded-2xl ${isDarkMode ? 'text-gray-300 bg-gray-800 hover:bg-gray-700' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
+                    className={`px-6 sm:px-8 py-2.5 sm:py-3 text-sm sm:text-base font-semibold rounded-xl sm:rounded-2xl ${isDarkMode ? 'text-gray-300 bg-gray-800 hover:bg-gray-700' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
                       }`}
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className={`px-8 py-3 text-base font-bold rounded-2xl ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'}`}
+                    className={`px-6 sm:px-8 py-2.5 sm:py-3 text-sm sm:text-base font-bold rounded-xl sm:rounded-2xl ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'}`}
                     style={isDarkMode ? { backgroundColor: '#141414' } : {}}
                   >
                     {editingUser ? '✏️ Update Member' : '🎉 Create Member'}

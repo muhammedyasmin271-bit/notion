@@ -14,6 +14,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const emailService = require('../services/emailService');
+const { sendNotificationSMS } = require('../services/smsService');
 // Setup Multer for project file uploads
 const uploadsDir = path.join(__dirname, '..', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -188,7 +189,7 @@ router.post('/', async (req, res) => {
               { username: { $regex: new RegExp(assignedUserName, 'i') } },
               { email: { $regex: new RegExp(assignedUserName, 'i') } }
             ]
-          });
+          }).select('name email phone preferences emailNotifications');
           
           if (assignedUser) {
             console.log(`Creating assignment notification for user: ${assignedUser.name}`);
@@ -235,6 +236,20 @@ router.post('/', async (req, res) => {
                 console.log(`Project assignment email sent to ${assignedUser.email}`);
               } catch (emailError) {
                 console.error(`Error sending project assignment email to ${assignedUser.email}:`, emailError.message);
+              }
+            }
+            
+            // Send SMS notification
+            if (assignedUser.phone && assignedUser.preferences?.notifications?.sms === true) {
+              try {
+                const smsResult = await sendNotificationSMS(assignedUser, notification);
+                if (smsResult.success) {
+                  console.log(`Project assignment SMS sent to ${assignedUser.phone}`);
+                } else {
+                  console.log(`Failed to send project assignment SMS to ${assignedUser.phone}: ${smsResult.message}`);
+                }
+              } catch (smsError) {
+                console.error(`Error sending project assignment SMS to ${assignedUser.phone}:`, smsError.message);
               }
             }
             
@@ -305,7 +320,7 @@ router.put('/:id/status', async (req, res) => {
               { username: { $regex: new RegExp(assignedUserName, 'i') } },
               { email: { $regex: new RegExp(assignedUserName, 'i') } }
             ]
-          });
+          }).select('name email phone preferences emailNotifications');
           
           if (assignedUser && assignedUser._id.toString() !== req.user.id) {
             console.log(`Creating status update notification for user: ${assignedUser.name}`);
@@ -453,7 +468,7 @@ router.put('/:id', async (req, res) => {
                   { username: { $regex: new RegExp(assignedUserName, 'i') } },
                   { email: { $regex: new RegExp(assignedUserName, 'i') } }
                 ]
-              });
+              }).select('name email phone preferences emailNotifications');
               
               if (assignedUser) {
                 console.log(`Creating assignment notification for user: ${assignedUser.name} (${assignedUser._id})`);
@@ -474,6 +489,50 @@ router.put('/:id', async (req, res) => {
                 });
                 
                 await notification.save();
+                
+                // Send email notification
+                if (assignedUser.email && assignedUser.emailNotifications) {
+                  try {
+                    await emailService.sendEmail({
+                      to: assignedUser.email,
+                      subject: `New Project Assignment: ${p.title}`,
+                      html: `
+                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                          <h2 style="color: #667eea;">📊 New Project Assignment</h2>
+                          <p>Hello ${assignedUser.name},</p>
+                          <p><strong>${req.user.name}</strong> has assigned you to a new project:</p>
+                          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                            <h3 style="margin-top: 0; color: #333;">${p.title}</h3>
+                            <p>${p.description || 'No description provided'}</p>
+                            <p><strong>Priority:</strong> ${p.priority}</p>
+                            <p><strong>Status:</strong> ${p.status}</p>
+                            ${p.dueDate ? `<p><strong>Due Date:</strong> ${new Date(p.dueDate).toLocaleDateString()}</p>` : ''}
+                          </div>
+                          <p>Please check your Notion App to view the project details and start working on it.</p>
+                          <p>Best regards,<br>Notion App Team</p>
+                        </div>
+                      `
+                    });
+                    console.log(`Project assignment email sent to ${assignedUser.email}`);
+                  } catch (emailError) {
+                    console.error(`Error sending project assignment email to ${assignedUser.email}:`, emailError.message);
+                  }
+                }
+                
+                // Send SMS notification
+                if (assignedUser.phone && assignedUser.preferences?.notifications?.sms === true) {
+                  try {
+                    const smsResult = await sendNotificationSMS(assignedUser, notification);
+                    if (smsResult.success) {
+                      console.log(`Project assignment SMS sent to ${assignedUser.phone}`);
+                    } else {
+                      console.log(`Failed to send project assignment SMS to ${assignedUser.phone}: ${smsResult.message}`);
+                    }
+                  } catch (smsError) {
+                    console.error(`Error sending project assignment SMS to ${assignedUser.phone}:`, smsError.message);
+                  }
+                }
+                
                 console.log(`Assignment notification created successfully for ${assignedUser.name}`);
               } else {
                 console.warn(`Could not find user for assignment: ${assignedUserName}`);

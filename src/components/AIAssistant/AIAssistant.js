@@ -52,7 +52,7 @@ const AIAssistant = ({ hideOnAIPage = false }) => {
           setShowAIPopup(true);
           setAiResponse('');
         }}
-        className={`fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-lg transition-all duration-200 flex items-center justify-center hover:shadow-xl hover:scale-105 lg:flex hidden ${isDarkMode ? 'bg-white hover:bg-gray-100 text-black' : 'bg-black hover:bg-gray-900 text-white'}`}
+        className={`fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-lg transition-all duration-200 items-center justify-center hover:shadow-xl hover:scale-105 hidden lg:flex ${isDarkMode ? 'bg-white hover:bg-gray-100 text-black' : 'bg-black hover:bg-gray-900 text-white'}`}
       >
         <Sparkles className="w-6 h-6" />
       </button>

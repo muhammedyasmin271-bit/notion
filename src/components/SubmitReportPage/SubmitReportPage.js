@@ -211,6 +211,8 @@ const SubmitReportPage = () => {
   const [activeLineId, setActiveLineId] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
   const inputRefs = useRef({});
+  const blockMenuRefs = useRef({});
+  const lineMenuRefs = useRef({});
 
   // Check if device is mobile
   useEffect(() => {
@@ -224,17 +226,45 @@ const SubmitReportPage = () => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Handle clicking outside to hide mobile line buttons
+  // Handle clicking outside to hide mobile line buttons and menus
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (isMobile && activeLineId && !event.target.closest('.block-line')) {
         setActiveLineId(null);
       }
+      // Close block menu if clicking outside the dropdown container
+      if (showBlockMenu) {
+        const menuRef = blockMenuRefs.current[showBlockMenu];
+        if (menuRef && !menuRef.contains(event.target)) {
+          const clickedButton = event.target.closest('button');
+          const isMenuButton = clickedButton && (
+            clickedButton.getAttribute('title') === 'Add block' ||
+            clickedButton.closest('[class*="absolute left-0"]') // Inside the dropdown menu
+          );
+          if (!isMenuButton) {
+            setShowBlockMenu(null);
+          }
+        }
+      }
+      // Close line menu if clicking outside the dropdown container
+      if (showLineMenu) {
+        const menuRef = lineMenuRefs.current[showLineMenu];
+        if (menuRef && !menuRef.contains(event.target)) {
+          const clickedButton = event.target.closest('button');
+          const isMenuButton = clickedButton && (
+            clickedButton.getAttribute('title') === 'Line options' ||
+            clickedButton.closest('[class*="absolute left-0"]') // Inside the dropdown menu
+          );
+          if (!isMenuButton) {
+            setShowLineMenu(null);
+          }
+        }
+      }
     };
 
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, [isMobile, activeLineId]);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isMobile, activeLineId, showBlockMenu, showLineMenu]);
 
   useEffect(() => {
     const editId = searchParams.get('edit');
@@ -588,15 +618,15 @@ const SubmitReportPage = () => {
 
       switch (block.type) {
         case 'heading1':
-          return `${baseClass} ${styleClass} text-3xl font-bold`;
+          return `${baseClass} ${styleClass} text-base sm:text-3xl font-bold`;
         case 'heading2':
-          return `${baseClass} ${styleClass} text-2xl font-semibold`;
+          return `${baseClass} ${styleClass} text-sm sm:text-2xl font-semibold`;
         case 'heading3':
-          return `${baseClass} ${styleClass} text-xl font-medium`;
+          return `${baseClass} ${styleClass} text-sm sm:text-xl font-medium`;
         case 'code':
           return `${baseClass} ${styleClass} font-mono bg-gray-800 rounded px-2 py-1 text-green-400`;
         default:
-          return `${baseClass} ${styleClass} text-base`;
+          return `${baseClass} ${styleClass} text-sm sm:text-base`;
       }
     };
 
@@ -855,7 +885,7 @@ const SubmitReportPage = () => {
             placeholder="List item..."
             rows={1}
             className={`${getInputClassName()} resize-none flex-1`}
-            style={{ minHeight: '24px', lineHeight: '1.6', wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', width: '100%', margin: 0 }}
+            style={{ minHeight: '24px', lineHeight: '1.4', wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', width: '100%', margin: 0, paddingTop: '2px', paddingBottom: '2px' }}
           />
         </div>
       );
@@ -882,7 +912,7 @@ const SubmitReportPage = () => {
             placeholder="List item..."
             rows={1}
             className={`${getInputClassName()} resize-none flex-1`}
-            style={{ minHeight: '24px', lineHeight: '1.6', wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', width: '100%', margin: 0 }}
+            style={{ minHeight: '24px', lineHeight: '1.4', wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', width: '100%', margin: 0, paddingTop: '2px', paddingBottom: '2px' }}
           />
         </div>
       );
@@ -919,7 +949,7 @@ const SubmitReportPage = () => {
             placeholder="To-do item..."
             rows={1}
             className={`${getInputClassName()} ${isChecked ? 'line-through text-gray-500' : ''} resize-none flex-1`}
-            style={{ minHeight: '24px', lineHeight: '1.6', wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', width: '100%', margin: 0 }}
+            style={{ minHeight: '24px', lineHeight: '1.4', wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', width: '100%', margin: 0, paddingTop: '2px', paddingBottom: '2px' }}
           />
         </div>
       );
@@ -1487,7 +1517,69 @@ const SubmitReportPage = () => {
     }`}
     style={isDarkMode ? { backgroundColor: '#141414' } : {}}
     >
-      <div className="max-w-full mx-auto px-1 sm:px-2 py-4 sm:py-8">
+      <div className="max-w-full mx-auto px-2 sm:px-1 py-4 sm:py-8 relative">
+        {/* Delete and Update buttons - Top Right Corner */}
+        <div className="absolute top-4 sm:top-8 right-2 sm:right-1 flex items-center gap-2 z-10">
+          {isEditMode && (
+            <button
+              type="button"
+              onClick={async () => {
+                if (window.confirm('Are you sure you want to delete this report? This action cannot be undone.')) {
+                  try {
+                    const editId = searchParams.get('edit');
+                    const token = localStorage.getItem('token');
+                    
+                    if (!token) {
+                      alert('Authentication required. Please log in again.');
+                      navigate('/login');
+                      return;
+                    }
+
+                    const response = await fetch(`http://localhost:9000/api/reports/${editId}`, {
+                      method: 'DELETE',
+                      headers: {
+                        'x-auth-token': token,
+                        'Content-Type': 'application/json'
+                      }
+                    });
+
+                    if (response.ok) {
+                      alert('Report deleted successfully');
+                      const backUrl = companyId ? `/reports?company=${companyId}` : '/reports';
+                      navigate(backUrl);
+                    } else {
+                      const errorData = await response.json();
+                      alert(`Failed to delete report: ${errorData.message || 'Unknown error'}`);
+                    }
+                  } catch (error) {
+                    console.error('Error deleting report:', error);
+                    alert('Failed to delete report. Please try again.');
+                  }
+                }
+              }}
+              className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-all text-sm sm:text-base"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span className="hidden sm:inline">Delete</span>
+            </button>
+          )}
+          <button
+            type="submit"
+            form="report-form"
+            disabled={isSubmitting}
+            className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg font-medium transition-all disabled:bg-gray-700 text-sm sm:text-base ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'}`}
+            style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+          >
+            {isSubmitting ? (
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
+            <span className="hidden sm:inline">{isSubmitting ? (isEditMode ? 'Updating...' : 'Submitting...') : (isEditMode ? 'Update' : 'Submit')}</span>
+            <span className="sm:hidden">{isSubmitting ? (isEditMode ? 'Updating...' : 'Submitting...') : (isEditMode ? 'Update' : 'Submit')}</span>
+          </button>
+        </div>
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 mb-8 sm:mb-12">
           <button
@@ -1596,13 +1688,13 @@ const SubmitReportPage = () => {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-0">
+        <form id="report-form" onSubmit={handleSubmit} className="space-y-0">
 
 
 
 
           {/* Title and Description - Connected */}
-          <div className={`backdrop-blur-sm rounded-xl sm:rounded-2xl p-1 sm:p-2 shadow-xl ${
+          <div className={`backdrop-blur-sm rounded-xl sm:rounded-2xl p-0.5 sm:p-1 ${
             isDarkMode 
               ? 'bg-gray-800/50' 
               : 'bg-white'
@@ -1620,9 +1712,13 @@ const SubmitReportPage = () => {
                 className={`w-full px-3 sm:px-4 py-3 sm:py-4 ${isDarkMode ? 'bg-transparent text-white' : 'bg-white text-black'} border-none focus:outline-none text-xl sm:text-3xl rounded-t-xl rounded-b-none`}
                 required
               />
-              <div className="p-0.5 sm:p-1">
-                {blocks.map((block, index) => (
-                  <div key={block.id} className={`block-line flex items-start group relative mb-1 rounded px-0.5 py-0.5 ${aiInputBlock === block.id ? 'bg-purple-50/30 rounded-lg p-1' : ''} transition-all duration-200`}
+              <div className="px-1 py-0.5 sm:px-2 sm:py-1">
+                {blocks.map((block, index) => {
+                  const isListType = block.type === 'bullet' || block.type === 'numbered' || block.type === 'todo';
+                  const prevIsListType = index > 0 && (blocks[index - 1].type === 'bullet' || blocks[index - 1].type === 'numbered' || blocks[index - 1].type === 'todo');
+                  const listSpacing = isListType && prevIsListType ? 'mb-0' : isListType ? 'mb-0.5' : 'mb-1';
+                  return (
+                  <div key={block.id} className={`block-line flex items-start group relative ${listSpacing} rounded px-0.5 py-0.5 ${aiInputBlock === block.id ? 'bg-purple-50/30 rounded-lg p-1' : ''} transition-all duration-200`}
                     onClick={(e) => {
                       // On mobile, toggle line buttons visibility when clicking the line
                       if (isMobile) {
@@ -1631,69 +1727,72 @@ const SubmitReportPage = () => {
                       }
                     }}
                   >
-                    <div className={`flex items-center gap-0.5 transition-opacity duration-200 mr-1 ${
+                    <div className={`flex items-center gap-0 sm:gap-1 transition-opacity duration-200 absolute -left-4 top-0 z-10 sm:relative sm:left-auto sm:top-auto sm:z-auto sm:mr-2 ${
                       isMobile 
                         ? (activeLineId === block.id ? 'opacity-100' : 'opacity-0')
                         : 'opacity-0 group-hover:opacity-100'
-                    }`}>
-                      <div className="relative">
+                    } ${showBlockMenu === block.id || showLineMenu === block.id ? 'opacity-100' : ''}`}>
+                      <div 
+                        className="relative" 
+                        ref={(el) => { blockMenuRefs.current[block.id] = el; }}
+                      >
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             setShowBlockMenu(showBlockMenu === block.id ? null : block.id);
                           }}
-                          className="p-2 sm:p-1 rounded hover:bg-gray-700 transition-colors text-gray-400 hover:text-gray-200"
+                          className={`p-2 sm:p-1 rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-200' : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'}`}
                           title="Add block"
                         >
                           <Plus className="w-5 h-5 sm:w-4 sm:h-4" />
                         </button>
                         {showBlockMenu === block.id && (
-                          <div className="absolute left-0 sm:left-0 right-0 sm:right-auto top-8 w-full sm:w-72 max-h-96 overflow-hidden bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
-                            <div className="p-3 border-b border-gray-700">
-                              <div className="flex items-center gap-2 text-sm font-medium text-gray-300">
+                          <div className={`absolute left-0 top-8 w-72 max-w-[calc(100vw-2rem)] sm:max-w-none max-h-96 overflow-hidden border rounded-lg shadow-xl z-50 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`} style={{ pointerEvents: 'auto', opacity: '1 !important' }}>
+                            <div className={`p-3 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                              <div className={`flex items-center gap-2 text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                                 <Plus className="w-5 h-5 sm:w-4 sm:h-4" />
                                 Add Block
                               </div>
-                              <div className="text-xs text-gray-400 mt-1">
+                              <div className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                                 Choose a block type to add content
                               </div>
                             </div>
-                            <div className="max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
+                            <div className={`max-h-80 overflow-y-auto scrollbar-thin ${isDarkMode ? 'scrollbar-thumb-gray-600 scrollbar-track-gray-800' : 'scrollbar-thumb-gray-400 scrollbar-track-gray-200'}`}>
                               <div className="p-2 space-y-1">
                                 {/* TEXT BLOCKS HEADING */}
-                                <div className="text-xs text-gray-400 px-2 py-1 font-medium">TEXT BLOCKS</div>
-                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'text', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-gray-700 rounded-lg text-gray-300 transition-colors">
+                                <div className={`text-xs px-2 py-1 font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>TEXT BLOCKS</div>
+                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'text', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className={`w-full flex items-center gap-3 px-3 py-2.5 text-left rounded-lg transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'}`}>
                                   <Type className="w-4 h-4" /> Text
                                 </button>
-                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks[index] = { ...block, type: 'heading1' }; setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks[index] = { ...block, type: 'heading1' }; setBlocks(newBlocks); setShowBlockMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'}`}>
                                   <Hash className="w-4 h-4" /> Heading 1
                                 </button>
-                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks[index] = { ...block, type: 'heading2' }; setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks[index] = { ...block, type: 'heading2' }; setBlocks(newBlocks); setShowBlockMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'}`}>
                                   <Hash className="w-4 h-4" /> Heading 2
                                 </button>
-                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks[index] = { ...block, type: 'heading3' }; setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks[index] = { ...block, type: 'heading3' }; setBlocks(newBlocks); setShowBlockMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'}`}>
                                   <Hash className="w-4 h-4" /> Heading 3
                                 </button>
 
                                 {/* LIST BLOCKS HEADING */}
-                                <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-2">LIST BLOCKS</div>
-                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'bullet', content: '• ', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                <div className={`text-xs px-2 py-1 font-medium mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>LIST BLOCKS</div>
+                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'bullet', content: '• ', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'}`}>
                                   <List className="w-4 h-4" /> Bullet List
                                 </button>
-                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'numbered', content: '1. ', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'numbered', content: '1. ', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'}`}>
                                   <ListOrdered className="w-4 h-4" /> Numbered List
                                 </button>
-                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'todo', content: '☐ ', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'todo', content: '☐ ', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'}`}>
                                   <CheckSquare className="w-4 h-4" /> To-do List
                                 </button>
 
                                 {/* MEDIA & ADVANCED HEADING */}
-                                <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-2">MEDIA & ADVANCED</div>
-                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'quote', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                <div className={`text-xs px-2 py-1 font-medium mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>MEDIA & ADVANCED</div>
+                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'quote', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'}`}>
                                   <Quote className="w-4 h-4" /> Quote
                                 </button>
-                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'divider', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'divider', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'}`}>
                                   <Minus className="w-4 h-4" /> Divider
                                 </button>
                                 <button type="button" onClick={() => {
@@ -1713,88 +1812,91 @@ const SubmitReportPage = () => {
                                     }
                                   }));
                                   setShowBlockMenu(null);
-                                }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'}`}>
                                   <Table className="w-4 h-4" /> Table
                                 </button>
 
                                 {/* FUNCTIONAL BLOCKS HEADING */}
-                                <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-2">FUNCTIONAL BLOCKS</div>
-                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'date', content: new Date().toISOString().split('T')[0], style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
-                                  <Calendar className={`w-4 h-4 ${isDarkMode ? 'text-white' : 'text-black'}`} /> Date
+                                <div className={`text-xs px-2 py-1 font-medium mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>FUNCTIONAL BLOCKS</div>
+                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'date', content: new Date().toISOString().split('T')[0], style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'}`}>
+                                  <Calendar className="w-4 h-4 text-blue-400" /> Date
                                 </button>
-                                <button type="button" onClick={() => { const newBlocks = [...blocks]; const now = new Date(); const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0'); newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'time', content: timeStr, style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                <button type="button" onClick={() => { const newBlocks = [...blocks]; const now = new Date(); const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0'); newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'time', content: timeStr, style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'}`}>
                                   <Clock className="w-4 h-4 text-green-400" /> Time
                                 </button>
 
                                 {/* CALLOUT BLOCKS HEADING */}
-                                <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-2">CALLOUT BLOCKS</div>
-                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'callout', calloutType: 'info', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
-                                  <Info className={`w-4 h-4 ${isDarkMode ? 'text-white' : 'text-black'}`} /> Info Callout
+                                <div className={`text-xs px-2 py-1 font-medium mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>CALLOUT BLOCKS</div>
+                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'callout', calloutType: 'info', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'}`}>
+                                  <Info className="w-4 h-4 text-blue-400" /> Info Callout
                                 </button>
-                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'callout', calloutType: 'warning', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'callout', calloutType: 'warning', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'}`}>
                                   <AlertTriangle className="w-4 h-4 text-yellow-400" /> Warning Callout
                                 </button>
-                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'callout', calloutType: 'error', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'callout', calloutType: 'error', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'}`}>
                                   <AlertCircle className="w-4 h-4 text-red-400" /> Error Callout
                                 </button>
-                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'callout', calloutType: 'success', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'callout', calloutType: 'success', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'}`}>
                                   <CheckCircle className="w-4 h-4 text-green-400" /> Success Callout
                                 </button>
-                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'callout', calloutType: 'tip', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'callout', calloutType: 'tip', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'}`}>
                                   <Lightbulb className="w-4 h-4 text-purple-400" /> Tip Callout
                                 </button>
 
                                 {/* FORMATTING BLOCKS HEADING */}
-                                <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-2">FORMATTING & STYLE</div>
-                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'highlight', content: '', highlightColor: 'yellow', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                <div className={`text-xs px-2 py-1 font-medium mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>FORMATTING & STYLE</div>
+                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'highlight', content: '', highlightColor: 'yellow', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'}`}>
                                   <Palette className="w-4 h-4 text-yellow-400" /> Highlight Text
                                 </button>
-                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'link', content: '', url: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
-                                  <Link className={`w-4 h-4 ${isDarkMode ? 'text-white' : 'text-black'}`} /> Link
+                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'link', content: '', url: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'}`}>
+                                  <Link className="w-4 h-4 text-blue-400" /> Link
                                 </button>
-                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'bookmark', content: '', url: '', title: '', description: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'bookmark', content: '', url: '', title: '', description: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'}`}>
                                   <Bookmark className="w-4 h-4 text-indigo-400" /> Bookmark
                                 </button>
 
 
 
                                 {/* ORGANIZATIONAL BLOCKS HEADING */}
-                                <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-2">ORGANIZATIONAL</div>
-                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'tag', content: '', tagColor: 'blue', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
-                                  <Tag className={`w-4 h-4 ${isDarkMode ? 'text-white' : 'text-black'}`} /> Tag
+                                <div className={`text-xs px-2 py-1 font-medium mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>ORGANIZATIONAL</div>
+                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'tag', content: '', tagColor: 'blue', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'}`}>
+                                  <Tag className="w-4 h-4 text-blue-400" /> Tag
                                 </button>
-                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'flag', content: '', flagColor: 'red', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'flag', content: '', flagColor: 'red', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'}`}>
                                   <Flag className="w-4 h-4 text-red-400" /> Flag
                                 </button>
-                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'mention', content: '', mentionType: 'user', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'mention', content: '', mentionType: 'user', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'}`}>
                                   <Users className="w-4 h-4 text-cyan-400" /> Mention
                                 </button>
 
                                 {/* ADVANCED BLOCKS HEADING */}
-                                <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-2">ADVANCED BLOCKS</div>
-                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'progress', content: '', progress: 50, style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                <div className={`text-xs px-2 py-1 font-medium mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>ADVANCED BLOCKS</div>
+                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'progress', content: '', progress: 50, style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'}`}>
                                   <BarChart3 className="w-4 h-4 text-orange-400" /> Progress Bar
                                 </button>
-                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'location', content: '', address: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'location', content: '', address: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'}`}>
                                   <MapPin className="w-4 h-4 text-pink-400" /> Location
                                 </button>
-                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'email', content: '', emailAddress: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'email', content: '', emailAddress: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'}`}>
                                   <Mail className="w-4 h-4 text-teal-400" /> Email
                                 </button>
-                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'hidden', content: '', visible: false, style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'hidden', content: '', visible: false, style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'}`}>
                                   <EyeOff className="w-4 h-4 text-gray-400" /> Hidden Block
                                 </button>
                               </div>
                             </div>
-                            <div className="p-3 border-t border-gray-700 bg-gray-800/50">
-                              <div className="text-xs text-gray-400">
+                            <div className={`p-3 border-t ${isDarkMode ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-gray-50'}`}>
+                              <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                                 Use keyboard shortcuts for faster editing
                               </div>
                             </div>
                           </div>
                         )}
                       </div>
-                      <div className="relative">
+                      <div 
+                        className="relative -ml-2 sm:ml-0" 
+                        ref={(el) => { lineMenuRefs.current[block.id] = el; }}
+                      >
                         <button
                           type="button"
                           onClick={(e) => {
@@ -1802,28 +1904,28 @@ const SubmitReportPage = () => {
                             console.log('GripVertical clicked for block:', block.id);
                             setShowLineMenu(showLineMenu === block.id ? null : block.id);
                           }}
-                          className="p-2 sm:p-1 rounded hover:bg-gray-700 transition-colors text-gray-400 hover:text-gray-200"
+                          className={`p-2 sm:p-1 rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-200' : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'}`}
                           title="Line options"
                         >
                           <GripVertical className="w-5 h-5 sm:w-4 sm:h-4" />
                         </button>
                         {showLineMenu === block.id && (
-                          <div className="absolute left-0 sm:left-0 right-0 sm:right-auto top-8 w-full sm:w-40 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
+                          <div className={`absolute left-0 top-8 w-40 max-w-[calc(100vw-2rem)] sm:max-w-none border rounded-lg shadow-xl z-50 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`} style={{ pointerEvents: 'auto', opacity: '1 !important' }}>
                             <div className="p-2">
-                              <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'text', content: '', style: {} }); setBlocks(newBlocks); setShowLineMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                              <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'text', content: '', style: {} }); setBlocks(newBlocks); setShowLineMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'}`}>
                                 <Plus className="w-5 h-5 sm:w-4 sm:h-4" /> Add Line
                               </button>
                               {index > 0 && (
-                                <button type="button" onClick={() => { const newBlocks = [...blocks];[newBlocks[index], newBlocks[index - 1]] = [newBlocks[index - 1], newBlocks[index]]; setBlocks(newBlocks); setShowLineMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                <button type="button" onClick={() => { const newBlocks = [...blocks];[newBlocks[index], newBlocks[index - 1]] = [newBlocks[index - 1], newBlocks[index]]; setBlocks(newBlocks); setShowLineMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'}`}>
                                   <ArrowUp className="w-4 h-4" /> Move Up
                                 </button>
                               )}
                               {index < blocks.length - 1 && (
-                                <button type="button" onClick={() => { const newBlocks = [...blocks];[newBlocks[index], newBlocks[index + 1]] = [newBlocks[index + 1], newBlocks[index]]; setBlocks(newBlocks); setShowLineMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                                <button type="button" onClick={() => { const newBlocks = [...blocks];[newBlocks[index], newBlocks[index + 1]] = [newBlocks[index + 1], newBlocks[index]]; setBlocks(newBlocks); setShowLineMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'}`}>
                                   <ArrowDown className="w-4 h-4" /> Move Down
                                 </button>
                               )}
-                              <button type="button" onClick={() => { const newBlocks = [...blocks]; const duplicated = { ...block, id: `block-${Date.now()}` }; newBlocks.splice(index + 1, 0, duplicated); setBlocks(newBlocks); setShowLineMenu(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-gray-300">
+                              <button type="button" onClick={() => { const newBlocks = [...blocks]; const duplicated = { ...block, id: `block-${Date.now()}` }; newBlocks.splice(index + 1, 0, duplicated); setBlocks(newBlocks); setShowLineMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'}`}>
                                 <Copy className="w-4 h-4" /> Duplicate
                               </button>
                               {blocks.length > 1 && (
@@ -1839,7 +1941,7 @@ const SubmitReportPage = () => {
                                       inputRefs.current[targetBlock.id].focus();
                                     }
                                   }, 0);
-                                }} className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 rounded text-red-400">
+                                }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-red-700 text-red-300' : 'hover:bg-red-100 text-red-700'}`}>
                                   <Trash2 className="w-4 h-4" /> Delete
                                 </button>
                               )}
@@ -1848,7 +1950,7 @@ const SubmitReportPage = () => {
                         )}
                       </div>
                     </div>
-                    <div className="flex-1 relative">
+                    <div className="flex-1 relative ml-12 sm:ml-0">
                       {aiInputBlock === block.id ? (
                         <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-purple-900/20 border border-purple-800/30 transition-all duration-200">
                           <div className="p-1 rounded bg-purple-900/40">
@@ -1875,13 +1977,14 @@ const SubmitReportPage = () => {
                           </button>
                         </div>
                       ) : (
-                        <div className="block-content">
+                        <div className="block-content ml-2 sm:ml-0">
                           {renderBlockContent(block, index)}
                         </div>
                       )}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -1977,67 +2080,6 @@ const SubmitReportPage = () => {
             <ShareReportSection reportData={report} selectedUsers={selectedUsers} setSelectedUsers={setSelectedUsers} />
           </div>
 
-          {/* Submit and Delete */}
-          <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-0 pt-4">
-            {isEditMode && (
-              <button
-                type="button"
-                onClick={async () => {
-                  if (window.confirm('Are you sure you want to delete this report? This action cannot be undone.')) {
-                    try {
-                      const editId = searchParams.get('edit');
-                      const token = localStorage.getItem('token');
-                      
-                      if (!token) {
-                        alert('Authentication required. Please log in again.');
-                        navigate('/login');
-                        return;
-                      }
-
-                      const response = await fetch(`http://localhost:9000/api/reports/${editId}`, {
-                        method: 'DELETE',
-                        headers: {
-                          'x-auth-token': token,
-                          'Content-Type': 'application/json'
-                        }
-                      });
-
-                      if (response.ok) {
-                        alert('Report deleted successfully');
-                        const backUrl = companyId ? `/reports?company=${companyId}` : '/reports';
-                        navigate(backUrl);
-                      } else {
-                        const errorData = await response.json();
-                        alert(`Failed to delete report: ${errorData.message || 'Unknown error'}`);
-                      }
-                    } catch (error) {
-                      console.error('Error deleting report:', error);
-                      alert('Failed to delete report. Please try again.');
-                    }
-                  }
-                }}
-                className="flex items-center justify-center gap-2 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-all"
-              >
-                <Trash2 className="w-4 h-4" />
-                Delete Report
-              </button>
-            )}
-            <div className={isEditMode ? '' : 'w-full sm:w-auto'}>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className={`w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all disabled:bg-gray-700 ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'}`}
-                style={isDarkMode ? { backgroundColor: '#141414' } : {}}
-              >
-                {isSubmitting ? (
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <Send className="w-4 h-4" />
-                )}
-                {isSubmitting ? (isEditMode ? 'Updating Report...' : 'Submitting Report...') : (isEditMode ? 'Update Report' : 'Submit Management Report')}
-              </button>
-            </div>
-          </div>
         </form>
       </div>
     </div>

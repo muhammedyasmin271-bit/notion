@@ -5,6 +5,7 @@ const User = require('../models/User');
 const auth = require('../middleware/auth');
 const { tenantFilter } = require('../middleware/tenantFilter');
 const Notification = require('../models/Notification');
+const { sendNotificationSMS } = require('../services/smsService');
 
 // Apply auth to all routes first, then tenant filtering
 router.use(auth);
@@ -211,6 +212,9 @@ router.post('/:id/share', async (req, res) => {
     
     for (const userId of newUserIds) {
       try {
+        // Fetch user with phone and preferences for SMS
+        const sharedUser = await User.findById(userId).select('name email phone preferences emailNotifications');
+        
         const notification = new Notification({
           recipient: userId,
           sender: req.user.id,
@@ -229,6 +233,20 @@ router.post('/:id/share', async (req, res) => {
         });
         await notification.save();
         console.log(`✅ Notification created for user ${userId}`);
+        
+        // Send SMS notification
+        if (sharedUser && sharedUser.phone && sharedUser.preferences?.notifications?.sms === true) {
+          try {
+            const smsResult = await sendNotificationSMS(sharedUser, notification);
+            if (smsResult.success) {
+              console.log(`Note share SMS sent to ${sharedUser.phone}`);
+            } else {
+              console.log(`Failed to send note share SMS to ${sharedUser.phone}: ${smsResult.message}`);
+            }
+          } catch (smsError) {
+            console.error(`Error sending note share SMS to ${sharedUser.phone}:`, smsError.message);
+          }
+        }
       } catch (notifError) {
         console.error(`❌ Failed to create notification for user ${userId}:`, notifError);
       }

@@ -406,7 +406,12 @@ router.put('/:id', async (req, res) => {
           ],
           isActive: true,
           _id: { $ne: req.user.id }
-        }).select('_id name username');
+        }).select('_id name username email phone preferences emailNotifications');
+
+        // Get previous attendee IDs to find new ones
+        const previousAttendeeIds = meeting.sharedWith.map(sw => sw.user?.toString() || sw.user.toString());
+        const newAttendeeIds = users.map(u => u._id.toString());
+        const newlyAddedAttendees = users.filter(u => !previousAttendeeIds.includes(u._id.toString()));
 
         meeting.sharedWith = users.map(user => ({
           user: user._id,
@@ -415,6 +420,53 @@ router.put('/:id', async (req, res) => {
         }));
 
         console.log('Updated shared users for meeting:', users.map(u => ({ id: u._id, name: u.name, username: u.username })));
+        
+        // Send notifications and SMS to newly added attendees
+        if (newlyAddedAttendees.length > 0) {
+          const notifications = newlyAddedAttendees.map(user => ({
+            recipient: user._id,
+            sender: req.user.id,
+            type: 'meeting',
+            title: 'Meeting Updated - You\'ve Been Added',
+            message: `${req.user.name} added you to meeting: ${meeting.title}`,
+            entityType: 'Meeting',
+            entityId: meeting._id,
+            metadata: {
+              meetingTitle: meeting.title,
+              meetingDate: meeting.date,
+              meetingTime: meeting.time,
+              addedBy: req.user.id,
+              addedByName: req.user.name
+            }
+          }));
+          
+          if (notifications.length > 0) {
+            const savedNotifications = await Notification.insertMany(notifications);
+            
+            // Send SMS notifications
+            for (let i = 0; i < newlyAddedAttendees.length; i++) {
+              const user = newlyAddedAttendees[i];
+              const notification = savedNotifications[i];
+              
+              if (user.phone && user.preferences?.notifications?.sms === true) {
+                try {
+                  const smsNotification = {
+                    title: `Meeting Updated: ${meeting.title}`,
+                    message: `You've been added to a meeting.\nDate: ${new Date(meeting.date).toLocaleDateString()}\nTime: ${meeting.time}\nDuration: ${meeting.duration} minutes`
+                  };
+                  const smsResult = await sendNotificationSMS(user, smsNotification);
+                  if (smsResult.success) {
+                    console.log(`Meeting update SMS sent to ${user.phone}`);
+                  } else {
+                    console.log(`Failed to send meeting update SMS to ${user.phone}: ${smsResult.message}`);
+                  }
+                } catch (smsError) {
+                  console.error(`Error sending meeting update SMS to ${user.phone}:`, smsError.message);
+                }
+              }
+            }
+          }
+        }
       } catch (err) {
         console.error('Error updating shared users for meeting:', err);
       }

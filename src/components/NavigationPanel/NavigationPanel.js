@@ -29,7 +29,10 @@ const NavigationPanel = () => {
   // Only show on project detail pages
   const isProjectDetailPage = location.pathname.match(/^\/projects\/[^/]+/) || location.pathname === '/projects/new';
   
-  if (!isProjectDetailPage) {
+  // Hide on tasks page
+  const isTasksPage = location.pathname.includes('/tasks');
+  
+  if (!isProjectDetailPage || isTasksPage) {
     return null;
   }
 

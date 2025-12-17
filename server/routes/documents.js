@@ -6,6 +6,7 @@ const Notification = require('../models/Notification');
 const auth = require('../middleware/auth');
 const { tenantFilter } = require('../middleware/tenantFilter');
 const { getVisibilityFilter } = require('../middleware/visibility');
+const { sendNotificationSMS } = require('../services/smsService');
 
 // Apply auth to all routes first, then tenant filtering
 router.use(auth);
@@ -287,11 +288,11 @@ router.post('/', upload.single('file'), async (req, res) => {
         }
         
         if (sendTo === 'all') {
-          usersToShareWith = await User.find(shareQuery);
+          usersToShareWith = await User.find(shareQuery).select('name email phone preferences emailNotifications');
         } else if (sendTo === 'managers') {
-          usersToShareWith = await User.find({ ...shareQuery, role: 'manager' });
+          usersToShareWith = await User.find({ ...shareQuery, role: 'manager' }).select('name email phone preferences emailNotifications');
         } else if (sendTo === 'users') {
-          usersToShareWith = await User.find({ ...shareQuery, role: 'user' });
+          usersToShareWith = await User.find({ ...shareQuery, role: 'user' }).select('name email phone preferences emailNotifications');
         } else if (sendTo === 'specific' && forGroup) {
           const userNames = forGroup.split(',').map(name => name.trim()).filter(name => name);
           const specificQuery = {
@@ -306,7 +307,7 @@ router.post('/', upload.single('file'), async (req, res) => {
           if (req.user.role !== 'superadmin') {
             specificQuery.companyId = req.companyId;
           }
-          usersToShareWith = await User.find(specificQuery);
+          usersToShareWith = await User.find(specificQuery).select('name email phone preferences emailNotifications');
         }
       } else {
         // Regular users can only share with specific users in their company
@@ -359,7 +360,26 @@ router.post('/', upload.single('file'), async (req, res) => {
         }));
 
         if (notifications.length > 0) {
-          await Notification.insertMany(notifications);
+          const savedNotifications = await Notification.insertMany(notifications);
+          
+          // Send SMS notifications
+          for (let i = 0; i < usersToShareWith.length; i++) {
+            const user = usersToShareWith[i];
+            const notification = savedNotifications[i];
+            
+            if (user.phone && user.preferences?.notifications?.sms === true) {
+              try {
+                const smsResult = await sendNotificationSMS(user, notification);
+                if (smsResult.success) {
+                  console.log(`Document share SMS sent to ${user.phone}`);
+                } else {
+                  console.log(`Failed to send document share SMS to ${user.phone}: ${smsResult.message}`);
+                }
+              } catch (smsError) {
+                console.error(`Error sending document share SMS to ${user.phone}:`, smsError.message);
+              }
+            }
+          }
         }
       }
     }
@@ -673,11 +693,11 @@ router.post('/:id/share', async (req, res) => {
     console.log('🔵 User query for sharing:', JSON.stringify(userQuery));
     
     if (shareType === 'all-managers') {
-      usersToShareWith = await User.find({ ...userQuery, role: 'manager' });
+      usersToShareWith = await User.find({ ...userQuery, role: 'manager' }).select('name email phone preferences emailNotifications');
     } else if (shareType === 'all-users') {
-      usersToShareWith = await User.find({ ...userQuery, role: 'user' });
+      usersToShareWith = await User.find({ ...userQuery, role: 'user' }).select('name email phone preferences emailNotifications');
     } else if (shareType === 'all') {
-      usersToShareWith = await User.find(userQuery);
+      usersToShareWith = await User.find(userQuery).select('name email phone preferences emailNotifications');
     }
     
     console.log('✅ Found users to share with:', usersToShareWith.length, 'users in company');
@@ -720,19 +740,39 @@ router.post('/:id/share', async (req, res) => {
 
     // Create notifications for recipients
     try {
-      const notifications = userIds
-        .filter(id => id.toString() !== req.user.id)
-        .map(id => ({
-          recipient: id,
-          sender: req.user.id,
-          type: 'document',
-          title: 'A document was shared with you',
-          message: populatedDocument.title,
-          entityType: 'Document',
-          entityId: populatedDocument._id
-        }));
+      const filteredUserIds = userIds.filter(id => id.toString() !== req.user.id);
+      const notifications = filteredUserIds.map(id => ({
+        recipient: id,
+        sender: req.user.id,
+        type: 'document',
+        title: 'A document was shared with you',
+        message: populatedDocument.title,
+        entityType: 'Document',
+        entityId: populatedDocument._id
+      }));
+      
       if (notifications.length > 0) {
-        await Notification.insertMany(notifications);
+        const savedNotifications = await Notification.insertMany(notifications);
+        
+        // Send SMS notifications
+        for (let i = 0; i < filteredUserIds.length; i++) {
+          const userId = filteredUserIds[i];
+          const user = usersToShareWith.find(u => u._id.toString() === userId.toString());
+          const notification = savedNotifications[i];
+          
+          if (user && user.phone && user.preferences?.notifications?.sms === true) {
+            try {
+              const smsResult = await sendNotificationSMS(user, notification);
+              if (smsResult.success) {
+                console.log(`Document share SMS sent to ${user.phone}`);
+              } else {
+                console.log(`Failed to send document share SMS to ${user.phone}: ${smsResult.message}`);
+              }
+            } catch (smsError) {
+              console.error(`Error sending document share SMS to ${user.phone}:`, smsError.message);
+            }
+          }
+        }
       }
     } catch (notifyErr) {
       console.error('Error creating document share notifications:', notifyErr);

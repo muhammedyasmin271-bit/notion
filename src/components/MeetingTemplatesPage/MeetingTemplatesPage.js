@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
-import { Plus, Search, Filter, Edit, Trash2, Copy, Users, Globe, Lock, Calendar, ChevronDown } from 'lucide-react';
+import { Plus, Search, Filter, Edit, Trash2, Copy, Users, Globe, Lock, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getMeetingTemplates, createMeetingTemplate, deleteMeetingTemplate } from '../../services/api';
 
@@ -12,118 +12,6 @@ const MeetingTemplatesPage = () => {
     const [filterType, setFilterType] = useState('all');
     const [filterVisibility, setFilterVisibility] = useState('all');
     const [loading, setLoading] = useState(true);
-
-    // Type Filter Selector Component
-    const TypeFilterSelector = ({ value, onChange }) => {
-        const [isOpen, setIsOpen] = useState(false);
-        const dropdownRef = useRef(null);
-
-        const typeOptions = [
-            { value: 'all', label: 'All Types', hoverColor: isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100' },
-            { value: 'Standup', label: 'Standup', hoverColor: isDarkMode ? 'hover:bg-blue-500/20' : 'hover:bg-blue-50' },
-            { value: 'Planning', label: 'Planning', hoverColor: isDarkMode ? 'hover:bg-purple-500/20' : 'hover:bg-purple-50' },
-            { value: 'Review', label: 'Review', hoverColor: isDarkMode ? 'hover:bg-yellow-500/20' : 'hover:bg-yellow-50' },
-            { value: 'Retro', label: 'Retro', hoverColor: isDarkMode ? 'hover:bg-green-500/20' : 'hover:bg-green-50' }
-        ];
-
-        const currentType = typeOptions.find(option => option.value === value) || typeOptions[0];
-
-        useEffect(() => {
-            const handleClickOutside = (event) => {
-                if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-                    setIsOpen(false);
-                }
-            };
-            document.addEventListener('mousedown', handleClickOutside);
-            return () => document.removeEventListener('mousedown', handleClickOutside);
-        }, []);
-
-        return (
-            <div className="relative" ref={dropdownRef}>
-                <button
-                    type="button"
-                    onClick={() => setIsOpen(!isOpen)}
-                    className={`px-3 py-2 rounded-lg border transition-colors flex items-center gap-1.5 focus:outline-none focus:ring-2 ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-100 hover:bg-gray-700 focus:ring-white/20' : 'bg-white border-gray-300 text-gray-900 hover:bg-gray-50 focus:ring-black/20'} w-full`}
-                >
-                    <span>{currentType.label}</span>
-                    <ChevronDown className={`h-4 w-4 ml-auto transition-transform ${isOpen ? 'rotate-180' : ''} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
-                </button>
-                {isOpen && (
-                    <div className={`absolute left-0 mt-1 rounded-xl shadow-2xl z-50 overflow-hidden ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} w-full min-w-[140px]`}>
-                        <div className="py-1">
-                            {typeOptions.map((option) => (
-                                <button
-                                    key={option.value}
-                                    onClick={() => {
-                                        onChange(option.value);
-                                        setIsOpen(false);
-                                    }}
-                                    className={`w-full flex items-center px-3 py-2 text-left ${option.hoverColor} transition-colors ${isDarkMode ? 'text-gray-200' : 'text-black'}`}
-                                >
-                                    <span className={`font-medium ${isDarkMode ? 'text-gray-200' : 'text-black'}`}>{option.label}</span>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                )}
-            </div>
-        );
-    };
-
-    // Visibility Filter Selector Component
-    const VisibilityFilterSelector = ({ value, onChange }) => {
-        const [isOpen, setIsOpen] = useState(false);
-        const dropdownRef = useRef(null);
-
-        const visibilityOptions = [
-            { value: 'all', label: 'All Visibility', hoverColor: isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100' },
-            { value: 'public', label: 'Public', hoverColor: isDarkMode ? 'hover:bg-green-500/20' : 'hover:bg-green-50' },
-            { value: 'private', label: 'Private', hoverColor: isDarkMode ? 'hover:bg-red-500/20' : 'hover:bg-red-50' }
-        ];
-
-        const currentVisibility = visibilityOptions.find(option => option.value === value) || visibilityOptions[0];
-
-        useEffect(() => {
-            const handleClickOutside = (event) => {
-                if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-                    setIsOpen(false);
-                }
-            };
-            document.addEventListener('mousedown', handleClickOutside);
-            return () => document.removeEventListener('mousedown', handleClickOutside);
-        }, []);
-
-        return (
-            <div className="relative" ref={dropdownRef}>
-                <button
-                    type="button"
-                    onClick={() => setIsOpen(!isOpen)}
-                    className={`px-3 py-2 rounded-lg border transition-colors flex items-center gap-1.5 focus:outline-none focus:ring-2 ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-100 hover:bg-gray-700 focus:ring-white/20' : 'bg-white border-gray-300 text-gray-900 hover:bg-gray-50 focus:ring-black/20'} w-full`}
-                >
-                    <span>{currentVisibility.label}</span>
-                    <ChevronDown className={`h-4 w-4 ml-auto transition-transform ${isOpen ? 'rotate-180' : ''} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
-                </button>
-                {isOpen && (
-                    <div className={`absolute left-0 mt-1 rounded-xl shadow-2xl z-50 overflow-hidden ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} w-full min-w-[140px]`}>
-                        <div className="py-1">
-                            {visibilityOptions.map((option) => (
-                                <button
-                                    key={option.value}
-                                    onClick={() => {
-                                        onChange(option.value);
-                                        setIsOpen(false);
-                                    }}
-                                    className={`w-full flex items-center px-3 py-2 text-left ${option.hoverColor} transition-colors ${isDarkMode ? 'text-gray-200' : 'text-black'}`}
-                                >
-                                    <span className={`font-medium ${isDarkMode ? 'text-gray-200' : 'text-black'}`}>{option.label}</span>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                )}
-            </div>
-        );
-    };
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [newTemplate, setNewTemplate] = useState({
         name: '',
@@ -267,7 +155,7 @@ const MeetingTemplatesPage = () => {
                                 {template.defaultDuration} min
                             </span>
                             {template.isPublic ? (
-                                <span className={`px-2 py-1 rounded-full text-xs flex items-center gap-1 ${isDarkMode ? 'bg-white/30 text-white' : 'bg-black/30 text-black'}`}>
+                                <span className={`px-2 py-1 rounded-full text-xs flex items-center gap-1 ${isDarkMode ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-100 text-blue-800'}`}>
                                     <Globe className="w-3 h-3" />
                                     Public
                                 </span>
@@ -283,8 +171,7 @@ const MeetingTemplatesPage = () => {
                         <div className="relative">
                             <button
                                 onClick={() => handleUseTemplate(template)}
-                                className={`px-3 py-1.5 text-sm rounded-md transition-colors ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'}`}
-                style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+                                className={`px-3 py-1.5 text-sm rounded-md transition-colors ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
                             >
                                 Use
                             </button>
@@ -350,8 +237,7 @@ const MeetingTemplatesPage = () => {
                     </div>
                     <button
                         onClick={() => setShowCreateModal(true)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'}`}
-                style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
                     >
                         <Plus className="w-4 h-4" />
                         New Template
@@ -367,26 +253,38 @@ const MeetingTemplatesPage = () => {
                             placeholder="Search templates..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className={`w-full pl-10 pr-4 py-2 rounded-lg border transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-400 focus:border-white' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-black'} focus:outline-none focus:ring-2 ${isDarkMode ? 'focus:ring-white/20' : 'focus:ring-black/20'}`}
+                            className={`w-full pl-10 pr-4 py-2 rounded-lg border transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-400 focus:border-blue-500' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500'} focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
                         />
                     </div>
                     <div className="flex items-center gap-2">
                         <Filter className={`w-4 h-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
-                        <TypeFilterSelector
+                        <select
                             value={filterType}
-                            onChange={setFilterType}
-                        />
-                        <VisibilityFilterSelector
+                            onChange={(e) => setFilterType(e.target.value)}
+                            className={`px-3 py-2 rounded-lg border transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-100' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
+                        >
+                            <option value="all">All Types</option>
+                            <option value="Standup">Standup</option>
+                            <option value="Planning">Planning</option>
+                            <option value="Review">Review</option>
+                            <option value="Retro">Retro</option>
+                        </select>
+                        <select
                             value={filterVisibility}
-                            onChange={setFilterVisibility}
-                        />
+                            onChange={(e) => setFilterVisibility(e.target.value)}
+                            className={`px-3 py-2 rounded-lg border transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-100' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
+                        >
+                            <option value="all">All Visibility</option>
+                            <option value="public">Public</option>
+                            <option value="private">Private</option>
+                        </select>
                     </div>
                 </div>
 
                 {/* Templates Grid */}
                 {loading ? (
                     <div className="flex justify-center items-center h-64">
-                        <div className={`animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 ${isDarkMode ? 'border-white' : 'border-black'}`}></div>
+                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
                     </div>
                 ) : filteredTemplates.length > 0 ? (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -409,8 +307,7 @@ const MeetingTemplatesPage = () => {
                         {!searchTerm && filterType === 'all' && filterVisibility === 'all' && (
                             <button
                                 onClick={() => setShowCreateModal(true)}
-                                className={`px-4 py-2 rounded-lg font-medium transition-colors ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'}`}
-                style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+                                className={`px-4 py-2 rounded-lg font-medium transition-colors ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
                             >
                                 Create Template
                             </button>
@@ -450,7 +347,7 @@ const MeetingTemplatesPage = () => {
                                     value={newTemplate.name}
                                     onChange={(e) => setNewTemplate(prev => ({ ...prev, name: e.target.value }))}
                                     placeholder="Enter template name"
-                                    className={`w-full px-4 py-2 rounded-lg border transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-400 focus:border-white' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-black'} focus:outline-none focus:ring-2 ${isDarkMode ? 'focus:ring-white/20' : 'focus:ring-black/20'}`}
+                                    className={`w-full px-4 py-2 rounded-lg border transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-400 focus:border-blue-500' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500'} focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
                                 />
                             </div>
 
@@ -463,7 +360,7 @@ const MeetingTemplatesPage = () => {
                                     onChange={(e) => setNewTemplate(prev => ({ ...prev, description: e.target.value }))}
                                     placeholder="Enter template description"
                                     rows={3}
-                                    className={`w-full px-4 py-2 rounded-lg border transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} focus:outline-none focus:ring-2 ${isDarkMode ? 'focus:ring-white/20' : 'focus:ring-black/20'}`}
+                                    className={`w-full px-4 py-2 rounded-lg border transition-colors ${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
                                 />
                             </div>
 
@@ -514,7 +411,7 @@ const MeetingTemplatesPage = () => {
                                         id="isPublic"
                                         checked={newTemplate.isPublic}
                                         onChange={(e) => setNewTemplate(prev => ({ ...prev, isPublic: e.target.checked }))}
-                                        className={`w-4 h-4 rounded border-gray-300 ${isDarkMode ? 'text-white focus:ring-white bg-gray-700 border-gray-600' : 'text-black focus:ring-black'}`}
+                                        className={`w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 ${isDarkMode ? 'bg-gray-700 border-gray-600' : ''}`}
                                     />
                                     <label htmlFor="isPublic" className={`ml-2 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                                         Make public

@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAppContext } from '../../context/AppContext'; // Added import for AppContext
-import { Plus, Search, Calendar, Clock, Users, FileText, Filter, Edit, CheckCircle, Circle, TrendingUp, BarChart2, Tag, Clock as ClockIcon, Newspaper as MeetingNotesIcon, ChevronDown } from 'lucide-react';
+import { Plus, Search, Calendar, Clock, Users, FileText, Filter, Edit, CheckCircle, Circle, TrendingUp, BarChart2, Tag, Clock as ClockIcon, Newspaper as MeetingNotesIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getMeetings, deleteMeeting, completeMeetingActionItem, addMeetingActionItem, updateMeeting } from '../../services/api';
 
@@ -18,124 +18,6 @@ const MeetingNotesPage = () => {
   const [showDropdown, setShowDropdown] = useState(null);
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // Type Selector Component
-  const TypeSelector = ({ type, onChange, meetingId }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const dropdownRef = useRef(null);
-
-    const typeOptions = [
-      { value: 'Standup', label: 'Standup', hoverColor: isDarkMode ? 'hover:bg-blue-500/20' : 'hover:bg-blue-50' },
-      { value: 'Planning', label: 'Planning', hoverColor: isDarkMode ? 'hover:bg-purple-500/20' : 'hover:bg-purple-50' },
-      { value: 'Review', label: 'Review', hoverColor: isDarkMode ? 'hover:bg-yellow-500/20' : 'hover:bg-yellow-50' },
-      { value: 'Retro', label: 'Retro', hoverColor: isDarkMode ? 'hover:bg-green-500/20' : 'hover:bg-green-50' },
-      { value: 'Presentation', label: 'Presentation', hoverColor: isDarkMode ? 'hover:bg-pink-500/20' : 'hover:bg-pink-50' },
-      { value: 'Brainstorming', label: 'Brainstorming', hoverColor: isDarkMode ? 'hover:bg-orange-500/20' : 'hover:bg-orange-50' },
-      { value: 'Client Meeting', label: 'Client Meeting', hoverColor: isDarkMode ? 'hover:bg-indigo-500/20' : 'hover:bg-indigo-50' },
-      { value: 'Team Sync', label: 'Team Sync', hoverColor: isDarkMode ? 'hover:bg-cyan-500/20' : 'hover:bg-cyan-50' }
-    ];
-
-    const currentType = typeOptions.find(option => option.value === type) || typeOptions[0];
-
-    useEffect(() => {
-      const handleClickOutside = (event) => {
-        if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-          setIsOpen(false);
-        }
-      };
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
-    return (
-      <div className="relative" ref={dropdownRef} onClick={(e) => e.stopPropagation()}>
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}
-          className={`px-2 py-1 rounded text-xs font-medium flex items-center gap-1.5 bg-transparent focus:outline-none min-w-[100px] ${isDarkMode ? 'hover:bg-gray-800/50' : 'hover:bg-gray-100/50'} transition-colors ${getTypeColor(type)}`}
-        >
-          <span className={isDarkMode ? 'text-gray-100' : 'text-gray-900'}>{currentType.label}</span>
-          <ChevronDown className={`h-3 w-3 ml-auto transition-transform ${isOpen ? 'rotate-180' : ''} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
-        </button>
-        {isOpen && (
-          <div className={`absolute left-0 mt-1 rounded-xl shadow-2xl z-50 overflow-hidden ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} w-full min-w-[140px]`}>
-            <div className="py-1">
-              {typeOptions.map((option) => (
-                <button
-                  key={option.value}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onChange(meetingId, 'type', option.value);
-                    setIsOpen(false);
-                  }}
-                  className={`w-full flex items-center px-3 py-2 text-left ${option.hoverColor} transition-colors ${isDarkMode ? 'text-gray-200' : 'text-black'}`}
-                >
-                  <span className={`font-medium ${isDarkMode ? 'text-gray-200' : 'text-black'}`}>{option.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // Status Selector Component
-  const StatusSelector = ({ status, onChange, meetingId }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const dropdownRef = useRef(null);
-
-    const statusOptions = [
-      { value: 'scheduled', label: 'Scheduled', hoverColor: isDarkMode ? 'hover:bg-blue-500/20' : 'hover:bg-blue-50' },
-      { value: 'in-progress', label: 'In Progress', hoverColor: isDarkMode ? 'hover:bg-yellow-500/20' : 'hover:bg-yellow-50' },
-      { value: 'completed', label: 'Completed', hoverColor: isDarkMode ? 'hover:bg-green-500/20' : 'hover:bg-green-50' },
-      { value: 'cancelled', label: 'Cancelled', hoverColor: isDarkMode ? 'hover:bg-red-500/20' : 'hover:bg-red-50' }
-    ];
-
-    const currentStatus = statusOptions.find(option => option.value === status) || statusOptions[0];
-
-    useEffect(() => {
-      const handleClickOutside = (event) => {
-        if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-          setIsOpen(false);
-        }
-      };
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
-    return (
-      <div className="relative" ref={dropdownRef} onClick={(e) => e.stopPropagation()}>
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}
-          className={`px-2 py-1 rounded text-xs font-medium flex items-center gap-1.5 bg-transparent focus:outline-none min-w-[100px] ${isDarkMode ? 'hover:bg-gray-800/50' : 'hover:bg-gray-100/50'} transition-colors ${getStatusColor(status)}`}
-        >
-          <span className={isDarkMode ? 'text-gray-100' : 'text-gray-900'}>{currentStatus.label}</span>
-          <ChevronDown className={`h-3 w-3 ml-auto transition-transform ${isOpen ? 'rotate-180' : ''} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
-        </button>
-        {isOpen && (
-          <div className={`absolute left-0 mt-1 rounded-xl shadow-2xl z-50 overflow-hidden ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} w-full min-w-[120px]`}>
-            <div className="py-1">
-              {statusOptions.map((option) => (
-                <button
-                  key={option.value}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onChange(meetingId, 'status', option.value);
-                    setIsOpen(false);
-                  }}
-                  className={`w-full flex items-center px-3 py-2 text-left ${option.hoverColor} transition-colors ${isDarkMode ? 'text-gray-200' : 'text-black'}`}
-                >
-                  <span className={`font-medium ${isDarkMode ? 'text-gray-200' : 'text-black'}`}>{option.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
 
 
   // Load meetings from API
@@ -328,16 +210,38 @@ const MeetingNotesPage = () => {
             </div>
             <div className="space-y-2">
               <div className="flex items-center gap-2 flex-wrap">
-                <TypeSelector
-                  type={meeting.type}
-                  onChange={updateMeetingField}
-                  meetingId={meeting.id}
-                />
-                <StatusSelector
-                  status={meeting.status}
-                  onChange={updateMeetingField}
-                  meetingId={meeting.id}
-                />
+                <select
+                  value={meeting.type}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    updateMeetingField(meeting.id, 'type', e.target.value);
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className={`px-2 py-1 rounded text-xs font-medium bg-transparent border-none outline-none ${getTypeColor(meeting.type)}`}
+                >
+                  <option value="Standup">Standup</option>
+                  <option value="Planning">Planning</option>
+                  <option value="Review">Review</option>
+                  <option value="Retro">Retro</option>
+                  <option value="Presentation">Presentation</option>
+                  <option value="Brainstorming">Brainstorming</option>
+                  <option value="Client Meeting">Client Meeting</option>
+                  <option value="Team Sync">Team Sync</option>
+                </select>
+                <select
+                  value={meeting.status}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    updateMeetingField(meeting.id, 'status', e.target.value);
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className={`px-2 py-1 rounded text-xs font-medium bg-transparent border-none outline-none ${getStatusColor(meeting.status)}`}
+                >
+                  <option value="scheduled">Scheduled</option>
+                  <option value="in-progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
               </div>
               <div className="flex items-center gap-2 text-sm text-gray-500">
                 <input
@@ -376,21 +280,39 @@ const MeetingNotesPage = () => {
                   <span className={`font-semibold text-lg mr-20 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'} transition-colors`}>
                     {meeting.title}
                   </span>
-                  <div className="mr-20">
-                    <TypeSelector
-                      type={meeting.type}
-                      onChange={updateMeetingField}
-                      meetingId={meeting.id}
-                    />
-                  </div>
+                  <select
+                    value={meeting.type}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      updateMeetingField(meeting.id, 'type', e.target.value);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className={`px-2 py-0.5 rounded text-xs font-medium bg-transparent border-none outline-none mr-20 ${getTypeColor(meeting.type)}`}
+                  >
+                    <option value="Standup">Standup</option>
+                    <option value="Planning">Planning</option>
+                    <option value="Review">Review</option>
+                    <option value="Retro">Retro</option>
+                    <option value="Presentation">Presentation</option>
+                    <option value="Brainstorming">Brainstorming</option>
+                    <option value="Client Meeting">Client Meeting</option>
+                    <option value="Team Sync">Team Sync</option>
+                  </select>
                   <span className="mr-3">•</span>
-                  <div className="mr-20">
-                    <StatusSelector
-                      status={meeting.status}
-                      onChange={updateMeetingField}
-                      meetingId={meeting.id}
-                    />
-                  </div>
+                  <select
+                    value={meeting.status}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      updateMeetingField(meeting.id, 'status', e.target.value);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className={`px-2 py-0.5 rounded text-xs font-medium bg-transparent border-none outline-none mr-20 ${getStatusColor(meeting.status)}`}
+                  >
+                    <option value="scheduled">Scheduled</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
                   <span className="mr-3">•</span>
                   <input
                     type="date"

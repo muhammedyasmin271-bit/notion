@@ -1314,8 +1314,8 @@ const NotepadPage = () => {
 	const renderBlock = (block, index) => {
 		const commonProps = {
 			ref: (el) => blockRefs.current[block.id] = el,
-			className: `w-full max-w-none outline-none resize-none border-none bg-transparent py-1 px-2 rounded transition-all duration-200 font-inter leading-relaxed ${isDarkMode ? 'text-gray-100 placeholder-gray-500 focus:bg-gray-800/20' : 'text-gray-800 placeholder-gray-400 focus:bg-gray-50/30'} hover:bg-opacity-30`,
-			style: { minHeight: '24px', lineHeight: '1.6', wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', width: '100%', margin: 0, height: 'auto' },
+			className: `w-full max-w-none outline-none resize-none border-none bg-transparent py-0.5 px-0.5 rounded transition-all duration-200 font-inter leading-tight text-sm sm:text-base ${isDarkMode ? 'text-gray-100 placeholder-gray-500 focus:bg-gray-800/20' : 'text-gray-800 placeholder-gray-400 focus:bg-gray-50/30'} hover:bg-opacity-30`,
+			style: { minHeight: '20px', lineHeight: '1.3', wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', width: '100%', margin: 0, height: 'auto' },
 			value: block.content,
 			onChange: (e) => updateBlock(block.id, e.target.value),
 			onKeyDown: (e) => handleBlockKeyDown(block.id, e),
@@ -1331,7 +1331,7 @@ const NotepadPage = () => {
 			case 'h1':
 				return (
 					<div className="flex items-start group relative">
-						<div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center w-6 h-6"
 								onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1350,7 +1350,7 @@ const NotepadPage = () => {
 						</div>
 						<input
 							{...commonProps}
-							className={`${commonProps.className} text-2xl md:text-4xl font-bold tracking-tight`}
+							className={`${commonProps.className} text-base md:text-4xl font-bold tracking-tight`}
 							style={{ ...commonProps.style, minHeight: '48px', lineHeight: '1.2' }}
 						/>
 						{showBlockMenu === block.id && (
@@ -1397,7 +1397,7 @@ const NotepadPage = () => {
 			case 'h2':
 				return (
 					<div className="flex items-start group relative">
-						<div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
 								onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1416,7 +1416,7 @@ const NotepadPage = () => {
 						</div>
 						<input
 							{...commonProps}
-							className={`${commonProps.className} text-xl md:text-3xl font-bold tracking-tight`}
+							className={`${commonProps.className} text-sm md:text-3xl font-bold tracking-tight`}
 							style={{ ...commonProps.style, minHeight: '40px', lineHeight: '1.3' }}
 						/>
 						{showBlockMenu === block.id && (
@@ -1463,7 +1463,7 @@ const NotepadPage = () => {
 			case 'h3':
 				return (
 					<div className="flex items-start group relative">
-						<div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
 								onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1482,7 +1482,7 @@ const NotepadPage = () => {
 						</div>
 						<input
 							{...commonProps}
-							className={`${commonProps.className} text-lg md:text-2xl font-bold tracking-tight`}
+							className={`${commonProps.className} text-sm md:text-2xl font-bold tracking-tight`}
 							style={{ ...commonProps.style, minHeight: '36px', lineHeight: '1.4' }}
 						/>
 						{showBlockMenu === block.id && (
@@ -1529,7 +1529,7 @@ const NotepadPage = () => {
 			case 'bulleted':
 				return (
 					<div className="flex items-start group relative">
-						<div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
 								onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1548,7 +1548,7 @@ const NotepadPage = () => {
 						</div>
 						<div className="flex items-start w-full">
 							<span className="mr-2 mt-1 flex-shrink-0">•</span>
-							<textarea {...commonProps} className={`${commonProps.className} flex-1`} />
+							<textarea {...commonProps} className={`${commonProps.className} flex-1`} style={{ ...commonProps.style, paddingTop: '2px', paddingBottom: '2px' }} />
 						</div>
 						{showBlockMenu === block.id && (
 							<div
@@ -1606,7 +1606,7 @@ const NotepadPage = () => {
 				};
 				return (
 					<div className="flex items-start group relative">
-						<div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
 								onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1625,7 +1625,7 @@ const NotepadPage = () => {
 						</div>
 						<div className="flex items-start w-full">
 							<span className="mr-2 mt-1 flex-shrink-0 min-w-[24px]">{getNumberedIndex()}.</span>
-							<textarea {...commonProps} className={`${commonProps.className} flex-1`} />
+							<textarea {...commonProps} className={`${commonProps.className} flex-1`} style={{ ...commonProps.style, paddingTop: '2px', paddingBottom: '2px' }} />
 						</div>
 						{showBlockMenu === block.id && (
 							<div
@@ -1671,7 +1671,7 @@ const NotepadPage = () => {
 			case 'todo':
 				return (
 					<div className="flex items-start group relative">
-						<div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
 								onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1736,7 +1736,7 @@ const NotepadPage = () => {
 			case 'quote':
 				return (
 					<div className="flex items-start group relative">
-						<div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
 								onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1753,7 +1753,7 @@ const NotepadPage = () => {
 								<GripVertical className="w-4 h-4" />
 							</button>
 						</div>
-						<div className={`border-l-4 pl-4 py-2 transition-all duration-200 ${isDarkMode ? 'border-white bg-[#141414]/50' : 'border-black bg-gray-50/50'}`}
+						<div className={`border-l-4 pl-4 py-2 transition-all duration-200  ${isDarkMode ? 'border-white bg-[#141414]/50' : 'border-black bg-gray-50/50'}`}
               style={isDarkMode ? { backgroundColor: 'rgba(20, 20, 20, 0.5)' } : {}}
             >
 							<textarea {...commonProps} className={`${commonProps.className} italic text-lg`} style={{ ...commonProps.style, minHeight: '32px' }} />
@@ -1802,7 +1802,7 @@ const NotepadPage = () => {
 			case 'divider':
 				return (
 					<div className="flex items-center my-4 relative group">
-						<div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
 								onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1866,7 +1866,7 @@ const NotepadPage = () => {
 					<div className={`flex items-start group relative rounded-lg p-4 my-2 ${isDarkMode ? 'bg-[#141414]/30' : 'bg-gray-50'}`}
             style={isDarkMode ? { backgroundColor: 'rgba(20, 20, 20, 0.3)' } : {}}
           >
-						<div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
 								onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1883,8 +1883,10 @@ const NotepadPage = () => {
 								<GripVertical className="w-4 h-4" />
 							</button>
 						</div>
-						<Lightbulb className={`w-5 h-5 mr-2 mt-1 ${isDarkMode ? 'text-white' : 'text-black'}`} />
-						<textarea {...commonProps} />
+						<div className="flex items-start w-full">
+							<Lightbulb className={`w-5 h-5 mr-2 mt-1 ${isDarkMode ? 'text-white' : 'text-black'}`} />
+							<textarea {...commonProps} />
+						</div>
 						{showBlockMenu === block.id && (
 							<div
 								ref={blockMenuRef}
@@ -1929,7 +1931,7 @@ const NotepadPage = () => {
 			case 'code':
 				return (
 					<div className="flex items-start group relative">
-						<div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
 								onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1946,7 +1948,7 @@ const NotepadPage = () => {
 								<GripVertical className="w-4 h-4" />
 							</button>
 						</div>
-						<div className={`w-full rounded-lg p-4 font-mono text-sm border transition-all duration-200 ${isDarkMode ? 'bg-gray-800/80 text-gray-100 border-gray-700 hover:border-gray-600' : 'bg-gray-50 text-gray-800 border-gray-200 hover:border-gray-300'}
+						<div className={`w-full rounded-lg p-4 font-mono text-sm border transition-all duration-200  ${isDarkMode ? 'bg-gray-800/80 text-gray-100 border-gray-700 hover:border-gray-600' : 'bg-gray-50 text-gray-800 border-gray-200 hover:border-gray-300'}
 							}`}>
 							<textarea
 								{...commonProps}
@@ -2011,7 +2013,7 @@ const NotepadPage = () => {
 				}
 				return (
 					<div className="flex items-start group relative mb-8 mr-8">
-						<div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
 							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
 								<Plus className="w-4 h-4" />
 							</button>
@@ -2123,7 +2125,7 @@ const NotepadPage = () => {
 			case 'image':
 				return (
 					<div className="flex items-start group relative">
-						<div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
 							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
 								<Plus className="w-4 h-4" />
 							</button>
@@ -2131,7 +2133,7 @@ const NotepadPage = () => {
 								<GripVertical className="w-4 h-4" />
 							</button>
 						</div>
-						<div className={`border-2 border-dashed rounded-lg p-3 flex-1 text-center ${isDarkMode ? 'border-gray-600 bg-gray-800' : 'border-gray-300 bg-gray-50'}`}>
+						<div className={`border-2 border-dashed rounded-lg p-3 flex-1 text-center  ${isDarkMode ? 'border-gray-600 bg-gray-800' : 'border-gray-300 bg-gray-50'}`}>
 							{block.content ? (
 								<img src={block.content} alt="Uploaded" className="max-w-full h-auto rounded max-h-48" onError={(e) => e.target.style.display = 'none'} />
 							) : (
@@ -2198,7 +2200,7 @@ const NotepadPage = () => {
 			case 'video':
 				return (
 					<div className="flex items-start group relative">
-						<div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
 							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
 								<Plus className="w-4 h-4" />
 							</button>
@@ -2206,7 +2208,7 @@ const NotepadPage = () => {
 								<GripVertical className="w-4 h-4" />
 							</button>
 						</div>
-						<div className={`border rounded-lg p-4 flex-1 ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-300 bg-gray-50'}`}>
+						<div className={`border rounded-lg p-4 flex-1  ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-300 bg-gray-50'}`}>
 							{block.content && (block.content.includes('youtube.com') || block.content.includes('youtu.be') || block.content.includes('vimeo.com') || block.content.startsWith('data:video') || block.content.startsWith('http')) ? (
 								<div className="aspect-video max-h-48 mb-3">
 									{block.content.startsWith('data:video') ? (
@@ -2291,7 +2293,7 @@ const NotepadPage = () => {
 			case 'link':
 				return (
 					<div className="flex items-start group relative">
-						<div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
 							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
 								<Plus className="w-4 h-4" />
 							</button>
@@ -2299,7 +2301,7 @@ const NotepadPage = () => {
 								<GripVertical className="w-4 h-4" />
 							</button>
 						</div>
-						<div className={`border rounded-lg p-4 flex-1 ${isDarkMode ? 'border-gray-700 bg-yellow-900/20' : 'border-gray-300 bg-yellow-50'}`}>
+						<div className={`border rounded-lg p-4 flex-1  ${isDarkMode ? 'border-gray-700 bg-yellow-900/20' : 'border-gray-300 bg-yellow-50'}`}>
 							{block.content ? (
 								<a href={block.content} target="_blank" rel="noopener noreferrer" className="flex items-center p-3 bg-white rounded border hover:shadow-md transition-shadow">
 									<Star className="w-5 h-5 mr-3 text-yellow-500" />
@@ -2351,7 +2353,7 @@ const NotepadPage = () => {
 			default: // text
 				return (
 					<div className={`flex items-start group relative ${aiInputBlock === block.id ? (isDarkMode ? 'bg-white/10 rounded-lg p-2' : 'bg-black/10 rounded-lg p-2') : ''} transition-all duration-200`}>
-						<div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
 								onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -2368,7 +2370,7 @@ const NotepadPage = () => {
 								<GripVertical className="w-4 h-4" />
 							</button>
 						</div>
-						<div className="flex-1 relative">
+						<div className="flex-1 relative ">
 							{aiInputBlock === block.id ? (
 								<div className={`flex items-center gap-3 px-3 py-2 rounded-lg ${isDarkMode ? 'bg-purple-900/20 border border-purple-800/30' : 'bg-purple-50 border border-purple-200'} transition-all duration-200`}>
 									<div className={`p-1 rounded ${isDarkMode ? 'bg-purple-900/40' : 'bg-purple-100'}`}>
@@ -2403,8 +2405,8 @@ const NotepadPage = () => {
 									onFocus={() => setActiveBlockId(block.id)}
 									placeholder={getBlockPlaceholder(block.type)}
 									rows={Math.max(1, ((block.content || '').match(/\n/g) || []).length + 1)}
-									className={`w-full outline-none resize-none border-none bg-transparent py-1 px-2 rounded transition-all duration-200 font-inter leading-relaxed text-base md:text-base ${isDarkMode ? 'text-gray-100 placeholder-gray-500 focus:bg-gray-800/20' : 'text-gray-800 placeholder-gray-400 focus:bg-gray-50/30'} hover:bg-opacity-30`}
-									style={{ minHeight: '24px', lineHeight: '1.6' }}
+									className={`w-full outline-none resize-none border-none bg-transparent py-0.5 px-0.5 rounded transition-all duration-200 font-inter leading-tight text-base md:text-base ${isDarkMode ? 'text-gray-100 placeholder-gray-500 focus:bg-gray-800/20' : 'text-gray-800 placeholder-gray-400 focus:bg-gray-50/30'} hover:bg-opacity-30`}
+									style={{ minHeight: '20px', lineHeight: '1.3' }}
 								/>
 							)}
 						</div>
@@ -2535,10 +2537,10 @@ const NotepadPage = () => {
 					{currentNote ? (
 						<>
 							{/* Title Section */}
-							<div className={`p-3 sm:p-4 md:p-8 pt-16 sm:pt-20 md:pt-8 ${isDarkMode ? 'bg-[#141414]' : 'bg-white'}`}
+							<div className={`p-1 sm:p-4 md:p-8 pt-16 sm:pt-20 md:pt-8 ${isDarkMode ? 'bg-[#141414]' : 'bg-white'}`}
                 style={isDarkMode ? { backgroundColor: '#141414' } : {}}
               >
-								<div className={`max-w-4xl px-2 sm:px-4 md:px-8 relative transition-all duration-300 ${isSidebarOpen ? '' : 'md:ml-20 md:mr-0'}`}>
+								<div className={`max-w-full sm:max-w-4xl px-1 sm:px-4 md:px-8 relative transition-all duration-300 ${isSidebarOpen ? '' : 'md:ml-20 md:mr-0'}`}>
 									{isEditingTitle ? (
 										<input
 											ref={titleInputRef}
@@ -2607,11 +2609,11 @@ const NotepadPage = () => {
 							</div>
 
 							{/* Content */}
-							<div className={`flex-1 overflow-y-auto p-3 sm:p-4 md:p-8 pb-24 sm:pb-32 ${isDarkMode ? 'bg-[#141414]' : 'bg-white'}`}
+							<div className={`flex-1 overflow-y-auto p-1 sm:p-4 md:p-8 pb-24 sm:pb-32 ${isDarkMode ? 'bg-[#141414]' : 'bg-white'}`}
                 style={isDarkMode ? { backgroundColor: '#141414' } : {}}
               >
-								<div className={`max-w-4xl px-2 sm:px-4 md:px-8 transition-all duration-300 ${isSidebarOpen ? '' : 'md:ml-20 md:mr-0'}`}>
-									<div className="space-y-0.5 min-h-96">
+								<div className={`w-full px-0 transition-all duration-300 ${isSidebarOpen ? '' : 'md:ml-20 md:mr-0'}`}>
+									<div className="space-y-0 min-h-96">
 										{blocks.map((block, index) => (
 											<div key={block.id}>
 												{renderBlock(block, index)}

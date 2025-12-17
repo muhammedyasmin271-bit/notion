@@ -5,6 +5,8 @@ const { tenantFilter } = require('../middleware/tenantFilter');
 const Report = require('../models/Report');
 const User = require('../models/User');
 const SharedReport = require('../models/SharedReport');
+const Notification = require('../models/Notification');
+const { sendNotificationSMS } = require('../services/smsService');
 
 // Apply auth to all routes first, then tenant filtering
 router.use(auth);
@@ -110,10 +112,49 @@ router.post('/', async (req, res) => {
           console.log('📋 Created shared records:', insertResult.length);
         }
         
-        // Get user names for response
-        const users = await User.find({ _id: { $in: sharedWith } }).select('name');
+        // Get user names for response and notifications
+        const users = await User.find({ _id: { $in: sharedWith } }).select('name email phone preferences emailNotifications');
         const userNames = users.map(u => u.name);
         console.log('👥 Shared with users:', userNames);
+        
+        // Create notifications and send SMS
+        const notifications = users.map(user => ({
+          recipient: user._id,
+          sender: req.user.id,
+          type: 'report',
+          title: 'Report Shared With You',
+          message: `${req.user.name} shared a report: ${report.title}`,
+          entityType: 'Report',
+          entityId: report._id,
+          metadata: {
+            reportTitle: report.title,
+            sharedBy: req.user.id,
+            sharedByName: req.user.name
+          }
+        }));
+        
+        if (notifications.length > 0) {
+          const savedNotifications = await Notification.insertMany(notifications);
+          
+          // Send SMS notifications
+          for (let i = 0; i < users.length; i++) {
+            const user = users[i];
+            const notification = savedNotifications[i];
+            
+            if (user.phone && user.preferences?.notifications?.sms === true) {
+              try {
+                const smsResult = await sendNotificationSMS(user, notification);
+                if (smsResult.success) {
+                  console.log(`Report share SMS sent to ${user.phone}`);
+                } else {
+                  console.log(`Failed to send report share SMS to ${user.phone}: ${smsResult.message}`);
+                }
+              } catch (smsError) {
+                console.error(`Error sending report share SMS to ${user.phone}:`, smsError.message);
+              }
+            }
+          }
+        }
         
         res.json({ 
           message: `Report updated and shared with: ${userNames.join(', ')}`, 
@@ -170,10 +211,49 @@ router.post('/', async (req, res) => {
         const insertResult = await SharedReport.insertMany(sharedReports);
         console.log('📋 Created shared records for new report:', insertResult.length);
         
-        // Get user names for response
-        const users = await User.find({ _id: { $in: sharedWith } }).select('name');
+        // Get user names for response and notifications
+        const users = await User.find({ _id: { $in: sharedWith } }).select('name email phone preferences emailNotifications');
         const userNames = users.map(u => u.name);
         console.log('👥 New report shared with users:', userNames);
+        
+        // Create notifications and send SMS
+        const notifications = users.map(user => ({
+          recipient: user._id,
+          sender: req.user.id,
+          type: 'report',
+          title: 'Report Shared With You',
+          message: `${req.user.name} shared a report: ${report.title}`,
+          entityType: 'Report',
+          entityId: report._id,
+          metadata: {
+            reportTitle: report.title,
+            sharedBy: req.user.id,
+            sharedByName: req.user.name
+          }
+        }));
+        
+        if (notifications.length > 0) {
+          const savedNotifications = await Notification.insertMany(notifications);
+          
+          // Send SMS notifications
+          for (let i = 0; i < users.length; i++) {
+            const user = users[i];
+            const notification = savedNotifications[i];
+            
+            if (user.phone && user.preferences?.notifications?.sms === true) {
+              try {
+                const smsResult = await sendNotificationSMS(user, notification);
+                if (smsResult.success) {
+                  console.log(`Report share SMS sent to ${user.phone}`);
+                } else {
+                  console.log(`Failed to send report share SMS to ${user.phone}: ${smsResult.message}`);
+                }
+              } catch (smsError) {
+                console.error(`Error sending report share SMS to ${user.phone}:`, smsError.message);
+              }
+            }
+          }
+        }
         
         res.json({ 
           message: `Report created and shared with: ${userNames.join(', ')}`, 
@@ -413,7 +493,7 @@ router.post('/:id/share', async (req, res) => {
       userQuery.companyId = req.companyId;
     }
     
-    const validUsers = await User.find(userQuery).select('_id name');
+    const validUsers = await User.find(userQuery).select('_id name email phone preferences emailNotifications');
     if (validUsers.length !== userIds.length) {
       return res.status(400).json({ message: 'Some users do not exist in your company' });
     }
@@ -443,6 +523,46 @@ router.post('/:id/share', async (req, res) => {
       }));
 
       await SharedReport.insertMany(sharedReports);
+      
+      // Create notifications and send SMS for newly shared users only
+      const newSharedUserObjects = validUsers.filter(u => newSharedUsers.includes(u._id.toString()));
+      const notifications = newSharedUserObjects.map(user => ({
+        recipient: user._id,
+        sender: req.user.id,
+        type: 'report',
+        title: 'Report Shared With You',
+        message: `${req.user.name} shared a report: ${report.title}`,
+        entityType: 'Report',
+        entityId: report._id,
+        metadata: {
+          reportTitle: report.title,
+          sharedBy: req.user.id,
+          sharedByName: req.user.name
+        }
+      }));
+      
+      if (notifications.length > 0) {
+        const savedNotifications = await Notification.insertMany(notifications);
+        
+        // Send SMS notifications
+        for (let i = 0; i < newSharedUserObjects.length; i++) {
+          const user = newSharedUserObjects[i];
+          const notification = savedNotifications[i];
+          
+          if (user.phone && user.preferences?.notifications?.sms === true) {
+            try {
+              const smsResult = await sendNotificationSMS(user, notification);
+              if (smsResult.success) {
+                console.log(`Report share SMS sent to ${user.phone}`);
+              } else {
+                console.log(`Failed to send report share SMS to ${user.phone}: ${smsResult.message}`);
+              }
+            } catch (smsError) {
+              console.error(`Error sending report share SMS to ${user.phone}:`, smsError.message);
+            }
+          }
+        }
+      }
     }
 
     // Get user names for response

@@ -688,7 +688,7 @@ const PaymentSubmission = () => {
         <div className={`${isDarkMode ? 'bg-gray-900' : 'bg-white'} rounded-xl shadow-lg`}>
           <div className="flex flex-col lg:flex-row">
             {/* Left Side - Course/Subscription Info */}
-            <div className={`flex-1 p-6 lg:p-8 border-b lg:border-b-0 lg:border-r ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+            <div className={`flex-1 p-4 sm:p-6 lg:p-8 border-b lg:border-b-0 lg:border-r ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
               {/* Simple Payment Calendar */}
               <div className={`mb-6 p-4 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
                 <div className="flex items-center gap-2 mb-4">
@@ -771,7 +771,7 @@ const PaymentSubmission = () => {
               </div>
 
               {/* Course Title */}
-              <h2 className={`text-2xl font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              <h2 className={`text-lg sm:text-xl lg:text-2xl font-bold mb-3 sm:mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                 Subscription Plan - Complete Package ({companyData.userLimit} Users)
               </h2>
 
@@ -816,10 +816,10 @@ const PaymentSubmission = () => {
             </div>
 
             {/* Right Sidebar - Billing Summary */}
-            <div className={`w-full lg:w-[500px] p-6 lg:p-8 ${isDarkMode ? 'bg-gray-800' : 'bg-gray-50'} border-t lg:border-t-0 lg:border-l ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+            <div className={`w-full lg:w-[500px] p-4 sm:p-6 lg:p-8 ${isDarkMode ? 'bg-gray-800' : 'bg-gray-50'} border-t lg:border-t-0 lg:border-l ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
               {/* Subscription Plans - 3 Cards (1 Month, 3 Months, 6 Months) */}
-              <div className="mb-6">
-                <div className="grid grid-cols-3 gap-3">
+              <div className="mb-4 sm:mb-6">
+                <div className="grid grid-cols-3 gap-2 sm:gap-3">
                   {plans.map((plan) => {
                     const isSelected = selectedPlan?.id === plan.id && !selectedMonthlyPlan;
                     return (
@@ -829,7 +829,7 @@ const PaymentSubmission = () => {
                           handlePlanSelect(plan);
                           setSelectedMonthlyPlan(null);
                         }}
-                        className={`relative p-5 rounded-xl border-2 transition-all shadow-sm hover:shadow-md ${
+                        className={`relative p-3 sm:p-4 lg:p-5 rounded-lg sm:rounded-xl border-2 transition-all shadow-sm hover:shadow-md ${
                           isSelected 
                             ? isDarkMode 
                               ? 'border-white bg-gradient-to-br from-white/50 to-gray-300/50 shadow-md'
@@ -851,12 +851,12 @@ const PaymentSubmission = () => {
                         )}
                         
                         {/* Plan Duration */}
-                        <div className={`text-xl font-bold mb-2 ${isSelected ? (isDarkMode ? 'text-white' : 'text-black') : isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        <div className={`text-base sm:text-lg lg:text-xl font-bold mb-1 sm:mb-2 ${isSelected ? (isDarkMode ? 'text-white' : 'text-black') : isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                           {plan.months === 1 ? '1' : plan.months === 3 ? '3' : '6'} Monthly
                         </div>
                         
                         {/* Price */}
-                        <div className={`text-sm font-semibold ${isSelected ? (isDarkMode ? 'text-white' : 'text-black') : isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                        <div className={`text-xs sm:text-sm font-semibold ${isSelected ? (isDarkMode ? 'text-white' : 'text-black') : isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                           {paymentSettings.currency} {plan.price.toLocaleString()}
                         </div>
                         
@@ -877,11 +877,11 @@ const PaymentSubmission = () => {
               </div>
 
               {/* Billing Summary */}
-              <div className="mb-6">
-                <h3 className={`text-lg font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              <div className="mb-4 sm:mb-6">
+                <h3 className={`text-base sm:text-lg font-bold mb-3 sm:mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                   Billing Summary
                 </h3>
-                <div className="space-y-3 mb-4">
+                <div className="space-y-2 sm:space-y-3 mb-3 sm:mb-4">
                         <div className="flex justify-between">
                     <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                       {selectedMonthlyPlan 
@@ -914,14 +914,14 @@ const PaymentSubmission = () => {
 
               {/* First EMI Details */}
               {selectedMonthlyPlan && (
-                <div className={`mb-6 p-4 ${isDarkMode ? 'bg-gray-700' : 'bg-white'} rounded-lg border ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
-                  <div className={`text-2xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                <div className={`mb-4 sm:mb-6 p-3 sm:p-4 ${isDarkMode ? 'bg-gray-700' : 'bg-white'} rounded-lg border ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
+                  <div className={`text-xl sm:text-2xl font-bold mb-1 sm:mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                     {paymentSettings.currency} {selectedMonthlyPlan.perMonth.toLocaleString()}
                       </div>
-                  <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  <div className={`text-xs sm:text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                     {selectedMonthlyPlan.emis} monthly EMIs
                     </div>
-                  <div className={`text-sm font-medium mt-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  <div className={`text-xs sm:text-sm font-medium mt-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                     To be Paid Now
                     </div>
                   </div>
@@ -932,17 +932,17 @@ const PaymentSubmission = () => {
                     <button
                       onClick={handlePayWithChapa}
                       disabled={loading}
-                  className={`w-full py-4 rounded-lg font-bold text-lg disabled:opacity-50 transition-all duration-300 shadow-lg flex items-center justify-center gap-2 ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'}`}
+                  className={`w-full py-3 sm:py-4 rounded-lg font-bold text-base sm:text-lg disabled:opacity-50 transition-all duration-300 shadow-lg flex items-center justify-center gap-2 ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'}`}
                   style={isDarkMode ? { backgroundColor: '#141414' } : {}}
                     >
                       {loading ? (
                         <>
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                          Processing...
+                      <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          <span className="text-sm sm:text-base">Processing...</span>
                         </>
                       ) : (
                         <>
-                      PAY {paymentSettings.currency} {calculateFirstEMI().toLocaleString()}
+                      <span className="text-sm sm:text-base">PAY {paymentSettings.currency} {calculateFirstEMI().toLocaleString()}</span>
                         </>
                       )}
                     </button>
@@ -962,14 +962,14 @@ const PaymentSubmission = () => {
 
 
         {/* Recent Transactions */}
-        <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} overflow-hidden`}>
-          <div className={`p-6 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-            <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+        <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} overflow-hidden mt-4 sm:mt-6`}>
+          <div className={`p-4 sm:p-6 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+            <h2 className={`text-lg sm:text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
               Recent Transactions
             </h2>
           </div>
 
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             {!Array.isArray(payments) || payments.length === 0 ? (
               <div className="text-center py-12">
                 <div className={`inline-flex p-6 rounded-xl mb-4 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
@@ -994,36 +994,36 @@ const PaymentSubmission = () => {
                   return (
                   <div
                     key={payment._id}
-                      className={`flex items-center gap-4 p-4 rounded-lg ${
+                      className={`flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg ${
                         isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'
                       } transition-colors`}
                     >
                       {/* Icon */}
-                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                      <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${
                         isTransfer 
                           ? isDarkMode ? 'bg-green-900/50' : 'bg-green-100'
                           : isDarkMode ? 'bg-orange-900/50' : 'bg-orange-100'
                       }`}>
                         {isTransfer ? (
-                          <ArrowDownRight className={`w-6 h-6 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
+                          <ArrowDownRight className={`w-5 h-5 sm:w-6 sm:h-6 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
                         ) : (
-                          <ArrowUpRight className={`w-6 h-6 ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`} />
+                          <ArrowUpRight className={`w-5 h-5 sm:w-6 sm:h-6 ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`} />
                           )}
                         </div>
 
                       {/* Transaction Details */}
-                      <div className="flex-1">
-                        <p className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm sm:text-base font-semibold truncate ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                           {isTransfer ? 'Transferred to' : 'Received from'} **** **** {payment._id.slice(-4).toUpperCase()}
                         </p>
-                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                        <p className={`text-xs sm:text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                           {formattedDate}
                         </p>
                     </div>
 
                       {/* Amount */}
-                      <div className="text-right">
-                        <p className={`font-semibold ${
+                      <div className="text-right flex-shrink-0">
+                        <p className={`text-sm sm:text-base font-semibold ${
                           isTransfer 
                             ? 'text-green-600' 
                             : 'text-red-600'

@@ -8,6 +8,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const emailService = require('../services/emailService');
+const { sendSMS } = require('../services/smsService');
 
 const router = express.Router();
 
@@ -514,7 +515,7 @@ router.put('/change-password', auth, [
 
     const { currentPassword, newPassword } = req.body;
 
-    const user = await User.findById(req.user.id).select('+password');
+    const user = await User.findById(req.user.id).select('+password phone');
 
     // Check current password
     const isMatch = await user.comparePassword(currentPassword);
@@ -525,6 +526,22 @@ router.put('/change-password', auth, [
     // Update password
     user.password = newPassword;
     await user.save();
+
+    // Send SMS with new password if user has phone number
+    if (user.phone) {
+      try {
+        const smsMessage = `Your password has been changed successfully.\nNew Password: ${newPassword}\n\nPlease keep this password secure.\n\n- Notion App`;
+        const smsResult = await sendSMS(user.phone, smsMessage);
+        if (smsResult.success) {
+          console.log(`Password change SMS sent to ${user.phone}`);
+        } else {
+          console.log(`Failed to send password change SMS to ${user.phone}: ${smsResult.message}`);
+        }
+      } catch (smsError) {
+        console.error(`Error sending password change SMS to ${user.phone}:`, smsError.message);
+        // Don't fail the password change if SMS fails
+      }
+    }
 
     res.json({ message: 'Password updated successfully' });
   } catch (err) {

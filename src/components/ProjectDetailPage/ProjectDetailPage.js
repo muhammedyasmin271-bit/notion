@@ -1532,7 +1532,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
           });
         }
       },
-      className: `w-full max-w-none outline-none resize-none overflow-hidden border-none bg-transparent py-1 px-0 rounded transition-all duration-200 font-inter leading-relaxed ${isDarkMode ? 'text-gray-100 placeholder-gray-500 focus:bg-gray-800/20' : 'text-gray-800 placeholder-gray-400 focus:bg-gray-50/30'} hover:bg-opacity-30`,
+      className: `w-full max-w-none outline-none resize-none overflow-hidden border-none bg-transparent py-1 px-0 rounded transition-all duration-200 font-inter leading-relaxed text-sm sm:text-base ${isDarkMode ? 'text-gray-100 placeholder-gray-500 focus:bg-gray-800/20' : 'text-gray-800 placeholder-gray-400 focus:bg-gray-50/30'} hover:bg-opacity-30`,
       style: { minHeight: '24px', lineHeight: '1.6', wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', width: '100%', margin: 0, height: 'auto' },
       value: block.content,
       onChange: (e) => updateBlock(block.id, { content: e.target.value }),
@@ -1550,7 +1550,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       case 'h1':
         return (
           <div className="flex items-start group relative">
-            <div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+            <div className={`flex items-center transition-opacity mr-1 sm:mr-2 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
               <button
                 className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6"
                 onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1569,7 +1569,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
             </div>
             <textarea
               {...commonProps}
-              className={`${commonProps.className} text-xl sm:text-4xl font-bold`}
+              className={`${commonProps.className} text-base sm:text-4xl font-bold ml-2 sm:ml-0`}
             />
             {showBlockMenu === block.id && (
               <div
@@ -1621,7 +1621,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       case 'h2':
         return (
           <div className="flex items-start group relative">
-            <div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+            <div className={`flex items-center transition-opacity mr-1 sm:mr-2 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
               <button
                 className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6"
                 onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1640,7 +1640,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
             </div>
             <textarea
               {...commonProps}
-              className={`${commonProps.className} text-lg sm:text-3xl font-bold`}
+              className={`${commonProps.className} text-sm sm:text-3xl font-bold ml-2 sm:ml-0`}
             />
             {showBlockMenu === block.id && (
               <div
@@ -1685,7 +1685,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       case 'h3':
         return (
           <div className="flex items-start group relative">
-            <div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+            <div className={`flex items-center transition-opacity mr-1 sm:mr-2 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
               <button
                 className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6"
                 onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1704,7 +1704,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
             </div>
             <textarea
               {...commonProps}
-              className={`${commonProps.className} text-base sm:text-2xl font-bold`}
+              className={`${commonProps.className} text-sm sm:text-2xl font-bold ml-2 sm:ml-0`}
             />
             {showBlockMenu === block.id && (
               <div
@@ -1749,7 +1749,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       case 'bullet':
         return (
           <div className="flex items-start group relative">
-            <div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+            <div className={`flex items-center transition-opacity mr-1 sm:mr-2 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
               <button
                 className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6"
                 onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1766,7 +1766,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                 <GripVertical className="w-4 h-4" />
               </button>
             </div>
-            <div className="flex items-start w-full">
+            <div className="flex items-start w-full ml-2 sm:ml-0">
               <span className="mr-2 font-bold text-gray-600 text-lg leading-none mt-1">•</span>
               <textarea {...commonProps} className={`${commonProps.className} flex-1 min-w-0 w-full`} />
             </div>
@@ -1820,7 +1820,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
         };
         return (
           <div className="flex items-start group relative">
-            <div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+            <div className={`flex items-center transition-opacity mr-1 sm:mr-2 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
               <button
                 className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6"
                 onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1837,7 +1837,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                 <GripVertical className="w-4 h-4" />
               </button>
             </div>
-            <div className="flex items-start w-full">
+            <div className="flex items-start w-full ml-2 sm:ml-0">
               <span className="mr-2 font-medium text-gray-600 min-w-[20px] mt-1">{getNumberedIndex()}.</span>
               <textarea {...commonProps} className={`${commonProps.className} flex-1 min-w-0 w-full`} />
             </div>
@@ -1884,7 +1884,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       case 'todo':
         return (
           <div className="flex items-start group relative">
-            <div className={`flex items-center transition-opacity mr-2 gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+            <div className={`flex items-center transition-opacity mr-1 sm:mr-2 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
               <button
                 className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6"
                 onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1901,7 +1901,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                 <GripVertical className="w-4 h-4" />
               </button>
             </div>
-            <div className="flex items-start w-full">
+            <div className="flex items-start w-full ml-2 sm:ml-0">
               <input 
                 type="checkbox" 
                 checked={block.checked || false}
@@ -1994,7 +1994,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                   <GripVertical className="w-4 h-4" />
                 </button>
               </div>
-              <div className="flex items-start flex-1 w-full">
+              <div className="flex items-start flex-1 w-full ml-2 sm:ml-0">
                 <button
                   onClick={() => toggleBlock(block.id)}
                   className="mr-2 p-1 hover:bg-gray-100 rounded transition-colors mt-1"
@@ -2076,7 +2076,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                 <GripVertical className="w-4 h-4" />
               </button>
             </div>
-            <div className={`border-l-4 border-blue-400 p-4 rounded-r-lg flex-1 ${isDarkMode ? 'bg-blue-900/20' : 'bg-blue-50'}`}>
+            <div className={`border-l-4 border-blue-400 p-4 rounded-r-lg flex-1 ml-2 sm:ml-0 ${isDarkMode ? 'bg-blue-900/20' : 'bg-blue-50'}`}>
               <div className="flex items-start w-full">
                 <span className="mr-2 text-lg mt-1">💡</span>
                 <textarea {...commonProps} className="bg-transparent border-none outline-none flex-1 min-w-0 max-w-none w-full" />
@@ -2252,7 +2252,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       case 'columns':
         return (
           <div className="flex items-start group relative">
-            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
+            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-1 sm:mr-2 gap-0 sm:gap-1">
               <button className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
                 <Plus className="w-4 h-4" />
               </button>
@@ -2260,7 +2260,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                 <GripVertical className="w-4 h-4" />
               </button>
             </div>
-            <div className={`grid grid-cols-2 gap-4 flex-1 border rounded-lg p-4 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+            <div className={`grid grid-cols-2 gap-4 flex-1 border rounded-lg p-4 ml-2 sm:ml-0 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
               <div className={`border-r pr-4 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                 <input {...commonProps} placeholder="Column 1" />
               </div>
@@ -2292,7 +2292,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       case 'image':
         return (
           <div className="flex items-start group relative">
-            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
+            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-1 sm:mr-2 gap-0 sm:gap-1">
               <button className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
                 <Plus className="w-4 h-4" />
               </button>
@@ -2300,7 +2300,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                 <GripVertical className="w-4 h-4" />
               </button>
             </div>
-            <div className={`border-2 border-dashed rounded-lg p-3 flex-1 text-center ${isDarkMode ? 'border-gray-600 bg-gray-800' : 'border-gray-300 bg-gray-50'}`}>
+            <div className={`border-2 border-dashed rounded-lg p-3 flex-1 text-center ml-2 sm:ml-0 ${isDarkMode ? 'border-gray-600 bg-gray-800' : 'border-gray-300 bg-gray-50'}`}>
               {block.content ? (
                 <img src={block.content} alt="Uploaded" className="max-w-full h-auto rounded max-h-48" onError={(e) => e.target.style.display = 'none'} />
               ) : (
@@ -2355,7 +2355,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       case 'video':
         return (
           <div className="flex items-start group relative">
-            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
+            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-1 sm:mr-2 gap-0 sm:gap-1">
               <button className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
                 <Plus className="w-4 h-4" />
               </button>
@@ -2363,7 +2363,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                 <GripVertical className="w-4 h-4" />
               </button>
             </div>
-            <div className={`border rounded-lg p-4 flex-1 ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-300 bg-gray-50'}`}>
+            <div className={`border rounded-lg p-4 flex-1 ml-2 sm:ml-0 ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-300 bg-gray-50'}`}>
               {block.content && (block.content.includes('youtube.com') || block.content.includes('youtu.be') || block.content.startsWith('data:video')) ? (
                 <div className="aspect-video max-h-48">
                   {block.content.startsWith('data:video') ? (
@@ -2428,7 +2428,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       case 'bookmark':
         return (
           <div className="flex items-start group relative">
-            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
+            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-1 sm:mr-2 gap-0 sm:gap-1">
               <button className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
                 <Plus className="w-4 h-4" />
               </button>
@@ -2436,7 +2436,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                 <GripVertical className="w-4 h-4" />
               </button>
             </div>
-            <div className={`border rounded-lg p-4 flex-1 ${isDarkMode ? 'border-gray-700 bg-yellow-900/20' : 'border-gray-300 bg-yellow-50'}`}>
+            <div className={`border rounded-lg p-4 flex-1 ml-2 sm:ml-0 ${isDarkMode ? 'border-gray-700 bg-yellow-900/20' : 'border-gray-300 bg-yellow-50'}`}>
               {block.content ? (
                 <a href={block.content} target="_blank" rel="noopener noreferrer" className="flex items-center p-3 bg-white rounded border hover:shadow-md transition-shadow">
                   <Star className="w-5 h-5 mr-3 text-yellow-500" />
@@ -2477,7 +2477,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       case 'embed':
         return (
           <div className="flex items-start group relative">
-            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
+            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-1 sm:mr-2 gap-0 sm:gap-1">
               <button className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
                 <Plus className="w-4 h-4" />
               </button>
@@ -2485,7 +2485,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                 <GripVertical className="w-4 h-4" />
               </button>
             </div>
-            <div className={`border rounded-lg overflow-hidden flex-1 ${isDarkMode ? 'border-gray-700' : 'border-gray-300'}`}>
+            <div className={`border rounded-lg overflow-hidden flex-1 ml-2 sm:ml-0 ${isDarkMode ? 'border-gray-700' : 'border-gray-300'}`}>
               {block.content && block.content.includes('<iframe') ? (
                 <div dangerouslySetInnerHTML={{ __html: block.content }} className="w-full" />
               ) : (
@@ -2520,7 +2520,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       case 'math':
         return (
           <div className="flex items-start group relative">
-            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
+            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-1 sm:mr-2 gap-0 sm:gap-1">
               <button className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
                 <Plus className="w-4 h-4" />
               </button>
@@ -2528,7 +2528,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                 <GripVertical className="w-4 h-4" />
               </button>
             </div>
-            <div className={`border rounded-lg p-4 flex-1 ${isDarkMode ? 'border-gray-700 bg-purple-900/20' : 'border-gray-300 bg-purple-50'}`}>
+            <div className={`border rounded-lg p-4 flex-1 ml-2 sm:ml-0 ${isDarkMode ? 'border-gray-700 bg-purple-900/20' : 'border-gray-300 bg-purple-50'}`}>
               <div className="flex items-center mb-2">
                 <Hash className="w-5 h-5 mr-2 text-purple-500" />
                 <span className="text-sm text-gray-600">Math Equation</span>
@@ -2559,7 +2559,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       case 'template':
         return (
           <div className="flex items-start group relative">
-            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-2 gap-1">
+            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity mr-1 sm:mr-2 gap-0 sm:gap-1">
               <button className="p-1 rounded hover:bg-gray-200 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
                 <Plus className="w-4 h-4" />
               </button>
@@ -2567,7 +2567,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                 <GripVertical className="w-4 h-4" />
               </button>
             </div>
-            <div className={`border rounded-lg p-4 flex-1 ${isDarkMode ? 'border-gray-700 bg-green-900/20' : 'border-gray-300 bg-green-50'}`}>
+            <div className={`border rounded-lg p-4 flex-1 ml-2 sm:ml-0 ${isDarkMode ? 'border-gray-700 bg-green-900/20' : 'border-gray-300 bg-green-50'}`}>
               <div className="flex items-center mb-2">
                 <Copy className="w-5 h-5 mr-2 text-green-500" />
                 <span className="text-sm text-gray-600">Template</span>
@@ -3038,7 +3038,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                               <button
                                 type="button"
                                 onClick={() => handlePickUser('assign')}
-                                className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm'} bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors whitespace-nowrap w-full sm:w-auto`}
+                                className={`px-1.5 py-0.5 text-xs ${isDarkMode ? 'bg-gray-800 text-white hover:bg-gray-700 border-gray-700' : 'bg-white text-black hover:bg-gray-100 border-gray-300'} rounded transition-colors border`}
                               >
                                 Pick
                               </button>
@@ -3074,7 +3074,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                               <button
                                 type="button"
                                 onClick={() => handlePickUser('viewer')}
-                                className={`${isFullscreen ? 'px-3 py-1.5 text-sm' : 'px-2 py-1 text-xs'} bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors`}
+                                className={`px-1.5 py-0.5 text-xs ${isDarkMode ? 'bg-gray-800 text-white hover:bg-gray-700 border-gray-700' : 'bg-white text-black hover:bg-gray-100 border-gray-300'} rounded transition-colors border`}
                               >
                                 Pick
                               </button>
@@ -3120,17 +3120,17 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                 <div className="relative" ref={templatesRef}>
                   <button
                     onClick={() => setShowTemplates(!showTemplates)}
-                    className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${isDarkMode ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'bg-purple-500 hover:bg-purple-600 text-white'}`}
+                    className={`px-1.5 py-0.5 text-xs rounded transition-colors border ${isDarkMode ? 'bg-gray-800 text-white hover:bg-gray-700 border-gray-700' : 'bg-white text-black hover:bg-gray-100 border-gray-300'}`}
                   >
                     Templates
                   </button>
                   {showTemplates && (
-                    <div className={`absolute right-0 top-full mt-2 w-80 rounded-xl shadow-xl border z-50 ${isDarkMode ? 'bg-[#141414] border-gray-700' : 'bg-white border-gray-200'} max-h-96 overflow-y-auto`}
-                      style={isDarkMode ? { backgroundColor: '#141414' } : {}}
-                    >
-                      <div className="p-3">
-                        <h4 className={`text-sm font-semibold mb-3 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Project Templates</h4>
-                        <div className="space-y-2">
+                    <div className={`absolute right-0 top-full mt-2 w-64 rounded-lg shadow-lg border z-50 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} max-h-64 overflow-y-auto`}>
+                      <div className="p-2 border-b border-gray-200 dark:border-gray-700">
+                        <h4 className={`text-xs font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Project Templates</h4>
+                      </div>
+                      <div className="p-1.5">
+                        <div className="space-y-0.5">
                           {projectTemplates.map(template => (
                             <button
                               key={template.id}
@@ -3142,12 +3142,12 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                                 setBlocks(prev => [...prev, ...templateBlocks]);
                                 setShowTemplates(false);
                               }}
-                              className={`w-full text-left p-3 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-50'} border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}
+                              className={`w-full text-left p-2 rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-gray-50 text-gray-900'}`}
                             >
-                              <div className={`font-medium text-sm ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
+                              <div className={`font-medium text-xs ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
                                 {template.name}
                               </div>
-                              <div className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                              <div className={`text-xs mt-0.5 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                                 {template.description}
                               </div>
                             </button>

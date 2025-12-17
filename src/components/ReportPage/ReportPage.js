@@ -491,10 +491,9 @@ const ReportPage = () => {
               disabled={saving}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-colors ${
                 isDarkMode 
-                  ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' 
-                  : 'bg-white hover:bg-gray-100 text-black border border-black'
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
               } disabled:opacity-50`}
-              style={isDarkMode ? { backgroundColor: '#141414' } : {}}
             >
               <Save className="w-4 h-4" />
               {saving ? 'Saving...' : 'Save'}
@@ -506,7 +505,7 @@ const ReportPage = () => {
         <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-md border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} overflow-hidden mb-6`}>
           <div className={`p-6 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
             <div className="flex items-center gap-2">
-              <FileText className={`w-5 h-5 ${isDarkMode ? 'text-white' : 'text-black'}`} />
+              <FileText className={`w-5 h-5 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
               <h2 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Report Details</h2>
             </div>
           </div>
@@ -546,7 +545,7 @@ const ReportPage = () => {
               <textarea
                 value={answers.objectives}
                 onChange={(e) => updateAnswer('objectives', e.target.value)}
-                className={`w-full h-20 p-3 rounded-lg border resize-none transition-all ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} focus:outline-none focus:ring-2 ${isDarkMode ? 'focus:ring-white' : 'focus:ring-black'}`}
+                className={`w-full h-20 p-3 rounded-lg border resize-none transition-all ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 placeholder="Describe which objectives were met and any that weren't..."
               />
             </div>
@@ -558,7 +557,7 @@ const ReportPage = () => {
               <textarea
                 value={answers.challenges}
                 onChange={(e) => updateAnswer('challenges', e.target.value)}
-                className={`w-full h-20 p-3 rounded-lg border resize-none ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} focus:outline-none focus:ring-2 ${isDarkMode ? 'focus:ring-white' : 'focus:ring-black'}`}
+                className={`w-full h-20 p-3 rounded-lg border resize-none ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 placeholder="List main challenges and solutions implemented..."
               />
             </div>
@@ -570,7 +569,7 @@ const ReportPage = () => {
               <textarea
                 value={answers.improvements}
                 onChange={(e) => updateAnswer('improvements', e.target.value)}
-                className={`w-full h-20 p-3 rounded-lg border resize-none ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} focus:outline-none focus:ring-2 ${isDarkMode ? 'focus:ring-white' : 'focus:ring-black'}`}
+                className={`w-full h-20 p-3 rounded-lg border resize-none ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 placeholder="Lessons learned and improvements for future projects..."
               />
             </div>
@@ -582,7 +581,7 @@ const ReportPage = () => {
               <select 
                 value={answers.rating}
                 onChange={(e) => updateAnswer('rating', e.target.value)}
-                className={`w-full p-3 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 ${isDarkMode ? 'focus:ring-white' : 'focus:ring-black'}`}
+                className={`w-full p-3 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
               >
                 <option value="">Select rating...</option>
                 <option value="10">10 - Excellent</option>
@@ -605,7 +604,7 @@ const ReportPage = () => {
               <textarea
                 value={answers.timeline}
                 onChange={(e) => updateAnswer('timeline', e.target.value)}
-                className={`w-full h-20 p-3 rounded-lg border resize-none ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} focus:outline-none focus:ring-2 ${isDarkMode ? 'focus:ring-white' : 'focus:ring-black'}`}
+                className={`w-full h-20 p-3 rounded-lg border resize-none ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 placeholder="Discuss timeline adherence and any delays..."
               />
             </div>
@@ -617,7 +616,7 @@ const ReportPage = () => {
               <textarea
                 value={answers.budget}
                 onChange={(e) => updateAnswer('budget', e.target.value)}
-                className={`w-full h-20 p-3 rounded-lg border resize-none ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} focus:outline-none focus:ring-2 ${isDarkMode ? 'focus:ring-white' : 'focus:ring-black'}`}
+                className={`w-full h-20 p-3 rounded-lg border resize-none ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 placeholder="Explain budget performance and any overruns..."
               />
             </div>
@@ -629,7 +628,7 @@ const ReportPage = () => {
               <textarea
                 value={answers.teamwork}
                 onChange={(e) => updateAnswer('teamwork', e.target.value)}
-                className={`w-full h-20 p-3 rounded-lg border resize-none ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} focus:outline-none focus:ring-2 ${isDarkMode ? 'focus:ring-white' : 'focus:ring-black'}`}
+                className={`w-full h-20 p-3 rounded-lg border resize-none ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 placeholder="Assess team communication and collaboration..."
               />
             </div>
@@ -641,7 +640,7 @@ const ReportPage = () => {
               <textarea
                 value={answers.stakeholders}
                 onChange={(e) => updateAnswer('stakeholders', e.target.value)}
-                className={`w-full h-20 p-3 rounded-lg border resize-none ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} focus:outline-none focus:ring-2 ${isDarkMode ? 'focus:ring-white' : 'focus:ring-black'}`}
+                className={`w-full h-20 p-3 rounded-lg border resize-none ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 placeholder="Describe stakeholder feedback and satisfaction..."
               />
             </div>
@@ -653,7 +652,7 @@ const ReportPage = () => {
               <textarea
                 value={answers.quality}
                 onChange={(e) => updateAnswer('quality', e.target.value)}
-                className={`w-full h-20 p-3 rounded-lg border resize-none ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} focus:outline-none focus:ring-2 ${isDarkMode ? 'focus:ring-white' : 'focus:ring-black'}`}
+                className={`w-full h-20 p-3 rounded-lg border resize-none ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 placeholder="Evaluate the quality of deliverables and outcomes..."
               />
             </div>
@@ -665,7 +664,7 @@ const ReportPage = () => {
               <textarea
                 value={answers.recommendations}
                 onChange={(e) => updateAnswer('recommendations', e.target.value)}
-                className={`w-full h-20 p-3 rounded-lg border resize-none ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} focus:outline-none focus:ring-2 ${isDarkMode ? 'focus:ring-white' : 'focus:ring-black'}`}
+                className={`w-full h-20 p-3 rounded-lg border resize-none ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'} focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 placeholder="Provide recommendations and best practices..."
               />
             </div>

@@ -120,21 +120,21 @@ const UserProfilePage = () => {
   };
 
   return (
-    <div className={`content p-6 lg:p-8 font-sans min-h-screen ${isDarkMode ? 'bg-[#141414] text-white' : 'bg-white text-gray-900'
+    <div className={`content p-3 sm:p-4 lg:p-6 xl:p-8 font-sans min-h-screen ${isDarkMode ? 'bg-[#141414] text-white' : 'bg-white text-gray-900'
       }`}>
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center">
-            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mr-6 shadow-lg transition-all duration-300 ${isDarkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white border border-gray-200'
+      <div className="mb-6 sm:mb-8">
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <div className="flex items-center flex-1 min-w-0">
+            <div className={`w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-xl sm:rounded-2xl flex items-center justify-center mr-3 sm:mr-4 lg:mr-6 shadow-lg transition-all duration-300 flex-shrink-0 ${isDarkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white border border-gray-200'
               }`}>
-              <User className={`w-8 h-8 ${isDarkMode ? 'text-white' : 'text-black'}`} />
+              <User className={`w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 ${isDarkMode ? 'text-white' : 'text-black'}`} />
             </div>
-            <div>
-              <h1 className={`text-4xl font-bold ${isDarkMode ? 'text-white' : 'text-black'}`}>
+            <div className="flex-1 min-w-0">
+              <h1 className={`text-2xl sm:text-3xl lg:text-4xl font-bold truncate ${isDarkMode ? 'text-white' : 'text-black'}`}>
                 User Profile
               </h1>
-              <p className={`text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              <p className={`text-sm sm:text-base lg:text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} truncate`}>
                 Manage your account settings and preferences
               </p>
             </div>
@@ -157,7 +157,7 @@ const UserProfilePage = () => {
         )}
 
         {/* Tab Navigation */}
-        <div className="flex space-x-1 mb-8">
+        <div className="flex space-x-1 sm:space-x-2 mb-6 sm:mb-8 overflow-x-auto scrollbar-hide">
           {[
             { id: 'profile', label: 'Profile', icon: User },
             { id: 'security', label: 'Security', icon: Shield }
@@ -167,13 +167,13 @@ const UserProfilePage = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center px-3 py-2 sm:px-6 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base font-semibold transition-all duration-200 ${activeTab === tab.id
+                className={`flex items-center px-4 py-2.5 sm:px-6 sm:py-3 rounded-lg sm:rounded-xl text-sm sm:text-base font-semibold transition-all duration-200 whitespace-nowrap flex-shrink-0 ${activeTab === tab.id
                     ? (isDarkMode ? 'bg-white text-black' : 'bg-black text-white')
                     : (isDarkMode ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200')
                   }`}
               >
-                <Icon className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                <span className="text-xs sm:text-base">{tab.label}</span>
+                <Icon className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                <span>{tab.label}</span>
               </button>
             );
           })}
@@ -185,14 +185,14 @@ const UserProfilePage = () => {
         }`}>
         {/* Profile Tab */}
         {activeTab === 'profile' && (
-          <div className="p-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+          <div className="p-4 sm:p-6 lg:p-8">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
+              <h2 className={`text-xl sm:text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                 Profile Information
               </h2>
               <button
                 onClick={() => setIsEditing(!isEditing)}
-                className={`flex items-center px-4 py-2 rounded-xl font-semibold transition-all duration-200 ${isDarkMode ? 'bg-[#141414] text-white hover:bg-gray-800 border border-white' : 'bg-white text-black hover:bg-gray-100 border border-black'
+                className={`flex items-center justify-center px-4 py-2 rounded-xl font-semibold transition-all duration-200 text-sm sm:text-base ${isDarkMode ? 'bg-[#141414] text-white hover:bg-gray-800 border border-white' : 'bg-white text-black hover:bg-gray-100 border border-black'
                   }`}
                   style={isDarkMode ? { backgroundColor: '#141414' } : {}}
               >
@@ -201,10 +201,10 @@ const UserProfilePage = () => {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 lg:gap-6">
               {/* User Avatar */}
-              <div className="md:col-span-2 flex justify-center mb-6">
-                <div className={`w-32 h-32 rounded-full flex items-center justify-center text-4xl font-bold shadow-lg ${isDarkMode ? 'bg-white text-black' : 'bg-black text-white'
+              <div className="md:col-span-2 flex justify-center mb-4 sm:mb-6">
+                <div className={`w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 rounded-full flex items-center justify-center text-2xl sm:text-3xl lg:text-4xl font-bold shadow-lg ${isDarkMode ? 'bg-white text-black' : 'bg-black text-white'
                   }`}>
                   {user?.name?.charAt(0)?.toUpperCase() || 'U'}
                 </div>
@@ -369,16 +369,16 @@ const UserProfilePage = () => {
             </div>
 
             {isEditing && (
-              <div className="flex justify-end mt-8">
+              <div className="flex justify-end mt-6 sm:mt-8">
                 <button
                   onClick={handleProfileSave}
                   disabled={loading}
-                  className={`flex items-center px-6 py-3 text-base font-bold ${isDarkMode ? 'bg-white hover:bg-gray-200 text-black' : 'bg-black hover:bg-gray-800 text-white'} rounded-2xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed`}
+                  className={`flex items-center px-5 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base font-bold ${isDarkMode ? 'bg-white hover:bg-gray-200 text-black' : 'bg-black hover:bg-gray-800 text-white'} rounded-xl sm:rounded-2xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   {loading ? (
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                    <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
                   ) : (
-                    <Save className="w-5 h-5 mr-2" />
+                    <Save className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                   )}
                   Save Changes
                 </button>
@@ -389,12 +389,12 @@ const UserProfilePage = () => {
 
         {/* Security Tab */}
         {activeTab === 'security' && (
-          <div className="p-8">
-            <h2 className={`text-2xl font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+          <div className="p-4 sm:p-6 lg:p-8">
+            <h2 className={`text-xl sm:text-2xl font-bold mb-4 sm:mb-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
               Security Settings
             </h2>
 
-            <div className="max-w-md">
+            <div className="max-w-full sm:max-w-md">
               <div className="space-y-6">
                 {/* Current Password */}
                 <div>
@@ -471,12 +471,12 @@ const UserProfilePage = () => {
                 <button
                   onClick={handlePasswordChange}
                   disabled={loading || !passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword}
-                  className={`w-full py-3 text-base font-bold ${isDarkMode ? 'bg-white hover:bg-gray-200 text-black' : 'bg-black hover:bg-gray-800 text-white'} rounded-2xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed`}
+                  className={`w-full py-2.5 sm:py-3 text-sm sm:text-base font-bold ${isDarkMode ? 'bg-white hover:bg-gray-200 text-black' : 'bg-black hover:bg-gray-800 text-white'} rounded-xl sm:rounded-2xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   {loading ? (
                     <div className="flex items-center justify-center">
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                      Updating...
+                      <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      <span className="text-sm sm:text-base">Updating...</span>
                     </div>
                   ) : (
                     'Change Password'
