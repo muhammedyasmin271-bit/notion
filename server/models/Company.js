@@ -42,6 +42,14 @@ const companySchema = new mongoose.Schema({
   deadlineStart: Date, // When company entered deadline (blocked) status
   paymentModeChangedAt: Date, // When payment mode was last changed by super admin
   paymentCountdownStart: Date, // When 24-hour countdown started for paid mode
+  rating: { 
+    type: Number, 
+    default: 0 
+  }, // Company rating based on average user points
+  ratingBlocked: {
+    type: Boolean,
+    default: false
+  }, // Whether rating display is blocked
   createdAt: { type: Date, default: Date.now },
   expiresAt: Date
 });

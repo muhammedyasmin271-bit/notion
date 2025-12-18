@@ -166,6 +166,27 @@ router.post('/register', upload.array('files'), [
       console.log('📱 Company reached 100% user limit, SMS notification sent');
     }
 
+    // Send SMS notification after registration
+    if (user.phone) {
+      try {
+        let smsMessage = '';
+        if (user.status === 'pending') {
+          smsMessage = `Hello ${user.name},\n\nYour registration has been received and is pending approval. You will be notified once your account is approved.\n\nThank you for registering!\n\n- mela note`;
+        } else {
+          smsMessage = `Hello ${user.name},\n\nYour registration was successful! Your account has been approved and you can now log in.\n\nUsername: ${user.username}\n\n- mela note`;
+        }
+        const smsResult = await sendSMS(user.phone, smsMessage);
+        if (smsResult.success) {
+          console.log(`Registration SMS sent to ${user.phone}`);
+        } else {
+          console.log(`Failed to send registration SMS to ${user.phone}: ${smsResult.message}`);
+        }
+      } catch (smsError) {
+        console.error(`Error sending registration SMS to ${user.phone}:`, smsError.message);
+        // Don't fail registration if SMS fails
+      }
+    }
+
     // If user needs approval, don't create token - redirect to pending page
     if (user.status === 'pending') {
       return res.json({
@@ -530,7 +551,7 @@ router.put('/change-password', auth, [
     // Send SMS with new password if user has phone number
     if (user.phone) {
       try {
-        const smsMessage = `Your password has been changed successfully.\nNew Password: ${newPassword}\n\nPlease keep this password secure.\n\n- Notion App`;
+        const smsMessage = `Your password has been changed successfully.\nNew Password: ${newPassword}\n\nPlease keep this password secure.\n\n- mela note`;
         const smsResult = await sendSMS(user.phone, smsMessage);
         if (smsResult.success) {
           console.log(`Password change SMS sent to ${user.phone}`);
@@ -770,6 +791,22 @@ router.put('/users/:id/decline', requireManager, async (req, res) => {
       return res.status(400).json({ message: 'User is already declined' });
     }
 
+    // Send SMS notification to user about decline before deleting
+    if (user.phone) {
+      try {
+        const smsMessage = `Hello ${user.name},\n\nWe regret to inform you that your registration has been declined. Please contact the administrator for more information.\n\n- mela note`;
+        const smsResult = await sendSMS(user.phone, smsMessage);
+        if (smsResult.success) {
+          console.log(`Decline SMS sent to ${user.phone}`);
+        } else {
+          console.log(`Failed to send decline SMS to ${user.phone}: ${smsResult.message}`);
+        }
+      } catch (smsError) {
+        console.error(`Error sending decline SMS to ${user.phone}:`, smsError.message);
+        // Don't fail decline if SMS fails
+      }
+    }
+
     // Delete the user instead of just marking as declined
     await User.findByIdAndDelete(req.params.id);
 
@@ -871,6 +908,22 @@ router.put('/admin/users/:id/approve', requireAdmin, async (req, res) => {
     // Check if we reached 100% limit and send SMS if needed
     if (limitCheck?.reachedLimit) {
       console.log('📱 Company reached 100% user limit after approval, SMS notification sent');
+    }
+
+    // Send SMS notification to user about approval
+    if (user.phone) {
+      try {
+        const smsMessage = `Hello ${user.name},\n\nYour account has been approved! You can now log in to your account.\n\nUsername: ${user.username}\n\n- mela note`;
+        const smsResult = await sendSMS(user.phone, smsMessage);
+        if (smsResult.success) {
+          console.log(`Approval SMS sent to ${user.phone}`);
+        } else {
+          console.log(`Failed to send approval SMS to ${user.phone}: ${smsResult.message}`);
+        }
+      } catch (smsError) {
+        console.error(`Error sending approval SMS to ${user.phone}:`, smsError.message);
+        // Don't fail approval if SMS fails
+      }
     }
 
     res.json({

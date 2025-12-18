@@ -847,7 +847,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       }
 
       const response = await fetch(`http://localhost:9000/api/projects/${project.id}/status`, {
-        method: 'PATCH',
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'x-auth-token': token

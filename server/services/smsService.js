@@ -65,7 +65,7 @@ const sendNotificationSMS = async (user, notification) => {
       return { success: false, message: 'SMS notifications disabled or no phone number' };
     }
 
-    const message = `${notification.title}\n${notification.message || ''}\n\n- Notion App`;
+    const message = `${notification.title}\n${notification.message || ''}\n\n- mela note`;
     
     return await sendSMS(user.phone, message);
   } catch (error) {

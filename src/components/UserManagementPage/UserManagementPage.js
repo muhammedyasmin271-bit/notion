@@ -3,7 +3,7 @@ import {
   Users, Plus, Search, UserCheck, UserX, Trash2,
   Shield, Crown, User as UserIcon, Calendar,
   Edit3, Mail, Phone, Building, Check, X, Clock,
-  MessageSquare, UserPlus, MoreVertical, Eye, ChevronDown
+  MessageSquare, UserPlus, MoreVertical, Eye, ChevronDown, Star
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -193,7 +193,8 @@ const UserManagementPage = () => {
         // status and isActive come from backend; status can be 'pending' | 'approved' | 'declined'
         status: user.status || (user.isActive ? 'approved' : 'pending'),
         isActive: !!user.isActive,
-        files: user.files || []
+        files: user.files || [],
+        points: user.points !== undefined && user.points !== null ? user.points : 0
       }));
       setUsers(dbUsers);
     } catch (error) {
@@ -862,6 +863,17 @@ const UserManagementPage = () => {
                         Joined {new Date(showUserProfile.joinDate).toLocaleDateString()}
                       </span>
                     </div>
+                    {/* Points display - only for admins */}
+                    {isAdmin && (
+                      <div className="flex items-center gap-3">
+                        <Star className={`w-5 h-5 opacity-50 ${isDarkMode ? 'text-yellow-400' : 'text-yellow-600'}`} />
+                        <span className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
+                          Points: <span className={`font-bold ${(showUserProfile.points || 0) >= 0 ? (isDarkMode ? 'text-green-400' : 'text-green-600') : (isDarkMode ? 'text-red-400' : 'text-red-600')}`}>
+                            {showUserProfile.points !== undefined && showUserProfile.points !== null ? showUserProfile.points : 0}
+                          </span>
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

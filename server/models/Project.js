@@ -220,6 +220,11 @@ const projectSchema = new mongoose.Schema({
   changeCount: {
     type: Number,
     default: 0
+  },
+  // Track if points have been awarded for this project (to prevent double-counting)
+  pointsAwarded: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true
@@ -337,6 +342,29 @@ projectSchema.pre('save', function (next) {
     this.updateProgress();
   }
   next();
+});
+
+// Post-save hook to award points when project is completed (for milestone-based completion)
+projectSchema.post('save', function (doc) {
+  // Only process if status is "Done", has dueDate and completedDate, and points haven't been awarded
+  if (doc.status === 'Done' && doc.dueDate && doc.completedDate && !doc.pointsAwarded && doc.companyId) {
+    // Use process.nextTick to ensure this runs after the save is complete
+    process.nextTick(async () => {
+      try {
+        // Import here to avoid circular dependency
+        const { awardProjectPoints } = require('../utils/pointsCalculator');
+        // Reload fresh document to ensure we have latest state
+        const ProjectModel = mongoose.model('Project');
+        const freshProject = await ProjectModel.findById(doc._id);
+        if (freshProject && freshProject.status === 'Done' && !freshProject.pointsAwarded) {
+          await awardProjectPoints(freshProject, doc.companyId);
+        }
+      } catch (error) {
+        console.error(`❌ Error in post-save hook for project ${doc._id}:`, error.message);
+        // Don't throw - we don't want to break saves
+      }
+    });
+  }
 });
 
 module.exports = mongoose.model('Project', projectSchema);

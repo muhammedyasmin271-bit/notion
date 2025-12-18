@@ -5,6 +5,7 @@ const auth = require('../middleware/auth');
 const { tenantFilter } = require('../middleware/tenantFilter');
 const Project = require('../models/Project');
 const { requireManager } = require('../middleware/roleAuth');
+const { awardProjectPoints, reverseProjectPoints } = require('../utils/pointsCalculator');
 
 // Apply auth to all routes first, then tenant filtering
 router.use(auth);
@@ -14,7 +15,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const emailService = require('../services/emailService');
-const { sendNotificationSMS } = require('../services/smsService');
+const { sendNotificationSMS, sendSMS } = require('../services/smsService');
 // Setup Multer for project file uploads
 const uploadsDir = path.join(__dirname, '..', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -100,27 +101,109 @@ router.get('/', async (req, res) => {
         .sort({ createdAt: -1 });
     } else if (userRole === 'manager') {
       // Managers can see: own projects + assigned projects + viewer projects
+      // Check both username (lowercase) and name for backward compatibility
+      const userNameLower = userName ? userName.toLowerCase() : '';
+      const queryValues = [userNameLower, userName, req.user.name].filter(v => v);
+      console.log(`🔵 Manager query - checking assignedTo/viewers for:`, queryValues);
+      
       projects = await Project.find({
         ...baseQuery,
         $or: [
           { owner: userId },
-          { assignedTo: { $in: [userName, req.user.name] } },
-          { viewers: { $in: [userName, req.user.name] } }
+          { assignedTo: { $in: queryValues } },
+          { viewers: { $in: queryValues } }
         ]
       })
         .populate('owner', 'name email')
         .sort({ createdAt: -1 });
+      
+      console.log(`🔵 Manager found ${projects.length} projects (owner: ${userId}, assignedTo/viewers: ${queryValues.join(', ')})`);
     } else {
-      // Regular users can ONLY see their own projects
+      // Regular users can see: own projects + assigned projects + viewer projects
+      // Check both username (lowercase) and name for backward compatibility
+      const userNameLower = userName ? userName.toLowerCase() : '';
+      const userNameUpper = userName ? userName.toUpperCase() : '';
+      // Build query values: lowercase username, original username, name, and all variations
+      const queryValues = [
+        userNameLower, 
+        userName, 
+        req.user.name,
+        req.user.name?.toLowerCase(),
+        req.user.name?.toUpperCase()
+      ].filter(v => v && v.trim());
+      
+      // Remove duplicates
+      const uniqueQueryValues = [...new Set(queryValues)];
+      
+      console.log(`🔵 Regular user query - User: ${userName} (ID: ${userId}, Name: ${req.user.name})`);
+      console.log(`🔵 Checking assignedTo/viewers for:`, uniqueQueryValues);
+      
+      // First, let's see what projects exist with assignments
+      const allProjectsWithAssignments = await Project.find({
+        ...baseQuery,
+        assignedTo: { $exists: true, $ne: [] }
+      }).select('title assignedTo viewers owner').lean();
+      
+      console.log(`🔵 All projects with assignments in company (${allProjectsWithAssignments.length} total):`, 
+        allProjectsWithAssignments.map(p => ({
+          title: p.title,
+          assignedTo: p.assignedTo,
+          assignedToTypes: p.assignedTo.map(a => typeof a),
+          owner: p.owner?.toString()
+        })));
+      
+      // Build the query - check if any value in assignedTo array matches any of our query values
       projects = await Project.find({
         ...baseQuery,
-        owner: userId
+        $or: [
+          { owner: userId },
+          { assignedTo: { $in: uniqueQueryValues } },
+          { viewers: { $in: uniqueQueryValues } }
+        ]
       })
         .populate('owner', 'name email')
         .sort({ createdAt: -1 });
+      
+      console.log(`🔵 Regular user found ${projects.length} projects`);
+      if (projects.length > 0) {
+        console.log(`🔵 Projects found:`, projects.map(p => {
+          const assignedToArray = Array.isArray(p.assignedTo) ? p.assignedTo : [];
+          const matches = uniqueQueryValues.filter(v => assignedToArray.includes(v));
+          return {
+            id: p._id,
+            title: p.title,
+            owner: p.owner?._id?.toString(),
+            assignedTo: assignedToArray,
+            matches: matches,
+            isOwner: p.owner?._id?.toString() === userId,
+            isAssigned: matches.length > 0
+          };
+        }));
+      } else {
+        console.log(`⚠️ No projects found. Checking why...`);
+        console.log(`   - Query values: ${uniqueQueryValues.join(', ')}`);
+        console.log(`   - User ID: ${userId}`);
+        console.log(`   - Company ID: ${req.companyId}`);
+      }
     }
     
     const out = projects.map(mapProject);
+    
+    // Debug logging for assigned projects
+    if (userRole !== 'admin' && userRole !== 'superadmin') {
+      const assignedProjects = out.filter(p => {
+        const isAssigned = p.assignedTo && Array.isArray(p.assignedTo) && 
+          (p.assignedTo.includes(userName?.toLowerCase()) || 
+           p.assignedTo.includes(userName) || 
+           p.assignedTo.includes(req.user.name));
+        return !p.ownerUid || p.ownerUid !== userId;
+      });
+      if (assignedProjects.length > 0) {
+        console.log(`🔵 User ${userName} can see ${assignedProjects.length} assigned projects:`, 
+          assignedProjects.map(p => ({ id: p.id, title: p.name, assignedTo: p.assignedTo })));
+      }
+    }
+    
     res.json(out);
   } catch (e) {
     console.error('Failed to fetch projects:', e.message);
@@ -144,14 +227,67 @@ router.post('/', async (req, res) => {
     // Only managers/admins can assign projects to others
     const canAssignToOthers = ['admin', 'manager'].includes(req.user.role);
     
-    // Parse assigned users and viewers (using usernames) - only if user has permission
-    const assignedUsers = (canAssignToOthers && forPerson) ? forPerson.split(',').map(u => u.trim()).filter(u => u) : [];
-    const viewerUsers = (canAssignToOthers && viewers) ? viewers.split(',').map(u => u.trim()).filter(u => u) : [];
+    // Parse and resolve assigned users - find actual users and store their usernames
+    let resolvedAssignedUsers = [];
+    let resolvedViewerUsers = [];
+    
+    if (canAssignToOthers) {
+      const User = require('../models/User');
+      
+      // Resolve assigned users
+      if (forPerson) {
+        const assignedInputs = forPerson.split(',').map(u => u.trim()).filter(u => u);
+        for (const input of assignedInputs) {
+          const foundUser = await User.findOne({
+            $or: [
+              { name: { $regex: new RegExp(`^${input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } },
+              { username: { $regex: new RegExp(`^${input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } },
+              { email: { $regex: new RegExp(`^${input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } }
+            ],
+            companyId: req.companyId
+          }).select('username name');
+          
+          if (foundUser) {
+            // Store username for consistent querying (username is unique and lowercase)
+            resolvedAssignedUsers.push(foundUser.username);
+            console.log(`✅ Resolved user "${input}" to username: ${foundUser.username}`);
+          } else {
+            // If user not found, still store the input (might be a name that will be matched)
+            console.warn(`⚠️ User not found for input: "${input}", storing as-is`);
+            resolvedAssignedUsers.push(input.toLowerCase()); // Store lowercase for consistency
+          }
+        }
+      }
+      
+      // Resolve viewer users
+      if (viewers) {
+        const viewerInputs = viewers.split(',').map(u => u.trim()).filter(u => u);
+        for (const input of viewerInputs) {
+          const foundUser = await User.findOne({
+            $or: [
+              { name: { $regex: new RegExp(`^${input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } },
+              { username: { $regex: new RegExp(`^${input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } },
+              { email: { $regex: new RegExp(`^${input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } }
+            ],
+            companyId: req.companyId
+          }).select('username name');
+          
+          if (foundUser) {
+            resolvedViewerUsers.push(foundUser.username);
+            console.log(`✅ Resolved viewer "${input}" to username: ${foundUser.username}`);
+          } else {
+            console.warn(`⚠️ Viewer user not found for input: "${input}", storing as-is`);
+            resolvedViewerUsers.push(input.toLowerCase()); // Store lowercase for consistency
+          }
+        }
+      }
+    }
     
     console.log('🔵 Creating project:', safeName);
     console.log('🔵 User:', req.user.username, 'CompanyId:', req.companyId);
-    console.log('🔵 Assigned users:', assignedUsers);
-    console.log('🔵 Viewers:', viewerUsers);
+    console.log('🔵 Original forPerson from request:', forPerson);
+    console.log('🔵 Resolved assigned users:', resolvedAssignedUsers);
+    console.log('🔵 Resolved viewers:', resolvedViewerUsers);
 
     const project = new Project({
       title: safeName,
@@ -162,8 +298,8 @@ router.post('/', async (req, res) => {
       companyId: req.companyId,
       startDate: startDate ? new Date(startDate) : undefined,
       dueDate: endDate ? new Date(endDate) : undefined,
-      assignedTo: assignedUsers,
-      viewers: viewerUsers,
+      assignedTo: resolvedAssignedUsers,
+      viewers: resolvedViewerUsers,
       tags: forPerson ? [String(forPerson)] : [],
       blocks: blocks || '',
       content: content || '',
@@ -175,23 +311,39 @@ router.post('/', async (req, res) => {
 
     await project.save();
     await project.populate('owner', 'name email');
+    
+    console.log('✅ Project saved with ID:', project._id);
+    console.log('✅ Project assignedTo array:', project.assignedTo);
+    console.log('✅ Project viewers array:', project.viewers);
 
     // Send notifications for initial assignments
-    if (assignedUsers.length > 0) {
+    if (resolvedAssignedUsers.length > 0) {
       const User = require('../models/User');
       const Notification = require('../models/Notification');
       
-      for (const assignedUserName of assignedUsers) {
+      for (const assignedUserName of resolvedAssignedUsers) {
         try {
-          const assignedUser = await User.findOne({
-            $or: [
-              { name: { $regex: new RegExp(assignedUserName, 'i') } },
-              { username: { $regex: new RegExp(assignedUserName, 'i') } },
-              { email: { $regex: new RegExp(assignedUserName, 'i') } }
-            ]
+          // Since we stored the username, look it up directly by username first
+          let assignedUser = await User.findOne({ 
+            username: assignedUserName,
+            companyId: req.companyId
           }).select('name email phone preferences emailNotifications');
           
+          // If not found by username, try by name (fallback for old data)
+          if (!assignedUser) {
+            assignedUser = await User.findOne({
+              $or: [
+                { name: { $regex: new RegExp(`^${assignedUserName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } },
+                { username: { $regex: new RegExp(`^${assignedUserName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } },
+                { email: { $regex: new RegExp(`^${assignedUserName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } }
+              ],
+              companyId: req.companyId
+            }).select('name email phone preferences emailNotifications');
+          }
+          
           if (assignedUser) {
+            console.log(`✅ Found assigned user: ${assignedUser.name} (username: ${assignedUser.username || 'N/A'}, ID: ${assignedUser._id})`);
+            console.log(`📱 User phone number: ${assignedUser.phone || 'NOT SET'}`);
             console.log(`Creating assignment notification for user: ${assignedUser.name}`);
             
             const notification = new Notification({
@@ -233,30 +385,40 @@ router.post('/', async (req, res) => {
                     </div>
                   `
                 });
-                console.log(`Project assignment email sent to ${assignedUser.email}`);
+                console.log(`✅ Project assignment email sent to ${assignedUser.email}`);
               } catch (emailError) {
-                console.error(`Error sending project assignment email to ${assignedUser.email}:`, emailError.message);
+                console.error(`❌ Error sending project assignment email to ${assignedUser.email}:`, emailError.message);
               }
+            } else {
+              console.log(`ℹ️ Skipping email - email: ${assignedUser.email ? 'exists' : 'missing'}, emailNotifications: ${assignedUser.emailNotifications}`);
             }
             
-            // Send SMS notification
-            if (assignedUser.phone && assignedUser.preferences?.notifications?.sms === true) {
+            // Send SMS notification (send if phone exists, regardless of preferences for important notifications)
+            if (assignedUser.phone && assignedUser.phone.trim()) {
               try {
-                const smsResult = await sendNotificationSMS(assignedUser, notification);
+                console.log(`📱 Attempting to send SMS to: ${assignedUser.phone}`);
+                const smsMessage = `New Project Assignment\n\nYou have been assigned to project: ${project.title}\n\nAssigned by: ${req.user.name}\n\nPlease check your mela note to view the project details.\n\n- mela note`;
+                const smsResult = await sendSMS(assignedUser.phone, smsMessage);
                 if (smsResult.success) {
-                  console.log(`Project assignment SMS sent to ${assignedUser.phone}`);
+                  console.log(`✅ Project assignment SMS sent successfully to ${assignedUser.phone}`);
                 } else {
-                  console.log(`Failed to send project assignment SMS to ${assignedUser.phone}: ${smsResult.message}`);
+                  console.error(`❌ Failed to send project assignment SMS to ${assignedUser.phone}: ${smsResult.message}`);
                 }
               } catch (smsError) {
-                console.error(`Error sending project assignment SMS to ${assignedUser.phone}:`, smsError.message);
+                console.error(`❌ Error sending project assignment SMS to ${assignedUser.phone}:`, smsError.message);
+                console.error(`❌ SMS Error stack:`, smsError.stack);
               }
+            } else {
+              console.warn(`⚠️ Skipping SMS - phone number is ${assignedUser.phone ? 'empty' : 'not set'} for user ${assignedUser.name}`);
             }
             
-            console.log(`Assignment notification created for ${assignedUser.name}`);
+            console.log(`✅ Assignment notification created for ${assignedUser.name}`);
+          } else {
+            console.warn(`⚠️ Could not find user for assignment notification. Stored username: "${assignedUserName}"`);
+            console.warn(`⚠️ Company ID used in lookup: ${req.companyId}`);
           }
         } catch (notificationError) {
-          console.error(`Error creating assignment notification:`, notificationError);
+          console.error(`❌ Error creating assignment notification:`, notificationError);
         }
       }
     }
@@ -303,12 +465,21 @@ router.put('/:id/status', async (req, res) => {
     const { status } = req.body || {};
     const User = require('../models/User');
     const Notification = require('../models/Notification');
+    const { awardProjectPoints, reverseProjectPoints } = require('../utils/pointsCalculator');
 
     const p = await Project.findById(req.params.id);
     if (!p) return res.status(404).json({ message: 'Project not found' });
 
     const previousStatus = p.status;
+    const wasDone = previousStatus === 'Done';
+    const willBeDone = status === 'Done';
+    
     if (status !== undefined) p.status = status;
+    
+    // Handle completedDate when status changes to "Done"
+    if (willBeDone && !wasDone && !p.completedDate) {
+      p.completedDate = new Date();
+    }
 
     // Send notifications to assigned users about status change
     if (status && status !== previousStatus && p.assignedTo && p.assignedTo.length > 0) {
@@ -386,6 +557,25 @@ router.put('/:id/status', async (req, res) => {
     }
 
     await p.save();
+    console.log(`✅ Status updated via status endpoint - wasDone: ${wasDone}, willBeDone: ${willBeDone}, pointsAwarded: ${p.pointsAwarded}`);
+    
+    // Reload project to get latest state
+    const updatedProject = await Project.findById(p._id);
+    
+    // Handle points based on status changes
+    if (willBeDone && !wasDone && !updatedProject.pointsAwarded) {
+      console.log(`✅ Status changed to Done via status endpoint - attempting to award points`);
+      if (updatedProject.completedDate && updatedProject.dueDate) {
+        console.log(`✅ Has completedDate and dueDate, calling awardProjectPoints`);
+        await awardProjectPoints(updatedProject, req.companyId);
+      } else {
+        console.log(`⚠️ Missing completedDate (${updatedProject.completedDate}) or dueDate (${updatedProject.dueDate}), cannot award points`);
+      }
+    } else if (wasDone && !willBeDone && updatedProject.pointsAwarded) {
+      console.log(`🔄 Status changed from Done via status endpoint - attempting to reverse points`);
+      await reverseProjectPoints(updatedProject, req.companyId);
+    }
+    
     await p.populate('owner', 'name email');
     res.json(mapProject(p));
   } catch (e) {
@@ -419,6 +609,11 @@ router.put('/:id', async (req, res) => {
     const previousAssignedTo = [...(p.assignedTo || [])];
     console.log('🔵 Previous assignedTo:', previousAssignedTo);
 
+    // Store previous status to detect changes
+    const previousStatus = p.status;
+    const wasDone = previousStatus === 'Done';
+    const willBeDone = status === 'Done';
+
     // Allow status updates and blocks/content for all users with access
     if (status) p.status = status;
     if (blocks !== undefined) p.blocks = blocks;
@@ -427,6 +622,17 @@ router.put('/:id', async (req, res) => {
     if (tableData !== undefined) p.tableData = tableData;
     if (toggleStates !== undefined) p.toggleStates = toggleStates;
     if (toggleContent !== undefined) p.toggleContent = toggleContent;
+
+    // Handle points based on status changes
+    if (willBeDone && !wasDone && !p.pointsAwarded) {
+      // Status changing to "Done" - set completedDate (points will be awarded after save)
+      if (!p.completedDate) {
+        p.completedDate = new Date();
+      }
+    } else if (wasDone && !willBeDone && p.pointsAwarded) {
+      // Status changing from "Done" to something else - reverse points
+      // We'll handle this after save to ensure we have the updated project
+    }
     
     // Also update notes field if description is provided (for backward compatibility)
     if (description !== undefined) {
@@ -445,32 +651,67 @@ router.put('/:id', async (req, res) => {
       if (priority) p.priority = priority;
       if (forPerson !== undefined) {
         console.log('🔵 Processing forPerson:', forPerson, 'Type:', typeof forPerson, 'Length:', forPerson?.length);
-        // Handle both string and empty string cases
-        const assignedUsers = (forPerson && String(forPerson).trim()) 
+        // Handle both string and empty string cases - resolve to actual usernames
+        const User = require('../models/User');
+        const assignedInputs = (forPerson && String(forPerson).trim()) 
           ? String(forPerson).split(',').map(u => u.trim()).filter(u => u && u.length > 0) 
           : [];
-        console.log('🔵 Parsed assignedUsers:', assignedUsers, 'Length:', assignedUsers.length);
-        p.assignedTo = assignedUsers;
+        
+        const resolvedAssignedUsers = [];
+        for (const input of assignedInputs) {
+          const foundUser = await User.findOne({
+            $or: [
+              { name: { $regex: new RegExp(`^${input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } },
+              { username: { $regex: new RegExp(`^${input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } },
+              { email: { $regex: new RegExp(`^${input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } }
+            ],
+            companyId: req.companyId
+          }).select('username name');
+          
+          if (foundUser) {
+            // Store username for consistent querying
+            resolvedAssignedUsers.push(foundUser.username);
+            console.log(`✅ Resolved user "${input}" to username: ${foundUser.username}`);
+          } else {
+            // If user not found, still store the input (might be a name that will be matched)
+            console.warn(`⚠️ User not found for input: "${input}", storing as-is`);
+            resolvedAssignedUsers.push(input.toLowerCase()); // Store lowercase for consistency
+          }
+        }
+        
+        console.log('🔵 Parsed assignedUsers:', assignedInputs, 'Resolved to:', resolvedAssignedUsers);
+        p.assignedTo = resolvedAssignedUsers;
         p.tags = (forPerson && String(forPerson).trim()) ? [String(forPerson)] : [];
         console.log('🔵 Set p.assignedTo to:', p.assignedTo, 'Array length:', p.assignedTo?.length);
         
         // Send notifications for new assignments
-        if (assignedUsers.length > 0) {
-          for (const assignedUserName of assignedUsers) {
+        if (resolvedAssignedUsers.length > 0) {
+          for (const assignedUserName of resolvedAssignedUsers) {
             // Skip if user was already assigned
             if (previousAssignedTo.includes(assignedUserName)) continue;
             
             try {
-              // Find user by name or username
-              const assignedUser = await User.findOne({
-                $or: [
-                  { name: { $regex: new RegExp(assignedUserName, 'i') } },
-                  { username: { $regex: new RegExp(assignedUserName, 'i') } },
-                  { email: { $regex: new RegExp(assignedUserName, 'i') } }
-                ]
+              // Since we stored the username, look it up directly by username first
+              let assignedUser = await User.findOne({ 
+                username: assignedUserName,
+                companyId: req.companyId
               }).select('name email phone preferences emailNotifications');
               
+              // If not found by username, try by name (fallback for old data)
+              if (!assignedUser) {
+                assignedUser = await User.findOne({
+                  $or: [
+                    { name: { $regex: new RegExp(`^${assignedUserName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } },
+                    { username: { $regex: new RegExp(`^${assignedUserName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } },
+                    { email: { $regex: new RegExp(`^${assignedUserName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } }
+                  ],
+                  companyId: req.companyId
+                }).select('name email phone preferences emailNotifications');
+              }
+              
               if (assignedUser) {
+                console.log(`✅ Found assigned user: ${assignedUser.name} (username: ${assignedUser.username || 'N/A'}, ID: ${assignedUser._id})`);
+                console.log(`📱 User phone number: ${assignedUser.phone || 'NOT SET'}`);
                 console.log(`Creating assignment notification for user: ${assignedUser.name} (${assignedUser._id})`);
                 
                 // Create notification
@@ -513,29 +754,37 @@ router.put('/:id', async (req, res) => {
                         </div>
                       `
                     });
-                    console.log(`Project assignment email sent to ${assignedUser.email}`);
+                    console.log(`✅ Project assignment email sent to ${assignedUser.email}`);
                   } catch (emailError) {
-                    console.error(`Error sending project assignment email to ${assignedUser.email}:`, emailError.message);
+                    console.error(`❌ Error sending project assignment email to ${assignedUser.email}:`, emailError.message);
                   }
+                } else {
+                  console.log(`ℹ️ Skipping email - email: ${assignedUser.email ? 'exists' : 'missing'}, emailNotifications: ${assignedUser.emailNotifications}`);
                 }
                 
-                // Send SMS notification
-                if (assignedUser.phone && assignedUser.preferences?.notifications?.sms === true) {
+                // Send SMS notification (send if phone exists, regardless of preferences for important notifications)
+                if (assignedUser.phone && assignedUser.phone.trim()) {
                   try {
-                    const smsResult = await sendNotificationSMS(assignedUser, notification);
+                    console.log(`📱 Attempting to send SMS to: ${assignedUser.phone}`);
+                    const smsMessage = `New Project Assignment\n\nYou have been assigned to project: ${p.title}\n\nAssigned by: ${req.user.name}\n\nPlease check your mela note to view the project details.\n\n- mela note`;
+                    const smsResult = await sendSMS(assignedUser.phone, smsMessage);
                     if (smsResult.success) {
-                      console.log(`Project assignment SMS sent to ${assignedUser.phone}`);
+                      console.log(`✅ Project assignment SMS sent successfully to ${assignedUser.phone}`);
                     } else {
-                      console.log(`Failed to send project assignment SMS to ${assignedUser.phone}: ${smsResult.message}`);
+                      console.error(`❌ Failed to send project assignment SMS to ${assignedUser.phone}: ${smsResult.message}`);
                     }
                   } catch (smsError) {
-                    console.error(`Error sending project assignment SMS to ${assignedUser.phone}:`, smsError.message);
+                    console.error(`❌ Error sending project assignment SMS to ${assignedUser.phone}:`, smsError.message);
+                    console.error(`❌ SMS Error stack:`, smsError.stack);
                   }
+                } else {
+                  console.warn(`⚠️ Skipping SMS - phone number is ${assignedUser.phone ? 'empty' : 'not set'} for user ${assignedUser.name}`);
                 }
                 
-                console.log(`Assignment notification created successfully for ${assignedUser.name}`);
+                console.log(`✅ Assignment notification created successfully for ${assignedUser.name}`);
               } else {
-                console.warn(`Could not find user for assignment: ${assignedUserName}`);
+                console.warn(`⚠️ Could not find user for assignment: ${assignedUserName}`);
+                console.warn(`⚠️ Company ID used in lookup: ${req.companyId}`);
               }
             } catch (notificationError) {
               console.error(`Error creating assignment notification for ${assignedUserName}:`, notificationError);
@@ -550,12 +799,40 @@ router.put('/:id', async (req, res) => {
       if (startDate) p.startDate = new Date(startDate);
       if (endDate) p.dueDate = new Date(endDate);
     } else {
-      console.log('🔴 User does not have permission to update fields (canUpdateFields is false)');
+        console.log('🔴 User does not have permission to update fields (canUpdateFields is false)');
     }
 
-    console.log('🔵 Before save - p.assignedTo:', p.assignedTo);
+        console.log('🔵 Before save - p.assignedTo:', p.assignedTo);
     await p.save();
-    console.log('🔵 After save - p.assignedTo:', p.assignedTo);
+    console.log('✅ Project updated - p.assignedTo after save:', p.assignedTo);
+    console.log('✅ Project ID:', p._id);
+
+    // Reload project to get latest state
+    const updatedProject = await Project.findById(p._id);
+
+    // Handle points based on status changes
+    console.log(`🔵 Points check - wasDone: ${wasDone}, willBeDone: ${willBeDone}, pointsAwarded: ${updatedProject.pointsAwarded}, completedDate: ${updatedProject.completedDate}, dueDate: ${updatedProject.dueDate}`);
+    console.log(`🔵 Project assignedTo:`, updatedProject.assignedTo);
+    console.log(`🔵 Project viewers:`, updatedProject.viewers);
+    console.log(`🔵 CompanyId:`, req.companyId);
+
+    if (willBeDone && !wasDone && !updatedProject.pointsAwarded) {
+      // Status changed to "Done" - award points
+      console.log(`✅ Status changed to Done - attempting to award points`);
+      if (updatedProject.completedDate) {
+        console.log(`✅ Has completedDate, calling awardProjectPoints`);
+        await awardProjectPoints(updatedProject, req.companyId);
+      } else {
+        console.log(`⚠️ No completedDate set, cannot award points`);
+      }
+    } else if (wasDone && !willBeDone && updatedProject.pointsAwarded) {
+      // Status changed from "Done" to another status - reverse points
+      console.log(`🔄 Status changed from Done - attempting to reverse points`);
+      await reverseProjectPoints(updatedProject, req.companyId);
+    } else {
+      console.log(`ℹ️ No points action needed - wasDone: ${wasDone}, willBeDone: ${willBeDone}, pointsAwarded: ${updatedProject.pointsAwarded}`);
+    }
+
     await p.populate('owner', 'name email');
     const mappedProject = mapProject(p);
     console.log('🔵 Mapped project forPerson:', mappedProject.forPerson);

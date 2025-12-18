@@ -221,6 +221,30 @@ router.patch('/companies/:companyId/pricing', auth, isSuperAdmin, async (req, re
   }
 });
 
+// Toggle rating block for company
+router.patch('/companies/:companyId/rating-block', auth, isSuperAdmin, async (req, res) => {
+  try {
+    const { blocked } = req.body;
+    
+    const company = await Company.findOneAndUpdate(
+      { companyId: req.params.companyId },
+      { ratingBlocked: blocked !== undefined ? blocked : false },
+      { new: true }
+    );
+
+    if (!company) {
+      return res.status(404).json({ message: 'Company not found' });
+    }
+
+    console.log(`✅ Company rating ${company.ratingBlocked ? 'blocked' : 'unblocked'} for ${company.companyId}`);
+
+    res.json(company);
+  } catch (error) {
+    console.error('Error toggling rating block:', error);
+    res.status(400).json({ message: error.message });
+  }
+});
+
 // Update company limits
 router.patch('/companies/:companyId/limits', auth, isSuperAdmin, async (req, res) => {
   try {

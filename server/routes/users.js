@@ -146,7 +146,7 @@ router.post('/',
       if (user.phone && user.phone.trim()) {
         try {
           const { sendSMS } = require('../services/smsService');
-          const welcomeMessage = `Welcome to Notion App!\n\nYour account has been created.\nUsername: ${user.username}\nPassword: ${password}\n\nYou can now log in and start using the app.\n\n- Notion App Team`;
+          const welcomeMessage = `Welcome to mela note!\n\nYour account has been created.\nUsername: ${user.username}\nPassword: ${password}\n\nYou can now log in and start using the app.\n\n- mela note`;
           const smsResult = await sendSMS(user.phone, welcomeMessage);
           if (smsResult.success) {
             console.log(`✅ Welcome SMS sent to ${user.phone} for user ${user.username}`);
@@ -314,6 +314,49 @@ router.get('/profile',
       res.json(user);
     } catch (err) {
       console.error('Get profile error:', err);
+      res.status(500).json({
+        message: 'Server error',
+        error: process.env.NODE_ENV === 'development' ? err.message : undefined
+      });
+    }
+  });
+
+// @route   GET /api/users/points/history
+// @desc    Get current user's points history
+// @access  Private
+router.get('/points/history',
+  readLimiter,
+  auth,
+  async (req, res) => {
+    try {
+      const PointsHistory = require('../models/PointsHistory');
+      
+      // Get points history for current user, sorted by most recent first
+      const pointsHistory = await PointsHistory.find({
+        userId: req.user.id,
+        companyId: req.companyId
+      })
+        .populate('projectId', 'title')
+        .sort({ createdAt: -1 })
+        .lean();
+
+      // Format the response
+      const formattedHistory = pointsHistory.map(record => ({
+        id: record._id,
+        points: record.points,
+        description: record.description,
+        projectTitle: record.projectId?.title || 'Unknown Project',
+        projectId: record.projectId?._id || null,
+        completedDate: record.completedDate,
+        dueDate: record.dueDate,
+        daysDifference: record.daysDifference,
+        reversed: record.reversed,
+        createdAt: record.createdAt
+      }));
+
+      res.json(formattedHistory);
+    } catch (err) {
+      console.error('Get points history error:', err);
       res.status(500).json({
         message: 'Server error',
         error: process.env.NODE_ENV === 'development' ? err.message : undefined

@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
-import { User, Mail, Shield, Calendar, Save, Eye, EyeOff, CheckCircle, AlertCircle, Edit3 } from 'lucide-react';
+import { User, Mail, Shield, Calendar, Save, Eye, EyeOff, CheckCircle, AlertCircle, Edit3, Star, TrendingUp } from 'lucide-react';
 
 const UserProfilePage = () => {
-  const { user, changePassword, apiService } = useAppContext();
+  const { user, setUser, changePassword, apiService } = useAppContext();
   const { isDarkMode } = useTheme();
 
   const [activeTab, setActiveTab] = useState('profile');
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [pointsHistory, setPointsHistory] = useState([]);
+  const [pointsHistoryLoading, setPointsHistoryLoading] = useState(false);
 
   // Profile form state
   const [profileForm, setProfileForm] = useState({
@@ -35,6 +37,47 @@ const UserProfilePage = () => {
     confirm: false
   });
 
+
+  // Fetch fresh user data to get updated points when component mounts
+  useEffect(() => {
+    const fetchFreshUserData = async () => {
+      try {
+        const freshUserData = await apiService.getCurrentUser();
+        if (freshUserData && setUser) {
+          // Update the user in context to get latest points
+          setUser(freshUserData);
+          // Also update localStorage to keep it in sync
+          localStorage.setItem('user', JSON.stringify(freshUserData));
+        }
+      } catch (error) {
+        console.error('Error fetching fresh user data:', error);
+        // If fetch fails, continue with existing user data
+      }
+    };
+
+    fetchFreshUserData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run once when component mounts
+
+  // Fetch points history when points tab is active
+  useEffect(() => {
+    const fetchPointsHistory = async () => {
+      if (activeTab === 'points') {
+        setPointsHistoryLoading(true);
+        try {
+          const history = await apiService.get('/users/points/history');
+          setPointsHistory(history || []);
+        } catch (error) {
+          console.error('Error fetching points history:', error);
+          setPointsHistory([]);
+        } finally {
+          setPointsHistoryLoading(false);
+        }
+      }
+    };
+
+    fetchPointsHistory();
+  }, [activeTab, apiService]);
 
   useEffect(() => {
     if (user) {
@@ -160,6 +203,7 @@ const UserProfilePage = () => {
         <div className="flex space-x-1 sm:space-x-2 mb-6 sm:mb-8 overflow-x-auto scrollbar-hide">
           {[
             { id: 'profile', label: 'Profile', icon: User },
+            ...((user?.role === 'user' || user?.role === 'manager') ? [{ id: 'points', label: 'Points', icon: Star }] : []),
             { id: 'security', label: 'Security', icon: Shield }
           ].map(tab => {
             const Icon = tab.icon;
@@ -286,6 +330,34 @@ const UserProfilePage = () => {
                 )}
               </div>
 
+              {/* Points Display - Only for users and managers */}
+              {(user?.role === 'user' || user?.role === 'manager') && (
+                <div>
+                  <label className={`block text-sm font-semibold mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                    }`}>Points</label>
+                  <div className={`px-4 py-3 rounded-xl border font-medium flex items-center gap-3 ${
+                    (user?.points || 0) >= 0 
+                      ? isDarkMode 
+                        ? 'bg-green-900/20 border-green-700 text-green-400' 
+                        : 'bg-green-50 border-green-300 text-green-700'
+                      : isDarkMode 
+                        ? 'bg-red-900/20 border-red-700 text-red-400' 
+                        : 'bg-red-50 border-red-300 text-red-700'
+                  }`}>
+                    <Star className={`w-5 h-5 ${isDarkMode ? 'text-yellow-400' : 'text-yellow-600'}`} />
+                    <span className="text-xl font-bold">
+                      {user?.points !== undefined && user?.points !== null ? user.points : 0}
+                    </span>
+                    <span className="text-sm opacity-75 ml-auto">
+                      {user?.points >= 0 ? 'Positive' : 'Negative'}
+                    </span>
+                  </div>
+                  <p className={`mt-2 text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                    Earn points by completing projects on time or early
+                  </p>
+                </div>
+              )}
+
               {/* Phone Number */}
               <div>
                 <label className={`block text-sm font-semibold mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
@@ -384,6 +456,157 @@ const UserProfilePage = () => {
                 </button>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Points Tab */}
+        {activeTab === 'points' && (
+          <div className="p-4 sm:p-6 lg:p-8">
+            <h2 className={`text-xl sm:text-2xl font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              Points
+            </h2>
+
+            {/* Current Points Display */}
+            <div className="mb-8">
+              <label className={`block text-sm font-semibold mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                Current Points
+              </label>
+              <div className={`px-6 py-4 rounded-xl border-2 font-medium flex items-center gap-4 ${
+                (user?.points || 0) >= 0 
+                  ? isDarkMode 
+                    ? 'bg-green-900/20 border-green-700 text-green-400' 
+                    : 'bg-green-50 border-green-300 text-green-700'
+                  : isDarkMode 
+                    ? 'bg-red-900/20 border-red-700 text-red-400' 
+                    : 'bg-red-50 border-red-300 text-red-700'
+              }`}>
+                <Star className={`w-8 h-8 ${isDarkMode ? 'text-yellow-400' : 'text-yellow-600'}`} />
+                <span className="text-3xl font-bold">
+                  {user?.points !== undefined && user?.points !== null ? user.points : 0}
+                </span>
+                <span className="text-sm opacity-75 ml-auto">
+                  {user?.points >= 0 ? 'Positive' : 'Negative'}
+                </span>
+              </div>
+              <p className={`mt-3 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                Earn points by completing projects on time or early. Points are deducted for late completions.
+              </p>
+            </div>
+
+            {/* Points History */}
+            <div>
+              <h3 className={`text-lg sm:text-xl font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                Points History
+              </h3>
+
+              {pointsHistoryLoading ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="w-8 h-8 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              ) : pointsHistory.length === 0 ? (
+                <div className={`text-center py-12 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  <Star className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium">No points history yet</p>
+                  <p className="text-sm mt-2">Complete projects to start earning points!</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {pointsHistory.map((record) => (
+                    <div
+                      key={record.id}
+                      className={`p-4 rounded-xl border transition-all duration-200 ${
+                        record.reversed
+                          ? isDarkMode
+                            ? 'bg-gray-800/50 border-gray-700 opacity-60'
+                            : 'bg-gray-50 border-gray-200 opacity-60'
+                          : isDarkMode
+                            ? 'bg-gray-800 border-gray-700 hover:bg-gray-750'
+                            : 'bg-white border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          {/* Project Name */}
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                              record.points >= 0
+                                ? isDarkMode
+                                  ? 'bg-green-900/30 text-green-400'
+                                  : 'bg-green-100 text-green-700'
+                                : isDarkMode
+                                  ? 'bg-red-900/30 text-red-400'
+                                  : 'bg-red-100 text-red-700'
+                            }`}>
+                              {record.points >= 0 ? (
+                                <TrendingUp className="w-5 h-5" />
+                              ) : (
+                                <TrendingUp className="w-5 h-5 rotate-180" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className={`text-base font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                {record.projectTitle}
+                              </h4>
+                            </div>
+                          </div>
+                          
+                          {/* Reason for Points */}
+                          <div className="ml-12 mb-2">
+                            <p className={`text-sm font-medium ${
+                              record.reversed 
+                                ? isDarkMode ? 'text-gray-500' : 'text-gray-500'
+                                : record.points >= 0
+                                  ? isDarkMode ? 'text-green-300' : 'text-green-700'
+                                  : isDarkMode ? 'text-red-300' : 'text-red-700'
+                            }`}>
+                              {record.reversed && (
+                                <span className={`inline-block px-2 py-1 rounded text-xs font-semibold mr-2 ${
+                                  isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600'
+                                }`}>
+                                  REVERSED
+                                </span>
+                              )}
+                              <span className="font-semibold">Reason: </span>
+                              {record.description || 'Project completion'}
+                            </p>
+                          </div>
+                          
+                          {/* Dates */}
+                          {record.completedDate && (
+                            <div className="ml-12">
+                              <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                                Completed: <span className="font-medium">{formatDate(record.completedDate)}</span>
+                                {record.dueDate && (
+                                  <> • Due: <span className="font-medium">{formatDate(record.dueDate)}</span></>
+                                )}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Points Display */}
+                        <div className="text-right flex-shrink-0">
+                          <div className={`text-2xl font-bold mb-1 ${
+                            record.points >= 0
+                              ? isDarkMode ? 'text-green-400' : 'text-green-600'
+                              : isDarkMode ? 'text-red-400' : 'text-red-600'
+                          }`}>
+                            {record.points > 0 ? '+' : ''}{record.points}
+                          </div>
+                          <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                            {new Date(record.createdAt).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 

@@ -294,6 +294,7 @@ const SuperAdminPage = () => {
     }
   };
 
+
   const openVerifyModal = (payment, action) => {
     setSelectedPayment(payment);
     setVerifyAction(action);
@@ -688,7 +689,7 @@ const SuperAdminPage = () => {
                   </div>
 
                   {/* Status Badge */}
-                  <div className="flex justify-center mb-4">
+                  <div className="flex justify-center mb-3">
                     <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${
                       company.status === 'active'
                         ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-green-500/25'

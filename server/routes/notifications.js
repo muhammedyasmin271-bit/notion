@@ -227,7 +227,7 @@ router.post('/test-sms', auth, async (req, res) => {
     const testNotification = {
       type: 'system',
       title: 'Test SMS Notification',
-      message: 'This is a test SMS from Notion App. SMS notifications are working!',
+      message: 'This is a test SMS from mela note. SMS notifications are working!',
     };
 
     const result = await sendNotificationSMS(user, testNotification);
