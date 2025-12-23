@@ -36,7 +36,7 @@ const LoginPage = ({ isSuperAdmin = false }) => {
           try {
             const userData = JSON.parse(storedUser);
             if (userData.role === 'superadmin') {
-              navigate('/super-admin/dashboard');
+              navigate('/xq7m9k2p8n4r6t1w/dashboard');
               return;
             }
           } catch (e) {
@@ -168,7 +168,7 @@ const LoginPage = ({ isSuperAdmin = false }) => {
       // Only redirect super admins if they logged in through the super admin login page
       // Regular users clicking "Sign In" should go to home, not super admin dashboard
       if (response?.user?.role === 'superadmin' && isSuperAdminLogin) {
-        navigate('/super-admin/dashboard');
+        navigate('/xq7m9k2p8n4r6t1w/dashboard');
       } else if (response?.user?.role === 'superadmin' && !isSuperAdminLogin) {
         // Super admin logged in through regular login page - redirect to home
         navigate('/home');

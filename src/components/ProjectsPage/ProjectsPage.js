@@ -99,11 +99,25 @@ const ProjectsPage = () => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
 
-    const statusOptions = [
+    // Get current project to check user permissions
+    const currentProject = projects.find(p => (p._id || p.id) === projectId);
+    const isOwner = currentProject && user && (currentProject.ownerUid === user.id);
+    const isAssigned = currentProject && user && currentProject.assignedTo && 
+      (currentProject.assignedTo.includes(user.username) || currentProject.assignedTo.includes(user.name));
+    const isViewer = currentProject && user && currentProject.viewers && 
+      (currentProject.viewers.includes(user.username) || currentProject.viewers.includes(user.name));
+    const isAdmin = user && (user.role === 'admin' || user.role === 'superadmin');
+    
+    // Determine available status options based on user permissions
+    let statusOptions = [
       { value: 'Not Started', label: 'Not Started', hoverColor: isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100' },
-      { value: 'In Progress', label: 'In Progress', hoverColor: isDarkMode ? 'hover:bg-blue-500/20' : 'hover:bg-blue-50' },
-      { value: 'Completed', label: 'Completed', hoverColor: isDarkMode ? 'hover:bg-green-500/20' : 'hover:bg-green-50' }
+      { value: 'In Progress', label: 'In Progress', hoverColor: isDarkMode ? 'hover:bg-blue-500/20' : 'hover:bg-blue-50' }
     ];
+    
+    // Only add "Completed" option if user is owner, viewer, or admin (not just assigned)
+    if (isAdmin || isOwner || isViewer) {
+      statusOptions.push({ value: 'Completed', label: 'Completed', hoverColor: isDarkMode ? 'hover:bg-green-500/20' : 'hover:bg-green-50' });
+    }
 
     const normalizedStatus = status === 'Done' || status === 'done' ? 'Completed' : 
                              status === 'Not started' || status === 'Not Started' || !status ? 'Not Started' : 
@@ -133,19 +147,34 @@ const ProjectsPage = () => {
         {isOpen && (
           <div className={`absolute left-0 mt-1 rounded-xl shadow-2xl z-50 overflow-hidden ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'} w-full min-w-[120px]`}>
             <div className="py-1">
-              {statusOptions.map((option) => (
-                <button
-                  key={option.value}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onChange(projectId, option.value, e);
-                    setIsOpen(false);
-                  }}
-                  className={`w-full flex items-center px-3 py-2 text-left ${option.hoverColor} transition-colors ${isDarkMode ? 'text-gray-200' : 'text-black'}`}
-                >
-                  <span className={`font-medium ${isDarkMode ? 'text-gray-200' : 'text-black'}`}>{option.label}</span>
-                </button>
-              ))}
+              {statusOptions.map((option) => {
+                const isDisabled = option.value === 'Completed' && isAssigned && !isOwner && !isViewer && !isAdmin;
+                return (
+                  <button
+                    key={option.value}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!isDisabled) {
+                        onChange(projectId, option.value, e);
+                        setIsOpen(false);
+                      }
+                    }}
+                    disabled={isDisabled}
+                    className={`w-full flex items-center px-3 py-2 text-left transition-colors ${
+                      isDisabled 
+                        ? isDarkMode ? 'text-gray-500 cursor-not-allowed' : 'text-gray-400 cursor-not-allowed'
+                        : `${option.hoverColor} ${isDarkMode ? 'text-gray-200' : 'text-black'}`
+                    }`}
+                    title={isDisabled ? 'Only project owners and viewers can mark projects as completed' : ''}
+                  >
+                    <span className={`font-medium ${
+                      isDisabled 
+                        ? isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                        : isDarkMode ? 'text-gray-200' : 'text-black'
+                    }`}>{option.label}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -400,6 +429,22 @@ const ProjectsPage = () => {
 
   const handlePriorityChange = async (projectId, newPriority, e) => {
     e.stopPropagation();
+    
+    // Check if user can change priority (only owners, viewers, and admins)
+    const currentProject = projects.find(p => (p._id || p.id) === projectId);
+    const isOwner = currentProject && user && (currentProject.ownerUid === user.id);
+    const isAssigned = currentProject && user && currentProject.assignedTo && 
+      (currentProject.assignedTo.includes(user.username) || currentProject.assignedTo.includes(user.name));
+    const isViewer = currentProject && user && currentProject.viewers && 
+      (currentProject.viewers.includes(user.username) || currentProject.viewers.includes(user.name));
+    const isAdmin = user && (user.role === 'admin' || user.role === 'superadmin');
+    
+    // Assigned users cannot change priority
+    if (isAssigned && !isOwner && !isViewer && !isAdmin) {
+      alert('Only project owners and viewers can change project priority.');
+      return;
+    }
+    
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:9000/api/projects/${projectId}`, {
@@ -419,10 +464,12 @@ const ProjectsPage = () => {
           )
         );
       } else {
-        console.error('Failed to update priority');
+        const errorData = await response.json();
+        alert(errorData.message || 'Failed to update priority');
       }
     } catch (error) {
       console.error('Error updating priority:', error);
+      alert('Error updating project priority');
     }
   };
 
@@ -452,10 +499,15 @@ const ProjectsPage = () => {
           )
         );
       } else {
-        console.error('Failed to update status');
+        // Handle permission errors
+        const errorData = await response.json();
+        console.error('Failed to update status:', errorData.message);
+        // You could show a toast notification here
+        alert(errorData.message || 'Failed to update project status');
       }
     } catch (error) {
       console.error('Error updating status:', error);
+      alert('Error updating project status');
     }
   };
 
@@ -617,15 +669,15 @@ const ProjectsPage = () => {
                     {assignedUsers.length > 0 ? (
                       <div className="flex items-center">
                         <div className="flex -space-x-1.5 sm:-space-x-2">
-                          {assignedUsers.slice(0, 3).map((userName, index) => {
+                          {assignedUsers.slice(0, 6).map((userName, index) => {
                             const initials = userName.trim().charAt(0).toUpperCase();
                             const colors = isDarkMode 
-                              ? ['bg-white', 'bg-gray-300', 'bg-gray-400', 'bg-gray-500', 'bg-gray-600']
-                              : ['bg-black', 'bg-gray-700', 'bg-gray-600', 'bg-gray-500', 'bg-gray-400'];
+                              ? ['bg-gray-800', 'bg-gray-700', 'bg-gray-600', 'bg-gray-500', 'bg-gray-400']
+                              : ['bg-white', 'bg-gray-100', 'bg-gray-200', 'bg-gray-300', 'bg-gray-400'];
                             return (
                               <div
                                 key={index}
-                                className={`w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 rounded-full ${colors[index % colors.length]} border-2 ${isDarkMode ? 'border-[#141414]' : 'border-white'} flex items-center justify-center ${isDarkMode ? 'text-black' : 'text-white'} text-xs font-medium`}
+                                className={`w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 rounded-full ${colors[index % colors.length]} border-2 ${isDarkMode ? 'border-[#141414]' : 'border-black'} flex items-center justify-center ${isDarkMode ? 'text-white' : 'text-black'} text-xs font-medium`}
                                 title={userName}
                               >
                                 {initials}
@@ -633,8 +685,8 @@ const ProjectsPage = () => {
                             );
                           })}
                         </div>
-                        {assignedUsers.length > 3 && (
-                          <span className={`text-xs ml-1.5 sm:ml-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>+{assignedUsers.length - 3}</span>
+                        {assignedUsers.length > 6 && (
+                          <span className={`text-xs ml-1.5 sm:ml-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>+{assignedUsers.length - 6}</span>
                         )}
                       </div>
                     ) : (

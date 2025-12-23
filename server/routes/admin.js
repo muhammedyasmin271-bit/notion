@@ -58,7 +58,7 @@ router.get('/companies', auth, isSuperAdmin, async (req, res) => {
 // Create new company with admin user
 router.post('/companies', auth, isSuperAdmin, async (req, res) => {
   try {
-    const { name, adminEmail, adminPhone, subdomain, maxUsers, maxStorage, adminUsername, adminPassword, logo, selectedPlan } = req.body;
+    const { name, adminEmail, adminPhone, subdomain, maxUsers, maxStorage, adminUsername, adminPassword, logo, selectedPlan, pointsEnabled } = req.body;
     const companyId = `comp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
     // Check if admin username already exists
@@ -95,16 +95,16 @@ router.post('/companies', auth, isSuperAdmin, async (req, res) => {
     // Generate company link
     const companyLink = `${process.env.APP_URL || 'http://localhost:3000'}/login?company=${companyId}`;
     
+    // Set pointsEnabledAt to now (company creation date) since points are enabled by default
+    const now = new Date();
+    
     // Ensure logo has proper data URL format if it's base64
     let processedLogo = logo;
     if (logo && !logo.startsWith('data:')) {
       processedLogo = `data:image/png;base64,${logo}`;
     }
     
-
-    
     // Set payment deadline based on selected plan
-    const now = new Date();
     let paymentDeadline;
     let hasPaid = false;
     let gracePeriodDeadline = null;
@@ -117,6 +117,20 @@ router.post('/companies', auth, isSuperAdmin, async (req, res) => {
       gracePeriodDeadline = new Date(paymentDeadline.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days grace period
       hasPaid = false;
     }
+    
+    console.log(`🔧 Admin creating company - Points system setting: pointsEnabled = ${pointsEnabled} (type: ${typeof pointsEnabled})`);
+    
+    // Handle pointsEnabled properly - convert string 'false' to boolean false
+    let finalPointsEnabled;
+    if (pointsEnabled === 'false' || pointsEnabled === false) {
+      finalPointsEnabled = false;
+    } else if (pointsEnabled === 'true' || pointsEnabled === true) {
+      finalPointsEnabled = true;
+    } else {
+      finalPointsEnabled = true; // Default to true if undefined
+    }
+    
+    console.log(`🔧 Admin - Final points setting: ${finalPointsEnabled}`);
     
     const company = new Company({
       companyId,
@@ -133,7 +147,9 @@ router.post('/companies', auth, isSuperAdmin, async (req, res) => {
       paymentMode: 'paid',
       subscriptionStatus: selectedPlan === 'free_trial' ? 'trial' : 'trial',
       branding: { logo: processedLogo, companyName: name },
-      companyLink
+      companyLink,
+      pointsEnabled: finalPointsEnabled,
+      pointsEnabledAt: finalPointsEnabled ? now : null
     });
     
     await company.save();
@@ -343,6 +359,63 @@ router.get('/companies/:companyId', auth, async (req, res) => {
     }
     res.json(companyObj);
   } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Toggle company points system (enable/disable)
+router.patch('/companies/:companyId/points-toggle', auth, isSuperAdmin, async (req, res) => {
+  try {
+    const company = await Company.findOne({ companyId: req.params.companyId });
+    if (!company) {
+      return res.status(404).json({ message: 'Company not found' });
+    }
+
+    // Toggle pointsEnabled (default to true if not set)
+    const currentStatus = company.pointsEnabled !== false; // Default to true
+    const newStatus = !currentStatus;
+
+    // If we're ENABLING points (was disabled, now enabling), reset all points and history
+    if (currentStatus === false && newStatus === true) {
+      console.log(`🔄 Re-enabling points for company ${company.companyId} - RESETTING all points and history`);
+      
+      const User = require('../models/User');
+      const PointsHistory = require('../models/PointsHistory');
+      
+      // Reset all user points to 0 for this company
+      const usersUpdated = await User.updateMany(
+        { companyId: req.params.companyId },
+        { $set: { points: 0 } }
+      );
+      console.log(`✅ Reset points to 0 for ${usersUpdated.modifiedCount} users`);
+      
+      // Delete all points history for this company
+      const historyDeleted = await PointsHistory.deleteMany({ companyId: req.params.companyId });
+      console.log(`✅ Deleted ${historyDeleted.deletedCount} points history records`);
+      
+      console.log(`🔄 Fresh start: All users start from 0 points, all history cleared`);
+      
+      // Set pointsEnabledAt to now (fresh start date)
+      company.pointsEnabledAt = new Date();
+    } else if (newStatus === true && !company.pointsEnabledAt) {
+      // If enabling and pointsEnabledAt is not set (first time enabling), set it to now
+      company.pointsEnabledAt = new Date();
+    }
+
+    company.pointsEnabled = newStatus;
+    await company.save();
+
+    console.log(`✅ Points system ${newStatus ? 'ENABLED' : 'DISABLED'} for company ${company.companyId} (${company.name})`);
+
+    res.json({
+      message: newStatus 
+        ? 'Points system enabled successfully. All points and history have been reset to start fresh.' 
+        : 'Points system disabled successfully',
+      pointsEnabled: newStatus,
+      reset: currentStatus === false && newStatus === true // Indicate if reset happened
+    });
+  } catch (error) {
+    console.error('Error toggling points:', error);
     res.status(500).json({ message: error.message });
   }
 });

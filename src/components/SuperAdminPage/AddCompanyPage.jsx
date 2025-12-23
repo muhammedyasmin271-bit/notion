@@ -11,7 +11,7 @@ const AddCompanyPage = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [formData, setFormData] = useState({
-    name: '', adminEmail: '', adminPhone: '', maxUsers: 50, maxStorage: 5368709120, adminUsername: '', adminPassword: '', logo: '', selectedPlan: 'free_trial'
+    name: '', adminEmail: '', adminPhone: '', maxUsers: 50, maxStorage: 5368709120, adminUsername: '', adminPassword: '', logo: '', selectedPlan: 'free_trial', pointsEnabled: true
   });
   const [logoFile, setLogoFile] = useState(null);
   const [createdCompany, setCreatedCompany] = useState(null);
@@ -80,7 +80,7 @@ const AddCompanyPage = () => {
             </div>
           </div>
           <button 
-            onClick={() => navigate('/super-admin')} 
+            onClick={() => navigate('/xq7m9k2p8n4r6t1w')} 
             className={`flex items-center gap-2 px-6 py-3.5 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 ${isDarkMode ? 'bg-gray-900 hover:bg-gray-800 text-white border border-gray-800' : 'bg-white hover:bg-gray-50 text-black border-2 border-gray-200 shadow-md'}`}
           >
             <X size={20} /> Back
@@ -174,7 +174,7 @@ const AddCompanyPage = () => {
               </div>
             </div>
 
-            <button onClick={() => navigate('/super-admin')} className={`w-full ${isDarkMode ? 'bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700' : 'bg-gradient-to-r from-gray-900 to-black hover:from-gray-800 hover:to-gray-900'} text-white py-4 rounded-2xl font-black text-lg shadow-lg hover:shadow-xl transition-all duration-200 active:scale-95`}>
+            <button onClick={() => navigate('/xq7m9k2p8n4r6t1w')} className={`w-full ${isDarkMode ? 'bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700' : 'bg-gradient-to-r from-gray-900 to-black hover:from-gray-800 hover:to-gray-900'} text-white py-4 rounded-2xl font-black text-lg shadow-lg hover:shadow-xl transition-all duration-200 active:scale-95`}>
               Done
             </button>
           </div>
@@ -328,6 +328,41 @@ const AddCompanyPage = () => {
               </p>
             </div>
 
+            {/* Points Rating System Toggle */}
+            <div className={`p-5 rounded-2xl ${isDarkMode ? 'bg-purple-900/20 border-2 border-purple-700/50' : 'bg-purple-50 border-2 border-purple-300'}`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className={`text-base font-bold mb-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    Points Rating System
+                  </h3>
+                  <p className={`text-xs ${isDarkMode ? 'text-purple-300' : 'text-purple-700'}`}>
+                    Track team performance with automatic point scoring
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, pointsEnabled: !prev.pointsEnabled }))}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
+                    formData.pointsEnabled
+                      ? 'bg-purple-600'
+                      : isDarkMode ? 'bg-gray-600' : 'bg-gray-200'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      formData.pointsEnabled ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+              <p className={`text-xs mt-3 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>
+                {formData.pointsEnabled 
+                  ? '✅ Points system will be enabled for this company' 
+                  : '❌ Points system will be disabled - no performance tracking'
+                }
+              </p>
+            </div>
+
             {/* Admin Credentials */}
             <div className={`p-5 rounded-2xl ${isDarkMode ? 'bg-white/10 border-2 border-white/20' : 'bg-black/10 border-2 border-black/20'}`}>
               <div className="flex items-center gap-2 mb-4">
@@ -398,7 +433,7 @@ const AddCompanyPage = () => {
               </button>
               <button 
                 type="button" 
-                onClick={() => navigate('/super-admin')} 
+                onClick={() => navigate('/xq7m9k2p8n4r6t1w')} 
                 className={`sm:w-32 ${isDarkMode ? 'bg-gray-800 hover:bg-gray-700 text-gray-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'} py-4 rounded-xl font-bold transition-all duration-200 active:scale-95`}
               >
                 Cancel

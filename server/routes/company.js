@@ -51,6 +51,8 @@ router.get('/my-company', auth, requireAdmin, async (req, res) => {
       return res.status(404).json({ message: 'Company not found' });
     }
     
+    console.log(`🔍 Company ${company.companyId} points status: pointsEnabled = ${company.pointsEnabled} (type: ${typeof company.pointsEnabled})`);
+    
     const Payment = require('../models/Payment');
     const payments = await Payment.find({ companyId: company.companyId })
       .sort({ createdAt: -1 })
@@ -67,6 +69,8 @@ router.get('/my-company', auth, requireAdmin, async (req, res) => {
       subscriptionStatus: company.subscriptionStatus,
       selectedPlan: company.selectedPlan,
       hasPaid: company.hasPaid,
+      pointsEnabled: company.pointsEnabled, // Return actual stored value
+      rating: company.rating || 0, // Include company rating
       paymentMode: company.paymentMode || 'paid',
       pricePerUserPerMonth: company.pricePerUserPerMonth,
       createdAt: company.createdAt,
@@ -76,6 +80,7 @@ router.get('/my-company', auth, requireAdmin, async (req, res) => {
       lastPaymentDate: company.lastPaymentDate,
       pausedAt: company.pausedAt,
       unpausedAt: company.unpausedAt,
+      paymentCountdownStart: company.paymentCountdownStart, // When 24-hour countdown started
       payments: payments || []
     });
   } catch (error) {
@@ -164,6 +169,38 @@ router.put('/contact', auth, requireAdmin, async (req, res) => {
   }
 });
 
+router.put('/points-system', auth, requireAdmin, async (req, res) => {
+  try {
+    const { pointsEnabled } = req.body;
+    const company = await Company.findOne({ companyId: req.user.companyId });
+    
+    if (!company) {
+      return res.status(404).json({ message: 'Company not found' });
+    }
+    
+    const wasEnabled = company.pointsEnabled !== false;
+    const willBeEnabled = pointsEnabled !== false;
+    
+    company.pointsEnabled = willBeEnabled;
+    
+    // Set pointsEnabledAt when enabling for the first time or re-enabling
+    if (willBeEnabled && (!wasEnabled || !company.pointsEnabledAt)) {
+      company.pointsEnabledAt = new Date();
+    }
+    
+    await company.save();
+    
+    res.json({
+      message: `Points system ${willBeEnabled ? 'enabled' : 'disabled'} successfully`,
+      pointsEnabled: company.pointsEnabled,
+      pointsEnabledAt: company.pointsEnabledAt
+    });
+  } catch (error) {
+    console.error('❌ Error updating points system:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 router.get('/stats', auth, requireAdmin, async (req, res) => {
   try {
     const company = await Company.findOne({ companyId: req.user.companyId });
@@ -234,7 +271,8 @@ router.post('/create', upload.single('logo'), async (req, res) => {
       adminPassword,
       adminUsername,
       maxUsers,
-      logo
+      logo,
+      pointsEnabled
     } = req.body;
 
     if (!companyName || !companyEmail || !adminEmail || !adminPassword || !adminPhone) {
@@ -297,6 +335,20 @@ router.post('/create', upload.single('logo'), async (req, res) => {
 
     const companyLink = `${process.env.APP_URL || 'http://localhost:3000'}/login?company=${companyId}`;
 
+    console.log(`🔧 Points system setting: pointsEnabled = ${pointsEnabled} (type: ${typeof pointsEnabled})`);
+    
+    // Handle pointsEnabled properly - convert string 'false' to boolean false
+    let finalPointsEnabled;
+    if (pointsEnabled === 'false' || pointsEnabled === false) {
+      finalPointsEnabled = false;
+    } else if (pointsEnabled === 'true' || pointsEnabled === true) {
+      finalPointsEnabled = true;
+    } else {
+      finalPointsEnabled = true; // Default to true if undefined
+    }
+    
+    console.log(`🔧 Final points setting: ${finalPointsEnabled}`);
+
     const company = new Company({
       companyId,
       name: companyName,
@@ -310,6 +362,8 @@ router.post('/create', upload.single('logo'), async (req, res) => {
       hasPaid: hasPaid,
       paymentMode: 'paid',
       subscriptionStatus: selectedPlan === 'free_trial' ? 'trial' : 'trial',
+      pointsEnabled: finalPointsEnabled,
+      pointsEnabledAt: finalPointsEnabled ? new Date() : null,
       branding: {
         logo: logoUrl,
         companyName: companyName

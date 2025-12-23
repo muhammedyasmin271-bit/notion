@@ -69,7 +69,7 @@ const ProtectedRoute = ({ children }) => {
 // Super Admin Redirect Component
 const SuperAdminRedirect = ({ children }) => {
   const { user } = useAppContext();
-  return user?.role === 'superadmin' ? <Navigate to="/super-admin/dashboard" replace /> : children;
+  return user?.role === 'superadmin' ? <Navigate to="/xq7m9k2p8n4r6t1w/dashboard" replace /> : children;
 };
 
 // Layout Component for authenticated pages
@@ -111,7 +111,7 @@ const AppContent = () => {
           element={<LoginPage />}
         />
         <Route
-          path="/super-admin/login"
+          path="/xq7m9k2p8n4r6t1w/login"
           element={<SuperAdminLogin />}
         />
         <Route
@@ -600,13 +600,13 @@ const AppContent = () => {
         } />
 
         {/* Super Admin Routes */}
-        <Route path="/super-admin" element={
+        <Route path="/xq7m9k2p8n4r6t1w" element={
           <SuperAdminRoute>
-            <Navigate to="/super-admin/dashboard" replace />
+            <Navigate to="/xq7m9k2p8n4r6t1w/dashboard" replace />
           </SuperAdminRoute>
         } />
         
-        <Route path="/super-admin/dashboard" element={
+        <Route path="/xq7m9k2p8n4r6t1w/dashboard" element={
           <SuperAdminRoute>
             <Layout>
               <SuperAdminPage />
@@ -614,7 +614,7 @@ const AppContent = () => {
           </SuperAdminRoute>
         } />
 
-        <Route path="/super-admin/payments" element={
+        <Route path="/xq7m9k2p8n4r6t1w/payments" element={
           <SuperAdminRoute>
             <Layout>
               <PaymentVerification />
@@ -622,7 +622,7 @@ const AppContent = () => {
           </SuperAdminRoute>
         } />
 
-        <Route path="/super-admin/settings" element={
+        <Route path="/xq7m9k2p8n4r6t1w/settings" element={
           <SuperAdminRoute>
             <Layout>
               <SuperAdminSettings />
@@ -630,7 +630,7 @@ const AppContent = () => {
           </SuperAdminRoute>
         } />
 
-        <Route path="/super-admin/messages" element={
+        <Route path="/xq7m9k2p8n4r6t1w/messages" element={
           <SuperAdminRoute>
             <Layout>
               <MessagesPage />
@@ -638,7 +638,7 @@ const AppContent = () => {
           </SuperAdminRoute>
         } />
 
-        <Route path="/super-admin/add-company" element={
+        <Route path="/xq7m9k2p8n4r6t1w/add-company" element={
           <SuperAdminRoute>
             <AddCompanyPage />
           </SuperAdminRoute>

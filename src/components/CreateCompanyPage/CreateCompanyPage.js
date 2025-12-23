@@ -27,7 +27,8 @@ const CreateCompanyPage = () => {
     adminUsername: '',
     adminPassword: '',
     logo: '',
-    maxUsers: 10
+    maxUsers: 10,
+    pointsEnabled: true
   });
   
   const [logoFile, setLogoFile] = useState(null);
@@ -93,7 +94,8 @@ const CreateCompanyPage = () => {
         adminPhone: formData.adminPhone,
         adminPassword: formData.adminPassword,
         adminUsername: formData.adminUsername,
-        logo: formData.logo
+        logo: formData.logo,
+        pointsEnabled: formData.pointsEnabled
       };
 
       const response = await fetch('http://localhost:9000/api/company/create', {
@@ -642,6 +644,51 @@ const CreateCompanyPage = () => {
                   isDarkMode ? 'text-blue-400' : 'text-blue-600'
                 }`}>
                   Example: {formData.maxUsers || 10} users × price per user × {currentPlan.period}
+                </p>
+              </div>
+
+              {/* Points Rating System Toggle */}
+              <div className={`p-4 rounded-lg border ${
+                isDarkMode 
+                  ? 'bg-purple-900/20 border-purple-700/30' 
+                  : 'bg-purple-50 border-purple-200'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className={`text-sm font-semibold block ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    }`}>
+                      Points Rating System
+                    </label>
+                    <p className={`text-xs mt-1 ${
+                      isDarkMode ? 'text-purple-300' : 'text-purple-700'
+                    }`}>
+                      Track team performance with automatic point scoring
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, pointsEnabled: !prev.pointsEnabled }))}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
+                      formData.pointsEnabled
+                        ? 'bg-purple-600'
+                        : isDarkMode ? 'bg-gray-600' : 'bg-gray-200'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        formData.pointsEnabled ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+                <p className={`text-xs mt-2 ${
+                  isDarkMode ? 'text-purple-400' : 'text-purple-600'
+                }`}>
+                  {formData.pointsEnabled 
+                    ? '✅ Points system will be enabled for your company' 
+                    : '❌ Points system will be disabled - no performance tracking'
+                  }
                 </p>
               </div>
 

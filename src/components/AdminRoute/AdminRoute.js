@@ -4,10 +4,19 @@ import { useAppContext } from '../../context/AppContext';
 
 // Protected Route Component for Admin-only pages
 const AdminRoute = ({ children }) => {
-  const { user, isAuthenticated } = useAppContext();
+  const { user, isAuthenticated, loading } = useAppContext();
+  
+  // Show loading while authentication is being initialized
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
   
   if (!isAuthenticated) {
-    return <Navigate to="/super-admin/login" replace />;
+    return <Navigate to="/xq7m9k2p8n4r6t1w/login" replace />;
   }
   
   if (user?.role !== 'admin') {

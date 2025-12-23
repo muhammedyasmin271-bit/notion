@@ -28,7 +28,7 @@ const SuperAdminLogin = () => {
       if (response.ok && data.user.role === 'superadmin') {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        navigate('/super-admin');
+        navigate('/xq7m9k2p8n4r6t1w');
       } else {
         setError('Invalid credentials or insufficient permissions');
       }

@@ -1,63 +1,64 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { ArrowLeft, CheckSquare, Plus, X, MessageSquare, Send, Target, FileText, BarChart3, Edit3, Trash2, MoreVertical } from 'lucide-react';
+import { 
+  ArrowLeft, CheckSquare, Plus, X, MessageSquare, Send, Target, FileText, 
+  BarChart3, Edit3, Trash2, MoreVertical, Zap, BookOpen, CheckCircle2
+} from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
-const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'Project', embedded = false }) => {
+const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
   const { projectId: urlProjectId } = useParams();
   const projectId = propProjectId || urlProjectId;
-  const projectName = propProjectName || 'Project';
   
-  console.log(`TasksPage initialized with projectId: ${projectId}, projectName: ${projectName}`);
+  console.log(`TasksPage initialized with projectId: ${projectId}`);
   const navigate = useNavigate();
   const location = useLocation();
   const { isDarkMode } = useTheme();
   const [tasks, setTasks] = useState([]);
-  const [showAddTask, setShowAddTask] = useState(false);
-  const [newTaskText, setNewTaskText] = useState('');
-  const [showComments, setShowComments] = useState({});
-  const [newComment, setNewComment] = useState({});
-  const [showQuickNav, setShowQuickNav] = useState(false);
+  const [users, setUsers] = useState([]);
+  const [projectAssignedUsers, setProjectAssignedUsers] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showAddTask, setShowAddTask] = useState(false);
+  const [newTaskText, setNewTaskText] = useState('');
+  const [newTaskStatus, setNewTaskStatus] = useState('Not Started');
+  const [newTaskPriority, setNewTaskPriority] = useState('Medium');
+  const [newTaskDueDate, setNewTaskDueDate] = useState('');
+  const [newTaskAssignee, setNewTaskAssignee] = useState('');
   const [editingTask, setEditingTask] = useState(null);
-  const [editTaskText, setEditTaskText] = useState('');
+  const [editingTaskText, setEditingTaskText] = useState('');
   const [showActionsMenu, setShowActionsMenu] = useState({});
-
-
-  const quickNavRef = useRef(null);
+  const [selectedTasks, setSelectedTasks] = useState(new Set());
 
   const prevProjectIdRef = useRef(projectId);
-  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    console.log('TasksPage mounted with projectId:', projectId, 'projectName:', projectName);
+    console.log('TasksPage mounted with projectId:', projectId);
 
-    const loadTasks = async () => {
-      // Clear tasks only when projectId actually changes
+    const loadData = async () => {
       if (prevProjectIdRef.current !== projectId) {
         setTasks([]);
         prevProjectIdRef.current = projectId;
       }
 
-      console.log(`Loading tasks for ${projectId ? `project: ${projectId} (${projectName})` : 'all tasks'}`);
+      console.log(`Loading tasks for ${projectId ? `project: ${projectId}` : 'all tasks'}`);
       setLoading(true);
       try {
-        await fetchTasks();
+        await Promise.all([fetchTasks(), fetchUsers(), fetchProject()]);
       } catch (error) {
-        console.error('Error loading tasks:', error);
+        console.error('Error loading data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    loadTasks();
-  }, [projectId, projectName]);
+    loadData();
+  }, [projectId]);
 
   // Close actions menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      // Check if the click is outside any actions menu container
       if (!event.target.closest('.actions-menu-container') && !event.target.closest('[data-actions-button]')) {
         setShowActionsMenu({});
       }
@@ -69,7 +70,103 @@ const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'P
     };
   }, []);
 
+  const fetchUsers = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
 
+      const response = await fetch('http://localhost:9000/api/users', {
+        method: 'GET',
+        headers: {
+          'x-auth-token': token,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(Array.isArray(data.users) ? data.users : data);
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
+
+  const fetchProject = async () => {
+    if (!projectId) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const response = await fetch(`http://localhost:9000/api/projects/${projectId}`, {
+        method: 'GET',
+        headers: {
+          'x-auth-token': token,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const project = await response.json();
+        
+        // Get all users (use state if available, otherwise fetch)
+        let allUsers = users;
+        if (allUsers.length === 0) {
+          const userResponse = await fetch('http://localhost:9000/api/users', {
+            method: 'GET',
+            headers: {
+              'x-auth-token': token,
+              'Content-Type': 'application/json'
+            }
+          });
+          if (userResponse.ok) {
+            const userData = await userResponse.json();
+            allUsers = Array.isArray(userData.users) ? userData.users : userData;
+          }
+        }
+
+        // Filter users based on project assignments
+        const assignedUserNames = project.assignedTo || [];
+        const assignedUserIds = new Set();
+        
+        // Get project owner ID to exclude from assignee list
+        const projectOwnerId = project.ownerUid || project.owner ? String(project.ownerUid || project.owner) : null;
+
+        // Match assignedTo usernames/names with user list
+        assignedUserNames.forEach((assignedName) => {
+          if (!assignedName) return;
+          const matchedUser = allUsers.find(user => {
+            const userId = String(user._id || user.id);
+            const userName = (user.username || '').toLowerCase();
+            const userFullName = (user.name || '').toLowerCase();
+            const userEmail = (user.email || '').toLowerCase();
+            const assigned = String(assignedName).toLowerCase();
+            
+            return userName === assigned || 
+                   userFullName === assigned || 
+                   userEmail === assigned ||
+                   userId === assigned;
+          });
+          if (matchedUser) {
+            assignedUserIds.add(String(matchedUser._id || matchedUser.id));
+          }
+        });
+
+        // Filter users to only those assigned to the project, excluding project owner
+        const filteredUsers = allUsers.filter(user => {
+          const userId = String(user._id || user.id);
+          const isAssigned = assignedUserIds.has(userId);
+          const isOwner = projectOwnerId && userId === projectOwnerId;
+          return isAssigned && !isOwner; // Include assigned users but exclude owner
+        });
+
+        setProjectAssignedUsers(filteredUsers);
+      }
+    } catch (error) {
+      console.error('Error fetching project:', error);
+    }
+  };
 
   const fetchTasks = async () => {
     console.log('fetchTasks called with projectId:', projectId);
@@ -80,8 +177,6 @@ const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'P
       setTasks([]);
       return [];
     }
-
-    console.log('Fetching tasks for project:', projectId);
 
     if (!projectId) {
       console.error('No projectId provided - tasks are project-specific');
@@ -101,33 +196,31 @@ const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'P
         }
       });
 
-      console.log('Response status:', response.status);
-
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
-        throw new Error(`HTTP error! status: ${response.status}, ${errorText}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log('Fetched raw data:', JSON.stringify(data, null, 2));
-
       const tasksData = Array.isArray(data.tasks) ? data.tasks : [];
-      console.log('Tasks data array:', tasksData);
-      console.log('Number of tasks found:', tasksData.length);
 
-      // Ensure all tasks have proper IDs and comments array
-      const processedTasks = tasksData.map(task => {
-        console.log('Processing task:', task);
+      // Process tasks and generate keys if missing
+      const processedTasks = tasksData.map((task, index) => {
+        const taskKey = task.key || `TH-${100 + index}`;
         return {
           ...task,
-          id: task._id || task.id, // Handle both _id and id
-          _id: undefined, // Remove _id to avoid confusion
-          comments: Array.isArray(task.comments) ? task.comments : [] // Ensure comments is always an array
+          id: task._id || task.id,
+          _id: undefined,
+          key: taskKey,
+          type: task.type || 'Task',
+          category: task.category || 'Development',
+          status: task.status || (task.completed ? 'Completed' : 'Not Started'),
+          priority: task.priority || 'Medium',
+          assignee: task.assignee || task.createdBy,
+          reporter: task.reporter || task.createdBy,
+          comments: Array.isArray(task.comments) ? task.comments : []
         };
       });
 
-      console.log('Final processed tasks:', processedTasks);
       setTasks(processedTasks);
       return processedTasks;
     } catch (error) {
@@ -137,302 +230,131 @@ const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'P
     }
   };
 
-  const saveTask = async (taskData) => {
+  const getUserName = (userId) => {
+    if (!userId) return 'Unassigned';
+    const user = users.find(u => (u._id || u.id) === (userId._id || userId.id || userId));
+    return user ? (user.name || user.username) : 'Unknown';
+  };
+
+  const getUserInitials = (userId) => {
+    if (!userId) return 'U';
+    const user = users.find(u => (u._id || u.id) === (userId._id || userId.id || userId));
+    if (!user) return 'U';
+    const name = user.name || user.username || '';
+    return name.charAt(0).toUpperCase();
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'Completed':
+        return 'bg-green-100 text-green-700';
+      case 'In Progress':
+        return 'bg-blue-100 text-blue-700';
+      case 'Overdue':
+        return 'bg-orange-100 text-orange-700';
+      default:
+        return 'bg-gray-100 text-gray-700';
+    }
+  };
+
+  const getPriorityColor = (priority) => {
+    const p = priority || 'Medium';
+    switch (p) {
+      case 'Critical':
+      case 'critical':
+      case 'Highest':
+      case 'high':
+      case 'High':
+        return 'bg-red-100 text-red-700 border border-red-200';
+      case 'Medium':
+      case 'medium':
+        return 'bg-yellow-100 text-yellow-700 border border-yellow-200';
+      case 'Low':
+      case 'low':
+        return 'bg-blue-100 text-blue-700 border border-blue-200';
+      default:
+        return 'bg-gray-100 text-gray-700 border border-gray-200';
+    }
+  };
+
+  const getTypeIcon = (type) => {
+    switch (type) {
+      case 'Sprint':
+        return <Zap className="w-4 h-4 text-purple-600" />;
+      case 'Story':
+        return <BookOpen className="w-4 h-4 text-green-600" />;
+      default:
+        return <CheckSquare className="w-4 h-4 text-blue-600" />;
+    }
+  };
+
+  const formatDate = (date) => {
+    if (!date) return '';
+    const d = new Date(date);
+    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+  };
+
+  const toggleTaskSelection = (taskId) => {
+    setSelectedTasks(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(taskId)) {
+        newSet.delete(taskId);
+      } else {
+        newSet.add(taskId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleAllTasks = () => {
+    if (selectedTasks.size === tasks.length) {
+      setSelectedTasks(new Set());
+    } else {
+      setSelectedTasks(new Set(tasks.map(t => t.id)));
+    }
+  };
+
+  const addTask = async () => {
+    if (!newTaskText.trim()) return;
+    if (!newTaskAssignee) {
+      alert('Please select an assignee for the task');
+      return;
+    }
+
     try {
       setSaving(true);
       const token = localStorage.getItem('token');
+      if (!token) throw new Error('Authentication required');
 
-      console.log('Starting saveTask with:', { taskData, projectId, hasToken: !!token });
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const taskCount = tasks.length;
+      const newKey = `TH-${100 + taskCount}`;
 
-      if (!token) {
-        const errorMsg = 'No authentication token found. Please log in again.';
-        console.error(errorMsg);
-        throw new Error(errorMsg);
-      }
-
-      if (!taskData || !taskData.text || !taskData.text.trim()) {
-        const errorMsg = 'Task text is required';
-        console.error(errorMsg);
-        throw new Error(errorMsg);
-      }
-
-      if (!projectId) {
-        const errorMsg = 'Cannot save task: Project not properly loaded';
-        console.error(errorMsg, { projectId, projectName });
-        throw new Error(errorMsg);
-      }
-
-      // Prepare task data for the API
-      const taskToSave = {
-        text: taskData.text.trim(),
-        priority: taskData.priority || 'medium',
-        completed: taskData.completed || false,
-        dueDate: taskData.dueDate || null,
-        createdBy: taskData.createdBy || localStorage.getItem('userId')
+      // Normalize priority to lowercase for backend
+      const priorityMap = {
+        'Low': 'low',
+        'Medium': 'medium',
+        'High': 'high',
+        'Critical': 'high'
       };
-
-      console.log('Sending task to server:', taskToSave);
-
-      // Determine if we're creating a new task or updating an existing one
-      const isUpdate = taskData.id;
-      const url = isUpdate
-        ? `http://localhost:9000/api/projects/${projectId}/tasks/${taskData.id}`
-        : `http://localhost:9000/api/projects/${projectId}/tasks`;
-
-      console.log(`Making ${isUpdate ? 'PUT' : 'POST'} request to:`, url);
-
-      const response = await fetch(url, {
-        method: isUpdate ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': token
-        },
-        credentials: 'include',
-        body: JSON.stringify(taskToSave)
-      });
-
-      console.log('Server response status:', response.status);
-
-      if (!response.ok) {
-        let errorData;
-        try {
-          errorData = await response.json().catch(() => ({}));
-        } catch (e) {
-          console.error('Failed to parse error response:', e);
-          errorData = { message: 'Failed to parse error response' };
-        }
-
-        const errorMsg = `Failed to ${isUpdate ? 'update' : 'save'} task: ${response.status} - ${errorData.message || 'Unknown error'}`;
-        console.error(errorMsg, {
-          status: response.status,
-          statusText: response.statusText,
-          errorData,
-          headers: Object.fromEntries(response.headers.entries())
-        });
-
-        throw new Error(errorMsg);
-      }
-
-      const newTask = await response.json();
-      console.log('Task saved successfully:', newTask);
-
-      // Refresh the task list
-      await fetchTasks();
-      return newTask;
-    } catch (error) {
-      console.error('Error saving task:', error);
-
-      // Handle network errors with a clearer message
-      if (error.message === 'Failed to fetch') {
-        setError('Cannot connect to server. Please make sure the backend server is running on port 5000.');
-      } else {
-        setError(error.message || 'Failed to save task');
-      }
-
-      return null;
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const updateTask = async (taskId, updates) => {
-    try {
-      if (!taskId || !updates) {
-        console.error('Invalid task ID or updates');
-        return null;
-      }
-
-      const token = localStorage.getItem('token');
-      if (!token) {
-        console.error('No authentication token found');
-        return null;
-      }
-
-      const response = await fetch(`http://localhost:9000/api/tasks/${taskId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': token
-        },
-        body: JSON.stringify(updates)
-      });
-
-      if (response.ok) {
-        const updatedTask = await response.json();
-        return updatedTask;
-      } else {
-        console.error('Failed to update task:', response.status);
-        return null;
-      }
-    } catch (error) {
-      console.error('Error updating task:', error);
-      return null;
-    }
-  };
-
-  const deleteTask = async (taskId) => {
-    if (!taskId) {
-      console.error('Missing taskId for deletion');
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        console.error('No authentication token found');
-        throw new Error('Authentication required');
-      }
-
-      console.log(`Deleting task ${taskId}`);
-
-      if (!projectId) {
-        throw new Error('Project ID is required for task operations');
-      }
-
-      const url = `http://localhost:9000/api/projects/${projectId}/tasks/${taskId}`;
-
-      const response = await fetch(url, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': token
-        }
-      });
-
-      console.log('Delete response status:', response.status);
-
-      if (!response.ok) {
-        let errorData;
-        try {
-          errorData = await response.json();
-        } catch (e) {
-          console.error('Failed to parse error response:', e);
-          errorData = { message: 'Failed to delete task' };
-        }
-        throw new Error(errorData.message || 'Failed to delete task');
-      }
-
-      // Update local state to remove the deleted task
-      setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
-
-      console.log(`Task ${taskId} deleted successfully`);
-      return true;
-    } catch (error) {
-      console.error('Error deleting task:', error);
-      throw error; // Re-throw to allow error handling in the calling function
-    }
-  };
-
-  const toggleTask = async (id) => {
-    try {
-      if (!id) {
-        console.error('Invalid task ID');
-        return;
-      }
-
-      const task = tasks.find(t => t.id === id);
-      if (!task) {
-        console.error('Task not found:', id);
-        return;
-      }
-
-      const token = localStorage.getItem('token');
-      if (!token) {
-        console.error('No authentication token found');
-        throw new Error('Authentication required');
-      }
-
-      console.log(`Toggling task ${id} completion status to ${!task.completed}`);
-
-      if (!projectId) {
-        throw new Error('Project ID is required for task operations');
-      }
-
-      const url = `http://localhost:9000/api/projects/${projectId}/tasks/${id}`;
-
-      const response = await fetch(url, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': token
-        },
-        body: JSON.stringify({
-          completed: !task.completed,
-          // Preserve other task properties
-          text: task.text,
-          priority: task.priority
-        })
-      });
-
-      console.log('Toggle task response status:', response.status);
-
-      if (!response.ok) {
-        let errorData;
-        try {
-          errorData = await response.json();
-        } catch (e) {
-          console.error('Failed to parse error response:', e);
-          errorData = { message: 'Failed to update task status' };
-        }
-        throw new Error(errorData.message || 'Failed to update task status');
-      }
-
-      // Update local state
-      const updatedTask = await response.json();
-      setTasks(tasks.map(t =>
-        t.id === id
-          ? {
-            ...t,
-            completed: updatedTask.completed,
-            updatedAt: updatedTask.updatedAt
-          }
-          : t
-      ));
-
-      return updatedTask;
-    } catch (error) {
-      console.error('Error toggling task status:', error);
-      throw error;
-    }
-  };
-
-  const [error, setError] = useState('');
-
-  const addTask = async () => {
-    setError('');
-
-    if (!newTaskText.trim()) {
-      const errorMsg = 'Task text cannot be empty';
-      setError(errorMsg);
-      console.error(errorMsg);
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('Authentication required. Please log in again.');
-      }
+      const normalizedPriority = priorityMap[newTaskPriority] || newTaskPriority.toLowerCase() || 'medium';
 
       const taskData = {
         text: newTaskText.trim(),
-        priority: 'medium',
-        completed: false
+        priority: normalizedPriority,
+        completed: false,
+        type: 'Task',
+        key: newKey,
+        category: 'Development',
+        status: newTaskStatus,
+        assignee: newTaskAssignee,
+        reporter: currentUser.id,
+        dueDate: newTaskDueDate || null
       };
 
-      console.log('Adding new task with data:', taskData);
-      console.log('Project ID:', projectId);
-      console.log('Token available:', !!token);
+      console.log('Creating task with data:', taskData);
 
-      if (!projectId) {
-        throw new Error('Project ID is required to add tasks');
-      }
-
-      const url = `http://localhost:9000/api/projects/${projectId}/tasks`;
-
-      console.log('Making request to:', url);
-
-      const response = await fetch(url, {
+      const response = await fetch(`http://localhost:9000/api/projects/${projectId}/tasks`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -441,512 +363,484 @@ const TasksPage = ({ projectId: propProjectId, projectName: propProjectName = 'P
         body: JSON.stringify(taskData)
       });
 
-      console.log('Add task response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-
       if (!response.ok) {
-        let errorData;
-        try {
-          const responseText = await response.text();
-          console.log('Error response text:', responseText);
-          errorData = responseText ? JSON.parse(responseText) : { message: 'Unknown error' };
-        } catch (e) {
-          console.error('Failed to parse error response:', e);
-          errorData = { message: `HTTP ${response.status}: ${response.statusText}` };
-        }
-        throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({ message: 'Failed to create task' }));
+        throw new Error(errorData.message || `Failed to create task: ${response.status}`);
       }
 
-      const savedTask = await response.json();
-      console.log('Task added successfully:', savedTask);
-
-      // Update local state with the new task
-      setTasks(prevTasks => [
-        ...prevTasks,
-        {
-          ...savedTask,
-          id: savedTask._id || savedTask.id,
-          _id: undefined,
-          comments: Array.isArray(savedTask.comments) ? savedTask.comments : []
-        }
-      ]);
-
-      // Reset form
+      await fetchTasks();
       setNewTaskText('');
+      setNewTaskStatus('Not Started');
+      setNewTaskPriority('Medium');
+      setNewTaskDueDate('');
+      setNewTaskAssignee('');
       setShowAddTask(false);
-
-      return savedTask;
     } catch (error) {
-      let errorMsg = 'Failed to add task. ';
-
-      console.error('Full error details:', {
-        message: error.message,
-        stack: error.stack,
-        name: error.name
-      });
-
-      // Check if it's a network error (server not reachable)
-      if (error.message === 'Failed to fetch' || error.name === 'TypeError') {
-        errorMsg += 'Please make sure the backend server is running on port 5000.';
-      } else {
-        errorMsg += error.message || 'Please try again.';
-      }
-
-      setError(errorMsg);
-      console.error('Error in addTask:', error);
+      console.error('Error adding task:', error);
+      alert(`Failed to add task: ${error.message}`);
+    } finally {
+      setSaving(false);
     }
   };
 
-  const toggleComments = (taskId) => {
-    setShowComments(prev => ({ ...prev, [taskId]: !prev[taskId] }));
-  };
+  const deleteTask = async (taskId) => {
+    if (!window.confirm('Are you sure you want to delete this task?')) return;
 
-  const addComment = async (taskId) => {
     try {
-      if (!taskId || !projectId) {
-        console.error('Missing task ID or project ID for comment');
-        alert('Missing required information');
-        return;
-      }
-
-      const commentText = newComment[taskId]?.trim();
-      if (!commentText) {
-        console.error('Comment text is empty');
-        alert('Comment text cannot be empty');
-        return;
-      }
-
       const token = localStorage.getItem('token');
-      if (!token) {
-        console.error('No authentication token found');
-        alert('Authentication required. Please log in again.');
-        return;
-      }
+      if (!token) throw new Error('Authentication required');
 
-      console.log(`Adding comment to task ${taskId} in project ${projectId}`);
-
-      const response = await fetch(`http://localhost:9000/api/projects/${projectId}/tasks/${taskId}/comments`, {
-        method: 'POST',
+      const response = await fetch(`http://localhost:9000/api/projects/${projectId}/tasks/${taskId}`, {
+        method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
           'x-auth-token': token
-        },
-        body: JSON.stringify({
-          text: commentText
-        })
+        }
       });
 
-      console.log('Add comment response status:', response.status);
+      if (!response.ok) throw new Error('Failed to delete task');
 
-      if (!response.ok) {
-        let errorData;
-        try {
-          errorData = await response.json();
-        } catch (e) {
-          console.error('Failed to parse error response:', e);
-          errorData = { message: 'Failed to add comment' };
-        }
-        throw new Error(errorData.message || 'Failed to add comment');
-      }
-
-      const updatedTask = await response.json();
-      console.log('Comment added successfully');
-
-      // Update local state with the updated task
-      setTasks(prevTasks =>
-        prevTasks.map(t =>
-          t.id === taskId
-            ? {
-              ...t,
-              comments: updatedTask.comments || []
-            }
-            : t
-        )
-      );
-
-      // Clear the comment input
-      setNewComment(prev => ({ ...prev, [taskId]: '' }));
-
-      return updatedTask;
-    } catch (error) {
-      console.error('Error adding comment:', error);
-      if (error.message === 'Failed to fetch') {
-        alert('Cannot connect to server. Please check if the backend is running.');
-      } else {
-        alert(`Failed to add comment: ${error.message}`);
-      }
-      return null;
-    }
-  };
-
-  const startEditTask = (task) => {
-    console.log('startEditTask called for task:', task);
-    setEditingTask(task.id);
-    setEditTaskText(task.text);
-  };
-
-  const cancelEditTask = () => {
-    setEditingTask(null);
-    setEditTaskText('');
-  };
-
-  const saveEditTask = async (taskId) => {
-    try {
-      if (!editTaskText.trim()) {
-        alert('Task text cannot be empty');
-        return;
-      }
-
-      const token = localStorage.getItem('token');
-      if (!token) {
-        alert('Authentication required. Please log in again.');
-        return;
-      }
-
-      if (!projectId) {
-        throw new Error('Project ID is required for task operations');
-      }
-
-      const url = `http://localhost:9000/api/projects/${projectId}/tasks/${taskId}`;
-
-      const response = await fetch(url, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': token
-        },
-        body: JSON.stringify({
-          text: editTaskText.trim()
-        })
-      });
-
-      if (!response.ok) {
-        let errorData;
-        try {
-          errorData = await response.json();
-        } catch (e) {
-          errorData = { message: 'Failed to update task' };
-        }
-        throw new Error(errorData.message || 'Failed to update task');
-      }
-
-      const updatedTask = await response.json();
-      
-      // Update local state
-      setTasks(prevTasks =>
-        prevTasks.map(t =>
-          t.id === taskId
-            ? { ...t, text: updatedTask.text, updatedAt: updatedTask.updatedAt }
-            : t
-        )
-      );
-
-      // Clear editing state
-      setEditingTask(null);
-      setEditTaskText('');
-      
-      console.log('Task updated successfully');
-    } catch (error) {
-      console.error('Error updating task:', error);
-      alert(`Failed to update task: ${error.message}`);
-    }
-  };
-
-  const handleDeleteTask = async (taskId) => {
-    if (!window.confirm('Are you sure you want to delete this task? This action cannot be undone.')) {
-      return;
-    }
-
-    try {
-      await deleteTask(taskId);
-      console.log('Task deleted successfully');
+      await fetchTasks();
     } catch (error) {
       console.error('Error deleting task:', error);
       alert(`Failed to delete task: ${error.message}`);
     }
   };
 
-  const toggleActionsMenu = (taskId) => {
-    console.log('toggleActionsMenu called for taskId:', taskId);
-    console.log('Current showActionsMenu state:', showActionsMenu);
-    setShowActionsMenu(prev => {
-      const newState = {
-        ...prev,
-        [taskId]: !prev[taskId]
-      };
-      console.log('New showActionsMenu state:', newState);
-      return newState;
-    });
+  const toggleTaskCompletion = async (taskId) => {
+    try {
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('Authentication required');
+
+      const newCompleted = !task.completed;
+      const newStatus = newCompleted ? 'Completed' : 'In Progress';
+
+      const response = await fetch(`http://localhost:9000/api/projects/${projectId}/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token
+        },
+        body: JSON.stringify({
+          completed: newCompleted,
+          status: newStatus,
+          text: task.text,
+          priority: task.priority
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to update task');
+
+      await fetchTasks();
+    } catch (error) {
+      console.error('Error toggling task:', error);
+    }
   };
 
+  const updateTaskField = async (taskId, field, value) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('Authentication required');
 
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const task = tasks.find(t => t.id === taskId);
+      
+      // Check if current user is the assignee and trying to modify restricted fields
+      if (task && task.assignee && String(task.assignee._id || task.assignee) === String(currentUser.id)) {
+        const restrictedFields = ['completed', 'status', 'priority', 'dueDate'];
+        if (restrictedFields.includes(field)) {
+          alert('You cannot modify the completion status, priority, or due date of tasks assigned to you. Please contact the project owner or manager.');
+          return;
+        }
+      }
 
+      const response = await fetch(`http://localhost:9000/api/projects/${projectId}/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token
+        },
+        body: JSON.stringify({
+          [field]: value
+        })
+      });
 
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to update task' }));
+        throw new Error(errorData.message || 'Failed to update task');
+      }
 
-  const completedCount = tasks.filter(task => task.completed).length;
-  const progressPercentage = tasks.length > 0 ? (completedCount / tasks.length) * 100 : 0;
+      await fetchTasks();
+    } catch (error) {
+      console.error(`Error updating task ${field}:`, error);
+      alert(`Failed to update ${field}: ${error.message}`);
+    }
+  };
 
   return (
-    <>
-    <div className={`${embedded ? '' : `${isDarkMode ? 'bg-[#141414] text-gray-100' : 'bg-white text-black'} min-h-screen font-sans`}`}
-      style={!embedded && isDarkMode ? { backgroundColor: '#141414' } : {}}
-    >
-      <div className={embedded ? 'p-4' : 'max-w-6xl mx-auto px-4 py-8'}>
+    <div className={`${embedded ? '' : `${isDarkMode ? 'bg-gray-50' : 'bg-white'} min-h-screen font-sans`}`}>
+      <div className={embedded ? 'p-4' : 'max-w-[1600px] mx-auto px-6 py-8'}>
+        {/* Header Section */}
         {!embedded && (
-          <div className={`flex items-center justify-between mb-4 sm:mb-8 p-3 sm:p-6 rounded-xl sm:rounded-2xl ${isDarkMode ? 'bg-gradient-to-r from-gray-900/80 to-gray-800/80 border border-gray-700/50' : 'bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border border-blue-100/50'} backdrop-blur-sm shadow-lg`}>
-            <div className="flex items-center gap-2 sm:gap-4">
-              <button
-                onClick={() => navigate(-1)}
-                className={`p-2 sm:p-3 rounded-lg sm:rounded-xl transition-all duration-200 ${isDarkMode ? 'hover:bg-gray-700/50 hover:scale-105' : 'hover:bg-white/70 hover:scale-105'} shadow-sm`}
-              >
-                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-              </button>
-              <div className="flex items-center gap-2 sm:gap-4">
-                <div className={`p-2 sm:p-3 rounded-lg sm:rounded-xl ${isDarkMode ? 'bg-blue-600/20' : 'bg-blue-500/10'} shadow-sm`}>
-                  <CheckSquare className="w-5 h-5 sm:w-8 sm:h-8 text-blue-500" />
-                </div>
-                <div>
-                  <h1 className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Tasks</h1>
-                  <p className={`text-xs sm:text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Manage your project tasks</p>
-                </div>
+          <div className="mb-6">
+            {/* Title */}
+            <div className="flex items-center justify-between mb-4">
+              <h1 className="text-2xl font-bold text-gray-900">Tasks</h1>
+
+              {/* Actions */}
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setShowAddTask(true)}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm"
+                >
+                  Create Task
+                </button>
               </div>
             </div>
 
           </div>
         )}
 
-        {!embedded && (
-          <div className={`hidden sm:block ${isDarkMode ? 'bg-gradient-to-br from-gray-900/80 to-gray-800/80 border-gray-700/50' : 'bg-gradient-to-br from-white/90 to-gray-50/90 border-gray-200/50'} backdrop-blur-sm p-4 sm:p-8 rounded-2xl sm:rounded-3xl border shadow-xl mb-4 sm:mb-8`}>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-3 sm:gap-0">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className={`p-1.5 sm:p-2 rounded-lg ${isDarkMode ? 'bg-green-600/20' : 'bg-green-500/10'}`}>
-                  <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
-                </div>
-                <h2 className="text-lg sm:text-2xl font-bold">Progress Overview</h2>
-              </div>
-              <div className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-full ${isDarkMode ? 'bg-blue-600/20 text-blue-300' : 'bg-blue-500/10 text-blue-600'} font-semibold text-sm sm:text-base`}>
-                {completedCount}/{tasks.length} completed
-              </div>
-            </div>
-            <div className={`w-full h-3 sm:h-4 rounded-full ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-200/50'} overflow-hidden shadow-inner`}>
-              <div
-                className="bg-gradient-to-r from-blue-500 via-purple-500 to-green-500 h-full rounded-full transition-all duration-500 ease-out shadow-sm"
-                style={{ width: `${progressPercentage}%` }}
-              ></div>
-            </div>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-3 sm:mt-4 gap-2 sm:gap-0">
-              <p className={`text-base sm:text-lg font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{Math.round(progressPercentage)}% complete</p>
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-gradient-to-r from-blue-500 to-green-500"></div>
-                <span className={`text-xs sm:text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Task completion</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className={`${embedded ? '' : `${isDarkMode ? 'bg-gradient-to-br from-gray-900/80 to-gray-800/80 border-gray-700/50' : 'bg-gradient-to-br from-white/90 to-gray-50/90 border-gray-200/50'} backdrop-blur-sm rounded-2xl sm:rounded-3xl border shadow-xl`} p-4 sm:p-8`}>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-8 gap-3 sm:gap-0">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className={`p-1.5 sm:p-2 rounded-lg ${isDarkMode ? 'bg-purple-600/20' : 'bg-purple-500/10'}`}>
-                <CheckSquare className="w-5 h-5 sm:w-6 sm:h-6 text-purple-500" />
-              </div>
-              <h2 className="text-lg sm:text-2xl font-bold">{projectId ? 'Project Tasks' : 'All Tasks'}</h2>
-            </div>
-            <button
-              onClick={() => setShowAddTask(true)}
-              className={`flex items-center justify-center gap-2 sm:gap-3 px-4 py-2.5 sm:px-6 sm:py-3 rounded-lg sm:rounded-xl transition-all duration-200 ${isDarkMode ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800' : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700'} text-white font-semibold shadow-lg hover:shadow-xl hover:scale-105 text-sm sm:text-base`}
-            >
-              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="hidden sm:inline">Add New Task</span>
-              <span className="sm:hidden">Add Task</span>
-            </button>
-          </div>
-
-          {error && (
-            <div className={`p-3 rounded-lg border mb-4 ${isDarkMode ? 'border-red-700 bg-red-900/20' : 'border-red-200 bg-red-50'}`}>
-              <p className={`text-sm ${isDarkMode ? 'text-red-300' : 'text-red-600'}`}>{error}</p>
-            </div>
-          )}
-
-          {showAddTask && (
-            <div className={`p-3 sm:p-4 rounded-lg border mb-4 ${isDarkMode ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-gray-50'}`}>
-              <div className="flex flex-col sm:flex-row gap-2">
+        {/* Add Task Form */}
+        {showAddTask && (
+          <div className="mb-6 p-6 bg-white border border-gray-200 rounded-2xl shadow-lg backdrop-blur-sm">
+            <div className="space-y-3">
+              <div className="flex gap-2">
                 <input
                   type="text"
                   value={newTaskText}
                   onChange={(e) => setNewTaskText(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') addTask();
-                    if (e.key === 'Escape') { setShowAddTask(false); setNewTaskText(''); }
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      addTask();
+                    }
+                    if (e.key === 'Escape') {
+                      setShowAddTask(false);
+                      setNewTaskText('');
+                      setNewTaskStatus('Not Started');
+                      setNewTaskPriority('Medium');
+                      setNewTaskDueDate('');
+                      setNewTaskAssignee('');
+                    }
                   }}
                   placeholder="Enter task description..."
-                  className={`flex-1 px-3 py-2.5 sm:py-2 text-sm sm:text-base rounded border focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-100' : 'bg-white border-gray-300 text-gray-900'}`}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
                   autoFocus
                 />
-                <div className="flex gap-2">
-                  <button
-                    onClick={addTask}
-                    disabled={saving}
-                    className={`px-4 py-2.5 sm:py-2 rounded transition-colors text-sm sm:text-base ${isDarkMode ? 'bg-green-600 hover:bg-green-700 disabled:bg-gray-600' : 'bg-green-500 hover:bg-green-600 disabled:bg-gray-400'} text-white flex-1 sm:flex-none`}
+                <button
+                  onClick={addTask}
+                  disabled={saving}
+                  className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:bg-gray-400"
+                >
+                  {saving ? 'Adding...' : 'Add'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAddTask(false);
+                    setNewTaskText('');
+                    setNewTaskStatus('Not Started');
+                    setNewTaskPriority('Medium');
+                    setNewTaskDueDate('');
+                    setNewTaskAssignee('');
+                  }}
+                  className="px-3 py-2 bg-gray-400 text-white rounded hover:bg-gray-500"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
+                  <select
+                    value={newTaskStatus}
+                    onChange={(e) => setNewTaskStatus(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
                   >
-                    {saving ? 'Adding...' : 'Add'}
-                  </button>
-                  <button
-                    onClick={() => { setShowAddTask(false); setNewTaskText(''); }}
-                    className={`px-3 py-2.5 sm:py-2 rounded transition-colors ${isDarkMode ? 'bg-gray-600 hover:bg-gray-700' : 'bg-gray-400 hover:bg-gray-500'} text-white`}
+                    <option value="Not Started">Not Started</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Overdue">Overdue</option>
+                    <option value="On Hold">On Hold</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Priority</label>
+                  <select
+                    value={newTaskPriority}
+                    onChange={(e) => setNewTaskPriority(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
                   >
-                    <X className="w-4 h-4" />
-                  </button>
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                    <option value="Critical">Critical</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Due Date</label>
+                  <input
+                    type="date"
+                    value={newTaskDueDate}
+                    onChange={(e) => setNewTaskDueDate(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Assignee</label>
+                  <select
+                    value={newTaskAssignee}
+                    onChange={(e) => setNewTaskAssignee(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    required
+                  >
+                    <option value="">Select assignee...</option>
+                    {projectAssignedUsers.map((user) => (
+                      <option key={user._id || user.id} value={user._id || user.id}>
+                        {user.name || user.username}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          <div className="space-y-3 min-h-[200px]">
+        {/* Table View */}
+        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-xl">
             {loading ? (
-              <div className={`p-8 text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-                <span className="text-sm">Loading tasks...</span>
+              <div className="p-8 text-center text-gray-500">
+                <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                <span>Loading tasks...</span>
               </div>
             ) : tasks.length === 0 ? (
-              <div className={`p-8 text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              <div className="p-8 text-center text-gray-500">
                 <CheckSquare className="w-12 h-12 mx-auto mb-3 opacity-50" />
                 <p className="text-lg font-medium mb-2">No tasks yet</p>
-                <p className="text-sm">Click "Add Task" to create your first task</p>
+                <p className="text-sm">Click "Create Task" to add your first task</p>
               </div>
             ) : (
-              tasks.map(task => {
-                const taskId = task.id || task._id;
-                console.log('Rendering task with ID:', taskId, 'task object:', task);
-                return (
-                <div key={taskId} className={`relative p-3 sm:p-6 rounded-xl sm:rounded-2xl border transition-all duration-200 hover:shadow-lg ${isDarkMode ? 'border-gray-700/50 bg-gradient-to-r from-gray-800/60 to-gray-700/60 hover:border-gray-600/50' : 'border-gray-200/50 bg-gradient-to-r from-white/80 to-gray-50/80 hover:border-gray-300/50'} backdrop-blur-sm`}>
-                  <div className="flex items-start gap-3 mb-2">
-                    <input
-                      type="checkbox"
-                      checked={task.completed}
-                      onChange={() => toggleTask(taskId)}
-                      className="w-5 h-5 sm:w-4 sm:h-4 mt-0.5 flex-shrink-0"
-                    />
-                    <div className="flex-1 min-w-0">
-                      {editingTask === taskId ? (
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            value={editTaskText}
-                            onChange={(e) => setEditTaskText(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') saveEditTask(taskId);
-                              if (e.key === 'Escape') cancelEditTask();
-                            }}
-                            className={`flex-1 px-2 py-1 text-sm sm:text-base rounded border focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-100' : 'bg-white border-gray-300 text-gray-900'}`}
-                            autoFocus
-                          />
-                          <button
-                            onClick={() => saveEditTask(taskId)}
-                            className={`px-2 py-1 rounded text-xs transition-colors ${isDarkMode ? 'bg-green-600 hover:bg-green-700' : 'bg-green-500 hover:bg-green-600'} text-white`}
-                          >
-                            Save
-                          </button>
-                          <button
-                            onClick={cancelEditTask}
-                            className={`px-2 py-1 rounded text-xs transition-colors ${isDarkMode ? 'bg-gray-600 hover:bg-gray-700' : 'bg-gray-400 hover:bg-gray-500'} text-white`}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      ) : (
-                        <span className={`text-sm sm:text-base break-words ${task.completed ? 'line-through text-gray-500' : ''}`}>
-                          {task.text}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          console.log('Actions button clicked for task:', taskId);
-                          toggleActionsMenu(taskId);
-                        }}
-                        data-actions-button
-                        className={`p-2 rounded-lg transition-all duration-200 ${isDarkMode ? 'hover:bg-gray-700 hover:scale-105' : 'hover:bg-gray-200 hover:scale-105'} cursor-pointer`}
-                        title="Task actions"
+              <div className="overflow-hidden">
+                <table className="w-full table-fixed">
+                  <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-300">
+                    <tr>
+                      <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider" style={{ width: '30%' }}>Description</th>
+                      <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider w-24">Created</th>
+                      <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider w-32">Status</th>
+                      <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider w-32">Assignee</th>
+                      <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider w-28">Priority</th>
+                      <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider w-32">Due Date</th>
+                      <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider w-32">Reporter</th>
+                      <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider w-16"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {tasks.map((task) => (
+                      <tr
+                        key={task.id}
+                        className={`hover:bg-gradient-to-r hover:from-purple-50 hover:to-indigo-50 transition-all duration-200 border-b border-gray-100 ${
+                          selectedTasks.has(task.id) ? 'bg-gradient-to-r from-purple-50 to-indigo-50' : 'bg-white'
+                        }`}
                       >
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
-                      {showActionsMenu[taskId] && (
-                        <div className={`actions-menu-container absolute right-2 top-12 z-10 py-1 rounded-lg shadow-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              startEditTask(task);
-                              setShowActionsMenu({});
-                            }}
-                            className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-gray-100 text-gray-700'}`}
-                          >
-                            <Edit3 className="w-4 h-4" />
-                            Edit
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteTask(taskId);
-                              setShowActionsMenu({});
-                            }}
-                            className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-red-400' : 'hover:bg-gray-100 text-red-600'}`}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            Delete
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => toggleComments(taskId)}
-                    className={`flex items-center gap-2 px-2 sm:px-3 py-1 rounded text-xs sm:text-sm transition-colors ${isDarkMode ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700' : 'text-gray-600 hover:text-gray-800 hover:bg-gray-200'}`}
-                  >
-                    <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4" />
-                    Comments ({task.comments.length})
-                  </button>
-                  {showComments[taskId] && (
-                    <div className={`mt-3 p-2 sm:p-3 rounded border ${isDarkMode ? 'border-gray-600 bg-gray-700/50' : 'border-gray-300 bg-white'}`}>
-                      {Array.isArray(task.comments) && task.comments.map(comment => (
-                        <div key={comment._id} className="mb-2 pb-2 border-b border-gray-300 last:border-b-0">
-                          <p className="text-xs sm:text-sm break-words">{comment.text}</p>
-                          <span className="text-xs text-gray-500">{new Date(comment.timestamp).toLocaleString()}</span>
-                        </div>
-                      ))}
-                      <div className="flex gap-1 sm:gap-2 mt-2">
-                        <input
-                          type="text"
-                          value={newComment[taskId] || ''}
-                          onChange={(e) => setNewComment(prev => ({ ...prev, [taskId]: e.target.value }))}
-                          onKeyDown={(e) => e.key === 'Enter' && addComment(taskId)}
-                          placeholder="Add a comment..."
-                          className={`flex-1 px-2 py-1.5 sm:py-1 text-xs sm:text-sm rounded border focus:outline-none focus:ring-1 focus:ring-blue-500 ${isDarkMode ? 'bg-gray-600 border-gray-500 text-gray-100' : 'bg-white border-gray-300 text-gray-900'}`}
-                        />
-                        <button
-                          onClick={() => addComment(taskId)}
-                          className={`px-2 py-1.5 sm:py-1 rounded text-xs sm:text-sm transition-colors ${isDarkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white flex-shrink-0`}
-                        >
-                          <Send className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                );
-              })
+                        <td className="px-4 py-4">
+                          {editingTask === task.id ? (
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="text"
+                                value={editingTaskText}
+                                onChange={(e) => setEditingTaskText(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    if (editingTaskText.trim()) {
+                                      updateTaskField(task.id, 'text', editingTaskText);
+                                    }
+                                    setEditingTask(null);
+                                    setEditingTaskText('');
+                                  }
+                                  if (e.key === 'Escape') {
+                                    setEditingTask(null);
+                                    setEditingTaskText('');
+                                  }
+                                }}
+                                className="flex-1 px-2 py-1 text-sm border border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                autoFocus
+                              />
+                              <button
+                                onClick={() => {
+                                  if (editingTaskText.trim()) {
+                                    updateTaskField(task.id, 'text', editingTaskText);
+                                  }
+                                  setEditingTask(null);
+                                  setEditingTaskText('');
+                                }}
+                                className="px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600"
+                              >
+                                Save
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setEditingTask(null);
+                                  setEditingTaskText('');
+                                }}
+                                className="px-2 py-1 text-xs bg-gray-400 text-white rounded hover:bg-gray-500"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-gray-900 break-words font-medium">{task.text}</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-4">
+                          <span className="text-sm text-gray-600 truncate">{formatDate(task.createdAt)}</span>
+                        </td>
+                        <td className="px-4 py-4">
+                          {(() => {
+                            const isAssignee = currentUser && task.assignee && String(task.assignee._id || task.assignee) === String(currentUser.id);
+                            return (
+                              <select
+                                value={task.status || 'Not Started'}
+                                onChange={(e) => updateTaskField(task.id, 'status', e.target.value)}
+                                disabled={isAssignee}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border-0 ${isAssignee ? 'cursor-not-allowed opacity-60' : 'cursor-pointer shadow-sm hover:shadow'} transition-all ${getStatusColor(task.status)}`}
+                                onClick={(e) => e.stopPropagation()}
+                                title={isAssignee ? 'You cannot change the status of tasks assigned to you' : ''}
+                              >
+                                <option value="Not Started">Not Started</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Completed">Completed</option>
+                                <option value="Overdue">Overdue</option>
+                                <option value="On Hold">On Hold</option>
+                              </select>
+                            );
+                          })()}
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-2">
+                            {task.assignee ? (
+                              <>
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-400 to-indigo-400 flex items-center justify-center text-white text-xs font-semibold shadow-md ring-2 ring-white flex-shrink-0">
+                                  {getUserInitials(task.assignee)}
+                                </div>
+                                <span className="text-sm font-medium text-gray-900 truncate">{getUserName(task.assignee)}</span>
+                              </>
+                            ) : (
+                              <span className="text-sm text-gray-400 italic">Unassigned</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4">
+                          {(() => {
+                            const isAssignee = currentUser && task.assignee && String(task.assignee._id || task.assignee) === String(currentUser.id);
+                            return (
+                              <select
+                                value={task.priority || 'Medium'}
+                                onChange={(e) => updateTaskField(task.id, 'priority', e.target.value)}
+                                disabled={isAssignee}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border-0 ${isAssignee ? 'cursor-not-allowed opacity-60' : 'cursor-pointer shadow-sm hover:shadow'} transition-all ${getPriorityColor(task.priority)}`}
+                                onClick={(e) => e.stopPropagation()}
+                                title={isAssignee ? 'You cannot change the priority of tasks assigned to you' : ''}
+                              >
+                                <option value="Low">Low</option>
+                                <option value="Medium">Medium</option>
+                                <option value="High">High</option>
+                                <option value="Critical">Critical</option>
+                              </select>
+                            );
+                          })()}
+                        </td>
+                        <td className="px-4 py-4">
+                          {(() => {
+                            const isAssignee = currentUser && task.assignee && String(task.assignee._id || task.assignee) === String(currentUser.id);
+                            return (
+                              <input
+                                type="date"
+                                value={task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : ''}
+                                onChange={(e) => {
+                                  const dateValue = e.target.value ? new Date(e.target.value) : null;
+                                  updateTaskField(task.id, 'dueDate', dateValue);
+                                }}
+                                disabled={isAssignee}
+                                className={`text-sm text-gray-700 border border-gray-300 rounded-lg px-2 py-1 ${isAssignee ? 'cursor-not-allowed opacity-60 bg-gray-100' : 'cursor-pointer bg-white'} focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 w-full`}
+                                onClick={(e) => e.stopPropagation()}
+                                title={isAssignee ? 'You cannot change the due date of tasks assigned to you' : ''}
+                              />
+                            );
+                          })()}
+                        </td>
+                        <td className="px-4 py-4">
+                          <span className="text-sm text-gray-600 font-medium truncate">{getUserName(task.reporter)}</span>
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="relative">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setShowActionsMenu(prev => ({
+                                  ...prev,
+                                  [task.id]: !prev[task.id]
+                                }));
+                              }}
+                              data-actions-button
+                              className="p-2 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors"
+                            >
+                              <MoreVertical className="w-5 h-5" />
+                            </button>
+                            {showActionsMenu[task.id] && (
+                              <div className="actions-menu-container absolute right-0 bottom-full mb-2 z-50 bg-white border border-gray-200 rounded-xl shadow-2xl py-2 min-w-[140px]">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingTaskText(task.text);
+                                    setEditingTask(task.id);
+                                    setShowActionsMenu({});
+                                  }}
+                                  className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 text-gray-700 flex items-center gap-2"
+                                >
+                                  <Edit3 className="w-4 h-4" />
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteTask(task.id);
+                                    setShowActionsMenu({});
+                                  }}
+                                  className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 text-red-600 flex items-center gap-2"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                  Delete
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
-        </div>
 
-
+        {/* Footer Create Task Button */}
+        {!embedded && (
+          <div className="mt-8">
+            <button
+              onClick={() => setShowAddTask(true)}
+              className="flex items-center gap-2 px-6 py-3 text-purple-600 hover:bg-purple-50 rounded-xl transition-all duration-200 font-semibold shadow-md hover:shadow-lg"
+            >
+              <Plus className="w-5 h-5" />
+              Create Task
+            </button>
+          </div>
+        )}
       </div>
-
-
     </div>
-    </>
   );
 };
 

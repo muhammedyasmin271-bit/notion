@@ -72,12 +72,12 @@ const SuperAdminRoute = ({ children }) => {
   // Block access immediately if not authorized - redirect to super admin login
   // This ensures the super admin page is NEVER visible to unauthorized users
   if (!isAuthenticated || !isAuthorized) {
-    return <Navigate to="/super-admin/login" replace />;
+    return <Navigate to="/xq7m9k2p8n4r6t1w/login" replace />;
   }
 
   // Final check - if somehow user role doesn't match, redirect
   if (user?.role !== 'superadmin') {
-    return <Navigate to="/super-admin/login" replace />;
+    return <Navigate to="/xq7m9k2p8n4r6t1w/login" replace />;
   }
 
   // Only render children if all security checks pass

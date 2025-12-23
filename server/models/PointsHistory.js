@@ -18,6 +18,11 @@ const pointsHistorySchema = new mongoose.Schema({
     required: true,
     index: true
   },
+  taskId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Task',
+    index: true
+  },
   points: {
     type: Number,
     required: true

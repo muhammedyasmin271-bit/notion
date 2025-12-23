@@ -14,6 +14,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useAppContext } from '../../context/AppContext';
 import RoleGuard from '../common/RoleGuard';
 import { useNavigate } from 'react-router-dom';
+import PointsChart from './PointsChart';
 
 const AdminDashboard = () => {
   const { isDarkMode } = useTheme();
@@ -223,7 +224,7 @@ const AdminDashboard = () => {
   );
 
   return (
-    <RoleGuard requiredRole="admin" fallback={
+    <RoleGuard requiredRole="manager" fallback={
       <div className={`min-h-screen ${isDarkMode ? 'bg-black' : 'bg-white'} flex items-center justify-center p-8`}>
         <div className={`text-center ${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-3xl shadow-2xl p-12 max-w-md`}>
           <Shield className={`w-20 h-20 mx-auto mb-6 ${isDarkMode ? 'text-white' : 'text-black'}`} />
@@ -665,6 +666,11 @@ const AdminDashboard = () => {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Points Chart Section */}
+          <div className="mb-6 sm:mb-8" style={{ width: '100%', minHeight: '200px' }}>
+            <PointsChart />
           </div>
         </div>
 

@@ -357,6 +357,9 @@ router.put('/:id/verify', auth, async (req, res) => {
         // Clear grace period deadline since payment is made
         company.gracePeriodDeadline = null;
         
+        // Clear payment countdown start since payment is made (no longer need 24h reminder)
+        company.paymentCountdownStart = null;
+        
         await company.save();
         
         console.log(`✅ Company payment updated:`, {
@@ -680,6 +683,7 @@ router.post('/chapa/webhook', async (req, res) => {
             company.paymentPeriodEnd.setMonth(company.paymentPeriodEnd.getMonth() + monthsToAdd);
             company.paymentDeadline = new Date(company.paymentPeriodEnd);
             company.gracePeriodDeadline = null;
+            company.paymentCountdownStart = null; // Clear 24h countdown since payment is made
           }
           
           await company.save();
@@ -985,6 +989,9 @@ router.get('/chapa/verify/:tx_ref', auth, async (req, res) => {
               
               // Clear grace period deadline since payment is made
               company.gracePeriodDeadline = null;
+              
+              // Clear payment countdown start since payment is made (no longer need 24h reminder)
+              company.paymentCountdownStart = null;
             }
             
             await company.save();

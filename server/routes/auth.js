@@ -265,6 +265,30 @@ router.get('/company/:companyId', async (req, res) => {
   }
 });
 
+// @route   GET /api/auth/company-status
+// @desc    Get current user's company status and points enabled status
+// @access  Private (Any authenticated user)
+router.get('/company-status', auth, async (req, res) => {
+  try {
+    const Company = require('../models/Company');
+    const company = await Company.findOne({ companyId: req.user.companyId });
+    
+    if (!company) {
+      return res.status(404).json({ message: 'Company not found' });
+    }
+    
+    res.json({
+      companyId: company.companyId,
+      status: company.status,
+      pointsEnabled: company.pointsEnabled !== false, // Default to true
+      isPointsBlocked: company.status === 'paused' || company.pointsEnabled === false
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // @route   GET /api/auth/my-company
 // @desc    Get current user's company branding
 // @access  Private

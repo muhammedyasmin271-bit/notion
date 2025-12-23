@@ -459,7 +459,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// PUT /api/projects/:id/status - Update project status (all users)
+// PUT /api/projects/:id/status - Update project status (with permission checks)
 router.put('/:id/status', async (req, res) => {
   try {
     const { status } = req.body || {};
@@ -470,6 +470,40 @@ router.put('/:id/status', async (req, res) => {
     const p = await Project.findById(req.params.id);
     if (!p) return res.status(404).json({ message: 'Project not found' });
 
+    const userId = req.user.id;
+    const userName = req.user.username;
+    const userRole = req.user.role;
+    
+    // Check user's relationship to the project
+    const isOwner = p.owner && p.owner.toString() === userId;
+    const isAssigned = p.assignedTo && Array.isArray(p.assignedTo) && 
+      (p.assignedTo.includes(userName) || p.assignedTo.includes(req.user.name));
+    const isViewer = p.viewers && Array.isArray(p.viewers) && 
+      (p.viewers.includes(userName) || p.viewers.includes(req.user.name));
+    const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+    
+    // Check if user has access to the project
+    if (!isAdmin && !isOwner && !isAssigned && !isViewer) {
+      return res.status(403).json({ message: 'Not authorized to update this project status' });
+    }
+    
+    // Permission check for "Done"/"Completed" status
+    if (status === 'Done' || status === 'Completed') {
+      // Only owner, viewers, and admins can mark as completed
+      // Assigned users cannot mark as completed
+      if (!isAdmin && !isOwner && !isViewer) {
+        return res.status(403).json({ 
+          message: 'Only project owners and viewers can mark projects as completed. Assigned users can only update to "Not Started" or "In Progress".' 
+        });
+      }
+      // If user is assigned but not owner/viewer, deny
+      if (isAssigned && !isOwner && !isViewer && !isAdmin) {
+        return res.status(403).json({ 
+          message: 'Assigned users cannot mark projects as completed. Only owners and viewers can do this.' 
+        });
+      }
+    }
+
     const previousStatus = p.status;
     const wasDone = previousStatus === 'Done';
     const willBeDone = status === 'Done';
@@ -479,6 +513,25 @@ router.put('/:id/status', async (req, res) => {
     // Handle completedDate when status changes to "Done"
     if (willBeDone && !wasDone && !p.completedDate) {
       p.completedDate = new Date();
+      
+      // Auto-complete all tasks when project is marked as Done
+      const Task = require('../models/Task');
+      const tasks = await Task.find({ projectId: p._id, companyId: req.companyId });
+      for (const task of tasks) {
+        if (!task.completed || task.status !== 'Completed') {
+          task.completed = true;
+          task.status = 'Completed';
+          if (!task.completedDate) {
+            task.completedDate = new Date();
+          }
+          await task.save();
+          console.log(`✅ Auto-completed task ${task._id} when project was marked as Done`);
+          
+          // Award points for auto-completed tasks
+          const { awardTaskPoints } = require('../utils/pointsCalculator');
+          await awardTaskPoints(task, p, req.companyId);
+        }
+      }
     }
 
     // Send notifications to assigned users about status change
@@ -563,14 +616,10 @@ router.put('/:id/status', async (req, res) => {
     const updatedProject = await Project.findById(p._id);
     
     // Handle points based on status changes
-    if (willBeDone && !wasDone && !updatedProject.pointsAwarded) {
-      console.log(`✅ Status changed to Done via status endpoint - attempting to award points`);
-      if (updatedProject.completedDate && updatedProject.dueDate) {
-        console.log(`✅ Has completedDate and dueDate, calling awardProjectPoints`);
-        await awardProjectPoints(updatedProject, req.companyId);
-      } else {
-        console.log(`⚠️ Missing completedDate (${updatedProject.completedDate}) or dueDate (${updatedProject.dueDate}), cannot award points`);
-      }
+    // NOTE: Points are awarded/reversed by the Project model's post-save hook, not here
+    // to avoid duplicate calls. The hook checks pointsAwarded flag to prevent duplicates.
+    if (willBeDone && !wasDone) {
+      console.log(`✅ Status changed to Done via status endpoint - points will be awarded by post-save hook`);
     } else if (wasDone && !willBeDone && updatedProject.pointsAwarded) {
       console.log(`🔄 Status changed from Done via status endpoint - attempting to reverse points`);
       await reverseProjectPoints(updatedProject, req.companyId);
@@ -614,7 +663,32 @@ router.put('/:id', async (req, res) => {
     const wasDone = previousStatus === 'Done';
     const willBeDone = status === 'Done';
 
-    // Allow status updates and blocks/content for all users with access
+    // Check permissions for status updates
+    if (status !== undefined) {
+      const isOwner = p.owner && p.owner.toString() === req.user.id;
+      const isAssigned = p.assignedTo && Array.isArray(p.assignedTo) && 
+        (p.assignedTo.includes(req.user.username) || p.assignedTo.includes(req.user.name));
+      const isViewer = p.viewers && Array.isArray(p.viewers) && 
+        (p.viewers.includes(req.user.username) || p.viewers.includes(req.user.name));
+      
+      // Permission check for "Done"/"Completed" status
+      if (status === 'Done' || status === 'Completed') {
+        // Only owner, viewers, and admins can mark as completed
+        if (!isAdmin && !isOwner && !isViewer) {
+          return res.status(403).json({ 
+            message: 'Only project owners and viewers can mark projects as completed. Assigned users can only update to "Not Started" or "In Progress".' 
+          });
+        }
+        // If user is assigned but not owner/viewer, deny
+        if (isAssigned && !isOwner && !isViewer && !isAdmin) {
+          return res.status(403).json({ 
+            message: 'Assigned users cannot mark projects as completed. Only owners and viewers can do this.' 
+          });
+        }
+      }
+    }
+
+    // Allow status updates with permission checks (already validated above)
     if (status) p.status = status;
     if (blocks !== undefined) p.blocks = blocks;
     if (content !== undefined) p.content = content;
@@ -628,6 +702,25 @@ router.put('/:id', async (req, res) => {
       // Status changing to "Done" - set completedDate (points will be awarded after save)
       if (!p.completedDate) {
         p.completedDate = new Date();
+      }
+      
+      // Auto-complete all tasks when project is marked as Done
+      const Task = require('../models/Task');
+      const tasks = await Task.find({ projectId: p._id, companyId: req.companyId });
+      for (const task of tasks) {
+        if (!task.completed || task.status !== 'Completed') {
+          task.completed = true;
+          task.status = 'Completed';
+          if (!task.completedDate) {
+            task.completedDate = new Date();
+          }
+          await task.save();
+          console.log(`✅ Auto-completed task ${task._id} when project was marked as Done`);
+          
+          // Award points for auto-completed tasks
+          const { awardTaskPoints } = require('../utils/pointsCalculator');
+          await awardTaskPoints(task, p, req.companyId);
+        }
       }
     } else if (wasDone && !willBeDone && p.pointsAwarded) {
       // Status changing from "Done" to something else - reverse points
@@ -646,6 +739,22 @@ router.put('/:id', async (req, res) => {
 
     // Managers and admins can update other fields (title, description, priority, assignments, viewers, dates)
     if (canUpdateFields) {
+    // Check permissions for priority updates
+    if (priority !== undefined) {
+      const isOwner = p.owner && p.owner.toString() === req.user.id;
+      const isAssigned = p.assignedTo && Array.isArray(p.assignedTo) && 
+        (p.assignedTo.includes(req.user.username) || p.assignedTo.includes(req.user.name));
+      const isViewer = p.viewers && Array.isArray(p.viewers) && 
+        (p.viewers.includes(req.user.username) || p.viewers.includes(req.user.name));
+      
+      // Assigned users cannot change priority
+      if (isAssigned && !isOwner && !isViewer && !isAdmin) {
+        return res.status(403).json({ 
+          message: 'Only project owners and viewers can change project priority.' 
+        });
+      }
+    }
+
       if (title) p.title = title;
       if (description !== undefined) p.description = description;
       if (priority) p.priority = priority;
@@ -811,20 +920,16 @@ router.put('/:id', async (req, res) => {
     const updatedProject = await Project.findById(p._id);
 
     // Handle points based on status changes
+    // NOTE: Points are awarded/reversed by the Project model's post-save hook, not here
+    // to avoid duplicate calls. The hook checks pointsAwarded flag to prevent duplicates.
     console.log(`🔵 Points check - wasDone: ${wasDone}, willBeDone: ${willBeDone}, pointsAwarded: ${updatedProject.pointsAwarded}, completedDate: ${updatedProject.completedDate}, dueDate: ${updatedProject.dueDate}`);
     console.log(`🔵 Project assignedTo:`, updatedProject.assignedTo);
     console.log(`🔵 Project viewers:`, updatedProject.viewers);
     console.log(`🔵 CompanyId:`, req.companyId);
 
-    if (willBeDone && !wasDone && !updatedProject.pointsAwarded) {
-      // Status changed to "Done" - award points
-      console.log(`✅ Status changed to Done - attempting to award points`);
-      if (updatedProject.completedDate) {
-        console.log(`✅ Has completedDate, calling awardProjectPoints`);
-        await awardProjectPoints(updatedProject, req.companyId);
-      } else {
-        console.log(`⚠️ No completedDate set, cannot award points`);
-      }
+    if (willBeDone && !wasDone) {
+      // Status changed to "Done" - points will be awarded by post-save hook
+      console.log(`✅ Status changed to Done - points will be awarded by post-save hook`);
     } else if (wasDone && !willBeDone && updatedProject.pointsAwarded) {
       // Status changed from "Done" to another status - reverse points
       console.log(`🔄 Status changed from Done - attempting to reverse points`);
@@ -953,11 +1058,20 @@ router.get('/:id/data', async (req, res) => {
       return res.status(404).json({ message: 'Project not found' });
     }
 
-    // Find tasks for this project
+    // Find tasks for this project with companyId filter
     const Task = require('../models/Task');
-    const tasks = await Task.find({ projectId: req.params.id })
+    const companyId = project.companyId || req.companyId || 'default';
+    
+    const tasks = await Task.find({ 
+      projectId: req.params.id,
+      companyId: companyId
+    })
       .populate('createdBy', 'name email')
+      .populate('assignee', 'name email username')
+      .populate('reporter', 'name email username')
       .sort({ createdAt: -1 });
+    
+    console.log(`Found ${tasks.length} tasks for project ${req.params.id} with companyId ${companyId}`);
 
     const data = {
       tasks: tasks.map(task => ({
@@ -981,7 +1095,7 @@ router.get('/:id/data', async (req, res) => {
 router.post('/:id/tasks', async (req, res) => {
   try {
     const { id: projectId } = req.params;
-    const { text, priority = 'medium', dueDate } = req.body;
+    const { text, priority = 'medium', dueDate, type, key, category, status, assignee, reporter } = req.body;
     const userId = req.user.id;
 
     if (!text || !text.trim()) {
@@ -1019,15 +1133,57 @@ router.post('/:id/tasks', async (req, res) => {
 
     // Create the task
     const Task = require('../models/Task');
+    // Generate key if not provided
+    const existingTasks = await Task.find({ projectId: projectId });
+    const taskKey = key || `TH-${100 + existingTasks.length}`;
+    
+    // Normalize priority to match enum values
+    let normalizedPriority = priority;
+    if (priority) {
+      const priorityMap = {
+        'Low': 'low',
+        'Medium': 'medium',
+        'High': 'high',
+        'Critical': 'high',
+        'Highest': 'high',
+        'low': 'low',
+        'medium': 'medium',
+        'high': 'high'
+      };
+      normalizedPriority = priorityMap[priority] || 'medium';
+    } else {
+      normalizedPriority = 'medium';
+    }
+
+    // Get companyId from project or request
+    const taskCompanyId = project.companyId || req.companyId || 'default';
+    
     const newTask = new Task({
       text: text.trim(),
-      priority: ['low', 'medium', 'high'].includes(priority) ? priority : 'medium',
+      priority: normalizedPriority,
       dueDate: dueDate || null,
+      type: type || 'Task',
+      key: taskKey,
+      category: category || 'Development',
+      status: status || 'Not Started',
+      assignee: assignee || userId,
+      reporter: reporter || userId,
       createdBy: userId,
-      projectId: projectId
+      projectId: projectId,
+      companyId: taskCompanyId
     });
+    
+    console.log(`Creating task with projectId: ${projectId}, companyId: ${taskCompanyId}`);
 
-    await newTask.save();
+    try {
+      await newTask.save();
+    } catch (saveError) {
+      console.error('Error saving task:', saveError);
+      return res.status(400).json({ 
+        message: 'Failed to save task', 
+        error: saveError.message 
+      });
+    }
     await newTask.populate('createdBy', 'name email');
     await newTask.populate('projectId', 'name');
 
@@ -1111,29 +1267,52 @@ router.post('/:id/tasks', async (req, res) => {
 router.put('/:id/tasks/:taskId', async (req, res) => {
   try {
     const { id: projectId, taskId } = req.params;
-    const { text, completed, priority, dueDate } = req.body;
+    const { text, completed, priority, dueDate, type, key, category, status, assignee, reporter } = req.body;
     const userId = req.user.id;
 
     console.log(`Updating task ${taskId} in project ${projectId}`);
 
-    // Find the task
+    // Find the project first
+    const Project = require('../models/Project');
+    const project = await Project.findById(projectId);
+    
+    // Check if user has permission to update
+    if (!project) {
+      console.log('Project not found:', projectId);
+      return res.status(404).json({ message: 'Project not found' });
+    }
+
+    const companyId = project.companyId || req.companyId || 'default';
+    
+    // Find the task with companyId filter
     const Task = require('../models/Task');
-    const task = await Task.findOne({ _id: taskId, projectId: projectId });
+    const task = await Task.findOne({ 
+      _id: taskId, 
+      projectId: projectId,
+      companyId: companyId
+    });
 
     if (!task) {
       console.log('Task not found:', taskId);
       return res.status(404).json({ message: 'Task not found' });
     }
 
-    // Check if user has permission to update
-    const project = await Project.findById(projectId);
-    if (!project) {
-      console.log('Project not found:', projectId);
-      return res.status(404).json({ message: 'Project not found' });
-    }
-
     const userName = req.user.username;
     const userRole = req.user.role;
+    
+    // Check if current user is the task assignee
+    const isTaskAssignee = task.assignee && task.assignee.toString() === userId;
+    
+    // Restricted fields that assignees cannot modify
+    const restrictedFields = ['completed', 'status', 'priority', 'dueDate'];
+    const isModifyingRestrictedField = Object.keys(req.body).some(key => restrictedFields.includes(key));
+    
+    // If assignee is trying to modify restricted fields, deny access
+    if (isTaskAssignee && isModifyingRestrictedField) {
+      return res.status(403).json({ 
+        message: 'You cannot modify the completion status, priority, or due date of tasks assigned to you. Please contact the project owner or manager.' 
+      });
+    }
     
     // Allow admins, managers, owners, assigned users, and viewers to update tasks
     if (userRole !== 'admin' && userRole !== 'manager') {
@@ -1142,20 +1321,52 @@ router.put('/:id/tasks/:taskId', async (req, res) => {
         (project.assignedTo.includes(userName) || project.assignedTo.includes(req.user.name));
       const isViewer = project.viewers && Array.isArray(project.viewers) && 
         (project.viewers.includes(userName) || project.viewers.includes(req.user.name));
+      const isReporter = task.reporter && task.reporter.toString() === userId;
+      const isCreator = task.createdBy && task.createdBy.toString() === userId;
       
-      if (!isOwner && !isAssigned && !isViewer) {
+      if (!isOwner && !isAssigned && !isViewer && !isReporter && !isCreator) {
         return res.status(403).json({ message: 'Not authorized to update this task' });
       }
     }
 
     // Update task fields
     const wasCompleted = task.completed;
+    const wasStatusCompleted = task.status === 'Completed';
     if (text !== undefined) task.text = text.trim();
     if (completed !== undefined) task.completed = Boolean(completed);
-    if (priority !== undefined) task.priority = ['low', 'medium', 'high'].includes(priority) ? priority : 'medium';
+    if (priority !== undefined) task.priority = ['low', 'medium', 'high', 'Low', 'Medium', 'High', 'Highest', 'Critical'].includes(priority) ? priority.toLowerCase() : task.priority;
     if (dueDate !== undefined) task.dueDate = dueDate || null;
+    if (type !== undefined) task.type = type;
+    if (key !== undefined) task.key = key;
+    if (category !== undefined) task.category = category;
+    if (status !== undefined) task.status = status;
+    if (assignee !== undefined) task.assignee = assignee;
+    if (reporter !== undefined) task.reporter = reporter;
+    
+    // Ensure companyId is preserved
+    if (!task.companyId) {
+      task.companyId = companyId;
+    }
 
     await task.save();
+    
+    // Reload task to get latest state
+    const updatedTask = await Task.findById(task._id);
+    
+    // Reverse points if task was just uncompleted
+    const isNowCompleted = updatedTask.completed && updatedTask.status === 'Completed';
+    if ((wasCompleted || wasStatusCompleted) && !isNowCompleted) {
+      console.log(`🎯 Task ${task._id} was just uncompleted - reversing points`);
+      const { reverseTaskPoints } = require('../utils/pointsCalculator');
+      await reverseTaskPoints(updatedTask, companyId);
+    }
+    
+    // Award points if task was just completed
+    if (isNowCompleted && (!wasCompleted || !wasStatusCompleted)) {
+      console.log(`🎯 Task ${task._id} was just completed - awarding points`);
+      const { awardTaskPoints } = require('../utils/pointsCalculator');
+      await awardTaskPoints(updatedTask, project, companyId);
+    }
     await task.populate('createdBy', 'name email');
     await task.populate('projectId', 'name');
 
@@ -1231,9 +1442,21 @@ router.delete('/:id/tasks/:taskId', async (req, res) => {
 
     console.log(`Deleting task ${taskId} from project ${projectId}`);
 
-    // Find and delete the task
+    // Get project to find companyId
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+
+    const companyId = project.companyId || req.companyId || 'default';
+
+    // Find and delete the task with companyId filter
     const Task = require('../models/Task');
-    const task = await Task.findOne({ _id: taskId, projectId: projectId });
+    const task = await Task.findOne({ 
+      _id: taskId, 
+      projectId: projectId,
+      companyId: companyId
+    });
 
     if (!task) {
       console.log('Task not found:', taskId);
@@ -1241,12 +1464,6 @@ router.delete('/:id/tasks/:taskId', async (req, res) => {
     }
 
     // Check if user has permission to delete
-    const project = await Project.findById(projectId);
-    if (!project) {
-      console.log('Project not found:', projectId);
-      return res.status(404).json({ message: 'Project not found' });
-    }
-
     const userName = req.user.username;
     const userRole = req.user.role;
     

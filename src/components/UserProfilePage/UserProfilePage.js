@@ -13,6 +13,7 @@ const UserProfilePage = () => {
   const [message, setMessage] = useState({ type: '', text: '' });
   const [pointsHistory, setPointsHistory] = useState([]);
   const [pointsHistoryLoading, setPointsHistoryLoading] = useState(false);
+  const [companyInfo, setCompanyInfo] = useState(null);
 
   // Profile form state
   const [profileForm, setProfileForm] = useState({
@@ -59,16 +60,48 @@ const UserProfilePage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run once when component mounts
 
+  // Fetch company info to check if points are enabled
+  useEffect(() => {
+    const fetchCompanyInfo = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('http://localhost:9000/api/auth/company-status', {
+          headers: { 'x-auth-token': token }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setCompanyInfo(data);
+        }
+      } catch (error) {
+        console.error('Error fetching company info:', error);
+      }
+    };
+
+    // Fetch for all users to check if points are enabled
+    if (user) {
+      fetchCompanyInfo();
+    }
+  }, [user]);
+
   // Fetch points history when points tab is active
   useEffect(() => {
     const fetchPointsHistory = async () => {
       if (activeTab === 'points') {
         setPointsHistoryLoading(true);
         try {
+          console.log('Fetching points history...');
           const history = await apiService.get('/users/points/history');
-          setPointsHistory(history || []);
+          console.log('Points history received:', history);
+          // Ensure history is an array
+          if (Array.isArray(history)) {
+            setPointsHistory(history);
+          } else {
+            console.warn('Points history is not an array:', history);
+            setPointsHistory([]);
+          }
         } catch (error) {
           console.error('Error fetching points history:', error);
+          console.error('Error details:', error.response?.data || error.message);
           setPointsHistory([]);
         } finally {
           setPointsHistoryLoading(false);
@@ -76,7 +109,9 @@ const UserProfilePage = () => {
       }
     };
 
-    fetchPointsHistory();
+    if (apiService) {
+      fetchPointsHistory();
+    }
   }, [activeTab, apiService]);
 
   useEffect(() => {
@@ -203,7 +238,9 @@ const UserProfilePage = () => {
         <div className="flex space-x-1 sm:space-x-2 mb-6 sm:mb-8 overflow-x-auto scrollbar-hide">
           {[
             { id: 'profile', label: 'Profile', icon: User },
-            ...((user?.role === 'user' || user?.role === 'manager') ? [{ id: 'points', label: 'Points', icon: Star }] : []),
+            ...((user?.role === 'user' || user?.role === 'manager') && 
+                companyInfo?.pointsEnabled !== false && 
+                companyInfo?.status !== 'paused' ? [{ id: 'points', label: 'Points', icon: Star }] : []),
             { id: 'security', label: 'Security', icon: Shield }
           ].map(tab => {
             const Icon = tab.icon;

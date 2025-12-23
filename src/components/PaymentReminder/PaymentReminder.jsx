@@ -62,6 +62,10 @@ const PaymentReminder = () => {
                                 !companyData.hasPaid &&
                                 gracePeriodExpired; // Only need payment AFTER grace period
             
+            // Check if 24-hour countdown is active (paymentCountdownStart exists and payment not made)
+            const paymentCountdownStart = companyData.paymentCountdownStart ? new Date(companyData.paymentCountdownStart) : null;
+            const is24HourCountdownActive = paymentCountdownStart && !companyData.hasPaid;
+            
             setPaymentInfo({
               paymentDeadline: paymentDeadline,
               gracePeriodDeadline: gracePeriodDeadline,
@@ -74,7 +78,9 @@ const PaymentReminder = () => {
               hasPaid: companyData.hasPaid,
               status: companyData.status,
               paymentMode: companyData.paymentMode,
-              isWithin24Hours: paymentDeadline && !isDeadlinePassed // Within 24h window
+              paymentCountdownStart: paymentCountdownStart,
+              is24HourCountdownActive: is24HourCountdownActive,
+              isWithin24Hours: is24HourCountdownActive && paymentDeadline && !isDeadlinePassed // Within 24h window and countdown active
             });
           }
         }
@@ -89,6 +95,15 @@ const PaymentReminder = () => {
   }, [location.state, isAuthenticated, user]);
 
   useEffect(() => {
+    // If payment has been made or countdown is not active, redirect to home
+    if (paymentInfo && (paymentInfo.hasPaid || !paymentInfo.is24HourCountdownActive)) {
+      // Payment made or countdown not active - no need to show reminder
+      if (isAuthenticated) {
+        navigate(companyId ? `/home?company=${companyId}` : '/home');
+      }
+      return;
+    }
+    
     if (!paymentInfo || !paymentInfo.paymentDeadline) {
       // If no payment info and user is authenticated, check if they need payment
       if (isAuthenticated && user && user.role !== 'superadmin') {
@@ -154,10 +169,12 @@ const PaymentReminder = () => {
     // Allow continue if:
     // 1. Company is in free mode, OR
     // 2. Payment is not needed (deadline not passed), OR 
-    // 3. Already paid
+    // 3. Already paid, OR
+    // 4. 24-hour countdown is not active (payment made or countdown cleared)
     const canContinue = paymentInfo?.paymentMode === 'free' || 
                        !paymentInfo?.needsPayment || 
-                       paymentInfo?.hasPaid;
+                       paymentInfo?.hasPaid ||
+                       !paymentInfo?.is24HourCountdownActive;
     
     if (!canContinue) {
       // Don't allow continue if payment is actually required (deadline passed)
@@ -267,8 +284,8 @@ const PaymentReminder = () => {
             </p>
           </div>
 
-          {/* Deadline Info - Only show if not in free mode */}
-          {paymentInfo.paymentMode !== 'free' && paymentInfo.paymentDeadline && (
+          {/* Deadline Info - Only show if not in free mode and 24-hour countdown is active */}
+          {paymentInfo.paymentMode !== 'free' && paymentInfo.paymentDeadline && paymentInfo.is24HourCountdownActive && (
             <div className={`p-6 rounded-2xl ${paymentInfo.isWithin24Hours ? (isDarkMode ? 'bg-orange-500/10 border border-orange-500/30' : 'bg-orange-50 border border-orange-200') : (isDarkMode ? 'bg-red-500/10 border border-red-500/30' : 'bg-red-50 border border-red-200')}`}>
               <div className="flex items-center gap-3 mb-4">
                 <Clock size={24} className={paymentInfo.isWithin24Hours ? 'text-orange-500' : 'text-red-500'} />
@@ -332,8 +349,8 @@ const PaymentReminder = () => {
             </button>
           )}
           
-          {/* Show continue button if: free mode, within 24h window, or already paid */}
-          {(paymentInfo.paymentMode === 'free' || !paymentInfo.needsPayment || paymentInfo.hasPaid) && (
+          {/* Show continue button if: free mode, within 24h window, already paid, or countdown not active */}
+          {(paymentInfo.paymentMode === 'free' || !paymentInfo.needsPayment || paymentInfo.hasPaid || !paymentInfo.is24HourCountdownActive) && (
             <button
               onClick={handleContinue}
               className={`flex-1 flex items-center justify-center gap-2 py-4 px-6 rounded-xl font-bold text-lg transition-all duration-200 ${
@@ -349,8 +366,8 @@ const PaymentReminder = () => {
             </button>
           )}
           
-          {/* Show both buttons if within 24h window (can continue OR pay early) */}
-          {paymentInfo.isWithin24Hours && paymentInfo.paymentMode === 'paid' && !paymentInfo.hasPaid && (
+          {/* Show both buttons if within 24h window and countdown is active (can continue OR pay early) */}
+          {paymentInfo.isWithin24Hours && paymentInfo.paymentMode === 'paid' && !paymentInfo.hasPaid && paymentInfo.is24HourCountdownActive && (
             <button
               onClick={handleGoToPayment}
               className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white py-4 px-6 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-200"

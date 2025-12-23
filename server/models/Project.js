@@ -96,39 +96,6 @@ const projectSchema = new mongoose.Schema({
     },
     completedAt: Date
   }],
-  // Embedded tasks
-  tasks: [{
-    text: {
-      type: String,
-      required: [true, 'Task text is required'],
-      trim: true,
-      maxlength: [1000, 'Task text is too long (max 1000 characters)']
-    },
-    completed: {
-      type: Boolean,
-      default: false
-    },
-    priority: {
-      type: String,
-      enum: ['low', 'medium', 'high'],
-      default: 'medium'
-    },
-    createdBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true
-    },
-    dueDate: Date,
-    createdAt: {
-      type: Date,
-      default: Date.now
-    },
-    updatedAt: {
-      type: Date,
-      default: Date.now
-    },
-    // Comments moved to the main project level
-  }],
   budget: {
     estimated: Number,
     actual: Number,

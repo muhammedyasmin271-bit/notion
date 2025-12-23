@@ -788,6 +788,7 @@ export const deleteUser = (userId) => apiService.deleteUser(userId);
 export const approveUser = (userId) => apiService.approveUser(userId);
 export const declineUser = (userId) => apiService.declineUser(userId);
 export const getUserStats = () => apiService.get('/users/stats-overview');
+export const getPointsStats = () => apiService.get('/users/points/stats');
 
 // Notepad exports
 export const getNotes = (filters) => apiService.getNotes(filters);

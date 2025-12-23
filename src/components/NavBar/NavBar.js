@@ -47,8 +47,8 @@ const NavBar = () => {
 
   // Check if current path matches
   const isActive = (path) => {
-    if (path === '/super-admin') {
-      return location.pathname.startsWith('/super-admin');
+    if (path === '/xq7m9k2p8n4r6t1w') {
+      return location.pathname.startsWith('/xq7m9k2p8n4r6t1w');
     }
     
     // For admin routes, check both query param and path-based formats
@@ -212,7 +212,7 @@ const NavBar = () => {
         {
           title: 'ADMINISTRATION',
           items: [
-            { name: 'Super Admin', icon: Shield, path: '/super-admin' },
+            { name: 'Super Admin', icon: Shield, path: '/xq7m9k2p8n4r6t1w' },
           ]
         }
       ]

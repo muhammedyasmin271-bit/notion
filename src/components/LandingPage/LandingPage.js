@@ -156,6 +156,12 @@ const LandingPage = () => {
       title: "Real-time Updates",
       description: "Live notifications, instant messaging, and synchronized team updates.",
       color: "from-blue-600 to-blue-700"
+    },
+    {
+      icon: <Star className="w-12 h-12" />,
+      title: "Points & Rewards System",
+      description: "Gamified productivity with points for completing tasks on time. Earn more points for early completion and high-priority projects.",
+      color: "from-blue-600 to-blue-700"
     }
   ];
 
@@ -600,6 +606,80 @@ const LandingPage = () => {
                 </p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Points System Section */}
+      <section className={`py-20 relative overflow-hidden transition-colors duration-300 ${
+        isDarkMode ? 'bg-gray-900' : 'bg-gray-50'
+      }`}>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-yellow-100 rounded-full mb-6">
+              <Star className="w-8 h-8 text-yellow-600 fill-current" />
+            </div>
+            <h2 className={`text-3xl md:text-4xl font-bold mb-4 ${
+              isDarkMode ? 'text-white' : 'text-gray-900'
+            }`}>
+              Gamified Productivity System
+            </h2>
+            <p className={`text-lg max-w-3xl mx-auto mb-8 ${
+              isDarkMode ? 'text-gray-300' : 'text-gray-600'
+            }`}>
+              Stay motivated with our built-in points and rewards system. Complete tasks on time, 
+              meet deadlines, and watch your team's productivity soar!
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+            <div className={`text-center p-6 rounded-xl border ${
+              isDarkMode 
+                ? 'bg-gray-800 border-gray-700' 
+                : 'bg-white border-gray-200'
+            }`}>
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-6 h-6 text-green-600" />
+              </div>
+              <h3 className={`text-xl font-semibold mb-2 ${
+                isDarkMode ? 'text-white' : 'text-gray-900'
+              }`}>Early Completion</h3>
+              <p className={`text-sm ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-600'
+              }`}>Earn up to 30 points for completing projects ahead of schedule</p>
+            </div>
+            
+            <div className={`text-center p-6 rounded-xl border ${
+              isDarkMode 
+                ? 'bg-gray-800 border-gray-700' 
+                : 'bg-white border-gray-200'
+            }`}>
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Zap className="w-6 h-6 text-blue-600" />
+              </div>
+              <h3 className={`text-xl font-semibold mb-2 ${
+                isDarkMode ? 'text-white' : 'text-gray-900'
+              }`}>Priority Multipliers</h3>
+              <p className={`text-sm ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-600'
+              }`}>Get 2x points for critical tasks, 1.5x for high priority projects</p>
+            </div>
+            
+            <div className={`text-center p-6 rounded-xl border ${
+              isDarkMode 
+                ? 'bg-gray-800 border-gray-700' 
+                : 'bg-white border-gray-200'
+            }`}>
+              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <BarChart3 className="w-6 h-6 text-purple-600" />
+              </div>
+              <h3 className={`text-xl font-semibold mb-2 ${
+                isDarkMode ? 'text-white' : 'text-gray-900'
+              }`}>Team Rankings</h3>
+              <p className={`text-sm ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-600'
+              }`}>Track individual and company performance with point-based ratings</p>
+            </div>
           </div>
         </div>
       </section>

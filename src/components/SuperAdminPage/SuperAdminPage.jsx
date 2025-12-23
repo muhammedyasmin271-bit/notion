@@ -33,6 +33,7 @@ const SuperAdminPage = () => {
   const [editingLimits, setEditingLimits] = useState(false);
   const [limitsForm, setLimitsForm] = useState({ maxUsers: 50, maxStorage: 5368709120 });
   const [updatingPaymentMode, setUpdatingPaymentMode] = useState(false);
+  const [updatingPointsToggle, setUpdatingPointsToggle] = useState(false);
 
   // Define fetchCompanies before useEffects to avoid hooks order issues
   const fetchCompanies = React.useCallback(async () => {
@@ -61,7 +62,7 @@ const SuperAdminPage = () => {
       // Check authentication
       if (!isAuthenticated) {
         // Redirect to super admin login page
-        navigate('/super-admin/login', { replace: true });
+        navigate('/xq7m9k2p8n4r6t1w/login', { replace: true });
         return;
       }
 
@@ -80,7 +81,7 @@ const SuperAdminPage = () => {
         
         // Double-check role is superadmin
         if (userData.role !== 'superadmin' || user?.role !== 'superadmin') {
-          navigate('/super-admin/login', { replace: true });
+          navigate('/xq7m9k2p8n4r6t1w/login', { replace: true });
           return;
         }
 
@@ -88,7 +89,7 @@ const SuperAdminPage = () => {
         setIsAuthorized(true);
       } catch (error) {
         console.error('Error verifying super admin access:', error);
-        navigate('/super-admin/login', { replace: true });
+        navigate('/xq7m9k2p8n4r6t1w/login', { replace: true });
       }
     };
 
@@ -294,6 +295,39 @@ const SuperAdminPage = () => {
     }
   };
 
+  const handleTogglePoints = async () => {
+    setUpdatingPointsToggle(true);
+    try {
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch(`http://localhost:9000/api/admin/companies/${selectedCompany.companyId}/points-toggle`, {
+        method: 'PATCH',
+        headers: {
+          'x-auth-token': token,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to toggle points');
+      }
+
+      const newStatus = data.pointsEnabled;
+      setSuccess(`Points system ${newStatus ? 'ENABLED' : 'DISABLED'} for this company!`);
+      setTimeout(() => setSuccess(''), 3000);
+      fetchCompanies(); // Refresh companies list
+      viewCompanyDetails(selectedCompany.companyId); // Refresh details
+    } catch (error) {
+      console.error('Error toggling points:', error);
+      setError(error.message || 'Failed to toggle points');
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setUpdatingPointsToggle(false);
+    }
+  };
+
 
   const openVerifyModal = (payment, action) => {
     setSelectedPayment(payment);
@@ -463,7 +497,7 @@ const SuperAdminPage = () => {
             </div>
             <div className="flex flex-wrap gap-3">
               <button 
-                onClick={() => navigate('/super-admin/messages')} 
+                onClick={() => navigate('/xq7m9k2p8n4r6t1w/messages')} 
                 className={`group flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg ${
                   isDarkMode 
                     ? 'bg-gray-800/80 hover:bg-gray-700 text-gray-300 border border-gray-600 backdrop-blur-sm' 
@@ -476,7 +510,7 @@ const SuperAdminPage = () => {
               <button 
                 onClick={() => {
                   const token = new URLSearchParams(window.location.search).get('token');
-                  navigate(`/super-admin/settings${token ? `?token=${token}` : ''}`);
+                  navigate(`/xq7m9k2p8n4r6t1w/settings${token ? `?token=${token}` : ''}`);
                 }} 
                 className={`group flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg ${
                   isDarkMode 
@@ -488,7 +522,7 @@ const SuperAdminPage = () => {
                 <span className="hidden sm:inline">Settings</span>
               </button>
               <button 
-                onClick={() => navigate('/super-admin/add-company')} 
+                onClick={() => navigate('/xq7m9k2p8n4r6t1w/add-company')} 
                 className={`group flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all duration-300 hover:scale-105 hover:shadow-xl ${
                   isDarkMode 
                     ? 'bg-[#141414] hover:bg-gray-800 text-white shadow-gray-500/25' 
@@ -599,7 +633,7 @@ const SuperAdminPage = () => {
               ✨ Ready to get started? Create your first company and begin managing subscriptions with style!
             </p>
             <button 
-              onClick={() => navigate('/super-admin/add-company')} 
+              onClick={() => navigate('/xq7m9k2p8n4r6t1w/add-company')} 
               className={`group inline-flex items-center gap-3 px-8 py-4 rounded-2xl text-base font-black transition-all duration-300 hover:scale-105 hover:shadow-xl ${
                 isDarkMode 
                   ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white shadow-blue-500/25' 
@@ -1405,6 +1439,69 @@ const SuperAdminPage = () => {
                             <>
                               <Clock className="w-4 h-4" />
                               <span>Make PAID</span>
+                            </>
+                          )}
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Points System Toggle */}
+                <div className={`p-4 rounded-lg border ${
+                  isDarkMode 
+                    ? 'bg-purple-900/20 border-purple-700/30' 
+                    : 'bg-purple-50 border-purple-200'
+                }`}>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${
+                        isDarkMode ? 'bg-purple-900/50' : 'bg-purple-100'
+                      }`}>
+                        <TrendingUp className={`w-5 h-5 ${
+                          isDarkMode ? 'text-purple-400' : 'text-purple-600'
+                        }`} />
+                      </div>
+                      <div>
+                        <h3 className={`text-base font-semibold mb-1 ${
+                          isDarkMode ? 'text-white' : 'text-gray-900'
+                        }`}>
+                          Points System
+                        </h3>
+                        <p className={`text-xs ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          {(selectedCompany.pointsEnabled !== false) 
+                            ? 'Points are being awarded' 
+                            : 'Points are disabled - no points will be awarded'}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleTogglePoints}
+                      disabled={updatingPointsToggle}
+                      className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 ${
+                        (selectedCompany.pointsEnabled !== false)
+                          ? 'bg-green-600 hover:bg-green-700 text-white'
+                          : 'bg-red-600 hover:bg-red-700 text-white'
+                      }`}
+                    >
+                      {updatingPointsToggle ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          Updating...
+                        </>
+                      ) : (
+                        <>
+                          {(selectedCompany.pointsEnabled !== false) ? (
+                            <>
+                              <Pause className="w-4 h-4" />
+                              <span>Disable Points</span>
+                            </>
+                          ) : (
+                            <>
+                              <Play className="w-4 h-4" />
+                              <span>Enable Points</span>
                             </>
                           )}
                         </>

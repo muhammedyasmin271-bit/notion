@@ -50,6 +50,14 @@ const companySchema = new mongoose.Schema({
     type: Boolean,
     default: false
   }, // Whether rating display is blocked
+  pointsEnabled: {
+    type: Boolean,
+    default: true
+  }, // Whether points system is enabled for this company
+  pointsEnabledAt: {
+    type: Date,
+    default: null
+  }, // When points were first enabled (or re-enabled after being disabled)
   createdAt: { type: Date, default: Date.now },
   expiresAt: Date
 });

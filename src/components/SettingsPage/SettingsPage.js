@@ -1,19 +1,35 @@
-import React, { useState } from 'react';
-import { User, Shield, Settings } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { User, Shield, Settings, Building2 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import ProfileTab from './ProfileTab';
 import SecurityTab from './SecurityTab';
 import PreferencesTab from './PreferencesTab';
+import CompanyTab from './CompanyTab';
 import ThemeToggle from '../common/ThemeToggle';
 
 const SettingsPage = () => {
   const { isDarkMode } = useTheme();
   const [activeTab, setActiveTab] = useState('profile');
+  const [userRole, setUserRole] = useState(null);
+
+  useEffect(() => {
+    // Get user role from localStorage or API
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        setUserRole(payload.role);
+      } catch (error) {
+        console.error('Error parsing token:', error);
+      }
+    }
+  }, []);
 
   const tabs = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'security', label: 'Security', icon: Shield },
-    { id: 'preferences', label: 'Preferences', icon: Settings }
+    { id: 'preferences', label: 'Preferences', icon: Settings },
+    ...(userRole === 'admin' ? [{ id: 'company', label: 'Company', icon: Building2 }] : [])
   ];
 
   return (
@@ -59,6 +75,7 @@ const SettingsPage = () => {
             {activeTab === 'profile' && <ProfileTab />}
             {activeTab === 'security' && <SecurityTab />}
             {activeTab === 'preferences' && <PreferencesTab />}
+            {activeTab === 'company' && userRole === 'admin' && <CompanyTab />}
           </div>
         </div>
       </div>
