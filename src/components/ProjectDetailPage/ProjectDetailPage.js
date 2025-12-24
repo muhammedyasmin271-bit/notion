@@ -976,25 +976,35 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       try {
         setIsGenerating(true);
         
-        // Add the question as a block first
-        const questionBlock = {
-          id: `ai-question-${Date.now()}`,
-          type: 'text',
-          content: `Q: ${aiPopupQuery}`
+        // Mock AI response
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        const mockResponses = {
+          'task': '• Complete project setup\n• Review requirements\n• Create timeline',
+          'meeting': '## Meeting Agenda\n• Welcome and introductions\n• Project updates\n• Next steps',
+          'plan': '# Project Plan\n## Phase 1: Planning\n- [ ] Define requirements\n- [ ] Set timeline\n## Phase 2: Execution\n- [ ] Start development',
+          'default': `Based on "${aiPopupQuery}", here are some suggestions:\n\n• Key point about ${aiPopupQuery}\n• Important consideration\n• Next action item`
         };
         
-        const { content } = await aiAssist(aiPopupQuery, 'custom');
-        const lines = (content || '').split('\n').filter(line => line.trim());
+        const queryLower = aiPopupQuery.toLowerCase();
+        let response = mockResponses.default;
+        
+        for (const [key, value] of Object.entries(mockResponses)) {
+          if (key !== 'default' && queryLower.includes(key)) {
+            response = value;
+            break;
+          }
+        }
+        
+        const lines = response.split('\n').filter(line => line.trim());
         const answerBlocks = lines.map((line, idx) => ({
           id: `ai-answer-${Date.now()}-${idx}`,
           type: 'text',
           content: line.trim()
         }));
         
-        // Add question block followed by answer blocks
-        const newBlocks = [questionBlock, ...answerBlocks];
-        if (newBlocks.length > 0) {
-          setBlocks(prev => [...prev, ...newBlocks]);
+        if (answerBlocks.length > 0) {
+          setBlocks(prev => [...prev, ...answerBlocks]);
         }
         
         setShowAIPopup(false);
@@ -1252,6 +1262,11 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       // Hide AI input on escape
       setAiInputBlock(null);
       setAiQuery('');
+    } else if (e.key === 'Tab' && e.target.value === '') {
+      // Show AI input when tab is pressed on empty line
+      e.preventDefault();
+      setAiInputBlock(id);
+      setAiQuery('');
     }
   };
 
@@ -1442,25 +1457,28 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
         setIsGenerating(true);
 
         const currentBlockIndex = blocks.findIndex(b => b.id === aiInputBlock);
-        const contextBlocks = blocks.slice(0, currentBlockIndex);
-
-        const context = contextBlocks.map(block => {
-          switch (block.type) {
-            case 'h1': return `# ${block.content}`;
-            case 'h2': return `## ${block.content}`;
-            case 'h3': return `### ${block.content}`;
-            case 'todo': return `- [ ] ${block.content}`;
-            case 'bullet': return `• ${block.content}`;
-            case 'number': return `1. ${block.content}`;
-            case 'quote': return `> ${block.content}`;
-            case 'divider': return '---';
-            default: return block.content;
+        
+        // Mock AI response based on query
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        const mockResponses = {
+          'task': '• Complete project setup\n• Review requirements\n• Create timeline',
+          'meeting': '## Meeting Agenda\n• Welcome and introductions\n• Project updates\n• Next steps',
+          'plan': '# Project Plan\n## Phase 1: Planning\n- [ ] Define requirements\n- [ ] Set timeline\n## Phase 2: Execution\n- [ ] Start development',
+          'default': `Based on "${aiQuery}", here are some suggestions:\n\n• Key point about ${aiQuery}\n• Important consideration\n• Next action item`
+        };
+        
+        const queryLower = aiQuery.toLowerCase();
+        let response = mockResponses.default;
+        
+        for (const [key, value] of Object.entries(mockResponses)) {
+          if (key !== 'default' && queryLower.includes(key)) {
+            response = value;
+            break;
           }
-        }).join('\n');
+        }
 
-        const { content } = await aiAssist(`${context}\n\nUser request: ${aiQuery}`, 'custom');
-
-        const lines = (content || '').split('\n').filter(line => line.trim());
+        const lines = response.split('\n').filter(line => line.trim());
         const newBlocks = lines.map((line, idx) => {
           const l = line.trim();
           if (l.startsWith('- [ ] ')) return { id: `ai-block-${Date.now()}-${idx}`, type: 'todo', content: l.replace(/^- \[ \]\s*/, '') };
@@ -1515,7 +1533,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       case 'math': return 'Math equation';
       case 'template': return 'Template content';
       case 'code': return 'Code';
-      default: return index === 0 ? 'Type \'/\' for commands' : '';
+      default: return index === 0 ? 'Type \'/\' for commands or Space/Tab for AI' : 'Press Space or Tab for AI';
     }
   };
 
@@ -2693,6 +2711,21 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                   />
                   <button
                     onClick={() => {
+                      if (aiQuery.trim()) {
+                        handleAiQuerySubmit({ key: 'Enter', preventDefault: () => {} });
+                      }
+                    }}
+                    disabled={!aiQuery.trim() || isGenerating}
+                    className={`p-1 rounded transition-colors ${isDarkMode ? 'text-purple-400 hover:bg-purple-800/30 disabled:opacity-50' : 'text-purple-600 hover:bg-purple-100 disabled:opacity-50'}`}
+                  >
+                    {isGenerating ? (
+                      <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <Send className="w-4 h-4" />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => {
                       setAiInputBlock(null);
                       setAiQuery('');
                     }}
@@ -2702,7 +2735,15 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                   </button>
                 </div>
               ) : (
-                <textarea {...commonProps} />
+                <div className="relative">
+                  <textarea {...commonProps} />
+                  {/* Inline AI hint */}
+                  {block.content === '' && activeBlockId === block.id && (
+                    <div className={`absolute left-0 top-0 pointer-events-none text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} mt-1`}>
+                      Press Space or Tab for AI
+                    </div>
+                  )}
+                </div>
               )}
             </div>
             {showBlockMenu === block.id && (

@@ -2516,6 +2516,18 @@ const NotepadPage = () => {
       style={isDarkMode ? { backgroundColor: '#141414' } : {}}
     >
 			<div className="flex h-screen relative">
+				{/* Floating Sidebar Toggle Button - appears when sidebar is closed */}
+				{!isSidebarOpen && (
+					<button
+						onClick={() => setIsSidebarOpen(true)}
+						className={`fixed top-4 right-4 z-50 p-3 rounded-lg shadow-lg transition-all duration-200 hover:scale-110 ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'}`}
+						style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+						title="Open Notes Sidebar"
+					>
+						<FileText className="w-5 h-5" />
+					</button>
+				)}
+
 				{/* Mobile Header */}
 				<div className={`md:hidden fixed top-0 left-0 right-0 z-40 p-4 border-b backdrop-blur-sm ${isDarkMode ? 'bg-[#141414]/95 border-gray-700' : 'bg-white/95 border-gray-200'}`}
           style={isDarkMode ? { backgroundColor: 'rgba(20, 20, 20, 0.95)' } : {}}
@@ -3064,14 +3076,6 @@ const NotepadPage = () => {
 							<div className={`flex flex-col items-center justify-center h-full p-6 text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
 								<FileText className={`w-12 h-12 mb-3 ${isDarkMode ? 'text-gray-600' : 'text-gray-400'}`} />
 								<p className="text-sm font-medium">{searchQuery ? 'No notes found' : 'No notes yet'}</p>
-								{!searchQuery && (
-									<button
-										onClick={createNewNote}
-										className={`mt-4 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-105 ${isDarkMode ? 'bg-purple-600 hover:bg-purple-500 text-white' : 'bg-purple-500 hover:bg-purple-600 text-white'}`}
-									>
-										Create your first note
-									</button>
-								)}
 							</div>
 						) : (
 							<div className={viewMode === 'grid' ? 'grid grid-cols-1 gap-2' : 'space-y-1.5'}>

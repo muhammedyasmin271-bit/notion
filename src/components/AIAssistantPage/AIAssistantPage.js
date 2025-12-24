@@ -477,16 +477,15 @@ const AIAssistantPage = () => {
 
   return (
     <div className={`min-h-screen flex flex-col transition-colors ${isDarkMode ? 'bg-[#141414]' : 'bg-gradient-to-br from-gray-50 via-white to-blue-50'}`}>
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col items-center justify-center px-3 sm:px-4 md:px-6 pb-28 sm:pb-32 pt-4 sm:pt-8">
+      {/* Main Content Area - Account for navbar */}
+      <div className="flex-1 flex flex-col items-center justify-center px-3 sm:px-4 md:px-6 pb-32 sm:pb-36 pt-20 sm:pt-24 lg:pt-6 lg:pl-64">
         {messages.length === 0 ? (
           /* Beautiful Welcome Screen */
-          <div className="text-center max-w-4xl mx-auto animate-fadeIn w-full px-2">
+          <div className="text-center max-w-4xl mx-auto animate-fadeIn w-full px-2 lg:-ml-32">
             {/* Animated AI Icon */}
             <div className="mb-6 sm:mb-8 flex justify-center">
-              <div className={`relative ${isDarkMode ? 'bg-gradient-to-br from-purple-600 to-blue-600' : 'bg-gradient-to-br from-purple-500 to-blue-500'} rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl transform hover:scale-105 transition-transform duration-300`}>
-                <Brain className="w-12 h-12 sm:w-16 sm:h-16 text-white animate-pulse" />
-                <div className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 w-4 h-4 sm:w-6 sm:h-6 bg-green-400 rounded-full border-2 sm:border-4 border-white animate-ping"></div>
+              <div className="relative rounded-2xl sm:rounded-3xl p-4 sm:p-6">
+                <Brain className="w-12 h-12 sm:w-16 sm:h-16 text-gray-600" />
               </div>
             </div>
 
@@ -643,7 +642,7 @@ const AIAssistantPage = () => {
       </div>
 
       {/* Bottom Input Bar - Fixed */}
-      <div className={`fixed bottom-0 left-0 right-0 border-t backdrop-blur-xl p-3 sm:p-4 transition-colors z-50 ${
+      <div className={`fixed bottom-0 left-0 right-0 border-t backdrop-blur-xl p-3 sm:p-4 transition-colors z-[60] lg:left-64 ${
         isDarkMode 
           ? 'bg-[#141414] border-gray-700/50' 
           : 'bg-white border-gray-200/50'

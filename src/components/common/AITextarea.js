@@ -1,8 +1,10 @@
 import React from 'react';
 import { Sparkles, X } from 'lucide-react';
+import { useTheme } from '../../context/ThemeContext';
 import useAI from '../../hooks/useAI';
 
 const AITextarea = ({ value, onChange, placeholder, className, ...props }) => {
+  const { isDarkMode } = useTheme();
   const { showAI, setShowAI, isLoading, handleKeyDown, handleAIResponse } = useAI();
 
   const handleTextareaKeyDown = (e) => {
@@ -36,7 +38,7 @@ const AITextarea = ({ value, onChange, placeholder, className, ...props }) => {
             }
           }}
           placeholder="Ask AI anything... (Press Enter to submit)"
-          className="flex-1 outline-none bg-transparent text-sm font-medium text-purple-200 placeholder-purple-400"
+          className={`flex-1 outline-none bg-transparent text-sm font-medium ${isDarkMode ? 'text-purple-200 placeholder-purple-400' : 'text-purple-800 placeholder-purple-600'}`}
           autoFocus
           disabled={isLoading}
         />

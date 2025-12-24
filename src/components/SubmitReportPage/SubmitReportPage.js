@@ -1347,17 +1347,27 @@ const SubmitReportPage = () => {
       try {
         const currentBlockIndex = blocks.findIndex(b => b.id === aiInputBlock);
         
-        // Import the AI chat function
-        const { aiChat } = await import('../../services/api');
+        // Call the AI API with correct parameters
+        const response = await fetch('http://localhost:9000/api/ai/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-token': localStorage.getItem('token')
+          },
+          body: JSON.stringify({
+            query: aiQuery,
+            context: blocks.map(b => b.content).join('\n')
+          })
+        });
         
-        // Call the AI API
-        const response = await aiChat([
-          { role: 'user', content: aiQuery }
-        ]);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
         
-        const content = response.reply?.content || 'AI service is currently unavailable.';
+        const data = await response.json();
+        const content = data.response || 'AI service is currently unavailable.';
         
-        // Update the current block with AI response instead of creating new blocks
+        // Update the current block with AI response
         const updatedBlocks = [...blocks];
         updatedBlocks[currentBlockIndex].content = content;
         updatedBlocks[currentBlockIndex].type = 'text';
@@ -1601,91 +1611,7 @@ const SubmitReportPage = () => {
               isDarkMode ? 'text-gray-400' : 'text-gray-600'
             }`}>{isEditMode ? 'View and edit your report content' : 'Help us improve by reporting issues or suggesting features'}</p>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
-            <div className="relative flex-1 sm:flex-none">
-              <button
-                type="button"
-                onClick={() => setShowTemplateDropdown(!showTemplateDropdown)}
-                className={`w-full sm:w-auto px-3 sm:px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm sm:text-base ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'}`}
-                style={isDarkMode ? { backgroundColor: '#141414' } : {}}
-                title="Templates"
-              >
-                <FileText className="w-4 h-4" />
-                <span className="hidden sm:inline">Templates</span>
-                <span className="sm:hidden">Templates</span>
-              </button>
-                {showTemplateDropdown && (
-                  <div className="absolute right-0 sm:right-0 left-0 sm:left-auto top-12 w-full sm:w-96 max-h-96 overflow-hidden bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
-                <div className="p-3 border-b border-gray-700">
-                  <div className="flex items-center gap-2 text-sm font-medium text-gray-300">
-                    <FileText className="w-4 h-4" />
-                    Professional Templates
-                  </div>
-                  <div className="text-xs text-gray-400 mt-1">
-                    Choose a template to get started quickly
-                  </div>
-                </div>
-                <div className="max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
-                  <div className="p-2 space-y-1">
-                    <div className="text-xs text-gray-400 px-2 py-1 font-medium">BUSINESS REPORTS</div>
-                    <button type="button" onClick={() => { if (!report.title) setReport(prev => ({ ...prev, title: 'Quarterly Business Review - Q4 2024' })); const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: 'Executive Summary', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'This quarterly review covers our performance metrics, key achievements, and strategic initiatives for Q4 2024.', style: {} }, { id: `block-${Date.now()}-3`, type: 'heading2', content: 'Key Performance Indicators', style: {} }, { id: `block-${Date.now()}-4`, type: 'bullet', content: '• Revenue: $2.4M (12% increase from Q3)', style: {} }, { id: `block-${Date.now()}-5`, type: 'bullet', content: '• Customer Acquisition: 450 new customers (28% growth)', style: {} }, { id: `block-${Date.now()}-6`, type: 'bullet', content: '• Customer Satisfaction: 4.8/5.0 rating', style: {} }, { id: `block-${Date.now()}-7`, type: 'heading2', content: 'Major Achievements', style: {} }, { id: `block-${Date.now()}-8`, type: 'numbered', content: '1. Successfully launched new product line', style: {} }, { id: `block-${Date.now()}-9`, type: 'numbered', content: '2. Expanded to European markets', style: {} }, { id: `block-${Date.now()}-10`, type: 'numbered', content: '3. Achieved SOC 2 compliance certification', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(false); }} className="w-full flex items-start gap-3 px-3 py-2.5 text-left hover:bg-gray-700 rounded-lg text-gray-300 transition-colors">
-                      <BarChart3 className={`w-4 h-4 mt-0.5 ${isDarkMode ? 'text-white' : 'text-black'}`} />
-                      <div>
-                        <div className="font-medium text-sm">Quarterly Business Review</div>
-                        <div className="text-xs text-gray-400 mt-0.5">Comprehensive quarterly performance analysis with KPIs and achievements</div>
-                      </div>
-                    </button>
-                    <button type="button" onClick={() => { if (!report.title) setReport(prev => ({ ...prev, title: 'Project Status Report - [Project Name]' })); const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: 'Project Overview', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'Project Name: [Enter project name]', style: {} }, { id: `block-${Date.now()}-3`, type: 'text', content: 'Project Manager: [Enter name]', style: {} }, { id: `block-${Date.now()}-4`, type: 'text', content: 'Timeline: [Start date] - [End date]', style: {} }, { id: `block-${Date.now()}-5`, type: 'heading2', content: 'Current Status', style: {} }, { id: `block-${Date.now()}-6`, type: 'bullet', content: '• Overall Progress: 75% complete', style: {} }, { id: `block-${Date.now()}-7`, type: 'bullet', content: '• Budget Utilization: 68% of allocated budget', style: {} }, { id: `block-${Date.now()}-8`, type: 'bullet', content: '• Timeline Status: On track', style: {} }, { id: `block-${Date.now()}-9`, type: 'heading2', content: 'Key Milestones Completed', style: {} }, { id: `block-${Date.now()}-10`, type: 'todo', content: '☑ Requirements gathering and analysis', style: {} }, { id: `block-${Date.now()}-11`, type: 'todo', content: '☑ System design and architecture', style: {} }, { id: `block-${Date.now()}-12`, type: 'todo', content: '☑ Development phase 1', style: {} }, { id: `block-${Date.now()}-13`, type: 'todo', content: '☐ User acceptance testing', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(false); }} className="w-full flex items-start gap-3 px-3 py-2.5 text-left hover:bg-gray-700 rounded-lg text-gray-300 transition-colors">
-                      <Target className="w-4 h-4 text-green-400 mt-0.5" />
-                      <div>
-                        <div className="font-medium text-sm">Project Status Report</div>
-                        <div className="text-xs text-gray-400 mt-0.5">Detailed project progress with milestones and budget tracking</div>
-                      </div>
-                    </button>
-                    <button type="button" onClick={() => { if (!report.title) setReport(prev => ({ ...prev, title: 'Monthly Financial Report - [Month Year]' })); const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: 'Financial Summary', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'Reporting Period: [Month Year]', style: {} }, { id: `block-${Date.now()}-3`, type: 'text', content: 'Prepared by: Finance Department', style: {} }, { id: `block-${Date.now()}-4`, type: 'heading2', content: 'Revenue Analysis', style: {} }, { id: `block-${Date.now()}-5`, type: 'bullet', content: '• Total Revenue: $[Amount]', style: {} }, { id: `block-${Date.now()}-6`, type: 'bullet', content: '• Month-over-Month Growth: [%]', style: {} }, { id: `block-${Date.now()}-7`, type: 'bullet', content: '• Year-over-Year Growth: [%]', style: {} }, { id: `block-${Date.now()}-8`, type: 'heading2', content: 'Expense Breakdown', style: {} }, { id: `block-${Date.now()}-9`, type: 'bullet', content: '• Operating Expenses: $[Amount]', style: {} }, { id: `block-${Date.now()}-10`, type: 'bullet', content: '• Marketing Expenses: $[Amount]', style: {} }, { id: `block-${Date.now()}-11`, type: 'bullet', content: '• Personnel Costs: $[Amount]', style: {} }, { id: `block-${Date.now()}-12`, type: 'heading2', content: 'Key Financial Metrics', style: {} }, { id: `block-${Date.now()}-13`, type: 'bullet', content: '• Gross Margin: [%]', style: {} }, { id: `block-${Date.now()}-14`, type: 'bullet', content: '• Net Profit Margin: [%]', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(false); }} className="w-full flex items-start gap-3 px-3 py-2.5 text-left hover:bg-gray-700 rounded-lg text-gray-300 transition-colors">
-                      <BarChart3 className="w-4 h-4 text-yellow-400 mt-0.5" />
-                      <div>
-                        <div className="font-medium text-sm">Monthly Financial Report</div>
-                        <div className="text-xs text-gray-400 mt-0.5">Complete financial analysis with revenue, expenses, and key metrics</div>
-                      </div>
-                    </button>
-                    
-                    <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-3">INCIDENT REPORTS</div>
-                    <button type="button" onClick={() => { if (!report.title) setReport(prev => ({ ...prev, title: 'Security Incident Report - [Incident ID]' })); const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: 'Incident Details', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'Incident ID: [Auto-generated ID]', style: {} }, { id: `block-${Date.now()}-3`, type: 'text', content: 'Date/Time: [Incident timestamp]', style: {} }, { id: `block-${Date.now()}-4`, type: 'text', content: 'Severity Level: [Critical/High/Medium/Low]', style: {} }, { id: `block-${Date.now()}-5`, type: 'text', content: 'Reported by: [Name and role]', style: {} }, { id: `block-${Date.now()}-6`, type: 'heading2', content: 'Incident Description', style: {} }, { id: `block-${Date.now()}-7`, type: 'text', content: 'Provide a detailed description of what occurred, including any security breaches, system compromises, or data exposure.', style: {} }, { id: `block-${Date.now()}-8`, type: 'heading2', content: 'Impact Assessment', style: {} }, { id: `block-${Date.now()}-9`, type: 'bullet', content: '• Systems Affected: [List affected systems]', style: {} }, { id: `block-${Date.now()}-10`, type: 'bullet', content: '• Data Compromised: [Yes/No - Details]', style: {} }, { id: `block-${Date.now()}-11`, type: 'bullet', content: '• Users Impacted: [Number and type of users]', style: {} }, { id: `block-${Date.now()}-12`, type: 'heading2', content: 'Immediate Actions Taken', style: {} }, { id: `block-${Date.now()}-13`, type: 'numbered', content: '1. [First response action]', style: {} }, { id: `block-${Date.now()}-14`, type: 'numbered', content: '2. [Second response action]', style: {} }, { id: `block-${Date.now()}-15`, type: 'numbered', content: '3. [Third response action]', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(false); }} className="w-full flex items-start gap-3 px-3 py-2.5 text-left hover:bg-gray-700 rounded-lg text-gray-300 transition-colors">
-                      <Shield className="w-4 h-4 text-red-400 mt-0.5" />
-                      <div>
-                        <div className="font-medium text-sm">Security Incident Report</div>
-                        <div className="text-xs text-gray-400 mt-0.5">Comprehensive security incident documentation with impact assessment</div>
-                      </div>
-                    </button>
-                    <button type="button" onClick={() => { if (!report.title) setReport(prev => ({ ...prev, title: 'System Outage Report - [Date]' })); const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: 'Outage Summary', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'Outage Start Time: [Timestamp]', style: {} }, { id: `block-${Date.now()}-3`, type: 'text', content: 'Outage End Time: [Timestamp]', style: {} }, { id: `block-${Date.now()}-4`, type: 'text', content: 'Total Duration: [Hours/Minutes]', style: {} }, { id: `block-${Date.now()}-5`, type: 'text', content: 'Affected Services: [List of services]', style: {} }, { id: `block-${Date.now()}-6`, type: 'heading2', content: 'Root Cause Analysis', style: {} }, { id: `block-${Date.now()}-7`, type: 'text', content: 'Primary Cause: [Detailed explanation of what caused the outage]', style: {} }, { id: `block-${Date.now()}-8`, type: 'text', content: 'Contributing Factors: [Any secondary factors that contributed]', style: {} }, { id: `block-${Date.now()}-9`, type: 'heading2', content: 'Impact Assessment', style: {} }, { id: `block-${Date.now()}-10`, type: 'bullet', content: '• Users Affected: [Number of users impacted]', style: {} }, { id: `block-${Date.now()}-11`, type: 'bullet', content: '• Revenue Impact: $[Estimated loss]', style: {} }, { id: `block-${Date.now()}-12`, type: 'bullet', content: '• SLA Breach: [Yes/No - Details]', style: {} }, { id: `block-${Date.now()}-13`, type: 'heading2', content: 'Resolution Steps', style: {} }, { id: `block-${Date.now()}-14`, type: 'numbered', content: '1. [First resolution step taken]', style: {} }, { id: `block-${Date.now()}-15`, type: 'numbered', content: '2. [Second resolution step taken]', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(false); }} className="w-full flex items-start gap-3 px-3 py-2.5 text-left hover:bg-gray-700 rounded-lg text-gray-300 transition-colors">
-                      <AlertTriangle className="w-4 h-4 text-orange-400 mt-0.5" />
-                      <div>
-                        <div className="font-medium text-sm">System Outage Report</div>
-                        <div className="text-xs text-gray-400 mt-0.5">Detailed outage analysis with root cause and resolution steps</div>
-                      </div>
-                    </button>
-                    
-                    <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-3">PERFORMANCE REPORTS</div>
-                    <button type="button" onClick={() => { if (!report.title) setReport(prev => ({ ...prev, title: 'Team Performance Review - [Team Name]' })); const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: 'Team Overview', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'Team Name: [Enter team name]', style: {} }, { id: `block-${Date.now()}-3`, type: 'text', content: 'Review Period: [Start date] - [End date]', style: {} }, { id: `block-${Date.now()}-4`, type: 'text', content: 'Team Lead: [Manager name]', style: {} }, { id: `block-${Date.now()}-5`, type: 'text', content: 'Team Size: [Number of members]', style: {} }, { id: `block-${Date.now()}-6`, type: 'heading2', content: 'Key Performance Metrics', style: {} }, { id: `block-${Date.now()}-7`, type: 'bullet', content: '• Project Completion Rate: [%]', style: {} }, { id: `block-${Date.now()}-8`, type: 'bullet', content: '• Quality Score: [Rating/10]', style: {} }, { id: `block-${Date.now()}-9`, type: 'bullet', content: '• Customer Satisfaction: [Rating/5]', style: {} }, { id: `block-${Date.now()}-10`, type: 'bullet', content: '• Team Productivity: [Metric]', style: {} }, { id: `block-${Date.now()}-11`, type: 'heading2', content: 'Major Accomplishments', style: {} }, { id: `block-${Date.now()}-12`, type: 'numbered', content: '1. [First major accomplishment]', style: {} }, { id: `block-${Date.now()}-13`, type: 'numbered', content: '2. [Second major accomplishment]', style: {} }, { id: `block-${Date.now()}-14`, type: 'numbered', content: '3. [Third major accomplishment]', style: {} }, { id: `block-${Date.now()}-15`, type: 'heading2', content: 'Areas for Improvement', style: {} }, { id: `block-${Date.now()}-16`, type: 'bullet', content: '• [Area needing improvement]', style: {} }, { id: `block-${Date.now()}-17`, type: 'bullet', content: '• [Another area for development]', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(false); }} className="w-full flex items-start gap-3 px-3 py-2.5 text-left hover:bg-gray-700 rounded-lg text-gray-300 transition-colors">
-                      <Users className="w-4 h-4 text-purple-400 mt-0.5" />
-                      <div>
-                        <div className="font-medium text-sm">Team Performance Review</div>
-                        <div className="text-xs text-gray-400 mt-0.5">Comprehensive team evaluation with metrics and accomplishments</div>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-                    <div className="p-3 border-t border-gray-700 bg-gray-800/50">
-                      <div className="text-xs text-gray-400">
-                        Templates will replace your current content
-                      </div>
-                    </div>
-                  </div>
-                )}
-            </div>
 
-          </div>
         </div>
 
         <form id="report-form" onSubmit={handleSubmit} className="space-y-0">
@@ -1704,14 +1630,97 @@ const SubmitReportPage = () => {
                 ? 'bg-gray-700/50' 
                 : 'bg-white'
             }`}>
-              <input
-                type="text"
-                value={report.title}
-                onChange={(e) => setReport(prev => ({ ...prev, title: e.target.value }))}
-                placeholder="TITLE"
-                className={`w-full px-3 sm:px-4 py-3 sm:py-4 ${isDarkMode ? 'bg-transparent text-white' : 'bg-white text-black'} border-none focus:outline-none text-xl sm:text-3xl rounded-t-xl rounded-b-none`}
-                required
-              />
+              <div className="flex items-center gap-3">
+                <input
+                  type="text"
+                  value={report.title}
+                  onChange={(e) => setReport(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="TITLE"
+                  className={`flex-1 px-3 sm:px-4 py-3 sm:py-4 ${isDarkMode ? 'bg-transparent text-white' : 'bg-white text-black'} border-none focus:outline-none text-xl sm:text-3xl rounded-t-xl rounded-b-none`}
+                  required
+                />
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowTemplateDropdown(!showTemplateDropdown)}
+                    className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'}`}
+                    style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+                    title="Templates"
+                  >
+                    <FileText className="w-4 h-4" />
+                    <span className="hidden sm:inline">Templates</span>
+                  </button>
+                  {showTemplateDropdown && (
+                    <div className="absolute right-0 top-12 w-96 max-h-96 overflow-hidden bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
+                      <div className="p-3 border-b border-gray-700">
+                        <div className="flex items-center gap-2 text-sm font-medium text-gray-300">
+                          <FileText className="w-4 h-4" />
+                          Professional Templates
+                        </div>
+                        <div className="text-xs text-gray-400 mt-1">
+                          Choose a template to get started quickly
+                        </div>
+                      </div>
+                      <div className="max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
+                        <div className="p-2 space-y-1">
+                          <div className="text-xs text-gray-400 px-2 py-1 font-medium">BUSINESS REPORTS</div>
+                          <button type="button" onClick={() => { if (!report.title) setReport(prev => ({ ...prev, title: 'Quarterly Business Review - Q4 2024' })); const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: 'Executive Summary', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'This quarterly review covers our performance metrics, key achievements, and strategic initiatives for Q4 2024.', style: {} }, { id: `block-${Date.now()}-3`, type: 'heading2', content: 'Key Performance Indicators', style: {} }, { id: `block-${Date.now()}-4`, type: 'bullet', content: '• Revenue: $2.4M (12% increase from Q3)', style: {} }, { id: `block-${Date.now()}-5`, type: 'bullet', content: '• Customer Acquisition: 450 new customers (28% growth)', style: {} }, { id: `block-${Date.now()}-6`, type: 'bullet', content: '• Customer Satisfaction: 4.8/5.0 rating', style: {} }, { id: `block-${Date.now()}-7`, type: 'heading2', content: 'Major Achievements', style: {} }, { id: `block-${Date.now()}-8`, type: 'numbered', content: '1. Successfully launched new product line', style: {} }, { id: `block-${Date.now()}-9`, type: 'numbered', content: '2. Expanded to European markets', style: {} }, { id: `block-${Date.now()}-10`, type: 'numbered', content: '3. Achieved SOC 2 compliance certification', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(false); }} className="w-full flex items-start gap-3 px-3 py-2.5 text-left hover:bg-gray-700 rounded-lg text-gray-300 transition-colors">
+                            <BarChart3 className={`w-4 h-4 mt-0.5 ${isDarkMode ? 'text-white' : 'text-black'}`} />
+                            <div>
+                              <div className="font-medium text-sm">Quarterly Business Review</div>
+                              <div className="text-xs text-gray-400 mt-0.5">Comprehensive quarterly performance analysis with KPIs and achievements</div>
+                            </div>
+                          </button>
+                          <button type="button" onClick={() => { if (!report.title) setReport(prev => ({ ...prev, title: 'Project Status Report - [Project Name]' })); const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: 'Project Overview', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'Project Name: [Enter project name]', style: {} }, { id: `block-${Date.now()}-3`, type: 'text', content: 'Project Manager: [Enter name]', style: {} }, { id: `block-${Date.now()}-4`, type: 'text', content: 'Timeline: [Start date] - [End date]', style: {} }, { id: `block-${Date.now()}-5`, type: 'heading2', content: 'Current Status', style: {} }, { id: `block-${Date.now()}-6`, type: 'bullet', content: '• Overall Progress: 75% complete', style: {} }, { id: `block-${Date.now()}-7`, type: 'bullet', content: '• Budget Utilization: 68% of allocated budget', style: {} }, { id: `block-${Date.now()}-8`, type: 'bullet', content: '• Timeline Status: On track', style: {} }, { id: `block-${Date.now()}-9`, type: 'heading2', content: 'Key Milestones Completed', style: {} }, { id: `block-${Date.now()}-10`, type: 'todo', content: '☑ Requirements gathering and analysis', style: {} }, { id: `block-${Date.now()}-11`, type: 'todo', content: '☑ System design and architecture', style: {} }, { id: `block-${Date.now()}-12`, type: 'todo', content: '☑ Development phase 1', style: {} }, { id: `block-${Date.now()}-13`, type: 'todo', content: '☐ User acceptance testing', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(false); }} className="w-full flex items-start gap-3 px-3 py-2.5 text-left hover:bg-gray-700 rounded-lg text-gray-300 transition-colors">
+                            <Target className="w-4 h-4 text-green-400 mt-0.5" />
+                            <div>
+                              <div className="font-medium text-sm">Project Status Report</div>
+                              <div className="text-xs text-gray-400 mt-0.5">Detailed project progress with milestones and budget tracking</div>
+                            </div>
+                          </button>
+                          <button type="button" onClick={() => { if (!report.title) setReport(prev => ({ ...prev, title: 'Monthly Financial Report - [Month Year]' })); const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: 'Financial Summary', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'Reporting Period: [Month Year]', style: {} }, { id: `block-${Date.now()}-3`, type: 'text', content: 'Prepared by: Finance Department', style: {} }, { id: `block-${Date.now()}-4`, type: 'heading2', content: 'Revenue Analysis', style: {} }, { id: `block-${Date.now()}-5`, type: 'bullet', content: '• Total Revenue: $[Amount]', style: {} }, { id: `block-${Date.now()}-6`, type: 'bullet', content: '• Month-over-Month Growth: [%]', style: {} }, { id: `block-${Date.now()}-7`, type: 'bullet', content: '• Year-over-Year Growth: [%]', style: {} }, { id: `block-${Date.now()}-8`, type: 'heading2', content: 'Expense Breakdown', style: {} }, { id: `block-${Date.now()}-9`, type: 'bullet', content: '• Operating Expenses: $[Amount]', style: {} }, { id: `block-${Date.now()}-10`, type: 'bullet', content: '• Marketing Expenses: $[Amount]', style: {} }, { id: `block-${Date.now()}-11`, type: 'bullet', content: '• Personnel Costs: $[Amount]', style: {} }, { id: `block-${Date.now()}-12`, type: 'heading2', content: 'Key Financial Metrics', style: {} }, { id: `block-${Date.now()}-13`, type: 'bullet', content: '• Gross Margin: [%]', style: {} }, { id: `block-${Date.now()}-14`, type: 'bullet', content: '• Net Profit Margin: [%]', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(false); }} className="w-full flex items-start gap-3 px-3 py-2.5 text-left hover:bg-gray-700 rounded-lg text-gray-300 transition-colors">
+                            <BarChart3 className="w-4 h-4 text-yellow-400 mt-0.5" />
+                            <div>
+                              <div className="font-medium text-sm">Monthly Financial Report</div>
+                              <div className="text-xs text-gray-400 mt-0.5">Complete financial analysis with revenue, expenses, and key metrics</div>
+                            </div>
+                          </button>
+                          
+                          <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-3">INCIDENT REPORTS</div>
+                          <button type="button" onClick={() => { if (!report.title) setReport(prev => ({ ...prev, title: 'Security Incident Report - [Incident ID]' })); const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: 'Incident Details', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'Incident ID: [Auto-generated ID]', style: {} }, { id: `block-${Date.now()}-3`, type: 'text', content: 'Date/Time: [Incident timestamp]', style: {} }, { id: `block-${Date.now()}-4`, type: 'text', content: 'Severity Level: [Critical/High/Medium/Low]', style: {} }, { id: `block-${Date.now()}-5`, type: 'text', content: 'Reported by: [Name and role]', style: {} }, { id: `block-${Date.now()}-6`, type: 'heading2', content: 'Incident Description', style: {} }, { id: `block-${Date.now()}-7`, type: 'text', content: 'Provide a detailed description of what occurred, including any security breaches, system compromises, or data exposure.', style: {} }, { id: `block-${Date.now()}-8`, type: 'heading2', content: 'Impact Assessment', style: {} }, { id: `block-${Date.now()}-9`, type: 'bullet', content: '• Systems Affected: [List affected systems]', style: {} }, { id: `block-${Date.now()}-10`, type: 'bullet', content: '• Data Compromised: [Yes/No - Details]', style: {} }, { id: `block-${Date.now()}-11`, type: 'bullet', content: '• Users Impacted: [Number and type of users]', style: {} }, { id: `block-${Date.now()}-12`, type: 'heading2', content: 'Immediate Actions Taken', style: {} }, { id: `block-${Date.now()}-13`, type: 'numbered', content: '1. [First response action]', style: {} }, { id: `block-${Date.now()}-14`, type: 'numbered', content: '2. [Second response action]', style: {} }, { id: `block-${Date.now()}-15`, type: 'numbered', content: '3. [Third response action]', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(false); }} className="w-full flex items-start gap-3 px-3 py-2.5 text-left hover:bg-gray-700 rounded-lg text-gray-300 transition-colors">
+                            <Shield className="w-4 h-4 text-red-400 mt-0.5" />
+                            <div>
+                              <div className="font-medium text-sm">Security Incident Report</div>
+                              <div className="text-xs text-gray-400 mt-0.5">Comprehensive security incident documentation with impact assessment</div>
+                            </div>
+                          </button>
+                          <button type="button" onClick={() => { if (!report.title) setReport(prev => ({ ...prev, title: 'System Outage Report - [Date]' })); const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: 'Outage Summary', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'Outage Start Time: [Timestamp]', style: {} }, { id: `block-${Date.now()}-3`, type: 'text', content: 'Outage End Time: [Timestamp]', style: {} }, { id: `block-${Date.now()}-4`, type: 'text', content: 'Total Duration: [Hours/Minutes]', style: {} }, { id: `block-${Date.now()}-5`, type: 'text', content: 'Affected Services: [List of services]', style: {} }, { id: `block-${Date.now()}-6`, type: 'heading2', content: 'Root Cause Analysis', style: {} }, { id: `block-${Date.now()}-7`, type: 'text', content: 'Primary Cause: [Detailed explanation of what caused the outage]', style: {} }, { id: `block-${Date.now()}-8`, type: 'text', content: 'Contributing Factors: [Any secondary factors that contributed]', style: {} }, { id: `block-${Date.now()}-9`, type: 'heading2', content: 'Impact Assessment', style: {} }, { id: `block-${Date.now()}-10`, type: 'bullet', content: '• Users Affected: [Number of users impacted]', style: {} }, { id: `block-${Date.now()}-11`, type: 'bullet', content: '• Revenue Impact: $[Estimated loss]', style: {} }, { id: `block-${Date.now()}-12`, type: 'bullet', content: '• SLA Breach: [Yes/No - Details]', style: {} }, { id: `block-${Date.now()}-13`, type: 'heading2', content: 'Resolution Steps', style: {} }, { id: `block-${Date.now()}-14`, type: 'numbered', content: '1. [First resolution step taken]', style: {} }, { id: `block-${Date.now()}-15`, type: 'numbered', content: '2. [Second resolution step taken]', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(false); }} className="w-full flex items-start gap-3 px-3 py-2.5 text-left hover:bg-gray-700 rounded-lg text-gray-300 transition-colors">
+                            <AlertTriangle className="w-4 h-4 text-orange-400 mt-0.5" />
+                            <div>
+                              <div className="font-medium text-sm">System Outage Report</div>
+                              <div className="text-xs text-gray-400 mt-0.5">Detailed outage analysis with root cause and resolution steps</div>
+                            </div>
+                          </button>
+                          
+                          <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-3">PERFORMANCE REPORTS</div>
+                          <button type="button" onClick={() => { if (!report.title) setReport(prev => ({ ...prev, title: 'Team Performance Review - [Team Name]' })); const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: 'Team Overview', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'Team Name: [Enter team name]', style: {} }, { id: `block-${Date.now()}-3`, type: 'text', content: 'Review Period: [Start date] - [End date]', style: {} }, { id: `block-${Date.now()}-4`, type: 'text', content: 'Team Lead: [Manager name]', style: {} }, { id: `block-${Date.now()}-5`, type: 'text', content: 'Team Size: [Number of members]', style: {} }, { id: `block-${Date.now()}-6`, type: 'heading2', content: 'Key Performance Metrics', style: {} }, { id: `block-${Date.now()}-7`, type: 'bullet', content: '• Project Completion Rate: [%]', style: {} }, { id: `block-${Date.now()}-8`, type: 'bullet', content: '• Quality Score: [Rating/10]', style: {} }, { id: `block-${Date.now()}-9`, type: 'bullet', content: '• Customer Satisfaction: [Rating/5]', style: {} }, { id: `block-${Date.now()}-10`, type: 'bullet', content: '• Team Productivity: [Metric]', style: {} }, { id: `block-${Date.now()}-11`, type: 'heading2', content: 'Major Accomplishments', style: {} }, { id: `block-${Date.now()}-12`, type: 'numbered', content: '1. [First major accomplishment]', style: {} }, { id: `block-${Date.now()}-13`, type: 'numbered', content: '2. [Second major accomplishment]', style: {} }, { id: `block-${Date.now()}-14`, type: 'numbered', content: '3. [Third major accomplishment]', style: {} }, { id: `block-${Date.now()}-15`, type: 'heading2', content: 'Areas for Improvement', style: {} }, { id: `block-${Date.now()}-16`, type: 'bullet', content: '• [Area needing improvement]', style: {} }, { id: `block-${Date.now()}-17`, type: 'bullet', content: '• [Another area for development]', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(false); }} className="w-full flex items-start gap-3 px-3 py-2.5 text-left hover:bg-gray-700 rounded-lg text-gray-300 transition-colors">
+                            <Users className="w-4 h-4 text-purple-400 mt-0.5" />
+                            <div>
+                              <div className="font-medium text-sm">Team Performance Review</div>
+                              <div className="text-xs text-gray-400 mt-0.5">Comprehensive team evaluation with metrics and accomplishments</div>
+                            </div>
+                          </button>
+                        </div>
+                      </div>
+                      <div className="p-3 border-t border-gray-700 bg-gray-800/50">
+                        <div className="text-xs text-gray-400">
+                          Templates will replace your current content
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
               <div className="px-1 py-0.5 sm:px-2 sm:py-1">
                 {blocks.map((block, index) => {
                   const isListType = block.type === 'bullet' || block.type === 'numbered' || block.type === 'todo';
@@ -1962,7 +1971,7 @@ const SubmitReportPage = () => {
                             onChange={(e) => setAiQuery(e.target.value)}
                             onKeyDown={handleAiQuerySubmit}
                             placeholder="Ask AI anything... (Press Enter to submit)"
-                            className="flex-1 outline-none bg-transparent text-sm font-medium text-purple-200 placeholder-purple-400"
+                            className={`flex-1 outline-none bg-transparent text-sm font-medium ${isDarkMode ? 'text-purple-200 placeholder-purple-400' : 'text-purple-800 placeholder-purple-600'}`}
                             autoFocus
                           />
                           <button
