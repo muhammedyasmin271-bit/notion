@@ -6,6 +6,8 @@ const API_BASE_URL =
         ? '/api'
         : 'https://notion-l9ti.onrender.com/api');
 
+console.log('API_BASE_URL:', API_BASE_URL);
+
 // Create axios instance
 const axiosInstance = axios.create({
     baseURL: API_BASE_URL,
