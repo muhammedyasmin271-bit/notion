@@ -4,8 +4,11 @@
  */
 
 const fetch = require('node-fetch');
-const BASE_URL = 'http://localhost:9000';
-const FRONTEND_URL = 'http://localhost:3000';
+require('dotenv').config();
+
+// Use environment variables with fallback to localhost for development
+const BASE_URL = process.env.BACKEND_URL || process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:9000';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
 // Test results storage
 const testResults = {

@@ -37,24 +37,34 @@ app.use(limiter);
 // MongoDB Connection with retry logic
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/notion-app', {
+    console.log('Attempting to connect to MongoDB Atlas...');
+    console.log('Connection string:', process.env.MONGODB_URI?.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@'));
+    
+    const conn = await mongoose.connect(process.env.MONGODB_URI , {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 5000,
-      connectTimeoutMS: 5000,
-      socketTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 10000,
+      connectTimeoutMS: 10000,
+      socketTimeoutMS: 10000,
+      maxPoolSize: 10
     });
 
-    console.log(`MongoDB connected: ${conn.connection.host}`);
+    console.log(`✅ MongoDB connected successfully: ${conn.connection.host}`);
+    console.log(`📊 Database: ${conn.connection.name}`);
 
     // Ensure initial admin user exists
     await ensureInitialAdmin();
     await ensureEmailIndexIsSparse();
     await ensureSystemSettings();
   } catch (error) {
-    console.error('MongoDB connection failed:', error.message);
-    console.log('Server will continue without database connection');
-    console.log('Please start MongoDB or update MONGODB_URI in .env file');
+    console.error('❌ MongoDB connection failed:', error.message);
+    console.error('Full error:', error);
+    console.log('🔄 Retrying connection in 5 seconds...');
+    
+    // Retry connection after 5 seconds
+    setTimeout(() => {
+      connectDB();
+    }, 5000);
   }
 };
 

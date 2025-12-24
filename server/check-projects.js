@@ -1,8 +1,9 @@
 const mongoose = require('mongoose');
 const User = require('./models/User');
 const Project = require('./models/Project');
+require('dotenv').config();
 
-mongoose.connect('mongodb://localhost:27017/notion', {
+mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });

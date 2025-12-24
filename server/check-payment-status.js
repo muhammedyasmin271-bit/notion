@@ -20,7 +20,7 @@ if (!txRef) {
 async function checkPaymentStatus() {
   try {
     // Connect to MongoDB
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/notion', {
+    await mongoose.connect(process.env.MONGODB_URI , {
       useNewUrlParser: true,
       useUnifiedTopology: true
     });

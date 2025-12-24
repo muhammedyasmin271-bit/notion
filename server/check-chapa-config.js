@@ -7,7 +7,7 @@ require('dotenv').config();
 
 const CHAPA_TOKEN = process.env.CHAPA_TOKEN || process.env.CHAPA_SECRET_KEY;
 const CHAPA_API = process.env.CHAPA_API || 'https://api.chapa.co/v1';
-const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
+const BASE_URL = process.env.BASE_URL ;
 
 console.log('\n🔍 Checking Chapa Configuration...\n');
 
