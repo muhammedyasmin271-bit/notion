@@ -1,10 +1,10 @@
 import axios from 'axios';
 
 const API_BASE_URL =
-    process.env.BACKEND_URL ||
-    (typeof window !== 'undefined' && window.location.hostname !== 'process.env.Backendurl'
+    process.env.REACT_APP_API_URL ||
+    (typeof window !== 'undefined' && window.location.hostname !== 'localhost'
         ? '/api'
-        : 'process.env.Backendurl/api');
+        : 'https://notion-l9ti.onrender.com/api');
 
 // Create axios instance
 const axiosInstance = axios.create({
