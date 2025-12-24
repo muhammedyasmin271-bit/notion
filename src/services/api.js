@@ -1,15 +1,7 @@
-const API_BASE_URL =
-    process.env.REACT_APP_BACKEND_URL ||
-    (typeof window !== 'undefined' && window.location.hostname !== 'process.env.Backendurl'
-        ? '/api'
-        : 'process.env.Backendurl/api');
+import axiosInstance from './axiosConfig';
 
 // API service class for handling HTTP requests
 class ApiService {
-    constructor() {
-        this.baseURL = API_BASE_URL;
-    }
-
     // Get auth token from localStorage
     getAuthToken() {
         return localStorage.getItem('token');
@@ -24,45 +16,6 @@ class ApiService {
         }
     }
 
-    // Create headers with auth token
-    getHeaders(includeAuth = true) {
-        const headers = {
-            'Content-Type': 'application/json',
-        };
-
-        if (includeAuth) {
-            const token = this.getAuthToken();
-            if (token) {
-                headers['x-auth-token'] = token;
-            }
-        }
-
-        return headers;
-    }
-
-    // Generic request method
-    async request(endpoint, options = {}) {
-        const url = `${this.baseURL}${endpoint}`;
-        const config = {
-            headers: this.getHeaders(options.includeAuth !== false),
-            ...options,
-        };
-
-        try {
-            const response = await fetch(url, config);
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || `HTTP error! status: ${response.status}`);
-            }
-
-            return data;
-        } catch (error) {
-            console.error('API request failed:', error);
-            throw error;
-        }
-    }
-
     // Authentication methods
     async login(username, password, companyId = null) {
         try {
@@ -72,11 +25,7 @@ class ApiService {
                 body.companyId = companyId;
             }
             
-            const response = await this.request('/auth/login', {
-                method: 'POST',
-                body: JSON.stringify(body),
-                includeAuth: false,
-            });
+            const response = await axiosInstance.post('/auth/login', body);
 
             if (response.token) {
                 this.setAuthToken(response.token);
@@ -123,11 +72,7 @@ class ApiService {
             response = await this.upload('/auth/register', userData);
         } else {
             // Handle regular JSON registration
-            response = await this.request('/auth/register', {
-                method: 'POST',
-                body: JSON.stringify(userData),
-                includeAuth: false,
-            });
+            response = await axiosInstance.post('/auth/register', userData);
         }
 
         if (response.token) {
@@ -139,9 +84,7 @@ class ApiService {
 
     async logout() {
         try {
-            await this.request('/auth/logout', {
-                method: 'POST',
-            });
+            await axiosInstance.post('/auth/logout');
         } catch (error) {
             console.warn('Logout request failed:', error);
         } finally {
@@ -151,7 +94,7 @@ class ApiService {
 
     async getCurrentUser() {
         try {
-            return await this.request('/auth/me');
+            return await axiosInstance.get('/auth/me');
         } catch (error) {
             // Fallback for localStorage users
             const token = this.getAuthToken();
@@ -179,9 +122,7 @@ class ApiService {
     }
 
     async refreshToken() {
-        const response = await this.request('/auth/refresh', {
-            method: 'POST',
-        });
+        const response = await axiosInstance.post('/auth/refresh');
 
         if (response.token) {
             this.setAuthToken(response.token);
@@ -191,27 +132,18 @@ class ApiService {
     }
 
     async updatePreferences(preferences) {
-        return await this.request('/auth/preferences', {
-            method: 'PUT',
-            body: JSON.stringify(preferences),
-        });
+        return await axiosInstance.put('/auth/preferences', preferences);
     }
 
     async changePassword(currentPassword, newPassword) {
-        const response = await this.request('/auth/change-password', {
-            method: 'PUT',
-            body: JSON.stringify({ currentPassword, newPassword }),
-        });
+        const response = await axiosInstance.put('/auth/change-password', { currentPassword, newPassword });
         return response;
     }
 
     // User Management (Manager/Admin only)
     async registerUser(userData) {
         try {
-            const response = await this.request('/auth/register-user', {
-                method: 'POST',
-                body: JSON.stringify(userData),
-            });
+            const response = await axiosInstance.post('/auth/register-user', userData);
             return response;
         } catch (error) {
             // Fallback: save to localStorage if server is not available
@@ -256,12 +188,12 @@ class ApiService {
             // Try the main users endpoint first
             try {
                 const url = `/users${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-                const response = await this.request(url);
+                const response = await axiosInstance.get(url);
                 return response; // This returns { users: [...], pagination: {...} }
             } catch (mainError) {
                 // Fallback to auth endpoint
                 const url = `/auth/users${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-                const response = await this.request(url);
+                const response = await axiosInstance.get(url);
                 return { users: response };
             }
         } catch (error) {
@@ -271,52 +203,38 @@ class ApiService {
     }
 
     async toggleUserStatus(userId) {
-        const response = await this.request(`/auth/users/${userId}/status`, {
-            method: 'PUT',
-        });
+        const response = await axiosInstance.put(`/auth/users/${userId}/status`);
         return response;
     }
 
     // Approve/Decline user (Manager only)
     async approveUser(userId) {
-        const response = await this.request(`/auth/users/${userId}/approve`, {
-            method: 'PUT',
-        });
+        const response = await axiosInstance.put(`/auth/users/${userId}/approve`);
         return response;
     }
 
     async declineUser(userId) {
-        const response = await this.request(`/auth/users/${userId}/decline`, {
-            method: 'PUT',
-        });
+        const response = await axiosInstance.put(`/auth/users/${userId}/decline`);
         return response;
     }
 
     async deleteUser(userId) {
-        const response = await this.request(`/auth/users/${userId}`, {
-            method: 'DELETE',
-        });
+        const response = await axiosInstance.delete(`/auth/users/${userId}`);
         return response;
     }
 
     async createUser(userData) {
-        const response = await this.request('/users', {
-            method: 'POST',
-            body: JSON.stringify(userData),
-        });
+        const response = await axiosInstance.post('/users', userData);
         return response;
     }
 
     async updateUser(userId, userData) {
-        const response = await this.request(`/auth/users/${userId}`, {
-            method: 'PUT',
-            body: JSON.stringify(userData),
-        });
+        const response = await axiosInstance.put(`/auth/users/${userId}`, userData);
         return response;
     }
 
     async getUserById(userId) {
-        const response = await this.request(`/auth/users/${userId}`);
+        const response = await axiosInstance.get(`/auth/users/${userId}`);
         return response;
     }
 
@@ -331,7 +249,7 @@ class ApiService {
             });
 
             const url = `/notepad${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-            const response = await this.request(url);
+            const response = await axiosInstance.get(url);
             return response;
         } catch (error) {
             console.error('Error fetching notes:', error);
@@ -345,10 +263,7 @@ class ApiService {
 
     async createNote(noteData) {
         try {
-            const response = await this.request('/notepad', {
-                method: 'POST',
-                body: JSON.stringify(noteData),
-            });
+            const response = await axiosInstance.post('/notepad', noteData);
             return response;
         } catch (error) {
             console.error('Error creating note:', error);
@@ -372,10 +287,7 @@ class ApiService {
 
     async updateNote(noteId, noteData) {
         try {
-            const response = await this.request(`/notepad/${noteId}`, {
-                method: 'PUT',
-                body: JSON.stringify(noteData),
-            });
+            const response = await axiosInstance.put(`/notepad/${noteId}`, noteData);
             return response;
         } catch (error) {
             console.error('Error updating note:', error);
@@ -393,7 +305,7 @@ class ApiService {
 
     async getNoteById(noteId) {
         try {
-            const response = await this.request(`/notepad/${noteId}`);
+            const response = await axiosInstance.get(`/notepad/${noteId}`);
             return response;
         } catch (error) {
             console.error('Error fetching note:', error);
@@ -411,9 +323,7 @@ class ApiService {
 
     async deleteNote(noteId) {
         try {
-            const response = await this.request(`/notepad/${noteId}`, {
-                method: 'DELETE',
-            });
+            const response = await axiosInstance.delete(`/notepad/${noteId}`);
             return response;
         } catch (error) {
             console.error('Error deleting note:', error);
@@ -438,10 +348,7 @@ class ApiService {
 
     async shareNote(noteId, shareType) {
         try {
-            const response = await this.request(`/notepad/${noteId}/share`, {
-                method: 'POST',
-                body: JSON.stringify({ shareType }),
-            });
+            const response = await axiosInstance.post(`/notepad/${noteId}/share`, { shareType });
             return response;
         } catch (error) {
             console.error('Error sharing note:', error);
@@ -452,9 +359,7 @@ class ApiService {
 
     async toggleNotePin(noteId) {
         try {
-            const response = await this.request(`/notepad/${noteId}/pin`, {
-                method: 'PATCH',
-            });
+            const response = await axiosInstance.patch(`/notepad/${noteId}/pin`);
             return response;
         } catch (error) {
             console.error('Error toggling pin:', error);
@@ -464,9 +369,7 @@ class ApiService {
 
     async toggleNoteArchive(noteId) {
         try {
-            const response = await this.request(`/notepad/${noteId}/archive`, {
-                method: 'PATCH',
-            });
+            const response = await axiosInstance.patch(`/notepad/${noteId}/archive`);
             return response;
         } catch (error) {
             console.error('Error toggling archive:', error);
@@ -476,9 +379,7 @@ class ApiService {
 
     async restoreNote(noteId) {
         try {
-            const response = await this.request(`/notepad/${noteId}/restore`, {
-                method: 'PATCH',
-            });
+            const response = await axiosInstance.patch(`/notepad/${noteId}/restore`);
             return response;
         } catch (error) {
             console.error('Error restoring note:', error);
@@ -497,7 +398,7 @@ class ApiService {
             });
 
             const url = `/meetings${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-            const response = await this.request(url);
+            const response = await axiosInstance.get(url);
             return response;
         } catch (error) {
             console.error('Error fetching meetings:', error);
@@ -507,10 +408,7 @@ class ApiService {
 
     async createMeeting(meetingData) {
         try {
-            const response = await this.request('/meetings', {
-                method: 'POST',
-                body: JSON.stringify(meetingData),
-            });
+            const response = await axiosInstance.post('/meetings', meetingData);
             return response;
         } catch (error) {
             console.error('Error creating meeting:', error);
@@ -520,10 +418,7 @@ class ApiService {
 
     async updateMeeting(meetingId, meetingData) {
         try {
-            const response = await this.request(`/meetings/${meetingId}`, {
-                method: 'PUT',
-                body: JSON.stringify(meetingData),
-            });
+            const response = await axiosInstance.put(`/meetings/${meetingId}`, meetingData);
             return response;
         } catch (error) {
             console.error('Error updating meeting:', error);
@@ -533,7 +428,7 @@ class ApiService {
 
     async getMeetingById(meetingId) {
         try {
-            const response = await this.request(`/meetings/${meetingId}`);
+            const response = await axiosInstance.get(`/meetings/${meetingId}`);
             return response;
         } catch (error) {
             console.error('Error fetching meeting:', error);
@@ -544,9 +439,7 @@ class ApiService {
 
     async deleteMeeting(meetingId) {
         try {
-            const response = await this.request(`/meetings/${meetingId}`, {
-                method: 'DELETE',
-            });
+            const response = await axiosInstance.delete(`/meetings/${meetingId}`);
             return response;
         } catch (error) {
             console.error('Error deleting meeting:', error);
@@ -556,10 +449,7 @@ class ApiService {
 
     async addMeetingActionItem(meetingId, actionItem) {
         try {
-            const response = await this.request(`/meetings/${meetingId}/action-items`, {
-                method: 'POST',
-                body: JSON.stringify(actionItem),
-            });
+            const response = await axiosInstance.post(`/meetings/${meetingId}/action-items`, actionItem);
             return response;
         } catch (error) {
             console.error('Error adding action item:', error);
@@ -569,9 +459,7 @@ class ApiService {
 
     async completeMeetingActionItem(meetingId, actionItemId) {
         try {
-            const response = await this.request(`/meetings/${meetingId}/action-items/${actionItemId}/complete`, {
-                method: 'PATCH',
-            });
+            const response = await axiosInstance.patch(`/meetings/${meetingId}/action-items/${actionItemId}/complete`);
             return response;
         } catch (error) {
             console.error('Error completing action item:', error);
@@ -581,9 +469,7 @@ class ApiService {
 
     async restoreMeeting(meetingId) {
         try {
-            const response = await this.request(`/meetings/${meetingId}/restore`, {
-                method: 'PATCH',
-            });
+            const response = await axiosInstance.patch(`/meetings/${meetingId}/restore`);
             return response;
         } catch (error) {
             console.error('Error restoring meeting:', error);
@@ -593,9 +479,7 @@ class ApiService {
 
     async completeMeeting(meetingId) {
         try {
-            const response = await this.request(`/meetings/${meetingId}/complete`, {
-                method: 'PATCH',
-            });
+            const response = await axiosInstance.patch(`/meetings/${meetingId}/complete`);
             return response;
         } catch (error) {
             console.error('Error completing meeting:', error);
@@ -614,7 +498,7 @@ class ApiService {
             });
 
             const url = `/meeting-templates${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-            const response = await this.request(url);
+            const response = await axiosInstance.get(url);
             return response;
         } catch (error) {
             console.error('Error fetching meeting templates:', error);
@@ -624,10 +508,7 @@ class ApiService {
 
     async createMeetingTemplate(templateData) {
         try {
-            const response = await this.request('/meeting-templates', {
-                method: 'POST',
-                body: JSON.stringify(templateData),
-            });
+            const response = await axiosInstance.post('/meeting-templates', templateData);
             return response;
         } catch (error) {
             console.error('Error creating meeting template:', error);
@@ -637,10 +518,7 @@ class ApiService {
 
     async updateMeetingTemplate(templateId, templateData) {
         try {
-            const response = await this.request(`/meeting-templates/${templateId}`, {
-                method: 'PUT',
-                body: JSON.stringify(templateData),
-            });
+            const response = await axiosInstance.put(`/meeting-templates/${templateId}`, templateData);
             return response;
         } catch (error) {
             console.error('Error updating meeting template:', error);
@@ -650,7 +528,7 @@ class ApiService {
 
     async getMeetingTemplateById(templateId) {
         try {
-            const response = await this.request(`/meeting-templates/${templateId}`);
+            const response = await axiosInstance.get(`/meeting-templates/${templateId}`);
             return response;
         } catch (error) {
             console.error('Error fetching meeting template:', error);
@@ -660,9 +538,7 @@ class ApiService {
 
     async deleteMeetingTemplate(templateId) {
         try {
-            const response = await this.request(`/meeting-templates/${templateId}`, {
-                method: 'DELETE',
-            });
+            const response = await axiosInstance.delete(`/meeting-templates/${templateId}`);
             return response;
         } catch (error) {
             console.error('Error deleting meeting template:', error);
@@ -688,50 +564,30 @@ class ApiService {
 
     // Generic CRUD operations for other resources
     async get(endpoint) {
-        return await this.request(endpoint, { method: 'GET' });
+        return await axiosInstance.get(endpoint);
     }
 
     async post(endpoint, data) {
-        return await this.request(endpoint, {
-            method: 'POST',
-            body: JSON.stringify(data),
-        });
+        return await axiosInstance.post(endpoint, data);
     }
 
     async put(endpoint, data) {
-        return await this.request(endpoint, {
-            method: 'PUT',
-            body: JSON.stringify(data),
-        });
+        return await axiosInstance.put(endpoint, data);
     }
 
     async delete(endpoint) {
-        return await this.request(endpoint, { method: 'DELETE' });
+        return await axiosInstance.delete(endpoint);
     }
 
     // File upload using FormData (no JSON headers)
     async upload(endpoint, formData) {
-        const url = `${this.baseURL}${endpoint}`;
-
-        // Build headers without Content-Type so browser sets multipart boundary
-        const headers = {};
-        const token = this.getAuthToken();
-        if (token) headers['x-auth-token'] = token;
-
         try {
-            const response = await fetch(url, {
-                method: 'POST',
-                body: formData,
-                headers,
+            const response = await axiosInstance.post(endpoint, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
             });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || `HTTP error! status: ${response.status}`);
-            }
-
-            return data;
+            return response;
         } catch (error) {
             console.error('Upload request failed:', error);
             throw error;
@@ -740,16 +596,13 @@ class ApiService {
 
     // AI assistant helper
     async aiAssist(prompt, mode = 'summarize') {
-        return await this.post('/ai/assist', { prompt, mode });
+        return await axiosInstance.post('/ai/assist', { prompt, mode });
     }
 
     // AI Chat functionality
     async aiChat(messages) {
         try {
-            const response = await this.request('/ai/chat', {
-                method: 'POST',
-                body: JSON.stringify({ messages }),
-            });
+            const response = await axiosInstance.post('/ai/chat', { messages });
             return response;
         } catch (error) {
             console.error('AI Chat Error:', error);
