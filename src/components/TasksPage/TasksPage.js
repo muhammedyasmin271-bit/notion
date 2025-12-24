@@ -75,7 +75,7 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('https://melaback.vercel.app/api/users', {
+      const response = await fetch('https://notion-l9ti.onrender.com/api/users', {
         method: 'GET',
         headers: {
           'x-auth-token': token,
@@ -99,7 +99,7 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch(`https://melaback.vercel.app/api/projects/${projectId}`, {
+      const response = await fetch(`https://notion-l9ti.onrender.com/api/projects/${projectId}`, {
         method: 'GET',
         headers: {
           'x-auth-token': token,
@@ -113,7 +113,7 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
         // Get all users (use state if available, otherwise fetch)
         let allUsers = users;
         if (allUsers.length === 0) {
-          const userResponse = await fetch('https://melaback.vercel.app/api/users', {
+          const userResponse = await fetch('https://notion-l9ti.onrender.com/api/users', {
             method: 'GET',
             headers: {
               'x-auth-token': token,
@@ -185,7 +185,7 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
     }
 
     try {
-      const url = `https://melaback.vercel.app/api/projects/${projectId}/data`;
+      const url = `https://notion-l9ti.onrender.com/api/projects/${projectId}/data`;
       console.log('Making request to project-specific endpoint:', url);
 
       const response = await fetch(url, {
@@ -354,7 +354,7 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
 
       console.log('Creating task with data:', taskData);
 
-      const response = await fetch(`https://melaback.vercel.app/api/projects/${projectId}/tasks`, {
+      const response = await fetch(`https://notion-l9ti.onrender.com/api/projects/${projectId}/tasks`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

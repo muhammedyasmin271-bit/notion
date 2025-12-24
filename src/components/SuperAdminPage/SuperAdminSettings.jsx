@@ -27,7 +27,7 @@ const SuperAdminSettings = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('https://melaback.vercel.app/api/settings/all', {
+      const response = await fetch('https://notion-l9ti.onrender.com/api/settings/all', {
         headers: { 'x-auth-token': token }
       });
       const data = await response.json();
@@ -66,7 +66,7 @@ const SuperAdminSettings = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('https://melaback.vercel.app/api/settings/payment.pricePerUserPerMonth', {
+      const response = await fetch('https://notion-l9ti.onrender.com/api/settings/payment.pricePerUserPerMonth', {
         method: 'PUT',
         headers: {
           'x-auth-token': token,
@@ -97,7 +97,7 @@ const SuperAdminSettings = () => {
       
       // Save all contact settings
       const updates = [
-        fetch('https://melaback.vercel.app/api/settings/contact.email', {
+        fetch('https://notion-l9ti.onrender.com/api/settings/contact.email', {
           method: 'PUT',
           headers: {
             'x-auth-token': token,
@@ -105,7 +105,7 @@ const SuperAdminSettings = () => {
           },
           body: JSON.stringify({ value: contactSettings.email })
         }),
-        fetch('https://melaback.vercel.app/api/settings/contact.phone', {
+        fetch('https://notion-l9ti.onrender.com/api/settings/contact.phone', {
           method: 'PUT',
           headers: {
             'x-auth-token': token,
@@ -113,7 +113,7 @@ const SuperAdminSettings = () => {
           },
           body: JSON.stringify({ value: contactSettings.phone })
         }),
-        fetch('https://melaback.vercel.app/api/settings/contact.address', {
+        fetch('https://notion-l9ti.onrender.com/api/settings/contact.address', {
           method: 'PUT',
           headers: {
             'x-auth-token': token,

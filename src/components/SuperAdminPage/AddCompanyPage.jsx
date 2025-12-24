@@ -33,7 +33,7 @@ const AddCompanyPage = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('https://melaback.vercel.app/api/admin/companies', {
+      const res = await fetch('https://notion-l9ti.onrender.com/api/admin/companies', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') },
         body: JSON.stringify(formData)

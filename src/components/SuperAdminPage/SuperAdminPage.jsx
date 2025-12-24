@@ -39,7 +39,7 @@ const SuperAdminPage = () => {
   const fetchCompanies = React.useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('https://melaback.vercel.app/api/admin/companies', {
+      const res = await fetch('https://notion-l9ti.onrender.com/api/admin/companies', {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
       const data = await res.json();
@@ -143,7 +143,7 @@ const SuperAdminPage = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('https://melaback.vercel.app/api/admin/companies', {
+      const res = await fetch('https://notion-l9ti.onrender.com/api/admin/companies', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') },
         body: JSON.stringify(formData)
@@ -178,7 +178,7 @@ const SuperAdminPage = () => {
   const viewCompanyDetails = async (companyId) => {
     setLoading(true);
     try {
-      const res = await fetch(`https://melaback.vercel.app/api/admin/companies/${companyId}/stats`, {
+      const res = await fetch(`https://notion-l9ti.onrender.com/api/admin/companies/${companyId}/stats`, {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
       const data = await res.json();
@@ -193,7 +193,7 @@ const SuperAdminPage = () => {
       });
       
       // Fetch company payments
-      const paymentsRes = await fetch('https://melaback.vercel.app/api/payments/all', {
+      const paymentsRes = await fetch('https://notion-l9ti.onrender.com/api/payments/all', {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
       const paymentsData = await paymentsRes.json();
@@ -231,7 +231,7 @@ const SuperAdminPage = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`https://melaback.vercel.app/api/admin/companies/${selectedCompany.companyId}/limits`, {
+      const response = await fetch(`https://notion-l9ti.onrender.com/api/admin/companies/${selectedCompany.companyId}/limits`, {
         method: 'PATCH',
         headers: {
           'x-auth-token': token,
@@ -267,7 +267,7 @@ const SuperAdminPage = () => {
       const currentMode = selectedCompany.paymentMode || 'paid'; // Default to 'paid' if undefined
       const newMode = currentMode === 'paid' ? 'free' : 'paid';
       
-      const response = await fetch(`https://melaback.vercel.app/api/admin/companies/${selectedCompany.companyId}/payment-mode`, {
+      const response = await fetch(`https://notion-l9ti.onrender.com/api/admin/companies/${selectedCompany.companyId}/payment-mode`, {
         method: 'PATCH',
         headers: {
           'x-auth-token': token,
@@ -300,7 +300,7 @@ const SuperAdminPage = () => {
     try {
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`https://melaback.vercel.app/api/admin/companies/${selectedCompany.companyId}/points-toggle`, {
+      const response = await fetch(`https://notion-l9ti.onrender.com/api/admin/companies/${selectedCompany.companyId}/points-toggle`, {
         method: 'PATCH',
         headers: {
           'x-auth-token': token,
@@ -347,7 +347,7 @@ const SuperAdminPage = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `https://melaback.vercel.app/api/payments/${selectedPayment._id}/verify`,
+        `https://notion-l9ti.onrender.com/api/payments/${selectedPayment._id}/verify`,
         {
           method: 'PUT',
           headers: {
@@ -398,14 +398,14 @@ const SuperAdminPage = () => {
     try {
       if (currentStatus === 'active') {
         // Pause the company
-        await fetch(`https://melaback.vercel.app/api/payments/company/${companyId}/pause`, {
+        await fetch(`https://notion-l9ti.onrender.com/api/payments/company/${companyId}/pause`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') }
         });
         setSuccess('Company paused successfully!');
       } else {
         // Reactivate the company (24-hour window)
-        await fetch(`https://melaback.vercel.app/api/payments/company/${companyId}/play`, {
+        await fetch(`https://notion-l9ti.onrender.com/api/payments/company/${companyId}/play`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') }
         });
@@ -420,7 +420,7 @@ const SuperAdminPage = () => {
 
   const unpauseCompany = async (companyId) => {
     try {
-      const response = await fetch(`https://melaback.vercel.app/api/admin/companies/${companyId}/unpause`, {
+      const response = await fetch(`https://notion-l9ti.onrender.com/api/admin/companies/${companyId}/unpause`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') }
       });
@@ -445,7 +445,7 @@ const SuperAdminPage = () => {
   const deleteCompany = async (companyId) => {
     if (!window.confirm('⚠️ Delete this company and ALL its data? This cannot be undone!')) return;
     try {
-      await fetch(`https://melaback.vercel.app/api/admin/companies/${companyId}`, {
+      await fetch(`https://notion-l9ti.onrender.com/api/admin/companies/${companyId}`, {
         method: 'DELETE',
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });

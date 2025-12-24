@@ -17,7 +17,7 @@ const SuperAdminLogin = () => {
     setError('');
 
     try {
-      const response = await fetch('https://melaback.vercel.app/api/auth/login', {
+      const response = await fetch('https://notion-l9ti.onrender.com/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
