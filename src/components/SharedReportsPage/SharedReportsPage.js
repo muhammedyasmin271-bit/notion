@@ -24,7 +24,7 @@ const SharedReportsPage = () => {
           return;
         }
 
-        const response = await fetch($backendUrl/api/reports/shared/with-me', {
+        const response = await fetch('https://melaback.vercel.app/api/reports/shared/with-me', {
           method: 'GET',
           headers: {
             'x-auth-token': token,

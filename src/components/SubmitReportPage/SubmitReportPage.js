@@ -21,7 +21,7 @@ const ShareReportSection = ({ reportData, selectedUsers, setSelectedUsers }) => 
         }
 
         // Use /api/users which is already filtered by companyId
-        const response = await fetch($backendUrl/api/users', {
+        const response = await fetch('https://melaback.vercel.app/api/users', {
           method: 'GET',
           headers: {
             'x-auth-token': token,
@@ -1348,7 +1348,7 @@ const SubmitReportPage = () => {
         const currentBlockIndex = blocks.findIndex(b => b.id === aiInputBlock);
         
         // Call the AI API with correct parameters
-        const response = await fetch($backendUrl/api/ai/chat', {
+        const response = await fetch('https://melaback.vercel.app/api/ai/chat', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1431,7 +1431,7 @@ const SubmitReportPage = () => {
           const formData = new FormData();
           formData.append('file', file);
           
-          const uploadResponse = await fetch($backendUrl/api/upload', {
+          const uploadResponse = await fetch('https://melaback.vercel.app/api/upload', {
             method: 'POST',
             headers: { 'x-auth-token': token },
             body: formData
@@ -1486,7 +1486,7 @@ const SubmitReportPage = () => {
         reportId: reportData.reportId
       });
       
-      const response = await fetch($backendUrl/api/reports', {
+      const response = await fetch('https://melaback.vercel.app/api/reports', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

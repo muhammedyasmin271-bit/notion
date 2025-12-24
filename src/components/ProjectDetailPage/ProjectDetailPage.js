@@ -538,7 +538,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
     try {
       console.log('Fetching project with ID:', projectId);
       // First fetch the basic project data
-      const projectResponse = await fetch(`$backendUrl/api/projects/${projectId}`, {
+      const projectResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/projects/${projectId}`, {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
       
@@ -593,7 +593,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
         }
         
         // Fetch the project's tasks and other data
-        const dataResponse = await fetch(`$backendUrl/api/projects/${projectId}/data`, {
+        const dataResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/projects/${projectId}/data`, {
           headers: { 'x-auth-token': localStorage.getItem('token') }
         });
         
@@ -756,7 +756,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
 
       if (project.id === 'new') {
         console.log('Creating new project...');
-        const response = await fetch($backendUrl/api/projects', {
+        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/projects`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -846,7 +846,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
         return;
       }
 
-      const response = await fetch(`$backendUrl/api/projects/${project.id}/status`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/projects/${project.id}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -871,7 +871,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
     setLoadingUsers(true);
     try {
       // Fetch users from company-filtered API endpoint
-      const response = await fetch($backendUrl/api/users', {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/users`, {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
       
@@ -1080,7 +1080,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch(`$backendUrl/api/projects/${project.id}/notes`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/projects/${project.id}/notes`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -3435,7 +3435,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                           if (idToFetch && idToFetch !== 'new') {
                             try {
                               console.log('🔄 Refreshing project data...');
-                              const refreshResponse = await fetch(`$backendUrl/api/projects/${idToFetch}`, {
+                              const refreshResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/projects/${idToFetch}`, {
                                 headers: { 'x-auth-token': localStorage.getItem('token') }
                               });
                               if (refreshResponse.ok) {

@@ -98,7 +98,7 @@ const CreateCompanyPage = () => {
         pointsEnabled: formData.pointsEnabled
       };
 
-      const response = await fetch($backendUrl/api/company/create', {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/company/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(submitData)

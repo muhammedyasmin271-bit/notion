@@ -38,7 +38,7 @@ const CompanySettings = () => {
   const fetchCompanyData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch($backendUrl/api/company/my-company', {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/company/my-company`, {
         headers: {
           'x-auth-token': token
         }
@@ -76,7 +76,7 @@ const CompanySettings = () => {
   const fetchCompanyStats = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch($backendUrl/api/company/stats', {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/company/stats`, {
         headers: {
           'x-auth-token': token
         }
@@ -140,7 +140,7 @@ const CompanySettings = () => {
       const token = localStorage.getItem('token');
       console.log('Sending request to backend...');
       
-      const response = await fetch($backendUrl/api/company/branding', {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/company/branding`, {
         method: 'PUT',
         headers: {
           'x-auth-token': token
@@ -193,7 +193,7 @@ const CompanySettings = () => {
       const token = localStorage.getItem('token');
       console.log('Sending request to backend...');
       
-      const response = await fetch($backendUrl/api/company/contact', {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/company/contact`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

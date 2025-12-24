@@ -29,7 +29,7 @@ const PaymentRestriction = ({ children }) => {
     const checkPaymentStatus = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch($backendUrl/api/company/my-company', {
+        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/company/my-company`, {
           headers: { 'x-auth-token': token }
         });
 
