@@ -20,7 +20,7 @@ const PaymentReturn = () => {
       
       console.log(`🔍 Payment verification attempt ${attempt} for tx_ref:`, tx_ref);
       
-      const response = await fetch(`http://localhost:9000/api/payments/chapa/verify/${tx_ref}`, {
+      const response = await fetch(`$backendUrl/api/payments/chapa/verify/${tx_ref}`, {
         headers: { 'x-auth-token': token }
       });
       

@@ -394,14 +394,14 @@ UI: Updates with new branding
 When you save branding, you'll see:
 
 ```
-MongoDB connected: localhost:27017
+MongoDB connected: process.env.Backendurl:27017
 PUT /api/company/branding - 200 OK
 Company branding updated for companyId: your-company-id
 ```
 
 ### **Frontend Network Tab:**
 
-- Request: `PUT http://localhost:9000/api/company/branding`
+- Request: `PUT process.env.Backendurl/api/company/branding`
 - Response: `{ message: "Company branding updated successfully", branding: {...} }`
 - Status: 200 OK
 

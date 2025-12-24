@@ -6,7 +6,7 @@ const MeetingNote = require('./models/MeetingNote');
 async function createTestData() {
   try {
     // Connect to MongoDB
-    await mongoose.connect('mongodb://localhost:27017/notion', {
+    await mongoose.connect('mongodb://process.env.Backendurl:27017/notion', {
       useNewUrlParser: true,
       useUnifiedTopology: true
     });

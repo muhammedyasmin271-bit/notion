@@ -50,7 +50,7 @@ MONGODB_URI=mongodb+srv://muhammedyasmin271_db_user:xt8xWbq2jGjC0gap@cluster0.if
 ### 2. Comment out the local MongoDB URI:
 
 ```
-# MONGODB_URI=mongodb://localhost:27017/notion-app
+# MONGODB_URI=mongodb://process.env.Backendurl:27017/notion-app
 ```
 
 ## Verification
@@ -64,7 +64,7 @@ MONGODB_URI=mongodb+srv://muhammedyasmin271_db_user:xt8xWbq2jGjC0gap@cluster0.if
 ### Check if backend server is running:
 
 1. Open browser
-2. Go to: http://localhost:9000/api/health
+2. Go to: process.env.Backendurl/api/health
 3. You should see a JSON response with status "OK"
 
 ## Features Added to Handle Offline Mode

@@ -109,7 +109,7 @@ This document outlines the web push notification functionality and PWA (Progress
 ### Common Issues
 
 1. **Notifications not showing**: Check browser permissions
-2. **Service worker not registering**: Ensure HTTPS or localhost
+2. **Service worker not registering**: Ensure HTTPS or process.env.Backendurl
 3. **Push not working**: Verify VAPID key configuration
 
 ### Debug Steps

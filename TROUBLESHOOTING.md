@@ -19,7 +19,7 @@
 3. **Check MongoDB Connection**
 
    - Make sure MongoDB is running on your system
-   - Default connection: `mongodb://localhost:27017/notion-app`
+   - Default connection: `mongodb://process.env.Backendurl:27017/notion-app`
 
 4. **Check Browser Console**
    - Open Developer Tools (F12)
@@ -76,9 +76,9 @@ npm run dev
    - Your meeting should appear in the list
 
 3. **Check API Endpoints:**
-   - Open http://localhost:9000/api/health in browser
+   - Open process.env.Backendurl/api/health in browser
    - Should show server status JSON
-   - Open http://localhost:9000/api/meetings in browser (requires authentication)
+   - Open process.env.Backendurl/api/meetings in browser (requires authentication)
 
 ### Debug Information Added:
 

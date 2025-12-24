@@ -3,7 +3,7 @@
  * Tests all major features of the Notion-like application
  */
 
-const BASE_URL = 'http://localhost:9000/api';
+const BASE_URL = 'process.env.Backendurl/api';
 let authToken = null;
 let testResults = {
   passed: [],

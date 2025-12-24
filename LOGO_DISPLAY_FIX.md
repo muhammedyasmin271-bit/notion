@@ -14,10 +14,10 @@ Updated all logo image tags to handle both relative and absolute URLs:
 
 ```javascript
 // Before
-src={`http://localhost:9000${company.branding.logo}`}
+src={`process.env.Backendurl${company.branding.logo}`}
 
 // After
-src={company.branding.logo.startsWith('http') ? company.branding.logo : `http://localhost:9000${company.branding.logo}`}
+src={company.branding.logo.startsWith('http') ? company.branding.logo : `process.env.Backendurl${company.branding.logo}`}
 ```
 
 ## Files Modified
@@ -33,11 +33,11 @@ src={company.branding.logo.startsWith('http') ? company.branding.logo : `http://
 
 The fix checks if the logo URL already starts with 'http':
 - If YES: Use it as-is (already a full URL)
-- If NO: Prepend the backend server address (`http://localhost:9000`)
+- If NO: Prepend the backend server address (`process.env.Backendurl`)
 
 This ensures compatibility with:
 - Relative paths from database: `/uploads/company-logos/filename`
-- Absolute URLs: `http://localhost:9000/uploads/company-logos/filename`
+- Absolute URLs: `process.env.Backendurl/uploads/company-logos/filename`
 - External URLs: `https://example.com/logo.png`
 
 ## Testing

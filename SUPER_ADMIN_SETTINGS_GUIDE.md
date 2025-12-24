@@ -398,7 +398,7 @@ Super Admin Dashboard → Click "Settings" button
 **Method 2:** Direct URL
 
 ```
-http://localhost:3000/super-admin/settings
+process.env.Backendurl/super-admin/settings
 ```
 
 ---

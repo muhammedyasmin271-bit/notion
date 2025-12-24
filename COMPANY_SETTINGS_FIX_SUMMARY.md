@@ -27,15 +27,15 @@ Updated all 4 API calls to use the full backend URL:
 fetch('/api/company/branding', ...)
 
 // NEW (✅ Correct - points to backend server)
-fetch('http://localhost:9000/api/company/branding', ...)
+fetch('process.env.Backendurl/api/company/branding', ...)
 ```
 
 **Updated endpoints:**
 
-- `fetchCompanyData()` → `/api/company/my-company` → `http://localhost:9000/api/company/my-company`
-- `fetchCompanyStats()` → `/api/company/stats` → `http://localhost:9000/api/company/stats`
-- `handleSaveBranding()` → `/api/company/branding` → `http://localhost:9000/api/company/branding`
-- `handleSaveContact()` → `/api/company/contact` → `http://localhost:9000/api/company/contact`
+- `fetchCompanyData()` → `/api/company/my-company` → `process.env.Backendurl/api/company/my-company`
+- `fetchCompanyStats()` → `/api/company/stats` → `process.env.Backendurl/api/company/stats`
+- `handleSaveBranding()` → `/api/company/branding` → `process.env.Backendurl/api/company/branding`
+- `handleSaveContact()` → `/api/company/contact` → `process.env.Backendurl/api/company/contact`
 
 ### 2. Enhanced Backend Logging ✅
 
@@ -131,7 +131,7 @@ Comprehensive guide covering:
 2. **Frontend (CompanySettings.js):**
 
    - Creates FormData with the form fields
-   - Sends PUT request to `http://localhost:9000/api/company/branding`
+   - Sends PUT request to `process.env.Backendurl/api/company/branding`
    - Logs request details to browser console
 
 3. **Backend (server/routes/company.js):**

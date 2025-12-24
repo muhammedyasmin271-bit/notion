@@ -3,7 +3,7 @@
 
 const axios = require('axios');
 
-const BASE_URL = 'http://localhost:9000/api';
+const BASE_URL = 'process.env.Backendurl/api';
 
 async function testPointsToggle() {
   try {

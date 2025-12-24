@@ -19,7 +19,7 @@ EMAIL_SECURE=false
 EMAIL_USER=your_email@gmail.com
 EMAIL_PASS=your_app_password
 EMAIL_FROM_NAME=Notion App
-FRONTEND_URL=http://localhost:3000
+FRONTEND_URL=process.env.Backendurl
 ```
 
 ### 3. Get Gmail App Password

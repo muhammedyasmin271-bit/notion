@@ -6,8 +6,8 @@
 const fetch = require('node-fetch');
 const readline = require('readline');
 
-const BASE_URL = 'http://localhost:9000/api';
-const FRONTEND_URL = 'http://localhost:3000';
+const BASE_URL = 'process.env.Backendurl/api';
+const FRONTEND_URL = 'process.env.Backendurl';
 
 // Color output
 const colors = {

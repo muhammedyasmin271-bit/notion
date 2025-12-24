@@ -24,16 +24,16 @@
 3. **Find your company** (e.g., "darel kubra")
 4. **Copy the Company Link** - it will look like:
    ```
-   http://localhost:3000/login?company=comp_1760450564995_wt9889rv0
+   process.env.Backendurl/login?company=comp_1760450564995_wt9889rv0
    ```
 
 ### Step 2: Create Registration Link
 
 **Change `/login` to `/register` in the URL:**
 
-❌ **Login Link:** `http://localhost:3000/login?company=comp_1760450564995_wt9889rv0`
+❌ **Login Link:** `process.env.Backendurl/login?company=comp_1760450564995_wt9889rv0`
 
-✅ **Register Link:** `http://localhost:3000/register?company=comp_1760450564995_wt9889rv0`
+✅ **Register Link:** `process.env.Backendurl/register?company=comp_1760450564995_wt9889rv0`
 
 ### Step 3: Register a Test User
 
@@ -94,8 +94,8 @@
 
 **Check the URL:**
 
-- ❌ Bad: `http://localhost:3000/register` (no company parameter)
-- ✅ Good: `http://localhost:3000/register?company=comp_xxx`
+- ❌ Bad: `process.env.Backendurl/register` (no company parameter)
+- ✅ Good: `process.env.Backendurl/register?company=comp_xxx`
 
 **Check Browser Console:**
 
@@ -133,7 +133,7 @@ const mongoose = require('mongoose');
 const User = require('./models/User');
 require('dotenv').config();
 
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/notion-app').then(async () => {
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://process.env.Backendurl:27017/notion-app').then(async () => {
   const users = await User.find().select('name username companyId role status');
   users.forEach(u => {
     console.log(\`\${u.name} (@\${u.username}) - Company: \${u.companyId} - Role: \${u.role} - Status: \${u.status}\`);

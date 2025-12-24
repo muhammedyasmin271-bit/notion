@@ -1,7 +1,7 @@
 require('dotenv').config();
 const axios = require('axios');
 
-const API_BASE = 'http://localhost:9000/api';
+const API_BASE = 'process.env.Backendurl/api';
 
 async function testUserLimitAPI() {
   try {

@@ -336,7 +336,7 @@ You will see:
     Request:
     ════════════════════════════════════════════════════════════════════
     GET /api/auth/users HTTP/1.1
-    Host: localhost:9000
+    Host: process.env.Backendurl
     x-auth-token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
                   ↑
                   Contains: companyId = "melanote"

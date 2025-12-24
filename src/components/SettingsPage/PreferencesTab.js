@@ -41,7 +41,7 @@ const PreferencesTab = () => {
     const loadPreferences = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get('http://localhost:9000/api/users/profile', {
+        const response = await axios.get($backendUrl/api/users/profile', {
           headers: { 'x-auth-token': token }
         });
         
@@ -70,7 +70,7 @@ const PreferencesTab = () => {
     const loadSMSUsage = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get('http://localhost:9000/api/notifications/sms-usage', {
+        const response = await axios.get($backendUrl/api/notifications/sms-usage', {
           headers: { 'x-auth-token': token }
         });
         setSmsUsage(response.data);
@@ -95,19 +95,19 @@ const PreferencesTab = () => {
       const token = localStorage.getItem('token');
       
       // Save email notification preference
-      await axios.patch('http://localhost:9000/api/notifications/email-settings', 
+      await axios.patch($backendUrl/api/notifications/email-settings', 
         { emailNotifications: notifications.emailNotifications },
         { headers: { 'x-auth-token': token } }
       );
       
       // Save SMS notification preference
-      await axios.patch('http://localhost:9000/api/notifications/sms-settings', 
+      await axios.patch($backendUrl/api/notifications/sms-settings', 
         { smsNotifications: notifications.smsNotifications },
         { headers: { 'x-auth-token': token } }
       );
 
       // Save quiet hours settings
-      await axios.patch('http://localhost:9000/api/notifications/quiet-hours',
+      await axios.patch($backendUrl/api/notifications/quiet-hours',
         quietHours,
         { headers: { 'x-auth-token': token } }
       );
@@ -128,7 +128,7 @@ const PreferencesTab = () => {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post('http://localhost:9000/api/notifications/test-email', 
+      const response = await axios.post($backendUrl/api/notifications/test-email', 
         {},
         { headers: { 'x-auth-token': token } }
       );
@@ -149,7 +149,7 @@ const PreferencesTab = () => {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post('http://localhost:9000/api/notifications/test-sms', 
+      const response = await axios.post($backendUrl/api/notifications/test-sms', 
         {},
         { headers: { 'x-auth-token': token } }
       );

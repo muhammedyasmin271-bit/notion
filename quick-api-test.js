@@ -5,9 +5,9 @@ async function quickTest() {
   console.log('🔍 QUICK API HEALTH CHECK\n');
   
   const tests = [
-    { name: 'Health Endpoint', url: 'http://localhost:9000/api/health', method: 'GET' },
-    { name: 'Login Endpoint', url: 'http://localhost:9000/api/auth/login', method: 'POST', body: { username: 'test', password: 'test' } },
-    { name: 'Payment Settings', url: 'http://localhost:9000/api/settings/payment', method: 'GET' }
+    { name: 'Health Endpoint', url: 'process.env.Backendurl/api/health', method: 'GET' },
+    { name: 'Login Endpoint', url: 'process.env.Backendurl/api/auth/login', method: 'POST', body: { username: 'test', password: 'test' } },
+    { name: 'Payment Settings', url: 'process.env.Backendurl/api/settings/payment', method: 'GET' }
   ];
   
   for (const test of tests) {

@@ -25,7 +25,7 @@ class SMSTestSuite {
 
     try {
       // Connect to database
-      await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/notion-app');
+      await mongoose.connect(process.env.MONGODB_URI || 'mongodb://process.env.Backendurl:27017/notion-app');
       console.log('✅ Connected to database\n');
 
       // Run all test categories

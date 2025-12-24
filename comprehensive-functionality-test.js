@@ -6,9 +6,9 @@
 const fetch = require('node-fetch');
 require('dotenv').config();
 
-// Use environment variables with fallback to localhost for development
-const BASE_URL = process.env.BACKEND_URL || process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:9000';
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+// Use environment variables with fallback to process.env.Backendurl for development
+const BASE_URL = process.env.BACKEND_URL || process.env.REACT_APP_API_URL?.replace('/api', '') || 'process.env.Backendurl';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'process.env.Backendurl';
 
 // Test results storage
 const testResults = {

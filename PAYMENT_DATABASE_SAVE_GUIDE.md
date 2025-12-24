@@ -23,7 +23,7 @@ submitData.append("year", formData.year);
 submitData.append("note", formData.note);
 
 // POST to backend
-fetch("http://localhost:9000/api/payments/submit", {
+fetch("process.env.Backendurl/api/payments/submit", {
   method: "POST",
   headers: { "x-auth-token": token },
   body: submitData,
@@ -197,7 +197,7 @@ res.status(201).json({
 **1. Login as Company Admin:**
 
 ```
-URL: http://localhost:3000/login?company=YOUR_COMPANY_ID
+URL: process.env.Backendurl/login?company=YOUR_COMPANY_ID
 Username: admin_username
 Password: admin_password
 ```
@@ -206,7 +206,7 @@ Password: admin_password
 
 ```
 Click: Admin Dashboard → Payment card
-Or direct: http://localhost:3000/admin/payments
+Or direct: process.env.Backendurl/admin/payments
 ```
 
 **3. Click "Submit Payment"**
@@ -345,7 +345,7 @@ Or direct: http://localhost:3000/admin/payments
 
 ```bash
 # In server terminal, should see:
-MongoDB connected: localhost:27017
+MongoDB connected: process.env.Backendurl:27017
 ```
 
 **3. Check Browser Console:**
@@ -359,7 +359,7 @@ MongoDB connected: localhost:27017
 **4. Check Network Tab (Browser DevTools):**
 
 ```
-POST http://localhost:9000/api/payments/submit
+POST process.env.Backendurl/api/payments/submit
 Status: 201 Created
 Response: { message: "Payment submitted successfully!", payment: {...} }
 ```

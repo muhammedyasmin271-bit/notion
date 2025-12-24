@@ -25,8 +25,8 @@ async function testRealPayment() {
     last_name: 'Doe',
     phone_number: '+251911123456',
     tx_ref: `payment-${Date.now()}`,
-    callback_url: 'http://localhost:9000/api/payments/chapa/callback',
-    return_url: 'http://localhost:3000/admin/payments?status=success',
+    callback_url: 'process.env.Backendurl/api/payments/chapa/callback',
+    return_url: 'process.env.Backendurl/admin/payments?status=success',
     customization: {
       title: 'Subscription',
       description: 'Monthly subscription payment'

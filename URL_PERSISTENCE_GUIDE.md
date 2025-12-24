@@ -7,13 +7,13 @@
 When you login with a company URL, the `company` parameter persists throughout navigation:
 
 ```
-Login: http://localhost:3000/login?company=comp_xxx
+Login: process.env.Backendurl/login?company=comp_xxx
   ↓
-Home:  http://localhost:3000/home?company=comp_xxx
+Home:  process.env.Backendurl/home?company=comp_xxx
   ↓
-Projects: http://localhost:3000/projects?company=comp_xxx
+Projects: process.env.Backendurl/projects?company=comp_xxx
   ↓
-Meetings: http://localhost:3000/meeting-notes?company=comp_xxx
+Meetings: process.env.Backendurl/meeting-notes?company=comp_xxx
 ```
 
 ---
@@ -70,33 +70,33 @@ to={currentCompanyId ? `${item.path}?company=${currentCompanyId}` : item.path}
 **Step 1**: Admin gets company link from Super Admin
 
 ```
-http://localhost:3000/login?company=comp_1760450564995_wt9889rv0
+process.env.Backendurl/login?company=comp_1760450564995_wt9889rv0
 ```
 
 **Step 2**: Admin logs in
 
 ```
-URL changes to: http://localhost:3000/home?company=comp_1760450564995_wt9889rv0
+URL changes to: process.env.Backendurl/home?company=comp_1760450564995_wt9889rv0
 CompanyId stored in: localStorage.currentCompanyId
 ```
 
 **Step 3**: Admin clicks "Projects"
 
 ```
-URL changes to: http://localhost:3000/projects?company=comp_1760450564995_wt9889rv0
+URL changes to: process.env.Backendurl/projects?company=comp_1760450564995_wt9889rv0
 ```
 
 **Step 4**: Admin clicks "Meetings"
 
 ```
-URL changes to: http://localhost:3000/meeting-notes?company=comp_1760450564995_wt9889rv0
+URL changes to: process.env.Backendurl/meeting-notes?company=comp_1760450564995_wt9889rv0
 ```
 
 **Step 5**: Admin logs out
 
 ```
 localStorage.currentCompanyId cleared
-URL returns to normal: http://localhost:3000/login
+URL returns to normal: process.env.Backendurl/login
 ```
 
 ---
@@ -157,13 +157,13 @@ This ensures companyId is available even if URL parameter is lost.
 
 ### Before:
 
-- ❌ URL: `http://localhost:3000/home` (no company context)
+- ❌ URL: `process.env.Backendurl/home` (no company context)
 - ❌ Can't tell which company from URL
 - ❌ Can't share direct links with team
 
 ### After:
 
-- ✅ URL: `http://localhost:3000/home?company=comp_xxx`
+- ✅ URL: `process.env.Backendurl/home?company=comp_xxx`
 - ✅ Clear company context in URL
 - ✅ Shareable links with team
 - ✅ Professional multi-tenant URLs
@@ -175,7 +175,7 @@ This ensures companyId is available even if URL parameter is lost.
 **Now all URLs maintain the company context throughout the app!**
 
 ```
-Login with: http://localhost:3000/login?company=comp_xxx
+Login with: process.env.Backendurl/login?company=comp_xxx
   ↓
 All pages will have: ?company=comp_xxx in the URL
   ↓

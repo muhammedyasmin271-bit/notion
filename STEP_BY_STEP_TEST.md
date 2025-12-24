@@ -39,7 +39,7 @@ npm start
 ## Test 1: Login Button Redirect (5 minutes)
 
 ### Step 1: Navigate to Create Company Page
-1. Open browser: `http://localhost:3000`
+1. Open browser: `process.env.Backendurl`
 2. Click "Create Company" button
 3. Verify you're on the create company page
 
@@ -66,7 +66,7 @@ npm start
 
 ### Step 5: Test Login Button
 1. Click "Login to Your Workspace" button
-2. **Check URL bar**: Should show `http://localhost:3000/login?company=comp_XXXXX`
+2. **Check URL bar**: Should show `process.env.Backendurl/login?company=comp_XXXXX`
 3. **Check page content**:
    - ✅ Company name displays
    - ✅ Login form visible
@@ -91,7 +91,7 @@ npm start
 - Backend running with logs visible
 
 ### Step 1: Navigate to Create Company
-1. Go to `http://localhost:3000`
+1. Go to `process.env.Backendurl`
 2. Click "Create Company"
 
 ### Step 2: Select Paid Plan
@@ -145,7 +145,7 @@ Look for these logs in backend terminal:
 ## Test 3: SMS Notification - Free Trial (5 minutes)
 
 ### Step 1: Navigate to Create Company
-1. Go to `http://localhost:3000`
+1. Go to `process.env.Backendurl`
 2. Click "Create Company"
 
 ### Step 2: Select Free Trial Plan
@@ -253,7 +253,7 @@ npm run dev
 ```
 
 ### Step 3: Create Company
-1. Go to `http://localhost:3000`
+1. Go to `process.env.Backendurl`
 2. Create a new company with any plan
 3. Fill all required fields
 4. Click "Create Company"

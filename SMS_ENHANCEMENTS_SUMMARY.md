@@ -232,7 +232,7 @@ smsStatus: {
 ```
 🚀 Server running on port 9000
 📍 Environment: development
-🌐 API available at: http://localhost:9000/api
+🌐 API available at: process.env.Backendurl/api
 
 📋 Configuration Status:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

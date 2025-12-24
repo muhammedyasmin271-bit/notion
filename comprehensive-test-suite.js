@@ -5,8 +5,8 @@
 
 const fetch = require('node-fetch');
 
-const BASE_URL = 'http://localhost:9000/api';
-const FRONTEND_URL = 'http://localhost:3000';
+const BASE_URL = 'process.env.Backendurl/api';
+const FRONTEND_URL = 'process.env.Backendurl';
 
 // Test configuration
 const TEST_CONFIG = {

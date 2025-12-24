@@ -54,7 +54,7 @@ npm start
 ## How to Sell to New Companies
 
 ### 1. Login as Super Admin
-- Go to: `http://localhost:3000/login`
+- Go to: `process.env.Backendurl/login`
 - Username: `adminadmin`
 - Password: `06827`
 
@@ -88,7 +88,7 @@ Send them:
 ### Mela Note (Your First Client)
 - Company ID: `melanote`
 - Admin: `aymen` / `7749`
-- Link: `http://localhost:3000/login?company=melanote`
+- Link: `process.env.Backendurl/login?company=melanote`
 
 ### Future Clients
 Each gets:

@@ -15,11 +15,11 @@ This will add `companyId: 'default'` to all existing records.
 ### 2. Create a Company (Super Admin)
 
 1. **Login as Super Admin:**
-   - Visit: `http://localhost:3000/login`
+   - Visit: `process.env.Backendurl/login`
    - Use super admin credentials
 
 2. **Navigate to Super Admin Dashboard:**
-   - Go to: `http://localhost:3000/super-admin`
+   - Go to: `process.env.Backendurl/super-admin`
 
 3. **Create New Company:**
    - Click "Add Company" button
@@ -35,7 +35,7 @@ This will add `companyId: 'default'` to all existing records.
 4. **Copy Company Link:**
    - After creation, you'll see a link like:
      ```
-     http://localhost:3000/login?company=comp_1234567890_abc123
+     process.env.Backendurl/login?company=comp_1234567890_abc123
      ```
    - Copy this link and share it with the company admin
 
@@ -43,7 +43,7 @@ This will add `companyId: 'default'` to all existing records.
 
 1. **Visit Company-Specific URL:**
    ```
-   http://localhost:3000/login?company=comp_1234567890_abc123
+   process.env.Backendurl/login?company=comp_1234567890_abc123
    ```
 
 2. **You'll See:**
@@ -93,7 +93,7 @@ As company admin:
 ## Company URL Format
 
 ```
-http://localhost:3000/login?company=COMPANY_ID
+process.env.Backendurl/login?company=COMPANY_ID
 ```
 
 Where `COMPANY_ID` is the unique identifier generated when creating the company.

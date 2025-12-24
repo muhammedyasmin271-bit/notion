@@ -6,12 +6,12 @@
    ```
    CHAPA_TOKEN=your_chapa_token_here
    CHAPA_API=https://api.chapa.co/v1
-   BASE_URL=http://localhost:3000
+   BASE_URL=process.env.Backendurl
    ```
 
 2. **Server Running**:
-   - Backend: `http://localhost:9000`
-   - Frontend: `http://localhost:3000`
+   - Backend: `process.env.Backendurl`
+   - Frontend: `process.env.Backendurl`
 
 3. **Login** as a company admin
 
@@ -135,7 +135,7 @@ Look for these log messages:
 
 3. **Payment stuck as pending**
    - Check Chapa dashboard to see actual payment status
-   - Verify Chapa callback URL is accessible (may need ngrok for localhost)
+   - Verify Chapa callback URL is accessible (may need ngrok for process.env.Backendurl)
    - Check server logs for callback/verification errors
 
 ## ✅ Expected Results

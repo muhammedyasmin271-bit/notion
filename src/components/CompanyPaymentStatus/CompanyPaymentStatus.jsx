@@ -18,7 +18,7 @@ const CompanyPaymentStatus = ({ company, onRefresh }) => {
 
   const fetchPaymentStatus = async () => {
     try {
-      const response = await fetch(`http://localhost:9000/api/admin/companies/${company.companyId}/payment-status`, {
+      const response = await fetch(`$backendUrl/api/admin/companies/${company.companyId}/payment-status`, {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
       const data = await response.json();

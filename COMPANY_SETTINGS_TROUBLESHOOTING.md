@@ -32,7 +32,7 @@ npm start
 
 ```
 🚀 Server running on port 9000
-MongoDB connected: localhost:27017
+MongoDB connected: process.env.Backendurl:27017
 ✅ System settings initialized
 ```
 
@@ -49,7 +49,7 @@ Check the console for any errors when loading `company.js` routes.
 Open browser and go to:
 
 ```
-http://localhost:9000/api/health
+process.env.Backendurl/api/health
 ```
 
 **Should return:**
@@ -105,7 +105,7 @@ cd server
 npm start
 ```
 
-**Verify:** Go to `http://localhost:9000/api/health`
+**Verify:** Go to `process.env.Backendurl/api/health`
 
 ---
 
@@ -154,12 +154,12 @@ app.use(
 **Check:**
 
 - Backend should run on port 9000
-- Frontend should proxy to `http://localhost:9000`
+- Frontend should proxy to `process.env.Backendurl`
 
 **Verify in `package.json` (root):**
 
 ```json
-"proxy": "http://localhost:9000"
+"proxy": "process.env.Backendurl"
 ```
 
 ---
@@ -204,7 +204,7 @@ npm start
 
 ```
 🚀 Server running on port 9000
-MongoDB connected: localhost:27017
+MongoDB connected: process.env.Backendurl:27017
 ```
 
 **3. Restart Frontend:**
@@ -217,7 +217,7 @@ npm start
 **4. Test Health Check:**
 
 ```
-http://localhost:9000/api/health
+process.env.Backendurl/api/health
 ```
 
 **Should return JSON, not HTML**
@@ -249,7 +249,7 @@ http://localhost:9000/api/health
 
 ```bash
 # In new terminal
-curl http://localhost:9000/api/health
+curl process.env.Backendurl/api/health
 ```
 
 **Should see JSON response**
@@ -258,7 +258,7 @@ curl http://localhost:9000/api/health
 
 ```bash
 # Replace YOUR_TOKEN with actual JWT token
-curl -H "x-auth-token: YOUR_TOKEN" http://localhost:9000/api/company/my-company
+curl -H "x-auth-token: YOUR_TOKEN" process.env.Backendurl/api/company/my-company
 ```
 
 **Should see company data JSON**

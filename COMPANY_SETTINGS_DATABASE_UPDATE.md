@@ -12,10 +12,10 @@ This guide explains how the company settings updates are saved to the MongoDB da
 
 **Solution:** Updated all API calls in `CompanySettings.js` to use the full backend URL:
 
-- `/api/company/branding` → `http://localhost:9000/api/company/branding`
-- `/api/company/contact` → `http://localhost:9000/api/company/contact`
-- `/api/company/my-company` → `http://localhost:9000/api/company/my-company`
-- `/api/company/stats` → `http://localhost:9000/api/company/stats`
+- `/api/company/branding` → `process.env.Backendurl/api/company/branding`
+- `/api/company/contact` → `process.env.Backendurl/api/company/contact`
+- `/api/company/my-company` → `process.env.Backendurl/api/company/my-company`
+- `/api/company/stats` → `process.env.Backendurl/api/company/stats`
 
 ### 2. ✅ Enhanced Backend Logging
 
@@ -130,7 +130,7 @@ Refreshing company data to verify save...
 #### Using MongoDB Compass:
 
 1. Open MongoDB Compass
-2. Connect to `mongodb://localhost:27017`
+2. Connect to `mongodb://process.env.Backendurl:27017`
 3. Navigate to `notion-app` database → `companies` collection
 4. Find your company document
 5. Check the `branding`, `adminEmail`, and `adminPhone` fields

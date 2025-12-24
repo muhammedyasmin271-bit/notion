@@ -25,10 +25,10 @@ This means **EVERY link** in the navbar will include `?company=xxx`!
 ### When You Login:
 
 ```
-URL: http://localhost:3000/login?company=comp_1760450564995_wt9889rv0
+URL: process.env.Backendurl/login?company=comp_1760450564995_wt9889rv0
   ↓ [Login Button]
   ↓
-URL: http://localhost:3000/home?company=comp_1760450564995_wt9889rv0
+URL: process.env.Backendurl/home?company=comp_1760450564995_wt9889rv0
 localStorage: currentCompanyId = "comp_1760450564995_wt9889rv0"
 ```
 
@@ -45,13 +45,13 @@ to="/projects?company=comp_1760450564995_wt9889rv0"
 ### The URL WILL BE:
 
 ```
-http://localhost:3000/projects?company=comp_1760450564995_wt9889rv0
+process.env.Backendurl/projects?company=comp_1760450564995_wt9889rv0
 ```
 
 **NOT:**
 
 ```
-http://localhost:3000/projects  ❌
+process.env.Backendurl/projects  ❌
 ```
 
 ---
@@ -96,7 +96,7 @@ console.log("Current URL:", window.location.href);
 
 // Should see something like:
 // CompanyId in localStorage: comp_1760450564995_wt9889rv0
-// Current URL: http://localhost:3000/home?company=comp_1760450564995_wt9889rv0
+// Current URL: process.env.Backendurl/home?company=comp_1760450564995_wt9889rv0
 ```
 
 ---
@@ -143,8 +143,8 @@ Login Page (with ?company=xxx) ← Read from localStorage
 
 Yes, I'm **100% sure** that when you move from one page to another:
 
-✅ The URL will be: `http://localhost:3000/projects?company=comp_xxx`
-✅ NOT: `http://localhost:3000/projects`
+✅ The URL will be: `process.env.Backendurl/projects?company=comp_xxx`
+✅ NOT: `process.env.Backendurl/projects`
 
 **Every single navigation link in the NavBar includes the company parameter!**
 

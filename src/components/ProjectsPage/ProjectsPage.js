@@ -197,7 +197,7 @@ const ProjectsPage = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('http://localhost:9000/api/users?limit=100', {
+      const response = await fetch($backendUrl/api/users?limit=100', {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
       if (response.ok) {
@@ -214,7 +214,7 @@ const ProjectsPage = () => {
   const fetchProjects = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:9000/api/projects', {
+      const response = await fetch($backendUrl/api/projects', {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
       if (response.ok) {
@@ -223,7 +223,7 @@ const ProjectsPage = () => {
           data.map(async (project) => {
             try {
               const projectId = project._id || project.id;
-              const detailResponse = await fetch(`http://localhost:9000/api/projects/${projectId}`, {
+              const detailResponse = await fetch(`$backendUrl/api/projects/${projectId}`, {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
               });
               if (detailResponse.ok) {
@@ -259,7 +259,7 @@ const ProjectsPage = () => {
     for (const project of projects) {
       try {
         const projectId = project._id || project.id;
-        const response = await fetch(`http://localhost:9000/api/projects/${projectId}/data`, {
+        const response = await fetch(`$backendUrl/api/projects/${projectId}/data`, {
           headers: { 'x-auth-token': token }
         });
         if (response.ok) {
@@ -447,7 +447,7 @@ const ProjectsPage = () => {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:9000/api/projects/${projectId}`, {
+      const response = await fetch(`$backendUrl/api/projects/${projectId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -482,7 +482,7 @@ const ProjectsPage = () => {
                            newStatus === 'Not Started' ? 'Not started' : 
                            newStatus;
       
-      const response = await fetch(`http://localhost:9000/api/projects/${projectId}/status`, {
+      const response = await fetch(`$backendUrl/api/projects/${projectId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

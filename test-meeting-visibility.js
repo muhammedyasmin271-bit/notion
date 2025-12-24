@@ -6,7 +6,7 @@ const User = require('./models/User');
 async function testMeetingVisibility() {
   try {
     // Connect to MongoDB
-    await mongoose.connect('mongodb://localhost:27017/notion', {
+    await mongoose.connect('mongodb://process.env.Backendurl:27017/notion', {
       useNewUrlParser: true,
       useUnifiedTopology: true
     });

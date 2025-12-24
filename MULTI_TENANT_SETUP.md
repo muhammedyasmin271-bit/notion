@@ -45,7 +45,7 @@ db.users.insertOne({
 ### 2. Create Your First Company
 
 ```bash
-POST http://localhost:9000/api/admin/companies
+POST process.env.Backendurl/api/admin/companies
 Headers: x-auth-token: <super-admin-token>
 Body: {
   "name": "TechCorp",

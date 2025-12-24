@@ -286,7 +286,7 @@ const NavBar = () => {
                         company.branding.logo.startsWith('/ChatGPT') ||
                         company.branding.logo.startsWith('/uploads'))
                         ? company.branding.logo 
-                        : `http://localhost:9000${company.branding.logo}`
+                        : `${process.env.REACT_APP_BACKEND_URL || 'process.env.Backendurl'}${company.branding.logo}`
                     : "/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png"
                 }
                 alt={`${company?.name || 'Company'} Logo`}

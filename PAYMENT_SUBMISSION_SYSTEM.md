@@ -266,8 +266,8 @@ server/
    ```
 
 4. **Access Pages:**
-   - **Admin:** `http://localhost:3000/admin/payments`
-   - **Super Admin:** `http://localhost:3000/super-admin/payments`
+   - **Admin:** `process.env.Backendurl/admin/payments`
+   - **Super Admin:** `process.env.Backendurl/super-admin/payments`
 
 ---
 

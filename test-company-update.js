@@ -10,7 +10,7 @@ const Company = require('./server/models/Company');
 async function testCompanyUpdate() {
   try {
     console.log('🔌 Connecting to MongoDB...');
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/notion-app', {
+    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://process.env.Backendurl:27017/notion-app', {
       useNewUrlParser: true,
       useUnifiedTopology: true
     });

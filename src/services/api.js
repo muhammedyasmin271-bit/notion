@@ -1,8 +1,8 @@
 const API_BASE_URL =
-    process.env.REACT_APP_API_URL ||
-    (typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+    process.env.REACT_APP_BACKEND_URL ||
+    (typeof window !== 'undefined' && window.location.hostname !== 'process.env.Backendurl'
         ? '/api'
-        : 'http://localhost:9000/api');
+        : 'process.env.Backendurl/api');
 
 // API service class for handling HTTP requests
 class ApiService {

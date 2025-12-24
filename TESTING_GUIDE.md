@@ -22,7 +22,7 @@ Before testing, ensure:
    - Admin Password: TestPass123
    - Upload a logo (optional)
 5. Click "Create Company"
-6. **Copy the company link** (e.g., `http://localhost:3000/login?company=comp_123_abc`)
+6. **Copy the company link** (e.g., `process.env.Backendurl/login?company=comp_123_abc`)
 
 #### Step 2: Create Company B
 1. Still logged in as super admin
@@ -34,7 +34,7 @@ Before testing, ensure:
    - Admin Password: TestPass456
    - Upload a different logo (optional)
 4. Click "Create Company"
-5. **Copy the company link** (e.g., `http://localhost:3000/login?company=comp_456_def`)
+5. **Copy the company link** (e.g., `process.env.Backendurl/login?company=comp_456_def`)
 
 ### Phase 2: Company A Testing (20 minutes)
 
@@ -207,7 +207,7 @@ Before testing, ensure:
 ### Phase 6: Edge Cases (15 minutes)
 
 #### Test 1: Invalid Company ID
-1. Visit: `http://localhost:3000/login?company=invalid_id`
+1. Visit: `process.env.Backendurl/login?company=invalid_id`
 2. Verify: Shows error or default login page
 
 **Result:** [ ] PASS / [ ] FAIL

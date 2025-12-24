@@ -38,7 +38,7 @@ const MessagesPage = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `http://localhost:9000/api/contact/messages?status=${statusFilter}&page=${page}&limit=20`,
+        `$backendUrl/api/contact/messages?status=${statusFilter}&page=${page}&limit=20`,
         {
           headers: {
             'x-auth-token': token
@@ -67,7 +67,7 @@ const MessagesPage = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `http://localhost:9000/api/contact/messages/${messageId}/status`,
+        `$backendUrl/api/contact/messages/${messageId}/status`,
         {
           method: 'PATCH',
           headers: {
@@ -106,7 +106,7 @@ const MessagesPage = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `http://localhost:9000/api/contact/messages/${messageId}`,
+        `$backendUrl/api/contact/messages/${messageId}`,
         {
           method: 'DELETE',
           headers: {

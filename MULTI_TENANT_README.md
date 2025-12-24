@@ -18,7 +18,7 @@ Multi-tenancy allows multiple companies (tenants) to use the same application wh
 - **Custom Branding**: Logo and company name
 - **Isolated Data**: Cannot see other companies' data
 - **Own Users**: Company admin manages their users
-- **Company-Specific URL**: `http://localhost:3000/login?company=COMPANY_ID`
+- **Company-Specific URL**: `process.env.Backendurl/login?company=COMPANY_ID`
 
 ## 🚀 Quick Start (5 Minutes)
 
@@ -210,7 +210,7 @@ See **MULTI_TENANT_IMPLEMENTATION.md** for detailed patterns.
   status: "active",
   adminEmail: "admin@melanote.com",
   adminUserId: ObjectId("..."),
-  companyLink: "http://localhost:3000/login?company=comp_123_abc",
+  companyLink: "process.env.Backendurl/login?company=comp_123_abc",
   limits: {
     maxUsers: 50,
     maxStorage: 5368709120

@@ -1,7 +1,7 @@
 // Simple test to check AI endpoint from frontend perspective
 const testAI = async () => {
   try {
-    const response = await fetch('http://localhost:9000/api/ai/page-chat', {
+    const response = await fetch('process.env.Backendurl/api/ai/page-chat', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

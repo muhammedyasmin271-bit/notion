@@ -6,7 +6,7 @@ const User = require('./models/User');
 
 const setupMelaNote = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/notion-app');
+    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://process.env.Backendurl:27017/notion-app');
     console.log('Connected to MongoDB');
 
     // Check if Mela Note company already exists
@@ -63,7 +63,7 @@ const setupMelaNote = async () => {
         maxUsers: 100,
         maxStorage: 10737418240 // 10GB
       },
-      companyLink: `${process.env.APP_URL || 'http://localhost:3000'}/login?company=melanote`
+      companyLink: `${process.env.APP_URL || 'process.env.Backendurl'}/login?company=melanote`
     });
     await company.save();
     console.log('Mela Note company created');

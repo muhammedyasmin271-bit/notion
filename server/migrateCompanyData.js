@@ -11,7 +11,7 @@ const Task = require('./models/Task');
 
 async function migrateData() {
   try {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/notion-app');
+    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://process.env.Backendurl:27017/notion-app');
     console.log('Connected to MongoDB');
 
     // Update all existing records to have companyId: 'default' if not set

@@ -24,7 +24,7 @@ const SharedReportsPage = () => {
           return;
         }
 
-        const response = await fetch('http://localhost:9000/api/reports/shared/with-me', {
+        const response = await fetch($backendUrl/api/reports/shared/with-me', {
           method: 'GET',
           headers: {
             'x-auth-token': token,

@@ -4,7 +4,7 @@
  */
 
 const fetch = require('node-fetch');
-const BASE_URL = 'http://localhost:9000/api';
+const BASE_URL = 'process.env.Backendurl/api';
 
 async function manualTest() {
   console.log('\n🧪 MANUAL TESTING WITH REAL CREDENTIALS\n');
@@ -42,7 +42,7 @@ async function manualTest() {
   
   console.log('\n⚠️  Could not log in with any credentials');
   console.log('\n📋 PLEASE TEST MANUALLY:');
-  console.log('   1. Open http://localhost:3000');
+  console.log('   1. Open process.env.Backendurl');
   console.log('   2. Try logging in with different credentials');
   console.log('   3. Follow the comprehensive manual test checklist below\n');
 }

@@ -44,7 +44,7 @@ const CompanyRouteGuard = ({ children }) => {
       // Validate company exists in database
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`http://localhost:9000/api/auth/company/${finalCompanyId}`, {
+        const response = await fetch(`$backendUrl/api/auth/company/${finalCompanyId}`, {
           headers: {
             'x-auth-token': token || ''
           }

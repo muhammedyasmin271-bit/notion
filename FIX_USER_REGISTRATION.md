@@ -71,7 +71,7 @@ db.users.updateOne(
 ### 1. Test New Registration
 ```bash
 # Visit registration with company parameter
-http://localhost:3000/register?company=melanote
+process.env.Backendurl/register?company=melanote
 
 # Register a new user
 # Check database - user should have companyId: 'melanote'
@@ -87,7 +87,7 @@ http://localhost:3000/register?company=melanote
 ### 3. Test Company-Specific Login
 ```bash
 # Visit login with company parameter
-http://localhost:3000/login?company=melanote
+process.env.Backendurl/login?company=melanote
 
 # Should show Mela Note branding
 # Login should work correctly
@@ -98,21 +98,21 @@ http://localhost:3000/login?company=melanote
 ### Registration URLs
 ```
 Default (Mela Note):
-http://localhost:3000/register
-http://localhost:3000/register?company=melanote
+process.env.Backendurl/register
+process.env.Backendurl/register?company=melanote
 
 Other Companies:
-http://localhost:3000/register?company=COMPANY_ID
+process.env.Backendurl/register?company=COMPANY_ID
 ```
 
 ### Login URLs
 ```
 Default (Mela Note):
-http://localhost:3000/login
-http://localhost:3000/login?company=melanote
+process.env.Backendurl/login
+process.env.Backendurl/login?company=melanote
 
 Other Companies:
-http://localhost:3000/login?company=COMPANY_ID
+process.env.Backendurl/login?company=COMPANY_ID
 ```
 
 ## Verification Checklist

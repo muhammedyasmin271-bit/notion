@@ -22,7 +22,7 @@ npm start
 Expected output:
 ```
 ✅ Compiled successfully
-✅ App running on http://localhost:3000
+✅ App running on process.env.Backendurl
 ```
 
 ---
@@ -68,7 +68,7 @@ Testing: 251911234567
 
 ### Test 1: Login Button Redirect
 
-1. Open browser: `http://localhost:3000`
+1. Open browser: `process.env.Backendurl`
 2. Click "Create Company"
 3. Fill form:
    ```
@@ -83,11 +83,11 @@ Testing: 251911234567
    ```
 4. Click "Create Company"
 5. On success page, click "Login to Your Workspace"
-6. **Check**: URL should be `http://localhost:3000/login?company=comp_XXXXX`
+6. **Check**: URL should be `process.env.Backendurl/login?company=comp_XXXXX`
 
 ### Test 2: SMS Notification (Paid Plan)
 
-1. Go to `http://localhost:3000`
+1. Go to `process.env.Backendurl`
 2. Click "One Month Plan"
 3. Click "Create Company"
 4. Fill form with:
@@ -111,7 +111,7 @@ Testing: 251911234567
 
 ### Test 3: SMS Notification (Free Trial)
 
-1. Go to `http://localhost:3000`
+1. Go to `process.env.Backendurl`
 2. Click "Free Trial"
 3. Click "Create Company"
 4. Fill form with:
@@ -278,7 +278,7 @@ cat .env | grep SMS
 ## Expected Results
 
 ### ✅ Login Button Working
-- URL: `http://localhost:3000/login?company=comp_XXXXX`
+- URL: `process.env.Backendurl/login?company=comp_XXXXX`
 - Company branding displays
 - Login form visible
 - Can login with admin credentials

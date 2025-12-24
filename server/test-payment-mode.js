@@ -7,7 +7,7 @@ async function testPaymentModeSystem() {
   try {
     console.log('🧪 Testing Payment Mode System...\n');
 
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/notion-app');
+    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://process.env.Backendurl:27017/notion-app');
 
     const companies = await Company.find().limit(1);
     if (companies.length === 0) {

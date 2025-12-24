@@ -3,7 +3,7 @@
 ## Test 1: Login Button Redirect
 
 ### Steps:
-1. Open browser and go to `http://localhost:3000`
+1. Open browser and go to `process.env.Backendurl`
 2. Click "Create Company" or navigate to create company page
 3. Fill in company details:
    - Company Name: `Test Company`
@@ -20,7 +20,7 @@
 7. **Expected Result**: Should redirect to `/login?company=[companyId]` and display company login page
 
 ### Verification:
-- Check URL bar shows: `http://localhost:3000/login?company=comp_XXXXX`
+- Check URL bar shows: `process.env.Backendurl/login?company=comp_XXXXX`
 - Company logo/name displays on login page
 - Login form is visible
 

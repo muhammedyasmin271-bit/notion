@@ -12,7 +12,7 @@ There were two different approaches for storing logos:
 
 2. **Landing Page**: Uploaded files to server and stored relative paths
    - Format: `/uploads/company-logos/filename.png`
-   - Required full URL to work: `http://localhost:9000/uploads/company-logos/filename.png`
+   - Required full URL to work: `process.env.Backendurl/uploads/company-logos/filename.png`
 
 ## Solution
 Updated the company creation and branding routes to store full URLs instead of relative paths:
@@ -27,7 +27,7 @@ Updated the company creation and branding routes to store full URLs instead of r
    logoUrl = `/uploads/company-logos/${req.file.filename}`;
    
    // After
-   const baseUrl = process.env.BACKEND_URL || process.env.API_URL || 'http://localhost:9000';
+   const baseUrl = process.env.BACKEND_URL || process.env.API_URL || 'process.env.Backendurl';
    logoUrl = `${baseUrl}/uploads/company-logos/${req.file.filename}`;
    ```
 
@@ -37,7 +37,7 @@ Updated the company creation and branding routes to store full URLs instead of r
    const logoUrl = `/uploads/company-logos/${req.file.filename}`;
    
    // After
-   const baseUrl = process.env.BACKEND_URL || process.env.API_URL || 'http://localhost:9000';
+   const baseUrl = process.env.BACKEND_URL || process.env.API_URL || 'process.env.Backendurl';
    const logoUrl = `${baseUrl}/uploads/company-logos/${req.file.filename}`;
    ```
 
@@ -46,7 +46,7 @@ Updated the company creation and branding routes to store full URLs instead of r
 1. **Landing Page Company Creation**:
    - User uploads logo file
    - File is saved to `server/uploads/company-logos/`
-   - Full URL is stored in database: `http://localhost:9000/uploads/company-logos/1234567890-logo.png`
+   - Full URL is stored in database: `process.env.Backendurl/uploads/company-logos/1234567890-logo.png`
    - Logo displays correctly everywhere
 
 2. **SuperAdmin Company Creation**:
@@ -59,7 +59,7 @@ Both approaches now work consistently!
 ## Environment Variables
 The fix uses the `BACKEND_URL` environment variable from `.env`:
 ```
-BACKEND_URL=http://localhost:9000
+BACKEND_URL=process.env.Backendurl
 ```
 
 For production, update this to your production backend URL.

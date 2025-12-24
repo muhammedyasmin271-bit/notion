@@ -40,7 +40,7 @@ Added `companyId` field to all major models:
 - ✅ Super admin can create companies
 - ✅ Each company gets unique companyId
 - ✅ Company admin user is auto-created
-- ✅ Company link is generated: `http://localhost:3000/login?company=COMPANY_ID`
+- ✅ Company link is generated: `process.env.Backendurl/login?company=COMPANY_ID`
 
 ### 3. Migration & Documentation
 - ✅ Created `migrateCompanyData.js` script

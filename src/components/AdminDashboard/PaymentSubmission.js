@@ -106,7 +106,7 @@ const PaymentSubmission = () => {
       // Show verification status on page
       setVerificationStatus({ status: 'checking', message: 'Verifying payment with Chapa...' });
       
-      const response = await fetch(`http://localhost:9000/api/payments/chapa/verify/${txRef}`, {
+      const response = await fetch(`$backendUrl/api/payments/chapa/verify/${txRef}`, {
         headers: { 'x-auth-token': token }
       });
       
@@ -265,30 +265,30 @@ const PaymentSubmission = () => {
       const token = localStorage.getItem('token');
       
       // Fetch price per user per month from settings
-      const globalResponse = await fetch('http://localhost:9000/api/settings/payment', {
+      const globalResponse = await fetch($backendUrl/api/settings/payment', {
         headers: { 'x-auth-token': token }
       });
       const globalData = await globalResponse.json();
       
       // Fetch company data to get user limit
-      const userResponse = await fetch('http://localhost:9000/api/auth/me', {
+      const userResponse = await fetch($backendUrl/api/auth/me', {
         headers: { 'x-auth-token': token }
       });
       const userData = await userResponse.json();
       
-      const companyResponse = await fetch(`http://localhost:9000/api/admin/companies/${userData.companyId}`, {
+      const companyResponse = await fetch(`$backendUrl/api/admin/companies/${userData.companyId}`, {
         headers: { 'x-auth-token': token }
       });
       const companyResponseData = await companyResponse.json();
       
       // Also fetch from my-company endpoint to ensure we have all fields
-      const myCompanyResponse = await fetch('http://localhost:9000/api/company/my-company', {
+      const myCompanyResponse = await fetch($backendUrl/api/company/my-company', {
         headers: { 'x-auth-token': token }
       });
       const myCompanyData = myCompanyResponse.ok ? await myCompanyResponse.json() : {};
       
       // Fetch company payments
-      const paymentsResponse = await fetch('http://localhost:9000/api/payments/all', {
+      const paymentsResponse = await fetch($backendUrl/api/payments/all', {
         headers: { 'x-auth-token': token }
       });
       const allPayments = paymentsResponse.ok ? await paymentsResponse.json() : [];
@@ -341,7 +341,7 @@ const PaymentSubmission = () => {
   const fetchPayments = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:9000/api/payments/my-company', {
+      const response = await fetch($backendUrl/api/payments/my-company', {
         headers: { 'x-auth-token': token }
       });
       
@@ -458,7 +458,7 @@ const PaymentSubmission = () => {
         } : null
       };
 
-      const response = await fetch('http://localhost:9000/api/payments/chapa/initialize', {
+      const response = await fetch($backendUrl/api/payments/chapa/initialize', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -159,7 +159,7 @@ const sendPasswordResetEmail = async (user, resetToken) => {
     return { success: false, message: 'No email provided' };
   }
 
-  const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password/${resetToken}`;
+  const resetUrl = `${process.env.FRONTEND_URL || 'process.env.Backendurl'}/reset-password/${resetToken}`;
 
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

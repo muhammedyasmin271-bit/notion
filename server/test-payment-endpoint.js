@@ -14,7 +14,7 @@ async function testPaymentEndpoint() {
   };
   
   try {
-    const response = await fetch('http://localhost:9000/api/payments/chapa/initialize', {
+    const response = await fetch('process.env.Backendurl/api/payments/chapa/initialize', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

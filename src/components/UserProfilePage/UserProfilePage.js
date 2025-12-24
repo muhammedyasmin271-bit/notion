@@ -65,7 +65,7 @@ const UserProfilePage = () => {
     const fetchCompanyInfo = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:9000/api/auth/company-status', {
+        const response = await fetch($backendUrl/api/auth/company-status', {
           headers: { 'x-auth-token': token }
         });
         if (response.ok) {

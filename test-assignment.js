@@ -24,7 +24,7 @@ async function testAssignment() {
   try {
     console.log('📋 Steps to test project assignment:');
     console.log('');
-    console.log('1. Open your browser and go to http://localhost:3000');
+    console.log('1. Open your browser and go to process.env.Backendurl');
     console.log('2. Login as a manager (admin@example.com / admin123)');
     console.log('3. Go to Projects page');
     console.log('4. Create a new project or edit an existing one');

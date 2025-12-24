@@ -1,4 +1,4 @@
-const AI_API_URL = process.env.REACT_APP_API_URL || 'http://localhost:9000';
+const AI_API_URL = process.env.REACT_APP_BACKEND_URL || 'process.env.Backendurl';
 
 // Remove trailing /api if present to avoid double /api/api
 const getApiUrl = (endpoint) => {

@@ -35,7 +35,7 @@ EMAIL_SECURE=false
 EMAIL_USER=your_email@gmail.com
 EMAIL_PASS=your_app_specific_password
 EMAIL_FROM_NAME=Notion App
-FRONTEND_URL=http://localhost:3000
+FRONTEND_URL=process.env.Backendurl
 ```
 
 ### 3. Gmail Setup (Recommended)
@@ -296,7 +296,7 @@ for (const participantId of meeting.participants) {
 2. Start the server: `npm start`
 3. Use test endpoint:
    ```bash
-   curl -X POST http://localhost:9000/api/notifications/test-email \
+   curl -X POST process.env.Backendurl/api/notifications/test-email \
      -H "Authorization: Bearer YOUR_TOKEN"
    ```
 

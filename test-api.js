@@ -6,12 +6,12 @@ async function testAPI() {
     console.log('🔍 Testing API endpoints...');
     
     // Test health endpoint
-    const healthResponse = await fetch('http://localhost:9000/api/health');
+    const healthResponse = await fetch('process.env.Backendurl/api/health');
     const healthData = await healthResponse.json();
     console.log('🏥 Health check:', healthData);
     
     // Test login to get token
-    const loginResponse = await fetch('http://localhost:9000/api/auth/login', {
+    const loginResponse = await fetch('process.env.Backendurl/api/auth/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -32,7 +32,7 @@ async function testAPI() {
     console.log('✅ Login successful, got token');
     
     // Test team members endpoint
-    const teamResponse = await fetch('http://localhost:9000/api/users/team-members', {
+    const teamResponse = await fetch('process.env.Backendurl/api/users/team-members', {
       headers: {
         'x-auth-token': token
       }
@@ -55,7 +55,7 @@ async function testAPI() {
       sharedWith: []
     };
     
-    const reportResponse = await fetch('http://localhost:9000/api/reports', {
+    const reportResponse = await fetch('process.env.Backendurl/api/reports', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

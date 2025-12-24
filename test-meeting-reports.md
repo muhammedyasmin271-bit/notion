@@ -43,7 +43,7 @@ This document outlines the testing steps for the new Meeting Reports feature tha
 2. Ensure you're logged in to the application
 
 ### Test Case 1: Create New Meeting and View Report
-1. Navigate to Meeting Editor: `http://localhost:3000/meeting-editor/new`
+1. Navigate to Meeting Editor: `process.env.Backendurl/meeting-editor/new`
 2. Fill in meeting details:
    - Title: "Weekly Team Standup"
    - Type: "Standup"
@@ -73,7 +73,7 @@ This document outlines the testing steps for the new Meeting Reports feature tha
    - Updated content is displayed in the report
 
 ### Test Case 3: Reports Page Display
-1. Navigate directly to Reports page: `http://localhost:3000/reports`
+1. Navigate directly to Reports page: `process.env.Backendurl/reports`
 2. Verify:
    - "Meeting Reports" tab is selected by default
    - All meetings are displayed in professional card format

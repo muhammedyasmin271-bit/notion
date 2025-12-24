@@ -75,7 +75,7 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('http://localhost:9000/api/users', {
+      const response = await fetch($backendUrl/api/users', {
         method: 'GET',
         headers: {
           'x-auth-token': token,
@@ -99,7 +99,7 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch(`http://localhost:9000/api/projects/${projectId}`, {
+      const response = await fetch(`$backendUrl/api/projects/${projectId}`, {
         method: 'GET',
         headers: {
           'x-auth-token': token,
@@ -113,7 +113,7 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
         // Get all users (use state if available, otherwise fetch)
         let allUsers = users;
         if (allUsers.length === 0) {
-          const userResponse = await fetch('http://localhost:9000/api/users', {
+          const userResponse = await fetch($backendUrl/api/users', {
             method: 'GET',
             headers: {
               'x-auth-token': token,
@@ -185,7 +185,7 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
     }
 
     try {
-      const url = `http://localhost:9000/api/projects/${projectId}/data`;
+      const url = `$backendUrl/api/projects/${projectId}/data`;
       console.log('Making request to project-specific endpoint:', url);
 
       const response = await fetch(url, {
@@ -354,7 +354,7 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
 
       console.log('Creating task with data:', taskData);
 
-      const response = await fetch(`http://localhost:9000/api/projects/${projectId}/tasks`, {
+      const response = await fetch(`$backendUrl/api/projects/${projectId}/tasks`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -390,7 +390,7 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Authentication required');
 
-      const response = await fetch(`http://localhost:9000/api/projects/${projectId}/tasks/${taskId}`, {
+      const response = await fetch(`$backendUrl/api/projects/${projectId}/tasks/${taskId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -418,7 +418,7 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
       const newCompleted = !task.completed;
       const newStatus = newCompleted ? 'Completed' : 'In Progress';
 
-      const response = await fetch(`http://localhost:9000/api/projects/${projectId}/tasks/${taskId}`, {
+      const response = await fetch(`$backendUrl/api/projects/${projectId}/tasks/${taskId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -457,7 +457,7 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
         }
       }
 
-      const response = await fetch(`http://localhost:9000/api/projects/${projectId}/tasks/${taskId}`, {
+      const response = await fetch(`$backendUrl/api/projects/${projectId}/tasks/${taskId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

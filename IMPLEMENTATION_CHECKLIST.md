@@ -253,9 +253,9 @@ npm run dev
 
 ### Testing URLs
 ```
-Super Admin: http://localhost:3000/super-admin
-Company A: http://localhost:3000/login?company=comp_123_abc
-Company B: http://localhost:3000/login?company=comp_456_def
+Super Admin: process.env.Backendurl/super-admin
+Company A: process.env.Backendurl/login?company=comp_123_abc
+Company B: process.env.Backendurl/login?company=comp_456_def
 ```
 
 ## Progress Tracking

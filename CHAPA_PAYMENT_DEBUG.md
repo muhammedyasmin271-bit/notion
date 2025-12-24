@@ -56,7 +56,7 @@ node test-chapa.js
 
 ### Test 2: Check if server is running
 ```bash
-curl http://localhost:9000/api/auth/test
+curl process.env.Backendurl/api/auth/test
 ```
 
 ### Test 3: Test payment endpoint (need valid token)
@@ -83,7 +83,7 @@ Make sure your `.env` file has:
 ```
 CHAPA_TOKEN=CHASECK-9InSJMt5QQ7ksdq8cZA6I7szlgePMoQr
 CHAPA_API=https://api.chapa.co/v1
-BASE_URL=http://localhost:3000
+BASE_URL=process.env.Backendurl
 ```
 
 ## 📞 Next Steps

@@ -1,8 +1,8 @@
 # 🧪 COMPLETE TESTING GUIDE - Notion Multi-Tenant Application
 
 **Generated:** October 15, 2025  
-**Frontend:** http://localhost:3000  
-**Backend:** http://localhost:9000
+**Frontend:** process.env.Backendurl  
+**Backend:** process.env.Backendurl
 
 ---
 
@@ -32,7 +32,7 @@ Since authentication requires specific company credentials, please test the foll
 
 #### Test 1.1: Login Flow
 
-- [ ] Open http://localhost:3000
+- [ ] Open process.env.Backendurl
 - [ ] Enter username and password
 - [ ] Verify redirect to dashboard on success
 - [ ] Check that company logo/name displays correctly

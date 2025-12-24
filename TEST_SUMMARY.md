@@ -123,7 +123,7 @@ This contains **150+ test cases** covering:
 
 ```bash
 # Open the frontend in your browser
-1. Go to: http://localhost:3000
+1. Go to: process.env.Backendurl
 2. Try logging in with your credentials
 3. Explore the interface
 ```
@@ -203,7 +203,7 @@ Based on automated tests and code review:
 ### Option 1: Quick 5-Minute Test
 
 ```
-1. Open http://localhost:3000
+1. Open process.env.Backendurl
 2. Try to login
 3. Click around the interface
 4. Create a project

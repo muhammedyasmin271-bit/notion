@@ -43,8 +43,8 @@ async function testChapaConnection() {
     last_name: 'User',
     phone_number: '+251911123456',
     tx_ref: `test-${Date.now()}`,
-    callback_url: 'http://localhost:9000/api/payments/chapa/callback',
-    return_url: 'http://localhost:3000/admin/payments?status=success',
+    callback_url: 'process.env.Backendurl/api/payments/chapa/callback',
+    return_url: 'process.env.Backendurl/admin/payments?status=success',
     customization: {
       title: 'Test Payment',
       description: 'Testing Chapa API connection'

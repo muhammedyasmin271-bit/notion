@@ -15,7 +15,7 @@
 ### How It Works
 Logo URL handling now supports both relative and absolute paths:
 ```javascript
-src={logo.startsWith('http') ? logo : `http://localhost:9000${logo}`}
+src={logo.startsWith('http') ? logo : `process.env.Backendurl${logo}`}
 ```
 
 ---

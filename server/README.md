@@ -35,7 +35,7 @@ This is the backend server for the My Notion App, built with Node.js, Express, a
    NODE_ENV=development
 
    # MongoDB Configuration
-   MONGODB_URI=mongodb://localhost:27017/notion-app
+   MONGODB_URI=mongodb://process.env.Backendurl:27017/notion-app
 
    # JWT Configuration
    JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
@@ -45,7 +45,7 @@ This is the backend server for the My Notion App, built with Node.js, Express, a
    UPLOAD_PATH=./uploads
 
    # Security Configuration
-   CORS_ORIGIN=http://localhost:3000
+   CORS_ORIGIN=process.env.Backendurl
    RATE_LIMIT_WINDOW_MS=900000
    RATE_LIMIT_MAX_REQUESTS=100
    ```

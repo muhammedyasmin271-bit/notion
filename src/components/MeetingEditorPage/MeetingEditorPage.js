@@ -189,7 +189,7 @@ const MeetingEditorPage = () => {
   useEffect(() => {
     const checkServerStatus = async () => {
       try {
-        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/health`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL || 'process.env.Backendurl'}/api/health`, {
           method: 'GET',
           timeout: 5000
         });

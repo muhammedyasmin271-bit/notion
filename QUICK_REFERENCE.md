@@ -19,9 +19,9 @@ node migrateCompanyData.js
 
 | Purpose | URL |
 |---------|-----|
-| Super Admin | `http://localhost:3000/super-admin` |
-| Company A Login | `http://localhost:3000/login?company=COMPANY_ID` |
-| Default Login | `http://localhost:3000/login` |
+| Super Admin | `process.env.Backendurl/super-admin` |
+| Company A Login | `process.env.Backendurl/login?company=COMPANY_ID` |
+| Default Login | `process.env.Backendurl/login` |
 
 ## 🔑 Key Concepts
 
@@ -184,7 +184,7 @@ npm run dev
 # (Monitor console for errors)
 
 # Test API
-curl http://localhost:9000/api/auth/company/COMPANY_ID
+curl process.env.Backendurl/api/auth/company/COMPANY_ID
 ```
 
 ---

@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 require('dotenv').config({ path: './server/.env' });
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/notion-app');
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://process.env.Backendurl:27017/notion-app');
 
 const Company = require('./server/models/Company');
 

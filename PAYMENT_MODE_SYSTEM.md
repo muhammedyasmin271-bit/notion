@@ -174,7 +174,7 @@ Run `node test-payment-mode.js` to:
 # Check company status
 node -e "
 const mongoose = require('mongoose');
-mongoose.connect('mongodb://localhost:27017/notion-app');
+mongoose.connect('mongodb://process.env.Backendurl:27017/notion-app');
 const Company = require('./server/models/Company');
 Company.findOne({companyId: 'YOUR_COMPANY_ID'}).then(console.log);
 "

@@ -195,7 +195,7 @@ After successful company creation, users see an elegant success modal with:
 
 ┌─────────────────────────────────────┐
 │ 🔗 Company Login Link               │
-│ [http://localhost:3000/login?...]   │
+│ [process.env.Backendurl/login?...]   │
 │                                 [📋] │
 └─────────────────────────────────────┘
 
@@ -362,7 +362,7 @@ Company ID: [comp_123...]
 
 You have 7 days free trial.
 
-Login: http://localhost:3000/login?company=comp_123...
+Login: process.env.Backendurl/login?company=comp_123...
 ```
 
 **Paid Plans:**
@@ -376,7 +376,7 @@ Company ID: [comp_123...]
 
 Complete payment within 24 hours.
 
-Login: http://localhost:3000/login?company=comp_123...
+Login: process.env.Backendurl/login?company=comp_123...
 ```
 
 ---

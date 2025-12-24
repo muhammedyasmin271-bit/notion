@@ -7,7 +7,7 @@ require('dotenv').config();
 async function testSMSReminders() {
   try {
     // Connect to database
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/notion-app');
+    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://process.env.Backendurl:27017/notion-app');
     console.log('✅ Connected to database');
 
     // Test 1: Create a test company with payment deadline in 6 hours

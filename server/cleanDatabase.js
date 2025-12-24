@@ -9,7 +9,7 @@ const Note = require('./models/Note');
 
 async function cleanDatabase() {
   try {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/notion-app');
+    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://process.env.Backendurl:27017/notion-app');
     console.log('Connected to MongoDB');
 
     // Delete all users except superadmin

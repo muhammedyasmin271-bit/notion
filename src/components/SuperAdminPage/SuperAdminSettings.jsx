@@ -27,7 +27,7 @@ const SuperAdminSettings = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:9000/api/settings/all', {
+      const response = await fetch($backendUrl/api/settings/all', {
         headers: { 'x-auth-token': token }
       });
       const data = await response.json();
@@ -66,7 +66,7 @@ const SuperAdminSettings = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:9000/api/settings/payment.pricePerUserPerMonth', {
+      const response = await fetch($backendUrl/api/settings/payment.pricePerUserPerMonth', {
         method: 'PUT',
         headers: {
           'x-auth-token': token,
@@ -97,7 +97,7 @@ const SuperAdminSettings = () => {
       
       // Save all contact settings
       const updates = [
-        fetch('http://localhost:9000/api/settings/contact.email', {
+        fetch($backendUrl/api/settings/contact.email', {
           method: 'PUT',
           headers: {
             'x-auth-token': token,
@@ -105,7 +105,7 @@ const SuperAdminSettings = () => {
           },
           body: JSON.stringify({ value: contactSettings.email })
         }),
-        fetch('http://localhost:9000/api/settings/contact.phone', {
+        fetch($backendUrl/api/settings/contact.phone', {
           method: 'PUT',
           headers: {
             'x-auth-token': token,
@@ -113,7 +113,7 @@ const SuperAdminSettings = () => {
           },
           body: JSON.stringify({ value: contactSettings.phone })
         }),
-        fetch('http://localhost:9000/api/settings/contact.address', {
+        fetch($backendUrl/api/settings/contact.address', {
           method: 'PUT',
           headers: {
             'x-auth-token': token,

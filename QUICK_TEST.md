@@ -24,14 +24,14 @@ This will:
    ```
 
 2. **Create a company**:
-   - Go to `http://localhost:3000`
+   - Go to `process.env.Backendurl`
    - Click "Create Company"
    - Fill form with test data
    - Click "Create Company"
 
 3. **Test login button**:
    - On success page, click "Login to Your Workspace"
-   - **Check**: URL should be `http://localhost:3000/login?company=comp_XXXXX`
+   - **Check**: URL should be `process.env.Backendurl/login?company=comp_XXXXX`
    - **Check**: Company name/logo should display on login page
 
 ---

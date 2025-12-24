@@ -112,7 +112,7 @@ router.put('/branding', auth, requireAdmin, upload.single('logo'), async (req, r
     
     if (req.file) {
       // Store full URL for consistency
-      const baseUrl = process.env.BACKEND_URL || process.env.API_URL || 'http://localhost:9000';
+      const baseUrl = process.env.BACKEND_URL || process.env.API_URL || 'process.env.Backendurl';
       const logoUrl = `${baseUrl}/uploads/company-logos/${req.file.filename}`;
       company.branding.logo = logoUrl;
     }
@@ -329,11 +329,11 @@ router.post('/create', upload.single('logo'), async (req, res) => {
     if (logo && logo.startsWith('data:image')) {
       logoUrl = logo;
     } else if (req.file) {
-      const baseUrl = process.env.BACKEND_URL || process.env.API_URL || 'http://localhost:9000';
+      const baseUrl = process.env.BACKEND_URL || process.env.API_URL || 'process.env.Backendurl';
       logoUrl = `${baseUrl}/uploads/company-logos/${req.file.filename}`;
     }
 
-    const companyLink = `${process.env.APP_URL || 'http://localhost:3000'}/login?company=${companyId}`;
+    const companyLink = `${process.env.APP_URL || 'process.env.Backendurl'}/login?company=${companyId}`;
 
     console.log(`🔧 Points system setting: pointsEnabled = ${pointsEnabled} (type: ${typeof pointsEnabled})`);
     

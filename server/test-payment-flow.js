@@ -25,7 +25,7 @@ async function testPaymentFlow() {
   }
   
   const CHAPA_API = (process.env.CHAPA_API || 'https://api.chapa.co/v1').trim();
-  const BASE_URL = (process.env.BASE_URL || 'http://localhost:3000').trim();
+  const BASE_URL = (process.env.BASE_URL || 'process.env.Backendurl').trim();
   
   if (!CHAPA_TOKEN) {
     console.error('❌ CHAPA_TOKEN not found!');
@@ -48,7 +48,7 @@ async function testPaymentFlow() {
     last_name: 'User',
     phone_number: '+251911123456',
     tx_ref: `test-payment-${Date.now()}`,
-    callback_url: 'http://localhost:9000/api/payments/chapa/callback',
+    callback_url: 'process.env.Backendurl/api/payments/chapa/callback',
     return_url: `${BASE_URL}/admin/payments?status=success`,
     customization: {
       title: 'Test Payment',
@@ -126,7 +126,7 @@ async function testPaymentFlow() {
   console.log('');
   console.log('📋 Step 3: Testing backend endpoint availability...');
   try {
-    const endpointTest = await fetch('http://localhost:9000/api/payments/chapa/initialize', {
+    const endpointTest = await fetch('process.env.Backendurl/api/payments/chapa/initialize', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

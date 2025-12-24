@@ -21,7 +21,7 @@ const CompanyTab = () => {
     const loadCompanyData = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get('http://localhost:9000/api/company/my-company', {
+        const response = await axios.get($backendUrl/api/company/my-company', {
           headers: { 'x-auth-token': token }
         });
         
@@ -52,7 +52,7 @@ const CompanyTab = () => {
       const token = localStorage.getItem('token');
       const newPointsEnabled = !companyData.pointsEnabled;
       
-      const response = await axios.put('http://localhost:9000/api/company/points-system', 
+      const response = await axios.put($backendUrl/api/company/points-system', 
         { pointsEnabled: newPointsEnabled },
         { headers: { 'x-auth-token': token } }
       );
@@ -79,7 +79,7 @@ const CompanyTab = () => {
     try {
       const token = localStorage.getItem('token');
       
-      const response = await axios.put('http://localhost:9000/api/company/contact', 
+      const response = await axios.put($backendUrl/api/company/contact', 
         { 
           adminEmail: companyData.adminEmail,
           adminPhone: companyData.adminPhone

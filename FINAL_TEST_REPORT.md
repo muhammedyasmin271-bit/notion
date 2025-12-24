@@ -3,7 +3,7 @@
 **Application:** Notion Multi-Tenant SaaS Platform  
 **Test Date:** October 15, 2025  
 **Tester:** Automated Test Suite + Manual Verification Required  
-**Environment:** Development (localhost)
+**Environment:** Development (process.env.Backendurl)
 
 ---
 
@@ -27,8 +27,8 @@ The Notion multi-tenant application has been tested with automated scripts and s
 
 | Test                | Status  | Details                             |
 | ------------------- | ------- | ----------------------------------- |
-| Backend Server      | ✅ PASS | Responding on http://localhost:9000 |
-| Frontend Server     | ✅ PASS | Responding on http://localhost:3000 |
+| Backend Server      | ✅ PASS | Responding on process.env.Backendurl |
+| Frontend Server     | ✅ PASS | Responding on process.env.Backendurl |
 | Database Connection | ✅ PASS | MongoDB connected successfully      |
 | Health Endpoint     | ✅ PASS | `/api/health` returns status OK     |
 | Database Users      | ✅ PASS | 4 users found in system             |
@@ -170,7 +170,7 @@ Status: ✅ PASS
 #### Test 5: Backend Server Availability
 
 ```
-URL: http://localhost:9000/api/health
+URL: process.env.Backendurl/api/health
 Expected: 200 OK
 Actual: 200 OK with { status: "OK", database: "Connected" }
 Status: ✅ PASS
@@ -179,7 +179,7 @@ Status: ✅ PASS
 #### Test 6: Frontend Server Availability
 
 ```
-URL: http://localhost:3000
+URL: process.env.Backendurl
 Expected: 200 OK
 Actual: 200 OK
 Status: ✅ PASS
@@ -189,7 +189,7 @@ Status: ✅ PASS
 
 ```
 Expected: MongoDB connected
-Actual: Connected to localhost:27017
+Actual: Connected to process.env.Backendurl:27017
 Status: ✅ PASS
 ```
 

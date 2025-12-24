@@ -3,7 +3,7 @@ const User = require('./models/User');
 const Notification = require('./models/Notification');
 
 // Connect to MongoDB
-mongoose.connect('mongodb://localhost:27017/notion', {
+mongoose.connect('mongodb://process.env.Backendurl:27017/notion', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });

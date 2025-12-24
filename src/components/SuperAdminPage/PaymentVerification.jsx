@@ -30,7 +30,7 @@ const PaymentVerification = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `http://localhost:9000/api/payments/all?status=${filterStatus}`,
+        `$backendUrl/api/payments/all?status=${filterStatus}`,
         { headers: { 'x-auth-token': token } }
       );
       const data = await response.json();
@@ -61,7 +61,7 @@ const PaymentVerification = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `http://localhost:9000/api/payments/${selectedPayment._id}/verify`,
+        `$backendUrl/api/payments/${selectedPayment._id}/verify`,
         {
           method: 'PUT',
           headers: {
@@ -313,7 +313,7 @@ const PaymentVerification = () => {
 
                       <div className="flex flex-col gap-2">
                         <a
-                          href={`http://localhost:9000${payment.screenshotUrl}`}
+                          href={`${process.env.REACT_APP_BACKEND_URL || 'process.env.Backendurl'}${payment.screenshotUrl}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"

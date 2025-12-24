@@ -6,7 +6,7 @@ require('dotenv').config();
 async function testGraceAndDeadline() {
   try {
     // Connect to database
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/notion-app');
+    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://process.env.Backendurl:27017/notion-app');
     console.log('✅ Connected to database');
 
     const testUser = await User.findOne({ role: 'admin' });
@@ -91,7 +91,7 @@ async function testGraceAndDeadline() {
     console.log('\n🎮 Test 4: Super Admin Play/Pause');
     
     // Test pause
-    const pauseResponse = await fetch(`http://localhost:9000/api/payments/company/${updatedDeadlineCompany.companyId}/pause`, {
+    const pauseResponse = await fetch(`process.env.Backendurl/api/payments/company/${updatedDeadlineCompany.companyId}/pause`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -106,7 +106,7 @@ async function testGraceAndDeadline() {
     }
 
     // Test play (reactivate)
-    const playResponse = await fetch(`http://localhost:9000/api/payments/company/${updatedDeadlineCompany.companyId}/play`, {
+    const playResponse = await fetch(`process.env.Backendurl/api/payments/company/${updatedDeadlineCompany.companyId}/play`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

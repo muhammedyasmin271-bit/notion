@@ -124,10 +124,10 @@ async function migrateData() {
 2. Go to `/super-admin`
 3. Click "Add Company"
 4. Fill in company details (name, logo, admin credentials)
-5. Copy the generated company link: `http://localhost:3000/login?company=comp_123456`
+5. Copy the generated company link: `process.env.Backendurl/login?company=comp_123456`
 
 ### Company Admin Login
-1. Visit company-specific URL: `http://localhost:3000/login?company=comp_123456`
+1. Visit company-specific URL: `process.env.Backendurl/login?company=comp_123456`
 2. See company logo and name
 3. Login with admin credentials
 4. All data created is automatically tagged with companyId

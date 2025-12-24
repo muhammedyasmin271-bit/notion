@@ -4,7 +4,7 @@ require('dotenv').config();
 
 async function createTestUsers() {
   try {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/notion-app');
+    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://process.env.Backendurl:27017/notion-app');
     console.log('Connected to MongoDB');
 
     // Check existing users

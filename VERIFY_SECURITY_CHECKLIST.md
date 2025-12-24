@@ -126,7 +126,7 @@ const fetchUsersForPicker = async () => {
 ```javascript
 const fetchUsers = async () => {
   try {
-    const response = await fetch('http://localhost:9000/api/users?limit=100', {
+    const response = await fetch('process.env.Backendurl/api/users?limit=100', {
       headers: { 'x-auth-token': localStorage.getItem('token') }
     });
     if (response.ok) {
@@ -265,7 +265,7 @@ const fetchUsers = async () => {
 ### Check Request:
 ```http
 GET /api/auth/users HTTP/1.1
-Host: localhost:9000
+Host: process.env.Backendurl
 x-auth-token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 

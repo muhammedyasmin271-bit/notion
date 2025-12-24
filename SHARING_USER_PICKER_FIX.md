@@ -40,14 +40,14 @@ const allUsers = response.users || response;
 **Before:**
 
 ```javascript
-const response = await fetch('http://localhost:9000/api/auth/users', {...});
+const response = await fetch('process.env.Backendurl/api/auth/users', {...});
 const allUsers = await response.json();  // ❌ All users
 ```
 
 **After:**
 
 ```javascript
-const response = await fetch('http://localhost:9000/api/users', {...});
+const response = await fetch('process.env.Backendurl/api/users', {...});
 const data = await response.json();
 const allUsers = data.users || data;  // ✅ Company filtered
 ```

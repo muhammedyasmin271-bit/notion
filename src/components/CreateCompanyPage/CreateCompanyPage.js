@@ -98,7 +98,7 @@ const CreateCompanyPage = () => {
         pointsEnabled: formData.pointsEnabled
       };
 
-      const response = await fetch('http://localhost:9000/api/company/create', {
+      const response = await fetch($backendUrl/api/company/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(submitData)

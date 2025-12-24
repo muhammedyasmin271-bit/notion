@@ -278,7 +278,7 @@ function validateConfiguration() {
 app.listen(PORT, () => {
   console.log(`\n🚀 Server running on port ${PORT}`);
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🌐 API available at: http://localhost:${PORT}/api`);
+  console.log(`🌐 API available at: http://process.env.Backendurl:${PORT}/api`);
   
   // Validate configuration after server starts
   validateConfiguration();

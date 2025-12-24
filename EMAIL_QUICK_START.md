@@ -50,7 +50,7 @@ EMAIL_FROM_NAME=Notion App
 
 ### In Your App (User Settings):
 
-1. **Login** to http://localhost:3000
+1. **Login** to process.env.Backendurl
 2. **Go to Settings** (click your avatar)
 3. **Profile Tab:**
    - Add email: `shaggar@hulupost.com`

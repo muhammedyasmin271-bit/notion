@@ -53,7 +53,7 @@ const LandingPage = () => {
     const fetchPricePerUser = async () => {
       try {
         // Try to fetch without auth first (for public landing page)
-        const response = await fetch('http://localhost:9000/api/settings/payment');
+        const response = await fetch($backendUrl/api/settings/payment');
         if (response.ok) {
           const data = await response.json();
           if (data.pricePerUserPerMonth) {
@@ -82,7 +82,7 @@ const LandingPage = () => {
     setContactSubmitStatus({ type: 'loading', message: 'Sending message...' });
     
     try {
-      const response = await fetch('http://localhost:9000/api/contact/submit', {
+      const response = await fetch($backendUrl/api/contact/submit', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
