@@ -42,13 +42,13 @@ const HomePage = () => {
         if (!token) return;
 
         const [projects, documents, meetings] = await Promise.all([
-          fetch(`${process.env.REACT_APP_BACKEND_URL || 'process.env.Backendurl'}/api/projects`, { headers: { 'x-auth-token': token } })
+          fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/projects`, { headers: { 'x-auth-token': token } })
             .then(r => r.json())
             .catch(() => []),
-          fetch(`${process.env.REACT_APP_BACKEND_URL || 'process.env.Backendurl'}/api/documents`, { headers: { 'x-auth-token': token } })
+          fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/documents`, { headers: { 'x-auth-token': token } })
             .then(r => r.json())
             .catch(() => []),
-          fetch(`${process.env.REACT_APP_BACKEND_URL || 'process.env.Backendurl'}/api/meetings`, { headers: { 'x-auth-token': token } })
+          fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/meetings`, { headers: { 'x-auth-token': token } })
             .then(r => r.json())
             .catch(() => [])
         ]);
@@ -61,7 +61,7 @@ const HomePage = () => {
         });
 
         if (user?.role !== 'superadmin') {
-          const usersRes = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'process.env.Backendurl'}/api/users`, {
+          const usersRes = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/users`, {
             headers: { 'x-auth-token': token }
           }).catch(() => ({ json: () => [] }));
           const users = await usersRes.json();

@@ -390,7 +390,7 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Authentication required');
 
-      const response = await fetch(`$backendUrl/api/projects/${projectId}/tasks/${taskId}`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/projects/${projectId}/tasks/${taskId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -418,7 +418,7 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
       const newCompleted = !task.completed;
       const newStatus = newCompleted ? 'Completed' : 'In Progress';
 
-      const response = await fetch(`$backendUrl/api/projects/${projectId}/tasks/${taskId}`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/projects/${projectId}/tasks/${taskId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -457,7 +457,7 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
         }
       }
 
-      const response = await fetch(`$backendUrl/api/projects/${projectId}/tasks/${taskId}`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/projects/${projectId}/tasks/${taskId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

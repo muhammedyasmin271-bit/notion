@@ -16,7 +16,7 @@ const ProfileTab = () => {
     const fetchProfile = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch($backendUrl/api/users/profile', {
+        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/users/profile`, {
           headers: { 'x-auth-token': token }
         });
         if (response.ok) {
@@ -42,7 +42,7 @@ const ProfileTab = () => {
     setSaving(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch($backendUrl/api/users/profile', {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/users/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

@@ -38,7 +38,7 @@ const MessagesPage = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `$backendUrl/api/contact/messages?status=${statusFilter}&page=${page}&limit=20`,
+        `${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/contact/messages?status=${statusFilter}&page=${page}&limit=20`,
         {
           headers: {
             'x-auth-token': token
@@ -67,7 +67,7 @@ const MessagesPage = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `$backendUrl/api/contact/messages/${messageId}/status`,
+        `${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/contact/messages/${messageId}/status`,
         {
           method: 'PATCH',
           headers: {
@@ -106,7 +106,7 @@ const MessagesPage = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `$backendUrl/api/contact/messages/${messageId}`,
+        `${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/contact/messages/${messageId}`,
         {
           method: 'DELETE',
           headers: {

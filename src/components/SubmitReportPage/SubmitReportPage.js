@@ -277,7 +277,7 @@ const SubmitReportPage = () => {
             return;
           }
 
-          const response = await fetch(`$backendUrl/api/reports/${editId}`, {
+          const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/reports/${editId}`, {
             method: 'GET',
             headers: {
               'x-auth-token': token,
@@ -1545,7 +1545,7 @@ const SubmitReportPage = () => {
                       return;
                     }
 
-                    const response = await fetch(`$backendUrl/api/reports/${editId}`, {
+                    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/reports/${editId}`, {
                       method: 'DELETE',
                       headers: {
                         'x-auth-token': token,
@@ -2046,7 +2046,7 @@ const SubmitReportPage = () => {
                           const url = URL.createObjectURL(file);
                           window.open(url, '_blank');
                         } else if (file.path) {
-                          window.open(`${process.env.REACT_APP_BACKEND_URL || 'process.env.Backendurl'}${file.path}`, '_blank');
+                          window.open(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}${file.path}`, '_blank');
                         } else {
                           alert('File not available');
                         }

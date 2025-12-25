@@ -276,7 +276,7 @@ const PaymentSubmission = () => {
       });
       const userData = await userResponse.json();
       
-      const companyResponse = await fetch(`$backendUrl/api/admin/companies/${userData.companyId}`, {
+      const companyResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/admin/companies/${userData.companyId}`, {
         headers: { 'x-auth-token': token }
       });
       const companyResponseData = await companyResponse.json();

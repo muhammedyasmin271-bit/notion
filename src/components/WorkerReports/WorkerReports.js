@@ -40,7 +40,7 @@ const WorkerReports = () => {
 
   const fetchProject = async () => {
     try {
-      const response = await fetch(`$backendUrl/api/projects/${projectId}`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/projects/${projectId}`, {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
       

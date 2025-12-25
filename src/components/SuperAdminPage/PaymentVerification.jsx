@@ -30,7 +30,7 @@ const PaymentVerification = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `$backendUrl/api/payments/all?status=${filterStatus}`,
+        `${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/payments/all?status=${filterStatus}`,
         { headers: { 'x-auth-token': token } }
       );
       const data = await response.json();
@@ -61,7 +61,7 @@ const PaymentVerification = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `$backendUrl/api/payments/${selectedPayment._id}/verify`,
+        `${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/payments/${selectedPayment._id}/verify`,
         {
           method: 'PUT',
           headers: {
@@ -313,7 +313,7 @@ const PaymentVerification = () => {
 
                       <div className="flex flex-col gap-2">
                         <a
-                          href={`${process.env.REACT_APP_BACKEND_URL || 'process.env.Backendurl'}${payment.screenshotUrl}`}
+                          href={`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}${payment.screenshotUrl}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"

@@ -472,25 +472,25 @@ const HomePage = () => {
         if (!token) return;
 
         // Fetch projects
-        const projectsResponse = await fetch($backendUrl/api/projects', {
+        const projectsResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/projects`, {
           headers: { 'x-auth-token': token }
         });
         const projects = projectsResponse.ok ? await projectsResponse.json() : [];
 
         // Fetch goals
-        const goalsResponse = await fetch($backendUrl/api/goals', {
+        const goalsResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/goals`, {
           headers: { 'x-auth-token': token }
         });
         const goals = goalsResponse.ok ? await goalsResponse.json() : [];
 
         // Fetch documents
-        const documentsResponse = await fetch($backendUrl/api/documents', {
+        const documentsResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/documents`, {
           headers: { 'x-auth-token': token }
         });
         const documents = documentsResponse.ok ? await documentsResponse.json() : [];
 
         // Fetch meeting notes
-        const meetingsResponse = await fetch($backendUrl/api/meetings', {
+        const meetingsResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/meetings`, {
           headers: { 'x-auth-token': token }
         });
         const meetings = meetingsResponse.ok ? await meetingsResponse.json() : [];

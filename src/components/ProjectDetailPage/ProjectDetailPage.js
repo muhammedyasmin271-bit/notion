@@ -677,7 +677,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
         return;
       }
 
-      const response = await fetch(`$backendUrl/api/projects/${project.id}`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/projects/${project.id}`, {
         method: 'DELETE',
         headers: { 'x-auth-token': token }
       });
@@ -789,7 +789,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
         }
       } else {
         console.log('Updating existing project...');
-        const response = await fetch(`$backendUrl/api/projects/${project.id}`, {
+        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/projects/${project.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -3394,7 +3394,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                         const requestBody = { forPerson: forPersonValue };
                         console.log('🔵 Request body:', JSON.stringify(requestBody));
                         
-                        const response = await fetch(`$backendUrl/api/projects/${project.id}`, {
+                        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/projects/${project.id}`, {
                           method: 'PUT',
                           headers: {
                             'Content-Type': 'application/json',

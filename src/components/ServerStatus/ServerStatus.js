@@ -14,7 +14,7 @@ const ServerStatus = () => {
   const checkServerStatus = async () => {
     try {
       setStatus('checking');
-      const response = await fetch($backendUrl/api/health');
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/health`);
       
       if (response.ok) {
         const data = await response.json();

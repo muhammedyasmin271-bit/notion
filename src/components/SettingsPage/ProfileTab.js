@@ -21,7 +21,7 @@ const ProfileTab = () => {
     const fetchProfile = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch($backendUrl/api/users/profile', {
+        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/users/profile`, {
           headers: { 'x-auth-token': token }
         });
         if (response.ok) {
@@ -54,7 +54,7 @@ const ProfileTab = () => {
       try {
         const token = localStorage.getItem('token');
         const response = await axios.post(
-          '$backendUrl/api/notifications/validate-phone',
+          `${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/notifications/validate-phone`,
           { phone: profile.phoneNumber },
           { headers: { 'x-auth-token': token } }
         );
@@ -87,7 +87,7 @@ const ProfileTab = () => {
     try {
       const token = localStorage.getItem('token');
       
-      const response = await fetch($backendUrl/api/settings/contact-info', {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/settings/contact-info`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

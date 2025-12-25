@@ -44,7 +44,8 @@ const CompanyRouteGuard = ({ children }) => {
       // Validate company exists in database
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`$backendUrl/api/auth/company/${finalCompanyId}`, {
+        const backendUrl = process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com';
+        const response = await fetch(`${backendUrl}/api/auth/company/${finalCompanyId}`, {
           headers: {
             'x-auth-token': token || ''
           }

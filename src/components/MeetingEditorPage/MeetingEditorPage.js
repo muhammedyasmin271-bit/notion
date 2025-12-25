@@ -189,7 +189,7 @@ const MeetingEditorPage = () => {
   useEffect(() => {
     const checkServerStatus = async () => {
       try {
-        const response = await fetch(`${process.env.REACT_APP_API_URL || 'process.env.Backendurl'}/api/health`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://notion-l9ti.onrender.com'}/api/health`, {
           method: 'GET',
           timeout: 5000
         });

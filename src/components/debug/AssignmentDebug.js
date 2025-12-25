@@ -13,7 +13,7 @@ const AssignmentDebug = () => {
 
   const fetchProjects = async () => {
     try {
-      const response = await fetch($backendUrl/api/projects', {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/projects`, {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
       if (response.ok) {
@@ -27,7 +27,7 @@ const AssignmentDebug = () => {
 
   const fetchNotifications = async () => {
     try {
-      const response = await fetch($backendUrl/api/notifications', {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/notifications`, {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
       if (response.ok) {
@@ -47,7 +47,7 @@ const AssignmentDebug = () => {
         return;
       }
 
-      const response = await fetch($backendUrl/api/projects', {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/projects`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

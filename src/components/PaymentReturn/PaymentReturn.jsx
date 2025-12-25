@@ -20,7 +20,7 @@ const PaymentReturn = () => {
       
       console.log(`🔍 Payment verification attempt ${attempt} for tx_ref:`, tx_ref);
       
-      const response = await fetch(`$backendUrl/api/payments/chapa/verify/${tx_ref}`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/payments/chapa/verify/${tx_ref}`, {
         headers: { 'x-auth-token': token }
       });
       
