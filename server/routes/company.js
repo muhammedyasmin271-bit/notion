@@ -333,7 +333,7 @@ router.post('/create', upload.single('logo'), async (req, res) => {
       logoUrl = `${baseUrl}/uploads/company-logos/${req.file.filename}`;
     }
 
-    const companyLink = `${process.env.FRONTEND_URL || 'https://melafront.vercel.app'}/${companyId}/dashboard`;
+    const companyLink = `${process.env.FRONTEND_URL || 'https://melafront.vercel.app'}/login?company=${companyId}`;
 
     console.log(`🔧 Points system setting: pointsEnabled = ${pointsEnabled} (type: ${typeof pointsEnabled})`);
     

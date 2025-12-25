@@ -93,7 +93,7 @@ router.post('/companies', auth, isSuperAdmin, async (req, res) => {
     console.log(`✅ Admin user created: ${adminUser.name} (${adminUser.username}) for company ${companyId}`);
 
     // Generate company link
-    const companyLink = `${process.env.FRONTEND_URL || 'https://melafront.vercel.app'}/${companyId}/dashboard`;
+    const companyLink = `${process.env.FRONTEND_URL || 'https://melafront.vercel.app'}/login?company=${companyId}`;
     
     // Set pointsEnabledAt to now (company creation date) since points are enabled by default
     const now = new Date();
