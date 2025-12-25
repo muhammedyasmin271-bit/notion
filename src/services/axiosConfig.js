@@ -1,10 +1,9 @@
 import axios from 'axios';
 
 const API_BASE_URL =
- "https://notion-l9ti.onrender.com/api" ||
-    (typeof window !== 'undefined' && window.location.hostname !== 'localhost'
-        ? '/api'
-        : 'https://notion-l9ti.onrender.com/api');
+    (process.env.REACT_APP_BACKEND_URL && process.env.REACT_APP_BACKEND_URL !== 'undefined')
+        ? `${process.env.REACT_APP_BACKEND_URL}/api`
+        : 'https://notion-l9ti.onrender.com/api';
 
 console.log('API_BASE_URL:', API_BASE_URL);
 

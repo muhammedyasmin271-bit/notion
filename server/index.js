@@ -13,9 +13,26 @@ const PORT = process.env.PORT || 9000;
 
 // Middleware
 app.use(helmet());
-// Configure CORS to allow all origins
+// Configure CORS to allow specific origins or all origins safely
+const allowedOrigins = [
+  'https://melafront.vercel.app',
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:9000'
+];
+
 app.use(cors({
-  origin: '*', // Allow all origins
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || origin.endsWith('.vercel.app')) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked for origin:', origin);
+      callback(null, false); // Block but don't crash
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token'],

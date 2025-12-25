@@ -39,7 +39,14 @@ const SuperAdminPage = () => {
   const fetchCompanies = React.useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('https://notion-l9ti.onrender.com/api/admin/companies', {
+      const envBackendUrl = process.env.REACT_APP_BACKEND_URL;
+      const fallbackUrl = 'https://notion-l9ti.onrender.com';
+      let backendUrl = fallbackUrl;
+      if (envBackendUrl && envBackendUrl !== 'undefined' && envBackendUrl.startsWith('http')) {
+        backendUrl = envBackendUrl;
+      }
+      
+      const res = await fetch(`${backendUrl}/api/admin/companies`, {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
       const data = await res.json();
@@ -143,7 +150,13 @@ const SuperAdminPage = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('https://notion-l9ti.onrender.com/api/admin/companies', {
+      const envBackendUrl = process.env.REACT_APP_BACKEND_URL;
+      const fallbackUrl = 'https://notion-l9ti.onrender.com';
+      let backendUrl = fallbackUrl;
+      if (envBackendUrl && envBackendUrl !== 'undefined' && envBackendUrl.startsWith('http')) {
+        backendUrl = envBackendUrl;
+      }
+      const res = await fetch(`${backendUrl}/api/admin/companies`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') },
         body: JSON.stringify(formData)
@@ -178,7 +191,13 @@ const SuperAdminPage = () => {
   const viewCompanyDetails = async (companyId) => {
     setLoading(true);
     try {
-      const res = await fetch(`https://notion-l9ti.onrender.com/api/admin/companies/${companyId}/stats`, {
+      const envBackendUrl = process.env.REACT_APP_BACKEND_URL;
+      const fallbackUrl = 'https://notion-l9ti.onrender.com';
+      let backendUrl = fallbackUrl;
+      if (envBackendUrl && envBackendUrl !== 'undefined' && envBackendUrl.startsWith('http')) {
+        backendUrl = envBackendUrl;
+      }
+      const res = await fetch(`${backendUrl}/api/admin/companies/${companyId}/stats`, {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
       const data = await res.json();
@@ -193,7 +212,7 @@ const SuperAdminPage = () => {
       });
       
       // Fetch company payments
-      const paymentsRes = await fetch('https://notion-l9ti.onrender.com/api/payments/all', {
+      const paymentsRes = await fetch(`${backendUrl}/api/payments/all`, {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
       const paymentsData = await paymentsRes.json();
@@ -231,7 +250,13 @@ const SuperAdminPage = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`https://notion-l9ti.onrender.com/api/admin/companies/${selectedCompany.companyId}/limits`, {
+      const envBackendUrl = process.env.REACT_APP_BACKEND_URL;
+      const fallbackUrl = 'https://notion-l9ti.onrender.com';
+      let backendUrl = fallbackUrl;
+      if (envBackendUrl && envBackendUrl !== 'undefined' && envBackendUrl.startsWith('http')) {
+        backendUrl = envBackendUrl;
+      }
+      const response = await fetch(`${backendUrl}/api/admin/companies/${selectedCompany.companyId}/limits`, {
         method: 'PATCH',
         headers: {
           'x-auth-token': token,
@@ -264,10 +289,16 @@ const SuperAdminPage = () => {
     setUpdatingPaymentMode(true);
     try {
       const token = localStorage.getItem('token');
+      const envBackendUrl = process.env.REACT_APP_BACKEND_URL;
+      const fallbackUrl = 'https://notion-l9ti.onrender.com';
+      let backendUrl = fallbackUrl;
+      if (envBackendUrl && envBackendUrl !== 'undefined' && envBackendUrl.startsWith('http')) {
+        backendUrl = envBackendUrl;
+      }
       const currentMode = selectedCompany.paymentMode || 'paid'; // Default to 'paid' if undefined
       const newMode = currentMode === 'paid' ? 'free' : 'paid';
       
-      const response = await fetch(`https://notion-l9ti.onrender.com/api/admin/companies/${selectedCompany.companyId}/payment-mode`, {
+      const response = await fetch(`${backendUrl}/api/admin/companies/${selectedCompany.companyId}/payment-mode`, {
         method: 'PATCH',
         headers: {
           'x-auth-token': token,
@@ -299,8 +330,14 @@ const SuperAdminPage = () => {
     setUpdatingPointsToggle(true);
     try {
       const token = localStorage.getItem('token');
+      const envBackendUrl = process.env.REACT_APP_BACKEND_URL;
+      const fallbackUrl = 'https://notion-l9ti.onrender.com';
+      let backendUrl = fallbackUrl;
+      if (envBackendUrl && envBackendUrl !== 'undefined' && envBackendUrl.startsWith('http')) {
+        backendUrl = envBackendUrl;
+      }
       
-      const response = await fetch(`https://notion-l9ti.onrender.com/api/admin/companies/${selectedCompany.companyId}/points-toggle`, {
+      const response = await fetch(`${backendUrl}/api/admin/companies/${selectedCompany.companyId}/points-toggle`, {
         method: 'PATCH',
         headers: {
           'x-auth-token': token,
@@ -346,8 +383,14 @@ const SuperAdminPage = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
+      const envBackendUrl = process.env.REACT_APP_BACKEND_URL;
+      const fallbackUrl = 'https://notion-l9ti.onrender.com';
+      let backendUrl = fallbackUrl;
+      if (envBackendUrl && envBackendUrl !== 'undefined' && envBackendUrl.startsWith('http')) {
+        backendUrl = envBackendUrl;
+      }
       const response = await fetch(
-        `https://notion-l9ti.onrender.com/api/payments/${selectedPayment._id}/verify`,
+        `${backendUrl}/api/payments/${selectedPayment._id}/verify`,
         {
           method: 'PUT',
           headers: {
@@ -396,16 +439,22 @@ const SuperAdminPage = () => {
 
   const toggleStatus = async (companyId, currentStatus) => {
     try {
+      const envBackendUrl = process.env.REACT_APP_BACKEND_URL;
+      const fallbackUrl = 'https://notion-l9ti.onrender.com';
+      let backendUrl = fallbackUrl;
+      if (envBackendUrl && envBackendUrl !== 'undefined' && envBackendUrl.startsWith('http')) {
+        backendUrl = envBackendUrl;
+      }
       if (currentStatus === 'active') {
         // Pause the company
-        await fetch(`https://notion-l9ti.onrender.com/api/payments/company/${companyId}/pause`, {
+        await fetch(`${backendUrl}/api/payments/company/${companyId}/pause`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') }
         });
         setSuccess('Company paused successfully!');
       } else {
         // Reactivate the company (24-hour window)
-        await fetch(`https://notion-l9ti.onrender.com/api/payments/company/${companyId}/play`, {
+        await fetch(`${backendUrl}/api/payments/company/${companyId}/play`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') }
         });
@@ -420,7 +469,13 @@ const SuperAdminPage = () => {
 
   const unpauseCompany = async (companyId) => {
     try {
-      const response = await fetch(`https://notion-l9ti.onrender.com/api/admin/companies/${companyId}/unpause`, {
+      const envBackendUrl = process.env.REACT_APP_BACKEND_URL;
+      const fallbackUrl = 'https://notion-l9ti.onrender.com';
+      let backendUrl = fallbackUrl;
+      if (envBackendUrl && envBackendUrl !== 'undefined' && envBackendUrl.startsWith('http')) {
+        backendUrl = envBackendUrl;
+      }
+      const response = await fetch(`${backendUrl}/api/admin/companies/${companyId}/unpause`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') }
       });
@@ -445,7 +500,13 @@ const SuperAdminPage = () => {
   const deleteCompany = async (companyId) => {
     if (!window.confirm('⚠️ Delete this company and ALL its data? This cannot be undone!')) return;
     try {
-      await fetch(`https://notion-l9ti.onrender.com/api/admin/companies/${companyId}`, {
+      const envBackendUrl = process.env.REACT_APP_BACKEND_URL;
+      const fallbackUrl = 'https://notion-l9ti.onrender.com';
+      let backendUrl = fallbackUrl;
+      if (envBackendUrl && envBackendUrl !== 'undefined' && envBackendUrl.startsWith('http')) {
+        backendUrl = envBackendUrl;
+      }
+      await fetch(`${backendUrl}/api/admin/companies/${companyId}`, {
         method: 'DELETE',
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
