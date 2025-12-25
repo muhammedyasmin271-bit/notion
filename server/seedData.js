@@ -91,15 +91,17 @@ const seedData = async () => {
       }
     ]);
 
-    // Create users
+    // Create users with encrypted passwords
     console.log('👥 Creating users...');
+    const saltRounds = 10;
+    
     const users = await User.insertMany([
       // Super Admin
       {
         name: 'Super Admin',
         username: 'superadmin',
         email: 'superadmin@notion.com',
-        password: 'admin123',
+        password: await bcrypt.hash('123456', saltRounds),
         companyId: 'system',
         role: 'superadmin',
         status: 'approved',
@@ -112,7 +114,7 @@ const seedData = async () => {
         name: 'John Manager',
         username: 'johnmanager',
         email: 'john@demo.com',
-        password: 'manager123',
+        password: await bcrypt.hash('789012', saltRounds),
         companyId: 'demo-corp',
         role: 'manager',
         status: 'approved',
@@ -125,7 +127,7 @@ const seedData = async () => {
         name: 'Alice Developer',
         username: 'alicedev',
         email: 'alice@demo.com',
-        password: 'user123',
+        password: await bcrypt.hash('345678', saltRounds),
         companyId: 'demo-corp',
         role: 'user',
         status: 'approved',
@@ -138,7 +140,7 @@ const seedData = async () => {
         name: 'Bob Designer',
         username: 'bobdesign',
         email: 'bob@demo.com',
-        password: 'user123',
+        password: await bcrypt.hash('901234', saltRounds),
         companyId: 'demo-corp',
         role: 'user',
         status: 'approved',
@@ -152,7 +154,7 @@ const seedData = async () => {
         name: 'Sarah Founder',
         username: 'sarahfounder',
         email: 'sarah@techstartup.com',
-        password: 'founder123',
+        password: await bcrypt.hash('567890', saltRounds),
         companyId: 'tech-startup',
         role: 'manager',
         status: 'approved',
@@ -165,7 +167,7 @@ const seedData = async () => {
         name: 'Mike Engineer',
         username: 'mikeeng',
         email: 'mike@techstartup.com',
-        password: 'user123',
+        password: await bcrypt.hash('234567', saltRounds),
         companyId: 'tech-startup',
         role: 'user',
         status: 'approved',
