@@ -30,11 +30,20 @@ const LoginPage = () => {
   const fetchCompanyData = async () => {
     setLoadingCompany(true);
     try {
-      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/auth/company/${companyId}`);
+      const url = `${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/auth/company/${companyId}`;
+      console.log('Fetching company data from:', url);
+      const res = await fetch(url);
+      console.log('Response status:', res.status);
+      console.log('Response headers:', res.headers);
+      
       if (res.ok) {
         const data = await res.json();
         setCompanyData(data);
         console.log('✅ Company data loaded:', data);
+      } else {
+        console.error('❌ Company fetch failed:', res.status, res.statusText);
+        const text = await res.text();
+        console.error('Response body:', text);
       }
     } catch (error) {
       console.error('❌ Error loading company data:', error);
