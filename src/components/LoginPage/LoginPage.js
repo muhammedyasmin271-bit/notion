@@ -23,15 +23,19 @@ const LoginPage = () => {
   // Fetch company data if companyId is present
   React.useEffect(() => {
     if (companyId) {
-      fetchCompanyData();
+      // Add a small delay to ensure company is saved in database
+      const timer = setTimeout(() => {
+        fetchCompanyData();
+      }, 1000);
+      return () => clearTimeout(timer);
     }
   }, [companyId]);
 
-  const fetchCompanyData = async () => {
+  const fetchCompanyData = async (retryCount = 0) => {
     setLoadingCompany(true);
     try {
       const url = `${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/auth/company/${companyId}`;
-      console.log('Fetching company data from:', url);
+      console.log('Fetching company data from:', url, 'Attempt:', retryCount + 1);
       const res = await fetch(url);
       console.log('Response status:', res.status);
       
@@ -39,9 +43,14 @@ const LoginPage = () => {
         const data = await res.json();
         setCompanyData(data);
         console.log('✅ Company data loaded:', data);
+      } else if (res.status === 404 && retryCount < 3) {
+        // Company not found, retry after 2 seconds (up to 3 times)
+        console.log('Company not found, retrying in 2 seconds...');
+        setTimeout(() => fetchCompanyData(retryCount + 1), 2000);
+        return;
       } else {
         console.error('❌ Company fetch failed:', res.status, res.statusText);
-        // If company not found, show default branding but keep company parameter
+        // If company not found after retries, show default branding but keep company parameter
         setCompanyData({
           companyId: companyId,
           name: 'Company Login',
@@ -53,6 +62,11 @@ const LoginPage = () => {
       }
     } catch (error) {
       console.error('❌ Error loading company data:', error);
+      if (retryCount < 3) {
+        console.log('Network error, retrying in 2 seconds...');
+        setTimeout(() => fetchCompanyData(retryCount + 1), 2000);
+        return;
+      }
       // Fallback to default branding but keep company parameter
       setCompanyData({
         companyId: companyId,
