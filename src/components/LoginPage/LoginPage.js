@@ -34,7 +34,6 @@ const LoginPage = () => {
       console.log('Fetching company data from:', url);
       const res = await fetch(url);
       console.log('Response status:', res.status);
-      console.log('Response headers:', res.headers);
       
       if (res.ok) {
         const data = await res.json();
@@ -42,11 +41,27 @@ const LoginPage = () => {
         console.log('✅ Company data loaded:', data);
       } else {
         console.error('❌ Company fetch failed:', res.status, res.statusText);
-        const text = await res.text();
-        console.error('Response body:', text);
+        // If company not found, show default branding but keep company parameter
+        setCompanyData({
+          companyId: companyId,
+          name: 'Company Login',
+          branding: {
+            logo: '/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png',
+            companyName: 'Company Login'
+          }
+        });
       }
     } catch (error) {
       console.error('❌ Error loading company data:', error);
+      // Fallback to default branding but keep company parameter
+      setCompanyData({
+        companyId: companyId,
+        name: 'Company Login',
+        branding: {
+          logo: '/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png',
+          companyName: 'Company Login'
+        }
+      });
     } finally {
       setLoadingCompany(false);
     }
