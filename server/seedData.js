@@ -97,6 +97,7 @@ const seedData = async () => {
     
     const users = await User.insertMany([
       // Super Admin
+      // Super Admin
       {
         name: 'Super Admin',
         username: 'superadmin',
