@@ -38,7 +38,13 @@ const RegisterPage = () => {
   const fetchCompanyData = async () => {
     setLoadingCompany(true);
     try {
-      const backendUrl = process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com';
+      const envBackendUrl = process.env.REACT_APP_BACKEND_URL;
+      const fallbackUrl = 'https://notion-l9ti.onrender.com';
+      let backendUrl = fallbackUrl;
+      if (envBackendUrl && envBackendUrl !== 'undefined' && envBackendUrl.startsWith('http')) {
+        backendUrl = envBackendUrl;
+      }
+      
       const res = await fetch(`${backendUrl}/api/auth/company/${companyId}`);
       if (res.ok) {
         const data = await res.json();
@@ -197,7 +203,7 @@ const RegisterPage = () => {
                   companyData?.branding?.logo 
                     ? (companyData.branding.logo.startsWith('data:') || companyData.branding.logo.startsWith('http') || companyData.branding.logo.startsWith('/ChatGPT')
                         ? companyData.branding.logo 
-                        : `${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}${companyData.branding.logo}`)
+                        : `${(process.env.REACT_APP_BACKEND_URL && process.env.REACT_APP_BACKEND_URL !== 'undefined' && process.env.REACT_APP_BACKEND_URL.startsWith('http')) ? process.env.REACT_APP_BACKEND_URL : 'https://notion-l9ti.onrender.com'}${companyData.branding.logo}`)
                     : "/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png"
                 } 
                 alt={`${companyData?.name || 'Mela Note'} Logo`} 

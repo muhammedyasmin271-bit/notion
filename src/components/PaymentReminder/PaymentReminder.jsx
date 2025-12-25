@@ -40,7 +40,14 @@ const PaymentReminder = () => {
         // If user is authenticated, fetch from API
         if (isAuthenticated && user && user.companyId) {
           const token = localStorage.getItem('token');
-          const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/company/my-company`, {
+          const envBackendUrl = process.env.REACT_APP_BACKEND_URL;
+          const fallbackUrl = 'https://notion-l9ti.onrender.com';
+          let backendUrl = fallbackUrl;
+          if (envBackendUrl && envBackendUrl !== 'undefined' && envBackendUrl.startsWith('http')) {
+            backendUrl = envBackendUrl;
+          }
+          
+          const response = await fetch(`${backendUrl}/api/company/my-company`, {
             headers: { 'x-auth-token': token }
           });
           
@@ -62,9 +69,10 @@ const PaymentReminder = () => {
                                 !companyData.hasPaid &&
                                 gracePeriodExpired; // Only need payment AFTER grace period
             
-            // Check if 24-hour countdown is active (paymentCountdownStart exists and payment not made)
+            // Check if 24-hour countdown is active
+            // We consider the countdown active if paymentCountdownStart is set OR if there's a payment deadline in the future
             const paymentCountdownStart = companyData.paymentCountdownStart ? new Date(companyData.paymentCountdownStart) : null;
-            const is24HourCountdownActive = paymentCountdownStart && !companyData.hasPaid;
+            const is24HourCountdownActive = (paymentCountdownStart || (paymentDeadline && paymentDeadline > now)) && !companyData.hasPaid;
             
             setPaymentInfo({
               paymentDeadline: paymentDeadline,
@@ -181,11 +189,11 @@ const PaymentReminder = () => {
       return;
     }
     
-    // Navigate to home with company ID in URL
+    // Navigate to home with company ID in URL and reminded flag
     if (companyId) {
-      navigate(`/home?company=${companyId}`);
+      navigate(`/home?company=${companyId}&reminded=true`);
     } else {
-      navigate('/home');
+      navigate('/home?reminded=true');
     }
   };
 

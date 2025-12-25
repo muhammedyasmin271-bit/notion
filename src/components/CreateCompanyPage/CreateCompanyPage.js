@@ -98,7 +98,14 @@ const CreateCompanyPage = () => {
         pointsEnabled: formData.pointsEnabled
       };
 
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/company/create`, {
+      const envBackendUrl = process.env.REACT_APP_BACKEND_URL;
+      const fallbackUrl = 'https://notion-l9ti.onrender.com';
+      let backendUrl = fallbackUrl;
+      if (envBackendUrl && envBackendUrl !== 'undefined' && envBackendUrl.startsWith('http')) {
+        backendUrl = envBackendUrl;
+      }
+
+      const response = await fetch(`${backendUrl}/api/company/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(submitData)

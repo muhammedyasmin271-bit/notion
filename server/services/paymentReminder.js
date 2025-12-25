@@ -20,7 +20,7 @@ const schedulePaymentReminders = (companyId, adminPhone, companyName, paymentDea
       const timeoutId = setTimeout(async () => {
         try {
           const hoursRemaining = hoursBeforeDeadline;
-          const message = `⏰ Payment Reminder: ${companyName} - You have ${hoursRemaining} hours to complete payment before your company is suspended. Login: process.env.Backendurl/login?company=${companyId}`;
+          const message = `⏰ Payment Reminder: ${companyName} - You have ${hoursRemaining} hours to complete payment before your company is suspended. Login: https://melafront.vercel.app/login?company=${companyId}`;
           
           console.log(`📤 Sending ${hoursRemaining}h reminder to ${adminPhone}`);
           await sendSMS(adminPhone, message);

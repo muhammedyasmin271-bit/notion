@@ -101,12 +101,15 @@ const PaymentSubmission = () => {
   const verifyPaymentStatus = async (txRef) => {
     try {
       const token = localStorage.getItem('token');
+      const backendUrl = (process.env.REACT_APP_BACKEND_URL && process.env.REACT_APP_BACKEND_URL !== 'undefined')
+        ? process.env.REACT_APP_BACKEND_URL
+        : 'https://notion-l9ti.onrender.com';
       console.log('🔍 Verifying payment with tx_ref:', txRef);
       
       // Show verification status on page
       setVerificationStatus({ status: 'checking', message: 'Verifying payment with Chapa...' });
       
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/payments/chapa/verify/${txRef}`, {
+      const response = await fetch(`${backendUrl}/api/payments/chapa/verify/${txRef}`, {
         headers: { 'x-auth-token': token }
       });
       
@@ -263,32 +266,35 @@ const PaymentSubmission = () => {
   const fetchPaymentSettings = async () => {
     try {
       const token = localStorage.getItem('token');
+      const backendUrl = (process.env.REACT_APP_BACKEND_URL && process.env.REACT_APP_BACKEND_URL !== 'undefined')
+        ? process.env.REACT_APP_BACKEND_URL
+        : 'https://notion-l9ti.onrender.com';
       
       // Fetch price per user per month from settings
-      const globalResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/settings/payment`, {
+      const globalResponse = await fetch(`${backendUrl}/api/settings/payment`, {
         headers: { 'x-auth-token': token }
       });
       const globalData = await globalResponse.json();
       
       // Fetch company data to get user limit
-      const userResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/me`, {
+      const userResponse = await fetch(`${backendUrl}/api/auth/me`, {
         headers: { 'x-auth-token': token }
       });
       const userData = await userResponse.json();
       
-      const companyResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/admin/companies/${userData.companyId}`, {
+      const companyResponse = await fetch(`${backendUrl}/api/admin/companies/${userData.companyId}`, {
         headers: { 'x-auth-token': token }
       });
       const companyResponseData = await companyResponse.json();
       
       // Also fetch from my-company endpoint to ensure we have all fields
-      const myCompanyResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/company/my-company`, {
+      const myCompanyResponse = await fetch(`${backendUrl}/api/company/my-company`, {
         headers: { 'x-auth-token': token }
       });
       const myCompanyData = myCompanyResponse.ok ? await myCompanyResponse.json() : {};
       
       // Fetch company payments
-      const paymentsResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/payments/all`, {
+      const paymentsResponse = await fetch(`${backendUrl}/api/payments/all`, {
         headers: { 'x-auth-token': token }
       });
       const allPayments = paymentsResponse.ok ? await paymentsResponse.json() : [];
@@ -341,7 +347,10 @@ const PaymentSubmission = () => {
   const fetchPayments = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/payments/my-company`, {
+      const backendUrl = (process.env.REACT_APP_BACKEND_URL && process.env.REACT_APP_BACKEND_URL !== 'undefined')
+        ? process.env.REACT_APP_BACKEND_URL
+        : 'https://notion-l9ti.onrender.com';
+      const response = await fetch(`${backendUrl}/api/payments/my-company`, {
         headers: { 'x-auth-token': token }
       });
       
@@ -438,27 +447,14 @@ const PaymentSubmission = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      
-      if (!token) {
-        throw new Error('Authentication token not found. Please login again.');
+      const envBackendUrl = process.env.REACT_APP_BACKEND_URL;
+      const fallbackUrl = 'https://notion-l9ti.onrender.com';
+      let backendUrl = fallbackUrl;
+      if (envBackendUrl && envBackendUrl !== 'undefined' && envBackendUrl.startsWith('http')) {
+        backendUrl = envBackendUrl;
       }
       
-      // Price is already calculated with discount in the plan object
-      const finalPrice = planToUse.price;
-
-      const paymentPayload = {
-        amount: finalPrice,
-        months: monthsToUse,
-        year: formData.year,
-        planName: planToUse.name,
-        isMonthlyPlan: !!selectedMonthlyPlan,
-        monthlyPlanDetails: selectedMonthlyPlan ? {
-          totalEMIs: selectedMonthlyPlan.emis,
-          perMonth: selectedMonthlyPlan.perMonth
-        } : null
-      };
-
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/payments/chapa/initialize`, {
+      const response = await fetch(`${backendUrl}/api/payments/chapa/initialize`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

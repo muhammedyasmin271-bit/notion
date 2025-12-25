@@ -44,14 +44,31 @@ const CompanyRouteGuard = ({ children }) => {
       // Validate company exists in database
       try {
         const token = localStorage.getItem('token');
-        const backendUrl = process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com';
-        const response = await fetch(`${backendUrl}/api/auth/company/${finalCompanyId}`, {
+        const envBackendUrl = process.env.REACT_APP_BACKEND_URL;
+        const fallbackUrl = 'https://notion-l9ti.onrender.com';
+        
+        let backendUrl = fallbackUrl;
+        if (envBackendUrl && envBackendUrl !== 'undefined' && envBackendUrl.startsWith('http')) {
+          backendUrl = envBackendUrl;
+        }
+        
+        const fetchUrl = `${backendUrl}/api/auth/company/${finalCompanyId}`;
+        console.log('🔍 CompanyRouteGuard: Validating company at:', fetchUrl);
+        
+        const response = await fetch(fetchUrl, {
           headers: {
             'x-auth-token': token || ''
           }
         });
 
         if (response.ok) {
+          const contentType = response.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            console.error('❌ CompanyRouteGuard: Received non-JSON response:', text.substring(0, 100));
+            throw new Error('Server returned HTML instead of JSON. Check backend URL.');
+          }
+          
           const companyData = await response.json();
           // Check if company exists (if we get data, company exists)
           if (companyData && companyData.companyId) {

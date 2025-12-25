@@ -421,12 +421,22 @@ router.post('/login', [
                                paymentDeadline &&
                                !isDeadlinePassed;
           
+          console.log(`🔐 Login: Company ${company.companyId} payment status:`, {
+            subscriptionStatus: company.subscriptionStatus,
+            selectedPlan: company.selectedPlan,
+            paymentDeadline,
+            isDeadlinePassed,
+            needsPayment
+          });
+          
           paymentInfo = {
             paymentDeadline: paymentDeadline,
             isDeadlinePassed: isDeadlinePassed,
             needsPayment: needsPayment,
             selectedPlan: company.selectedPlan,
-            subscriptionStatus: company.subscriptionStatus
+            subscriptionStatus: company.subscriptionStatus,
+            paymentCountdownStart: company.paymentCountdownStart,
+            status: company.status
           };
         }
         

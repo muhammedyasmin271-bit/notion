@@ -377,7 +377,8 @@ router.post('/create', upload.single('logo'), async (req, res) => {
         currency: 'ETB'
       },
       companyLink,
-      status: 'active'
+      status: 'active',
+      paymentCountdownStart: selectedPlan === 'free_trial' ? null : now
     });
 
     await company.save();

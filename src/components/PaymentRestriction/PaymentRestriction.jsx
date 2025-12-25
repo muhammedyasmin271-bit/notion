@@ -29,7 +29,14 @@ const PaymentRestriction = ({ children }) => {
     const checkPaymentStatus = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/company/my-company`, {
+        const envBackendUrl = process.env.REACT_APP_BACKEND_URL;
+        const fallbackUrl = 'https://notion-l9ti.onrender.com';
+        let backendUrl = fallbackUrl;
+        if (envBackendUrl && envBackendUrl !== 'undefined' && envBackendUrl.startsWith('http')) {
+          backendUrl = envBackendUrl;
+        }
+        
+        const response = await fetch(`${backendUrl}/api/company/my-company`, {
           headers: { 'x-auth-token': token }
         });
 
@@ -61,6 +68,39 @@ const PaymentRestriction = ({ children }) => {
           const gracePeriodExpired = gracePeriodDeadline && now >= gracePeriodDeadline && 
                                     companyData.paymentMode === 'paid' && 
                                     !companyData.hasPaid;
+          
+          // 24-hour countdown active - optional payment window
+          const paymentCountdownStart = companyData.paymentCountdownStart ? new Date(companyData.paymentCountdownStart) : null;
+          const is24HourCountdownActive = (paymentCountdownStart || (paymentDeadline && paymentDeadline > now)) && !companyData.hasPaid;
+          
+          // Redirect to reminder page if:
+          // 1. Grace period expired (blocked)
+          // 2. OR 24-hour window is active (for awareness)
+          const urlParams = new URLSearchParams(location.search);
+          const hasBeenReminded = urlParams.get('reminded') === 'true';
+          const needsReminder = (gracePeriodExpired || (is24HourCountdownActive && companyData.paymentMode === 'paid')) && !hasBeenReminded;
+          
+          // If reminder is needed and not on allowed payment pages, redirect
+          if (needsReminder && !isPaymentPage) {
+            console.log('🔄 PaymentRestriction: Redirecting to reminder page');
+            // Redirect to payment reminder with company ID in URL
+            navigate(`/payment-reminder?company=${user.companyId}`, { 
+              state: { 
+                companyId: user.companyId,
+                paymentInfo: {
+                  ...companyData,
+                  isDeadlinePassed,
+                  inGracePeriod,
+                  gracePeriodExpired,
+                  is24HourCountdownActive,
+                  isWithin24Hours: is24HourCountdownActive && paymentDeadline && !isDeadlinePassed
+                },
+                from: location.pathname
+              },
+              replace: true // Replace history to prevent back navigation
+            });
+            return; // Don't continue rendering
+          }
           
           // Block ALL users (including admin) when deadline passes - until super admin clicks play
           // Block if: deadline passed OR company is paused (due to deadline)

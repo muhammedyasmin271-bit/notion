@@ -37,7 +37,9 @@ const AIAssistantPage = () => {
 
   const getAppData = async () => {
     const token = localStorage.getItem('token');
-    const backendUrl = process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com';
+    const backendUrl = (process.env.REACT_APP_BACKEND_URL && process.env.REACT_APP_BACKEND_URL !== 'undefined')
+      ? process.env.REACT_APP_BACKEND_URL
+      : 'https://notion-l9ti.onrender.com';
     const appData = {
       user: user,
       currentPath: window.location.pathname,

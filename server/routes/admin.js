@@ -149,7 +149,8 @@ router.post('/companies', auth, isSuperAdmin, async (req, res) => {
       branding: { logo: processedLogo, companyName: name },
       companyLink,
       pointsEnabled: finalPointsEnabled,
-      pointsEnabledAt: finalPointsEnabled ? now : null
+      pointsEnabledAt: finalPointsEnabled ? now : null,
+      paymentCountdownStart: selectedPlan === 'free_trial' ? null : now
     });
     
     await company.save();

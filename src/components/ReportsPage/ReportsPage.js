@@ -21,7 +21,7 @@ const ReportsPage = () => {
         const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
 
         // Fetch my reports
-        const myReportsResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/reports`, {
+        const myReportsResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/reports`, {
           headers: { 'x-auth-token': token, 'Content-Type': 'application/json' }
         });
         if (myReportsResponse.ok) {
@@ -30,7 +30,7 @@ const ReportsPage = () => {
         }
 
         // Fetch shared reports
-        const sharedReportsResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/reports/shared/with-me`, {
+        const sharedReportsResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/reports/shared/with-me`, {
           headers: { 'x-auth-token': token, 'Content-Type': 'application/json' }
         });
         if (sharedReportsResponse.ok) {
@@ -68,7 +68,7 @@ const ReportsPage = () => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/reports/${reportId}`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/reports/${reportId}`, {
         method: 'DELETE',
         headers: { 'x-auth-token': token, 'Content-Type': 'application/json' }
       });

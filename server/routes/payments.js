@@ -483,7 +483,7 @@ router.post('/chapa/initialize', auth, async (req, res) => {
     // Chapa API configuration
     const CHAPA_TOKEN = process.env.CHAPA_TOKEN || process.env.CHAPA_SECRET_KEY;
     const CHAPA_API = process.env.CHAPA_API || 'https://api.chapa.co/v1';
-    const BASE_URL = process.env.BASE_URL || 'process.env.Backendurl';
+    const BASE_URL = process.env.BASE_URL || 'https://notion-l9ti.onrender.com';
     
     if (!CHAPA_TOKEN) {
       console.error('❌ Chapa token not found in environment variables');
@@ -519,7 +519,7 @@ router.post('/chapa/initialize', auth, async (req, res) => {
       last_name: user.name?.split(' ').slice(1).join(' ') || 'Customer',
       phone_number: user.phone || '+251911123456',
       tx_ref: txRef,
-      callback_url: `process.env.Backendurl/api/payments/chapa/webhook`,
+      callback_url: `${process.env.BASE_URL || 'https://notion-l9ti.onrender.com'}/api/payments/chapa/webhook`,
       return_url: `${BASE_URL}/payment-return?tx_ref=${txRef}&status=success&company=${req.user.companyId}`,
       customization: {
         title: planName?.substring(0, 16) || 'Subscription', // Max 16 chars
