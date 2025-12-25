@@ -19,10 +19,7 @@ const seedData = async () => {
     let mongoUri = process.env.MONGODB_URI;
     
     // If Atlas connection fails, fallback to local
-    if (mongoUri.includes('mongodb+srv')) {
-      console.log('⚠️  Using local MongoDB for seeding (Atlas connection may be restricted)');
-      mongoUri = 'mongodb://localhost:27017/notion';
-    }
+
     
     await mongoose.connect(mongoUri, {
       useNewUrlParser: true,
