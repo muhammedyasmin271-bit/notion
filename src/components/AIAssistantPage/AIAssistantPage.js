@@ -37,6 +37,7 @@ const AIAssistantPage = () => {
 
   const getAppData = async () => {
     const token = localStorage.getItem('token');
+    const backendUrl = process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com';
     const appData = {
       user: user,
       currentPath: window.location.pathname,
@@ -50,7 +51,7 @@ const AIAssistantPage = () => {
       try {
         // Fetch projects with full details and their tasks
         try {
-          const projectsResponse = await fetch(`${process.env.Backendurl}/api/projects`, {
+          const projectsResponse = await fetch(`${backendUrl}/api/projects`, {
             headers: { 'x-auth-token': token }
           });
           if (projectsResponse.ok) {
@@ -61,7 +62,7 @@ const AIAssistantPage = () => {
               projects.map(async (p) => {
                 const projectId = p._id || p.id;
                 try {
-                  const detailResponse = await fetch(`${process.env.Backendurl}/api/projects/${projectId}`, {
+                  const detailResponse = await fetch(`${backendUrl}/api/projects/${projectId}`, {
                     headers: { 'x-auth-token': token }
                   });
                   if (detailResponse.ok) {
@@ -103,7 +104,7 @@ const AIAssistantPage = () => {
             for (const project of projects) {
               try {
                 const projectId = project._id || project.id;
-                const tasksResponse = await fetch(`${process.env.Backendurl}/api/projects/${projectId}/data`, {
+                const tasksResponse = await fetch(`${backendUrl}/api/projects/${projectId}/data`, {
                   headers: { 'x-auth-token': token }
                 });
                 if (tasksResponse.ok) {
@@ -156,10 +157,11 @@ const AIAssistantPage = () => {
         } catch (e) {
           console.error('Error fetching projects:', e);
         }
+        
 
         // Fetch documents with full details
         try {
-          const documentsResponse = await fetch(`${process.env.Backendurl}/api/documents`, {
+          const documentsResponse = await fetch(`${backendUrl}/api/documents`, {
             headers: { 'x-auth-token': token }
           });
           if (documentsResponse.ok) {
@@ -185,7 +187,7 @@ const AIAssistantPage = () => {
 
         // Fetch reports with full details including notes and content
         try {
-          const reportsResponse = await fetch(`${process.env.Backendurl}/api/reports`, {
+          const reportsResponse = await fetch(`${backendUrl}/api/reports`, {
             headers: { 'x-auth-token': token }
           });
           if (reportsResponse.ok) {
@@ -197,7 +199,7 @@ const AIAssistantPage = () => {
               reports.map(async (r) => {
                 const reportId = r._id || r.id;
                 try {
-                  const detailResponse = await fetch(`${process.env.Backendurl}/api/reports/${reportId}`, {
+                  const detailResponse = await fetch(`${backendUrl}/api/reports/${reportId}`, {
                     headers: { 'x-auth-token': token }
                   });
                   if (detailResponse.ok) {
@@ -238,7 +240,7 @@ const AIAssistantPage = () => {
 
         // Fetch goals
         try {
-          const goalsResponse = await fetch(`${process.env.Backendurl}/api/goals`, {
+          const goalsResponse = await fetch(`${backendUrl}/api/goals`, {
             headers: { 'x-auth-token': token }
           });
           if (goalsResponse.ok) {
@@ -259,7 +261,7 @@ const AIAssistantPage = () => {
 
         // Fetch meeting notes with full content
         try {
-          const meetingsResponse = await fetch(`${process.env.Backendurl}/api/meetings`, {
+          const meetingsResponse = await fetch(`${backendUrl}/api/meetings`, {
             headers: { 'x-auth-token': token }
           });
           if (meetingsResponse.ok) {
@@ -270,7 +272,7 @@ const AIAssistantPage = () => {
               meetings.map(async (m) => {
                 const meetingId = m._id || m.id;
                 try {
-                  const detailResponse = await fetch(`${process.env.Backendurl}/api/meetings/${meetingId}`, {
+                  const detailResponse = await fetch(`${backendUrl}/api/meetings/${meetingId}`, {
                     headers: { 'x-auth-token': token }
                   });
                   if (detailResponse.ok) {
@@ -311,7 +313,7 @@ const AIAssistantPage = () => {
 
         // Fetch notepad notes with full content
         try {
-          const notepadResponse = await fetch(`${process.env.Backendurl}/api/notepad`, {
+          const notepadResponse = await fetch(`${backendUrl}/api/notepad`, {
             headers: { 'x-auth-token': token }
           });
           if (notepadResponse.ok) {

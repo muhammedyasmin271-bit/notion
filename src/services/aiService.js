@@ -1,4 +1,4 @@
-const AI_API_URL = process.env.REACT_APP_BACKEND_URL || 'process.env.Backendurl';
+const AI_API_URL = process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com';
 
 // Remove trailing /api if present to avoid double /api/api
 const getApiUrl = (endpoint) => {

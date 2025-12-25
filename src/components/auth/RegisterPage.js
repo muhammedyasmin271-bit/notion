@@ -38,7 +38,8 @@ const RegisterPage = () => {
   const fetchCompanyData = async () => {
     setLoadingCompany(true);
     try {
-      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'process.env.Backendurl'}/api/auth/company/${companyId}`);
+      const backendUrl = process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com';
+      const res = await fetch(`${backendUrl}/api/auth/company/${companyId}`);
       if (res.ok) {
         const data = await res.json();
         setCompanyData(data);
@@ -196,7 +197,7 @@ const RegisterPage = () => {
                   companyData?.branding?.logo 
                     ? (companyData.branding.logo.startsWith('data:') || companyData.branding.logo.startsWith('http') || companyData.branding.logo.startsWith('/ChatGPT')
                         ? companyData.branding.logo 
-                        : `${process.env.REACT_APP_BACKEND_URL || 'process.env.Backendurl'}${companyData.branding.logo}`)
+                        : `${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}${companyData.branding.logo}`)
                     : "/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png"
                 } 
                 alt={`${companyData?.name || 'Mela Note'} Logo`} 
