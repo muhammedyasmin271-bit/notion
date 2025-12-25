@@ -348,7 +348,7 @@ const SubmitReportPage = () => {
     { value: 'bug', label: 'Bug Report', icon: Bug, color: 'text-red-400' },
     { value: 'feature', label: 'Feature Request', icon: Lightbulb, color: 'text-yellow-400' },
     { value: 'performance', label: 'Performance Issue', icon: Zap, color: 'text-orange-400' },
-    { value: 'security', label: 'Security Concern', icon: Shield, color: 'text-purple-400' },
+    { value: 'security', label: 'Security Concern', icon: Shield, color: 'text-indigo-400' },
     { value: 'feedback', label: 'General Feedback', icon: MessageSquare, color: 'text-gray-400' }
   ];
 
@@ -827,7 +827,7 @@ const SubmitReportPage = () => {
         warning: { bg: 'bg-yellow-900/20', border: 'border-yellow-500/30', icon: AlertTriangle, color: 'text-yellow-400' },
         error: { bg: 'bg-red-900/20', border: 'border-red-500/30', icon: AlertCircle, color: 'text-red-400' },
         success: { bg: 'bg-green-900/20', border: 'border-green-500/30', icon: CheckCircle, color: 'text-green-400' },
-        tip: { bg: 'bg-purple-900/20', border: 'border-purple-500/30', icon: Lightbulb, color: 'text-purple-400' }
+        tip: { bg: 'bg-indigo-900/20', border: 'border-indigo-500/30', icon: Lightbulb, color: 'text-indigo-400' }
       };
       const callout = calloutTypes[block.calloutType || 'info'];
       const IconComponent = callout.icon;
@@ -1112,7 +1112,7 @@ const SubmitReportPage = () => {
         green: { bg: 'bg-green-900/30', border: 'border-green-500/50', text: 'text-green-200' },
         blue: { bg: isDarkMode ? 'bg-white/30' : 'bg-black/30', border: isDarkMode ? 'border-white/50' : 'border-black/50', text: isDarkMode ? 'text-white' : 'text-black' },
         red: { bg: 'bg-red-900/30', border: 'border-red-500/50', text: 'text-red-200' },
-        purple: { bg: 'bg-purple-900/30', border: 'border-purple-500/50', text: 'text-purple-200' }
+        indigo: { bg: 'bg-indigo-900/30', border: 'border-indigo-500/50', text: 'text-indigo-200' }
       };
       const highlight = highlightColors[block.highlightColor || 'yellow'];
 
@@ -1133,7 +1133,7 @@ const SubmitReportPage = () => {
               <option value="green" className="bg-gray-800">Green</option>
               <option value="blue" className="bg-gray-800">Blue</option>
               <option value="red" className="bg-gray-800">Red</option>
-              <option value="purple" className="bg-gray-800">Purple</option>
+              <option value="indigo" className="bg-gray-800">Indigo</option>
             </select>
           </div>
           <input
@@ -1185,7 +1185,7 @@ const SubmitReportPage = () => {
         green: { bg: 'bg-green-900/30', border: 'border-green-500/50', text: 'text-green-300' },
         red: { bg: 'bg-red-900/30', border: 'border-red-500/50', text: 'text-red-300' },
         yellow: { bg: 'bg-yellow-900/30', border: 'border-yellow-500/50', text: 'text-yellow-300' },
-        purple: { bg: 'bg-purple-900/30', border: 'border-purple-500/50', text: 'text-purple-300' }
+        indigo: { bg: 'bg-indigo-900/30', border: 'border-indigo-500/50', text: 'text-indigo-300' }
       };
       const tag = tagColors[block.tagColor || 'blue'];
 
@@ -1216,7 +1216,7 @@ const SubmitReportPage = () => {
             <option value="green" className="bg-gray-800">Green</option>
             <option value="red" className="bg-gray-800">Red</option>
             <option value="yellow" className="bg-gray-800">Yellow</option>
-            <option value="purple" className="bg-gray-800">Purple</option>
+            <option value="indigo" className="bg-gray-800">Indigo</option>
           </select>
         </div>
       );
@@ -1704,7 +1704,7 @@ const SubmitReportPage = () => {
                           
                           <div className="text-xs text-gray-400 px-2 py-1 font-medium mt-3">PERFORMANCE REPORTS</div>
                           <button type="button" onClick={() => { if (!report.title) setReport(prev => ({ ...prev, title: 'Team Performance Review - [Team Name]' })); const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: 'Team Overview', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'Team Name: [Enter team name]', style: {} }, { id: `block-${Date.now()}-3`, type: 'text', content: 'Review Period: [Start date] - [End date]', style: {} }, { id: `block-${Date.now()}-4`, type: 'text', content: 'Team Lead: [Manager name]', style: {} }, { id: `block-${Date.now()}-5`, type: 'text', content: 'Team Size: [Number of members]', style: {} }, { id: `block-${Date.now()}-6`, type: 'heading2', content: 'Key Performance Metrics', style: {} }, { id: `block-${Date.now()}-7`, type: 'bullet', content: '• Project Completion Rate: [%]', style: {} }, { id: `block-${Date.now()}-8`, type: 'bullet', content: '• Quality Score: [Rating/10]', style: {} }, { id: `block-${Date.now()}-9`, type: 'bullet', content: '• Customer Satisfaction: [Rating/5]', style: {} }, { id: `block-${Date.now()}-10`, type: 'bullet', content: '• Team Productivity: [Metric]', style: {} }, { id: `block-${Date.now()}-11`, type: 'heading2', content: 'Major Accomplishments', style: {} }, { id: `block-${Date.now()}-12`, type: 'numbered', content: '1. [First major accomplishment]', style: {} }, { id: `block-${Date.now()}-13`, type: 'numbered', content: '2. [Second major accomplishment]', style: {} }, { id: `block-${Date.now()}-14`, type: 'numbered', content: '3. [Third major accomplishment]', style: {} }, { id: `block-${Date.now()}-15`, type: 'heading2', content: 'Areas for Improvement', style: {} }, { id: `block-${Date.now()}-16`, type: 'bullet', content: '• [Area needing improvement]', style: {} }, { id: `block-${Date.now()}-17`, type: 'bullet', content: '• [Another area for development]', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(false); }} className="w-full flex items-start gap-3 px-3 py-2.5 text-left hover:bg-gray-700 rounded-lg text-gray-300 transition-colors">
-                            <Users className="w-4 h-4 text-purple-400 mt-0.5" />
+                            <Users className="w-4 h-4 text-indigo-400 mt-0.5" />
                             <div>
                               <div className="font-medium text-sm">Team Performance Review</div>
                               <div className="text-xs text-gray-400 mt-0.5">Comprehensive team evaluation with metrics and accomplishments</div>
@@ -1727,7 +1727,7 @@ const SubmitReportPage = () => {
                   const prevIsListType = index > 0 && (blocks[index - 1].type === 'bullet' || blocks[index - 1].type === 'numbered' || blocks[index - 1].type === 'todo');
                   const listSpacing = isListType && prevIsListType ? 'mb-0' : isListType ? 'mb-0.5' : 'mb-1';
                   return (
-                  <div key={block.id} className={`block-line flex items-start group relative ${listSpacing} rounded px-0.5 py-0.5 ${aiInputBlock === block.id ? 'bg-purple-50/30 rounded-lg p-1' : ''} transition-all duration-200`}
+                  <div key={block.id} className={`block-line flex items-start group relative ${listSpacing} rounded px-0.5 py-0.5 ${aiInputBlock === block.id ? 'bg-indigo-50/30 rounded-lg p-1' : ''} transition-all duration-200`}
                     onClick={(e) => {
                       // On mobile, toggle line buttons visibility when clicking the line
                       if (isMobile) {
@@ -1849,7 +1849,7 @@ const SubmitReportPage = () => {
                                   <CheckCircle className="w-4 h-4 text-green-400" /> Success Callout
                                 </button>
                                 <button type="button" onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'callout', calloutType: 'tip', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'}`}>
-                                  <Lightbulb className="w-4 h-4 text-purple-400" /> Tip Callout
+                                  <Lightbulb className="w-4 h-4 text-indigo-400" /> Tip Callout
                                 </button>
 
                                 {/* FORMATTING BLOCKS HEADING */}
@@ -1961,9 +1961,9 @@ const SubmitReportPage = () => {
                     </div>
                     <div className="flex-1 relative ml-12 sm:ml-0">
                       {aiInputBlock === block.id ? (
-                        <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-purple-900/20 border border-purple-800/30 transition-all duration-200">
-                          <div className="p-1 rounded bg-purple-900/40">
-                            <Sparkles className="w-4 h-4 text-purple-400" />
+                        <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-indigo-900/20 border border-indigo-800/30 transition-all duration-200">
+                          <div className="p-1 rounded bg-indigo-900/40">
+                            <Sparkles className="w-4 h-4 text-indigo-400" />
                           </div>
                           <input
                             type="text"
@@ -1971,7 +1971,7 @@ const SubmitReportPage = () => {
                             onChange={(e) => setAiQuery(e.target.value)}
                             onKeyDown={handleAiQuerySubmit}
                             placeholder="Ask AI anything... (Press Enter to submit)"
-                            className={`flex-1 outline-none bg-transparent text-sm font-medium ${isDarkMode ? 'text-purple-200 placeholder-purple-400' : 'text-purple-800 placeholder-purple-600'}`}
+                            className={`flex-1 outline-none bg-transparent text-sm font-medium ${isDarkMode ? 'text-indigo-200 placeholder-indigo-400' : 'text-indigo-800 placeholder-indigo-600'}`}
                             autoFocus
                           />
                           <button
@@ -1979,7 +1979,7 @@ const SubmitReportPage = () => {
                               setAiInputBlock(null);
                               setAiQuery('');
                             }}
-                            className="p-1 rounded-full hover:bg-gray-700 transition-colors text-purple-400 hover:text-purple-300"
+                            className="p-1 rounded-full hover:bg-gray-700 transition-colors text-indigo-400 hover:text-indigo-300"
                             title="Cancel"
                           >
                             <X className="w-4 h-4" />

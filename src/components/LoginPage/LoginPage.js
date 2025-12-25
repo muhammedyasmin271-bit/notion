@@ -144,7 +144,7 @@ const LoginPage = () => {
           isDarkMode ? 'bg-blue-500' : 'bg-blue-400'
         }`}></div>
         <div className={`absolute -bottom-40 -left-40 w-80 h-80 rounded-full blur-3xl opacity-20 ${
-          isDarkMode ? 'bg-purple-500' : 'bg-purple-400'
+          isDarkMode ? 'bg-indigo-500' : 'bg-indigo-400'
         }`}></div>
         <div className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full blur-3xl opacity-10 ${
           isDarkMode ? 'bg-indigo-500' : 'bg-indigo-400'
@@ -312,7 +312,7 @@ const LoginPage = () => {
                 className={`group relative w-full flex justify-center items-center py-4 px-6 border-0 text-base font-bold rounded-2xl text-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-xl hover:shadow-2xl transform hover:scale-[1.02] active:scale-[0.98] ${
                   loading 
                     ? 'bg-gradient-to-r from-gray-500 to-gray-600' 
-                    : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500'
+                    : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-600 hover:from-blue-500 hover:via-indigo-500 hover:to-indigo-500'
                 }`}
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>

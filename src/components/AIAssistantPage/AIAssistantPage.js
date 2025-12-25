@@ -494,7 +494,7 @@ const AIAssistantPage = () => {
             </div>
 
             {/* Welcome Text */}
-            <h1 className={`text-3xl sm:text-5xl md:text-6xl font-bold mb-3 sm:mb-4 bg-gradient-to-r ${isDarkMode ? 'from-purple-400 via-blue-400 to-purple-400' : 'from-purple-600 via-blue-600 to-purple-600'} bg-clip-text text-transparent`}>
+            <h1 className={`text-3xl sm:text-5xl md:text-6xl font-bold mb-3 sm:mb-4 bg-gradient-to-r ${isDarkMode ? 'from-indigo-400 via-blue-400 to-indigo-400' : 'from-indigo-600 via-blue-600 to-indigo-600'} bg-clip-text text-transparent`}>
               MELA AI
             </h1>
             <p className={`text-lg sm:text-xl md:text-2xl mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
@@ -503,9 +503,9 @@ const AIAssistantPage = () => {
             <p className={`text-sm sm:text-base md:text-lg mb-4 px-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
               Ask me anything about this app, or get help with general questions
             </p>
-            <div className={`inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full mb-8 sm:mb-12 ${isDarkMode ? 'bg-purple-500/20 border border-purple-500/30' : 'bg-purple-100 border border-purple-200'}`}>
-              <Sparkles className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`} />
-              <span className={`text-xs sm:text-sm font-medium ${isDarkMode ? 'text-purple-300' : 'text-purple-700'}`}>
+            <div className={`inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full mb-8 sm:mb-12 ${isDarkMode ? 'bg-indigo-500/20 border border-indigo-500/30' : 'bg-indigo-100 border border-indigo-200'}`}>
+              <Sparkles className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
+              <span className={`text-xs sm:text-sm font-medium ${isDarkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
                 Powered by GPT-4o with Advanced Reasoning
               </span>
             </div>
@@ -520,11 +520,11 @@ const AIAssistantPage = () => {
                     onClick={() => handleSuggestionClick(suggestion.text)}
                     className={`group flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl border-2 transition-all duration-300 transform hover:scale-105 hover:shadow-lg ${
                       isDarkMode
-                        ? 'bg-gray-800/50 border-gray-700 hover:border-purple-500 hover:bg-gray-800 text-gray-200'
-                        : 'bg-white border-gray-200 hover:border-purple-400 hover:bg-purple-50 text-gray-800'
+                        ? 'bg-gray-800/50 border-gray-700 hover:border-indigo-500 hover:bg-gray-800 text-gray-200'
+                        : 'bg-white border-gray-200 hover:border-indigo-400 hover:bg-indigo-50 text-gray-800'
                     }`}
                   >
-                    <div className={`p-1.5 sm:p-2 rounded-lg ${isDarkMode ? 'bg-purple-500/20 text-purple-400' : 'bg-purple-100 text-purple-600'}`}>
+                    <div className={`p-1.5 sm:p-2 rounded-lg ${isDarkMode ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-100 text-indigo-600'}`}>
                       <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                     </div>
                     <span className="flex-1 text-left text-sm sm:text-base font-medium">{suggestion.text}</span>
@@ -547,12 +547,12 @@ const AIAssistantPage = () => {
                     key={idx}
                     className={`p-4 sm:p-6 rounded-xl sm:rounded-2xl border transition-all duration-300 ${
                       isDarkMode
-                        ? 'bg-gray-800/30 border-gray-700 hover:border-purple-500'
-                        : 'bg-white/80 border-gray-200 hover:border-purple-300'
+                        ? 'bg-gray-800/30 border-gray-700 hover:border-indigo-500'
+                        : 'bg-white/80 border-gray-200 hover:border-indigo-300'
                     }`}
                   >
                     <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center mb-3 sm:mb-4 ${
-                      isDarkMode ? 'bg-purple-500/20 text-purple-400' : 'bg-purple-100 text-purple-600'
+                      isDarkMode ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-100 text-indigo-600'
                     }`}>
                       <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
                     </div>
@@ -579,7 +579,7 @@ const AIAssistantPage = () => {
                   {/* Avatar - Hidden on mobile, shown on desktop */}
                   {msg.type === 'ai' && (
                     <div className={`hidden sm:flex flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full items-center justify-center ${
-                      isDarkMode ? 'bg-gradient-to-br from-purple-600 to-blue-600' : 'bg-gradient-to-br from-purple-500 to-blue-500'
+                      isDarkMode ? 'bg-gradient-to-br from-indigo-600 to-blue-600' : 'bg-gradient-to-br from-indigo-500 to-blue-500'
                     } shadow-lg`}>
                       <Brain className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                     </div>
@@ -599,7 +599,7 @@ const AIAssistantPage = () => {
                   >
                     {msg.type === 'ai' && (
                       <div className="hidden sm:flex items-center gap-2 mb-1.5 sm:mb-2 pb-1.5 sm:pb-2 border-b border-gray-700/50">
-                        <span className={`text-xs font-semibold ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>
+                        <span className={`text-xs font-semibold ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>
                           MELA AI
                         </span>
                         <div className="flex gap-1">
@@ -620,7 +620,7 @@ const AIAssistantPage = () => {
               <div className="flex justify-start animate-fadeIn">
                 <div className="flex gap-2 sm:gap-3">
                   <div className={`flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center ${
-                    isDarkMode ? 'bg-gradient-to-br from-purple-600 to-blue-600' : 'bg-gradient-to-br from-purple-500 to-blue-500'
+                    isDarkMode ? 'bg-gradient-to-br from-indigo-600 to-blue-600' : 'bg-gradient-to-br from-indigo-500 to-blue-500'
                   } shadow-lg`}>
                     <Brain className="w-4 h-4 sm:w-5 sm:h-5 text-white animate-pulse" />
                   </div>
@@ -629,9 +629,9 @@ const AIAssistantPage = () => {
                   }`}>
                     <div className="flex items-center gap-2">
                       <div className="flex gap-1.5">
-                        <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full animate-bounce ${isDarkMode ? 'bg-purple-400' : 'bg-purple-500'}`} style={{ animationDelay: '0s' }}></div>
-                        <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full animate-bounce ${isDarkMode ? 'bg-purple-400' : 'bg-purple-500'}`} style={{ animationDelay: '0.2s' }}></div>
-                        <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full animate-bounce ${isDarkMode ? 'bg-purple-400' : 'bg-purple-500'}`} style={{ animationDelay: '0.4s' }}></div>
+                        <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full animate-bounce ${isDarkMode ? 'bg-indigo-400' : 'bg-indigo-500'}`} style={{ animationDelay: '0s' }}></div>
+                        <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full animate-bounce ${isDarkMode ? 'bg-indigo-400' : 'bg-indigo-500'}`} style={{ animationDelay: '0.2s' }}></div>
+                        <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full animate-bounce ${isDarkMode ? 'bg-indigo-400' : 'bg-indigo-500'}`} style={{ animationDelay: '0.4s' }}></div>
                       </div>
                       <span className={`text-xs sm:text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>MELA AI is thinking...</span>
                     </div>
@@ -654,8 +654,8 @@ const AIAssistantPage = () => {
         <div className="max-w-4xl mx-auto">
           <div className={`relative flex items-center rounded-xl sm:rounded-2xl px-4 sm:px-5 py-3.5 sm:py-4 border-2 transition-all duration-300 shadow-lg ${
             isDarkMode 
-              ? 'bg-gray-800 border-gray-700 focus-within:border-purple-500 focus-within:shadow-purple-500/20' 
-              : 'bg-white border-gray-300 focus-within:border-purple-400 focus-within:shadow-purple-400/20'
+              ? 'bg-gray-800 border-gray-700 focus-within:border-indigo-500 focus-within:shadow-indigo-500/20' 
+              : 'bg-white border-gray-300 focus-within:border-indigo-400 focus-within:shadow-indigo-400/20'
           }`}>
             {/* Input Field */}
             <input
@@ -677,8 +677,8 @@ const AIAssistantPage = () => {
               disabled={!message.trim() || isLoading}
               className={`ml-3 w-12 h-12 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-110 active:scale-95 flex-shrink-0 ${
                 isDarkMode 
-                  ? 'bg-gradient-to-br from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white shadow-lg shadow-purple-500/30' 
-                  : 'bg-gradient-to-br from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white shadow-lg shadow-purple-500/30'
+                  ? 'bg-gradient-to-br from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white shadow-lg shadow-indigo-500/30' 
+                  : 'bg-gradient-to-br from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white shadow-lg shadow-indigo-500/30'
               }`}
             >
               <Send className="w-5 h-5 sm:w-5 sm:h-5" />

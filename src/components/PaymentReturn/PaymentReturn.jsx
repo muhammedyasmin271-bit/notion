@@ -176,7 +176,7 @@ const PaymentReturn = () => {
 
   return (
     <div className={`min-h-screen flex items-center justify-center p-4 ${
-      isDarkMode ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' : 'bg-gradient-to-br from-blue-50 via-white to-purple-50'
+      isDarkMode ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' : 'bg-gradient-to-br from-blue-50 via-white to-indigo-50'
     }`}>
       <div className={`max-w-md w-full bg-gradient-to-r ${getStatusColor()} rounded-3xl shadow-2xl border-2 p-8 text-center`}>
         <div className="mb-6">
@@ -223,7 +223,7 @@ const PaymentReturn = () => {
           {(status === 'timeout' || status === 'error') && (
             <button
               onClick={handleRetry}
-              className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 active:scale-95"
+              className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 transform hover:scale-105 active:scale-95"
             >
               Try Again
             </button>

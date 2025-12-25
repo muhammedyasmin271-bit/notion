@@ -280,7 +280,7 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
   const getTypeIcon = (type) => {
     switch (type) {
       case 'Sprint':
-        return <Zap className="w-4 h-4 text-purple-600" />;
+        return <Zap className="w-4 h-4 text-indigo-600" />;
       case 'Story':
         return <BookOpen className="w-4 h-4 text-green-600" />;
       default:
@@ -494,7 +494,7 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => setShowAddTask(true)}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium text-sm"
                 >
                   Create Task
                 </button>
@@ -528,7 +528,7 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
                     }
                   }}
                   placeholder="Enter task description..."
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   autoFocus
                 />
                 <button
@@ -558,7 +558,7 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
                   <select
                     value={newTaskStatus}
                     onChange={(e) => setNewTaskStatus(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="Not Started">Not Started</option>
                     <option value="In Progress">In Progress</option>
@@ -572,7 +572,7 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
                   <select
                     value={newTaskPriority}
                     onChange={(e) => setNewTaskPriority(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="Low">Low</option>
                     <option value="Medium">Medium</option>
@@ -586,7 +586,7 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
                     type="date"
                     value={newTaskDueDate}
                     onChange={(e) => setNewTaskDueDate(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
                 <div>
@@ -594,7 +594,7 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
                   <select
                     value={newTaskAssignee}
                     onChange={(e) => setNewTaskAssignee(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     required
                   >
                     <option value="">Select assignee...</option>
@@ -614,7 +614,7 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-xl">
             {loading ? (
               <div className="p-8 text-center text-gray-500">
-                <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
                 <span>Loading tasks...</span>
               </div>
             ) : tasks.length === 0 ? (
@@ -642,8 +642,8 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
                     {tasks.map((task) => (
                       <tr
                         key={task.id}
-                        className={`hover:bg-gradient-to-r hover:from-purple-50 hover:to-indigo-50 transition-all duration-200 border-b border-gray-100 ${
-                          selectedTasks.has(task.id) ? 'bg-gradient-to-r from-purple-50 to-indigo-50' : 'bg-white'
+                        className={`hover:bg-gradient-to-r hover:from-indigo-50 hover:to-indigo-50 transition-all duration-200 border-b border-gray-100 ${
+                          selectedTasks.has(task.id) ? 'bg-gradient-to-r from-indigo-50 to-indigo-50' : 'bg-white'
                         }`}
                       >
                         <td className="px-4 py-4">
@@ -666,7 +666,7 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
                                     setEditingTaskText('');
                                   }
                                 }}
-                                className="flex-1 px-2 py-1 text-sm border border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                className="flex-1 px-2 py-1 text-sm border border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                 autoFocus
                               />
                               <button
@@ -765,7 +765,7 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
                                   updateTaskField(task.id, 'dueDate', dateValue);
                                 }}
                                 disabled={isAssignee}
-                                className={`text-sm text-gray-700 border border-gray-300 rounded-lg px-2 py-1 ${isAssignee ? 'cursor-not-allowed opacity-60 bg-gray-100' : 'cursor-pointer bg-white'} focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 w-full`}
+                                className={`text-sm text-gray-700 border border-gray-300 rounded-lg px-2 py-1 ${isAssignee ? 'cursor-not-allowed opacity-60 bg-gray-100' : 'cursor-pointer bg-white'} focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 w-full`}
                                 onClick={(e) => e.stopPropagation()}
                                 title={isAssignee ? 'You cannot change the due date of tasks assigned to you' : ''}
                               />
@@ -832,7 +832,7 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
           <div className="mt-8">
             <button
               onClick={() => setShowAddTask(true)}
-              className="flex items-center gap-2 px-6 py-3 text-purple-600 hover:bg-purple-50 rounded-xl transition-all duration-200 font-semibold shadow-md hover:shadow-lg"
+              className="flex items-center gap-2 px-6 py-3 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all duration-200 font-semibold shadow-md hover:shadow-lg"
             >
               <Plus className="w-5 h-5" />
               Create Task

@@ -39,7 +39,7 @@ const CreateCompanyPage = () => {
   const plans = {
     free_trial: { name: 'Free Trial', period: '7 days', color: 'green' },
     one_month: { name: 'One Month Plan', period: 'month', color: 'blue' },
-    three_month: { name: 'Three Month Plan', period: '3 months', color: 'purple' },
+    three_month: { name: 'Three Month Plan', period: '3 months', color: 'indigo' },
     six_month: { name: 'Six Month Plan', period: '6 months', color: 'gray' }
   };
 
@@ -184,7 +184,7 @@ const CreateCompanyPage = () => {
               <div className={`w-2 h-2 rounded-full ${
                 selectedPlan === 'free_trial' ? 'bg-green-500' :
                 selectedPlan === 'one_month' ? 'bg-blue-500' :
-                selectedPlan === 'three_month' ? 'bg-purple-500' : 'bg-gray-500'
+                selectedPlan === 'three_month' ? 'bg-indigo-500' : 'bg-gray-500'
               }`}></div>
               <div>
                 <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
@@ -657,8 +657,8 @@ const CreateCompanyPage = () => {
               {/* Points Rating System Toggle */}
               <div className={`p-4 rounded-lg border ${
                 isDarkMode 
-                  ? 'bg-purple-900/20 border-purple-700/30' 
-                  : 'bg-purple-50 border-purple-200'
+                  ? 'bg-indigo-900/20 border-indigo-700/30' 
+                  : 'bg-indigo-50 border-indigo-200'
               }`}>
                 <div className="flex items-center justify-between">
                   <div>
@@ -668,7 +668,7 @@ const CreateCompanyPage = () => {
                       Points Rating System
                     </label>
                     <p className={`text-xs mt-1 ${
-                      isDarkMode ? 'text-purple-300' : 'text-purple-700'
+                      isDarkMode ? 'text-indigo-300' : 'text-indigo-700'
                     }`}>
                       Track team performance with automatic point scoring
                     </p>
@@ -676,9 +676,9 @@ const CreateCompanyPage = () => {
                   <button
                     type="button"
                     onClick={() => setFormData(prev => ({ ...prev, pointsEnabled: !prev.pointsEnabled }))}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
                       formData.pointsEnabled
-                        ? 'bg-purple-600'
+                        ? 'bg-indigo-600'
                         : isDarkMode ? 'bg-gray-600' : 'bg-gray-200'
                     }`}
                   >
@@ -690,7 +690,7 @@ const CreateCompanyPage = () => {
                   </button>
                 </div>
                 <p className={`text-xs mt-2 ${
-                  isDarkMode ? 'text-purple-400' : 'text-purple-600'
+                  isDarkMode ? 'text-indigo-400' : 'text-indigo-600'
                 }`}>
                   {formData.pointsEnabled 
                     ? '✅ Points system will be enabled for your company' 

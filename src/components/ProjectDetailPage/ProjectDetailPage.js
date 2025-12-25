@@ -2552,9 +2552,9 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                 <GripVertical className="w-4 h-4" />
               </button>
             </div>
-            <div className={`border rounded-lg p-4 flex-1 ml-2 sm:ml-0 ${isDarkMode ? 'border-gray-700 bg-purple-900/20' : 'border-gray-300 bg-purple-50'}`}>
+            <div className={`border rounded-lg p-4 flex-1 ml-2 sm:ml-0 ${isDarkMode ? 'border-gray-700 bg-indigo-900/20' : 'border-gray-300 bg-indigo-50'}`}>
               <div className="flex items-center mb-2">
-                <Hash className="w-5 h-5 mr-2 text-purple-500" />
+                <Hash className="w-5 h-5 mr-2 text-indigo-500" />
                 <span className="text-sm text-gray-600">Math Equation</span>
               </div>
               <textarea {...commonProps} className="w-full border-none outline-none resize-none font-mono" style={{ wordWrap: 'break-word', whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }} rows="2" placeholder="Enter LaTeX math equation" />
@@ -2702,9 +2702,9 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
             </div>
             <div className="flex-1 relative">
               {aiInputBlock === block.id ? (
-                <div className={`flex items-center gap-3 px-3 py-2 rounded-lg ${isDarkMode ? 'bg-purple-900/20 border border-purple-800/30' : 'bg-purple-50 border border-purple-200'} transition-all duration-200`}>
-                  <div className={`p-1 rounded ${isDarkMode ? 'bg-purple-900/40' : 'bg-purple-100'}`}>
-                    <Sparkles className={`w-4 h-4 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`} />
+                <div className={`flex items-center gap-3 px-3 py-2 rounded-lg ${isDarkMode ? 'bg-indigo-900/20 border border-indigo-800/30' : 'bg-indigo-50 border border-indigo-200'} transition-all duration-200`}>
+                  <div className={`p-1 rounded ${isDarkMode ? 'bg-indigo-900/40' : 'bg-indigo-100'}`}>
+                    <Sparkles className={`w-4 h-4 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
                   </div>
                   <input
                     type="text"
@@ -2712,7 +2712,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                     onChange={(e) => setAiQuery(e.target.value)}
                     onKeyDown={handleAiQuerySubmit}
                     placeholder="Ask AI anything... (Press Enter to submit)"
-                    className={`flex-1 outline-none bg-transparent text-sm font-medium ${isDarkMode ? 'text-purple-200 placeholder-purple-400' : 'text-purple-700 placeholder-purple-500'}`}
+                    className={`flex-1 outline-none bg-transparent text-sm font-medium ${isDarkMode ? 'text-indigo-200 placeholder-indigo-400' : 'text-indigo-700 placeholder-indigo-500'}`}
                     autoFocus
                   />
                   <button
@@ -2722,10 +2722,10 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                       }
                     }}
                     disabled={!aiQuery.trim() || isGenerating}
-                    className={`p-1 rounded transition-colors ${isDarkMode ? 'text-purple-400 hover:bg-purple-800/30 disabled:opacity-50' : 'text-purple-600 hover:bg-purple-100 disabled:opacity-50'}`}
+                    className={`p-1 rounded transition-colors ${isDarkMode ? 'text-indigo-400 hover:bg-indigo-800/30 disabled:opacity-50' : 'text-indigo-600 hover:bg-indigo-100 disabled:opacity-50'}`}
                   >
                     {isGenerating ? (
-                      <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                      <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
                     ) : (
                       <Send className="w-4 h-4" />
                     )}
@@ -2735,7 +2735,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                       setAiInputBlock(null);
                       setAiQuery('');
                     }}
-                    className={`p-1 rounded hover:bg-gray-200 transition-colors ${isDarkMode ? 'text-purple-400 hover:bg-purple-800/30' : 'text-purple-600 hover:bg-purple-100'}`}
+                    className={`p-1 rounded hover:bg-gray-200 transition-colors ${isDarkMode ? 'text-indigo-400 hover:bg-indigo-800/30' : 'text-indigo-600 hover:bg-indigo-100'}`}
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -3244,13 +3244,13 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                 )}
                 
                 {isGenerating && (
-                  <div className={`mt-4 flex items-center gap-3 px-4 py-3 rounded-lg ${isDarkMode ? 'bg-purple-900/20 border border-purple-800/30' : 'bg-purple-50 border border-purple-200'}`}>
+                  <div className={`mt-4 flex items-center gap-3 px-4 py-3 rounded-lg ${isDarkMode ? 'bg-indigo-900/20 border border-indigo-800/30' : 'bg-indigo-50 border border-indigo-200'}`}>
                     <div className="flex items-center justify-center">
-                      <div className="w-5 h-5 border-2 rounded-full border-purple-500 border-t-transparent animate-spin"></div>
+                      <div className="w-5 h-5 border-2 rounded-full border-indigo-500 border-t-transparent animate-spin"></div>
                     </div>
                     <div className="flex-1">
-                      <div className={`text-sm font-medium ${isDarkMode ? 'text-purple-200' : 'text-purple-700'}`}>AI is generating...</div>
-                      <div className={`text-xs ${isDarkMode ? 'text-purple-400' : 'text-purple-500'}`}>This may take a few moments</div>
+                      <div className={`text-sm font-medium ${isDarkMode ? 'text-indigo-200' : 'text-indigo-700'}`}>AI is generating...</div>
+                      <div className={`text-xs ${isDarkMode ? 'text-indigo-400' : 'text-indigo-500'}`}>This may take a few moments</div>
                     </div>
                   </div>
                 )}
@@ -3342,7 +3342,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                         : (isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-50')
                     }`}
                   >
-                    <div className="w-9 h-9 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+                    <div className="w-9 h-9 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
                       {userName.charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -3491,7 +3491,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       {/* AI Button - Bottom Right Corner */}
       <button
         onClick={() => setShowAIPopup(true)}
-        className={`fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-lg transition-all duration-200 flex items-center justify-center hover:shadow-xl hover:scale-105 ${isDarkMode ? 'bg-gradient-to-br from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700' : 'bg-gradient-to-br from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600'} text-white`}
+        className={`fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-lg transition-all duration-200 flex items-center justify-center hover:shadow-xl hover:scale-105 ${isDarkMode ? 'bg-gradient-to-br from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700' : 'bg-gradient-to-br from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600'} text-white`}
       >
         <Sparkles className="w-6 h-6" />
       </button>
@@ -3505,8 +3505,8 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
             <div className="p-4">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <div className={`p-1.5 rounded-md ${isDarkMode ? 'bg-purple-900/50' : 'bg-purple-100'}`}>
-                    <Sparkles className={`w-4 h-4 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`} />
+                  <div className={`p-1.5 rounded-md ${isDarkMode ? 'bg-indigo-900/50' : 'bg-indigo-100'}`}>
+                    <Sparkles className={`w-4 h-4 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
                   </div>
                   <span className={`text-sm font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>Ask AI</span>
                 </div>
@@ -3532,15 +3532,15 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                     }
                   }}
                   placeholder="Ask anything..."
-                  className={`flex-1 px-4 py-3 text-sm rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all ${isDarkMode ? 'bg-gray-800/80 border-gray-700 text-gray-100 placeholder-gray-500 focus:bg-gray-800' : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400 focus:bg-white'}`}
+                  className={`flex-1 px-4 py-3 text-sm rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all ${isDarkMode ? 'bg-gray-800/80 border-gray-700 text-gray-100 placeholder-gray-500 focus:bg-gray-800' : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400 focus:bg-white'}`}
                   autoFocus
                 />
                 <button
                   onClick={handleAISubmit}
                   disabled={!aiPopupQuery.trim() || isGenerating}
                   className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center min-w-[42px] ${isDarkMode ?
-                    'bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 disabled:from-gray-700 disabled:to-gray-800 text-white shadow-lg shadow-purple-900/20' :
-                    'bg-gradient-to-br from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 disabled:from-gray-300 disabled:to-gray-400 text-white shadow-md shadow-purple-500/20'}`}
+                    'bg-gradient-to-br from-indigo-600 to-indigo-600 hover:from-indigo-700 hover:to-indigo-700 disabled:from-gray-700 disabled:to-gray-800 text-white shadow-lg shadow-indigo-900/20' :
+                    'bg-gradient-to-br from-indigo-500 to-indigo-500 hover:from-indigo-600 hover:to-indigo-600 disabled:from-gray-300 disabled:to-gray-400 text-white shadow-md shadow-indigo-500/20'}`}
                 >
                   {isGenerating ? (
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>

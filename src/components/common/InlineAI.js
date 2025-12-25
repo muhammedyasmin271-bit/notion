@@ -67,8 +67,8 @@ const InlineAI = ({
         {/* Header */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <div className={`p-1.5 rounded-md ${isDarkMode ? 'bg-purple-900/50' : 'bg-purple-100'}`}>
-              <Sparkles className={`w-4 h-4 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`} />
+            <div className={`p-1.5 rounded-md ${isDarkMode ? 'bg-indigo-900/50' : 'bg-indigo-100'}`}>
+              <Sparkles className={`w-4 h-4 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
             </div>
             <span className={`text-sm font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>
               MELA AI - Text Assistant
@@ -92,7 +92,7 @@ const InlineAI = ({
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Summarize, calculate, format, or enhance this text..."
-            className={`flex-1 px-3 py-2 text-sm rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all ${
+            className={`flex-1 px-3 py-2 text-sm rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all ${
               isDarkMode 
                 ? 'bg-gray-800/80 border-gray-700 text-gray-100 placeholder-gray-500' 
                 : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400'
@@ -105,8 +105,8 @@ const InlineAI = ({
             disabled={!query.trim() || isLoading}
             className={`px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center min-w-[36px] ${
               isDarkMode
-                ? 'bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 disabled:from-gray-700 disabled:to-gray-800 text-white'
-                : 'bg-gradient-to-br from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 disabled:from-gray-300 disabled:to-gray-400 text-white'
+                ? 'bg-gradient-to-br from-indigo-600 to-indigo-600 hover:from-indigo-700 hover:to-indigo-700 disabled:from-gray-700 disabled:to-gray-800 text-white'
+                : 'bg-gradient-to-br from-indigo-500 to-indigo-500 hover:from-indigo-600 hover:to-indigo-600 disabled:from-gray-300 disabled:to-gray-400 text-white'
             }`}
           >
             {isLoading ? (
@@ -150,7 +150,7 @@ const InlineAI = ({
           }`}>
             {isLoading ? (
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin"></div>
+                <div className="w-4 h-4 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
                 <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                   MELA AI is analyzing...
                 </span>
@@ -164,8 +164,8 @@ const InlineAI = ({
                   onClick={handleInsert}
                   className={`mt-2 px-3 py-1 text-xs rounded-md transition-all ${
                     isDarkMode
-                      ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                      : 'bg-purple-500 hover:bg-purple-600 text-white'
+                      ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                      : 'bg-indigo-500 hover:bg-indigo-600 text-white'
                   }`}
                 >
                   Insert Response

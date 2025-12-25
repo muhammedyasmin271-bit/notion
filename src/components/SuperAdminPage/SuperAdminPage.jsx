@@ -544,7 +544,7 @@ const SuperAdminPage = () => {
               <div>
                 <h1 className={`text-4xl font-black mb-2 bg-gradient-to-r ${
                   isDarkMode 
-                    ? 'from-white via-blue-100 to-purple-200 text-transparent bg-clip-text' 
+                    ? 'from-white via-blue-100 to-indigo-200 text-transparent bg-clip-text' 
                     : 'from-gray-900 via-blue-800 to-indigo-900 text-transparent bg-clip-text'
                 }`}>
                   Super Admin
@@ -678,7 +678,7 @@ const SuperAdminPage = () => {
           }`}>
             <div className={`inline-flex p-6 rounded-full mb-6 ${
               isDarkMode 
-                ? 'bg-gradient-to-br from-blue-600 to-purple-600 shadow-lg shadow-blue-500/25' 
+                ? 'bg-gradient-to-br from-blue-600 to-indigo-600 shadow-lg shadow-blue-500/25' 
                 : 'bg-gradient-to-br from-blue-600 to-indigo-600 shadow-lg shadow-blue-500/30'
             }`}>
               <Building2 size={48} className="text-white" />
@@ -697,7 +697,7 @@ const SuperAdminPage = () => {
               onClick={() => navigate('/xq7m9k2p8n4r6t1w/add-company')} 
               className={`group inline-flex items-center gap-3 px-8 py-4 rounded-2xl text-base font-black transition-all duration-300 hover:scale-105 hover:shadow-xl ${
                 isDarkMode 
-                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white shadow-blue-500/25' 
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/25' 
                   : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/30'
               }`}
             >
@@ -1172,7 +1172,7 @@ const SuperAdminPage = () => {
                   </div>
 
                   {/* Plan Selection */}
-                  <div className={`p-5 rounded-2xl ${isDarkMode ? 'bg-gradient-to-br from-blue-900/20 to-purple-900/20 border-2 border-blue-700/50' : 'bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-300'}`}>
+                  <div className={`p-5 rounded-2xl ${isDarkMode ? 'bg-gradient-to-br from-blue-900/20 to-indigo-900/20 border-2 border-blue-700/50' : 'bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-300'}`}>
                     <h3 className={`text-base font-bold mb-4 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                       <DollarSign size={18} />
                       Subscription Plan
@@ -1511,16 +1511,16 @@ const SuperAdminPage = () => {
                 {/* Points System Toggle */}
                 <div className={`p-4 rounded-lg border ${
                   isDarkMode 
-                    ? 'bg-purple-900/20 border-purple-700/30' 
-                    : 'bg-purple-50 border-purple-200'
+                    ? 'bg-indigo-900/20 border-indigo-700/30' 
+                    : 'bg-indigo-50 border-indigo-200'
                 }`}>
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div className="flex items-center gap-3">
                       <div className={`p-2 rounded-lg ${
-                        isDarkMode ? 'bg-purple-900/50' : 'bg-purple-100'
+                        isDarkMode ? 'bg-indigo-900/50' : 'bg-indigo-100'
                       }`}>
                         <TrendingUp className={`w-5 h-5 ${
-                          isDarkMode ? 'text-purple-400' : 'text-purple-600'
+                          isDarkMode ? 'text-indigo-400' : 'text-indigo-600'
                         }`} />
                       </div>
                       <div>

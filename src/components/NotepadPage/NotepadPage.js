@@ -2372,9 +2372,9 @@ const NotepadPage = () => {
 						</div>
 						<div className="flex-1 relative ">
 							{aiInputBlock === block.id ? (
-								<div className={`flex items-center gap-3 px-3 py-2 rounded-lg ${isDarkMode ? 'bg-purple-900/20 border border-purple-800/30' : 'bg-purple-50 border border-purple-200'} transition-all duration-200`}>
-									<div className={`p-1 rounded ${isDarkMode ? 'bg-purple-900/40' : 'bg-purple-100'}`}>
-										<Sparkles className={`w-4 h-4 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`} />
+								<div className={`flex items-center gap-3 px-3 py-2 rounded-lg ${isDarkMode ? 'bg-indigo-900/20 border border-indigo-800/30' : 'bg-indigo-50 border border-indigo-200'} transition-all duration-200`}>
+									<div className={`p-1 rounded ${isDarkMode ? 'bg-indigo-900/40' : 'bg-indigo-100'}`}>
+										<Sparkles className={`w-4 h-4 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
 									</div>
 									<input
 										type="text"
@@ -2382,7 +2382,7 @@ const NotepadPage = () => {
 										onChange={(e) => setAiQuery(e.target.value)}
 										onKeyDown={handleAiQuerySubmit}
 										placeholder="Ask me anything about your notes... (Press Enter)"
-										className={`flex-1 outline-none bg-transparent text-sm font-medium ${isDarkMode ? 'text-purple-200 placeholder-purple-400' : 'text-purple-700 placeholder-purple-500'}`}
+										className={`flex-1 outline-none bg-transparent text-sm font-medium ${isDarkMode ? 'text-indigo-200 placeholder-indigo-400' : 'text-indigo-700 placeholder-indigo-500'}`}
 										autoFocus
 									/>
 									<button
@@ -2390,7 +2390,7 @@ const NotepadPage = () => {
 											setAiInputBlock(null);
 											setAiQuery('');
 										}}
-										className={`p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${isDarkMode ? 'text-purple-400 hover:text-purple-300' : 'text-purple-600 hover:text-purple-700'}`}
+										className={`p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${isDarkMode ? 'text-indigo-400 hover:text-indigo-300' : 'text-indigo-600 hover:text-indigo-700'}`}
 										title="Cancel"
 									>
 										<X className="w-4 h-4" />
@@ -3053,7 +3053,7 @@ const NotepadPage = () => {
 								placeholder="Search notes..."
 								value={searchQuery}
 								onChange={(e) => setSearchQuery(e.target.value)}
-								className={`w-full pl-10 pr-3 py-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 text-sm transition-all duration-200 ${isDarkMode
+								className={`w-full pl-10 pr-3 py-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 text-sm transition-all duration-200 ${isDarkMode
 									? 'bg-gray-800/50 border-gray-700/50 text-white placeholder-gray-500 hover:border-gray-600 focus:bg-gray-800'
 									: 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400 hover:border-gray-300 focus:bg-white'
 									}`}
@@ -3064,7 +3064,7 @@ const NotepadPage = () => {
 					<div className="flex-1 overflow-y-auto p-2.5 pb-20 md:pb-4">
 						{loading ? (
 							<div className="flex flex-col justify-center items-center h-full gap-3">
-								<div className={`animate-spin rounded-full h-10 w-10 border-3 ${isDarkMode ? 'border-purple-500 border-t-transparent' : 'border-purple-500 border-t-transparent'}`}></div>
+								<div className={`animate-spin rounded-full h-10 w-10 border-3 ${isDarkMode ? 'border-indigo-500 border-t-transparent' : 'border-indigo-500 border-t-transparent'}`}></div>
 								<p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Loading notes...</p>
 							</div>
 						) : error ? (
@@ -3132,7 +3132,7 @@ const NotepadPage = () => {
 												{note.tags.slice(0, 2).map(tag => (
 													<span
 														key={tag}
-														className={`px-1.5 py-0.5 text-xs rounded-md ${isDarkMode ? 'bg-purple-500/20 text-purple-400' : 'bg-purple-100 text-purple-600'}`}
+														className={`px-1.5 py-0.5 text-xs rounded-md ${isDarkMode ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-100 text-indigo-600'}`}
 													>
 														{tag}
 													</span>
@@ -3396,7 +3396,7 @@ const NotepadPage = () => {
 										<button
 											key={tag}
 											onClick={() => addTagToNote(tag)}
-											className="px-3 py-1 text-sm rounded-full bg-purple-500/20 text-purple-500 hover:bg-purple-500/30"
+											className="px-3 py-1 text-sm rounded-full bg-indigo-500/20 text-indigo-500 hover:bg-indigo-500/30"
 										>
 											{tag}
 										</button>

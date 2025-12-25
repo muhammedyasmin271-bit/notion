@@ -465,8 +465,8 @@ const CompanySettings = () => {
                   {stats.resources?.documents || 0} documents
                 </p>
               </div>
-              <div className="p-3 rounded-xl bg-purple-100">
-                <BarChart3 className="w-8 h-8 text-purple-600" />
+              <div className="p-3 rounded-xl bg-indigo-100">
+                <BarChart3 className="w-8 h-8 text-indigo-600" />
               </div>
             </div>
           </div>

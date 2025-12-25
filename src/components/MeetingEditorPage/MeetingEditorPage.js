@@ -1104,7 +1104,7 @@ const MeetingEditorPage = () => {
         green: { bg: 'bg-green-900/30', border: 'border-green-500/50', text: 'text-green-200' },
         blue: { bg: 'bg-blue-900/30', border: 'border-blue-500/50', text: 'text-blue-200' },
         red: { bg: 'bg-red-900/30', border: 'border-red-500/50', text: 'text-red-200' },
-        purple: { bg: 'bg-purple-900/30', border: 'border-purple-500/50', text: 'text-purple-200' }
+        indigo: { bg: 'bg-indigo-900/30', border: 'border-indigo-500/50', text: 'text-indigo-200' }
       };
       const highlight = highlightColors[block.highlightColor || 'yellow'];
 
@@ -1125,7 +1125,7 @@ const MeetingEditorPage = () => {
               <option value="green" className="bg-gray-800">Green</option>
               <option value="blue" className="bg-gray-800">Blue</option>
               <option value="red" className="bg-gray-800">Red</option>
-              <option value="purple" className="bg-gray-800">Purple</option>
+              <option value="indigo" className="bg-gray-800">Indigo</option>
             </select>
           </div>
           <input
@@ -1176,7 +1176,7 @@ const MeetingEditorPage = () => {
         green: { bg: 'bg-green-900/30', border: 'border-green-500/50', text: 'text-green-300' },
         red: { bg: 'bg-red-900/30', border: 'border-red-500/50', text: 'text-red-300' },
         yellow: { bg: 'bg-yellow-900/30', border: 'border-yellow-500/50', text: 'text-yellow-300' },
-        purple: { bg: 'bg-purple-900/30', border: 'border-purple-500/50', text: 'text-purple-300' }
+        indigo: { bg: 'bg-indigo-900/30', border: 'border-indigo-500/50', text: 'text-indigo-300' }
       };
       const tag = tagColors[block.tagColor || 'blue'];
 
@@ -1207,7 +1207,7 @@ const MeetingEditorPage = () => {
             <option value="green" className="bg-gray-800">Green</option>
             <option value="red" className="bg-gray-800">Red</option>
             <option value="yellow" className="bg-gray-800">Yellow</option>
-            <option value="purple" className="bg-gray-800">Purple</option>
+            <option value="indigo" className="bg-gray-800">Indigo</option>
           </select>
         </div>
       );
@@ -1495,7 +1495,7 @@ const MeetingEditorPage = () => {
                           </div>
 
                           <div className="flex items-center gap-3">
-                            <Clock className="w-4 h-4 text-purple-400" />
+                            <Clock className="w-4 h-4 text-indigo-400" />
                             <label className={`text-sm font-medium min-w-[70px] ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                               Duration
                             </label>
@@ -1650,7 +1650,7 @@ const MeetingEditorPage = () => {
                                               </div>
                                               <div className={`text-xs mt-0.5 ${isDarkMode ? 'text-gray-500' : 'text-gray-600'}`}>
                                                 <span className={`px-1.5 py-0.5 rounded text-xs ${
-                                                  user.role === 'manager' ? (isDarkMode ? 'bg-purple-900/30 text-purple-300' : 'bg-purple-100 text-purple-700') :
+                                                  user.role === 'manager' ? (isDarkMode ? 'bg-indigo-900/30 text-indigo-300' : 'bg-indigo-100 text-indigo-700') :
                                                   user.role === 'admin' ? (isDarkMode ? 'bg-red-900/30 text-red-300' : 'bg-red-100 text-red-700') :
                                                   (isDarkMode ? 'bg-gray-700/50 text-gray-400' : 'bg-gray-200 text-gray-600')
                                                 }`}>
@@ -1690,7 +1690,7 @@ const MeetingEditorPage = () => {
                                               <Mail className="w-3 h-3" />
                                               {user.email}
                                               <span className={`px-1.5 py-0.5 rounded text-xs ${
-                                                user.role === 'manager' ? (isDarkMode ? 'bg-purple-900/30 text-purple-300' : 'bg-purple-100 text-purple-700') :
+                                                user.role === 'manager' ? (isDarkMode ? 'bg-indigo-900/30 text-indigo-300' : 'bg-indigo-100 text-indigo-700') :
                                                 user.role === 'admin' ? (isDarkMode ? 'bg-red-900/30 text-red-300' : 'bg-red-100 text-red-700') :
                                                 (isDarkMode ? 'bg-gray-600/50 text-gray-300' : 'bg-gray-200 text-gray-600')
                                               }`}>
@@ -1766,7 +1766,7 @@ const MeetingEditorPage = () => {
                                   </div>
                                 </button>
                                 <button onClick={() => { const templateBlocks = [{ id: `block-${Date.now()}-1`, type: 'heading2', content: '📝 Executive Meeting Minutes & Strategic Discussion', style: {} }, { id: `block-${Date.now()}-2`, type: 'text', content: 'Meeting Context & Participants:', style: {} }, { id: `block-${Date.now()}-3`, type: 'bullet', content: '• Meeting Type: [Strategic Planning / Board Review / Executive Briefing]', style: {} }, { id: `block-${Date.now()}-4`, type: 'bullet', content: '• Attendees: [List with titles] | Absent: [List] | Guests: [List]', style: {} }, { id: `block-${Date.now()}-5`, type: 'bullet', content: '• Meeting Facilitator: [Name] | Note Taker: [Name] | Timekeeper: [Name]', style: {} }, { id: `block-${Date.now()}-6`, type: 'divider', content: '', style: {} }, { id: `block-${Date.now()}-7`, type: 'text', content: 'STRATEGIC DISCUSSION HIGHLIGHTS:', style: {} }, { id: `block-${Date.now()}-8`, type: 'bullet', content: '• Q3 Performance Analysis: Revenue exceeded targets by 12% ($2.4M vs $2.1M target), customer acquisition up 28%', style: {} }, { id: `block-${Date.now()}-9`, type: 'bullet', content: '• Market Expansion Initiative: European market entry approved with $5M budget allocation for Q1 2024', style: {} }, { id: `block-${Date.now()}-10`, type: 'bullet', content: '• Technology Modernization: Cloud migration project 75% complete, expected cost savings of $300K annually', style: {} }, { id: `block-${Date.now()}-11`, type: 'bullet', content: '• Competitive Analysis: New competitor launched similar product, need to accelerate feature development timeline', style: {} }, { id: `block-${Date.now()}-12`, type: 'bullet', content: '• Talent Acquisition: Approved hiring of 15 additional engineers and 5 sales representatives for Q4', style: {} }, { id: `block-${Date.now()}-13`, type: 'text', content: 'CRITICAL BUSINESS DECISIONS MADE:', style: {} }, { id: `block-${Date.now()}-14`, type: 'numbered', content: '1. Approved $8M Series B funding round with lead investor participation confirmed', style: {} }, { id: `block-${Date.now()}-15`, type: 'numbered', content: '2. Authorized acquisition of AI startup TechCorp for $12M to enhance product capabilities', style: {} }, { id: `block-${Date.now()}-16`, type: 'numbered', content: '3. Implemented new remote work policy with hybrid model (3 days office, 2 days remote)', style: {} }, { id: `block-${Date.now()}-17`, type: 'numbered', content: '4. Established new customer success team with dedicated account managers for enterprise clients', style: {} }, { id: `block-${Date.now()}-18`, type: 'text', content: 'OPERATIONAL UPDATES & ANNOUNCEMENTS:', style: {} }, { id: `block-${Date.now()}-19`, type: 'bullet', content: '• Leadership Changes: Sarah Johnson promoted to VP of Engineering, effective [Date]', style: {} }, { id: `block-${Date.now()}-20`, type: 'bullet', content: '• Office Expansion: New 15,000 sq ft facility in Austin opening Q1 2024, capacity for 200 employees', style: {} }, { id: `block-${Date.now()}-21`, type: 'bullet', content: '• Security Compliance: SOC 2 Type II certification completed, GDPR compliance audit scheduled for [Date]', style: {} }, { id: `block-${Date.now()}-22`, type: 'bullet', content: '• Partnership Announcement: Strategic alliance with Microsoft Azure for enterprise cloud solutions', style: {} }, { id: `block-${Date.now()}-23`, type: 'text', content: 'RISK ASSESSMENT & MITIGATION STRATEGIES:', style: {} }, { id: `block-${Date.now()}-24`, type: 'bullet', content: '• Supply Chain Risk: Identified alternative vendors for critical components, diversification plan approved', style: {} }, { id: `block-${Date.now()}-25`, type: 'bullet', content: '• Cybersecurity Concerns: Implemented zero-trust architecture, mandatory security training for all staff', style: {} }, { id: `block-${Date.now()}-26`, type: 'bullet', content: '• Market Volatility: Established contingency budget of $2M for economic uncertainty scenarios', style: {} }, { id: `block-${Date.now()}-27`, type: 'text', content: 'QUESTIONS RAISED & FOLLOW-UP REQUIRED:', style: {} }, { id: `block-${Date.now()}-28`, type: 'bullet', content: '• Regulatory Compliance: Need legal review of new data privacy regulations in EU markets', style: {} }, { id: `block-${Date.now()}-29`, type: 'bullet', content: '• Resource Allocation: Clarification needed on Q4 marketing budget distribution across channels', style: {} }, { id: `block-${Date.now()}-30`, type: 'bullet', content: '• Timeline Concerns: Engineering team capacity constraints may impact Q1 2024 product launch', style: {} }]; setBlocks([...blocks, ...templateBlocks]); setShowTemplateDropdown(null); }} className="w-full flex items-start gap-3 px-3 py-2.5 text-left rounded-lg transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-900'}">
-                                  <FileText className="w-4 h-4 text-purple-400 mt-0.5" />
+                                  <FileText className="w-4 h-4 text-indigo-400 mt-0.5" />
                                   <div>
                                     <div className={`font-medium text-sm ${isDarkMode ? 'text-white' : 'text-black'}`}>Executive Meeting Minutes</div>
                                     <div className={`text-xs mt-0.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Detailed strategic discussion with business metrics</div>
@@ -1835,7 +1835,7 @@ const MeetingEditorPage = () => {
 
                     <div className="p-0 sm:p-1 min-h-[300px] pb-8">
                       {blocks.map((block, index) => (
-                        <div key={block.id} className={`flex items-start group relative mb-0 rounded px-0 sm:px-1 py-0 sm:py-1 ${aiInputBlock === block.id ? 'bg-purple-50/30 rounded-lg p-2' : ''} transition-all duration-200`}>
+                        <div key={block.id} className={`flex items-start group relative mb-0 rounded px-0 sm:px-1 py-0 sm:py-1 ${aiInputBlock === block.id ? 'bg-indigo-50/30 rounded-lg p-2' : ''} transition-all duration-200`}>
                           <div className={`flex items-center gap-0 sm:gap-1 transition-opacity duration-200 absolute -left-6 top-0 z-10 sm:relative sm:left-auto sm:top-auto sm:z-auto sm:mr-1 sm:gap-1 ${currentBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'} ${showBlockMenu === block.id || showLineMenu === block.id ? 'opacity-100' : ''}`}>
                             <div 
                               className="relative" 
@@ -1951,7 +1951,7 @@ const MeetingEditorPage = () => {
                                       <CheckCircle className="w-4 h-4 text-green-400" /> Success Callout
                                     </button>
                                       <button onClick={() => { const newBlocks = [...blocks]; newBlocks.splice(index + 1, 0, { id: `block-${Date.now()}`, type: 'callout', calloutType: 'tip', content: '', style: {} }); setBlocks(newBlocks); setShowBlockMenu(null); }} className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-black'}`}>
-                                        <Lightbulb className="w-4 h-4 text-purple-400" /> Tip Callout
+                                        <Lightbulb className="w-4 h-4 text-indigo-400" /> Tip Callout
                                       </button>
 
                                       <div className={`text-xs px-2 py-1 font-medium mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>FORMATTING</div>
@@ -2060,9 +2060,9 @@ const MeetingEditorPage = () => {
                           </div>
                           <div className="flex-1 relative ml-2 sm:ml-0">
                             {aiInputBlock === block.id ? (
-                              <div className={`flex items-center gap-3 px-3 py-2 rounded-lg border transition-all duration-200 ${isDarkMode ? 'bg-purple-900/20 border-purple-800/30' : 'bg-purple-100/50 border-purple-300/50'}`}>
-                                <div className={`p-1 rounded ${isDarkMode ? 'bg-purple-900/40' : 'bg-purple-200/60'}`}>
-                                  <Sparkles className="w-4 h-4 text-purple-400" />
+                              <div className={`flex items-center gap-3 px-3 py-2 rounded-lg border transition-all duration-200 ${isDarkMode ? 'bg-indigo-900/20 border-indigo-800/30' : 'bg-indigo-100/50 border-indigo-300/50'}`}>
+                                <div className={`p-1 rounded ${isDarkMode ? 'bg-indigo-900/40' : 'bg-indigo-200/60'}`}>
+                                  <Sparkles className="w-4 h-4 text-indigo-400" />
                                 </div>
                                 <input
                                   type="text"
@@ -2070,7 +2070,7 @@ const MeetingEditorPage = () => {
                                   onChange={(e) => setAiQuery(e.target.value)}
                                   onKeyDown={handleAiQuerySubmit}
                                   placeholder="Ask me anything about this meeting... (Press Enter)"
-                                  className={`flex-1 outline-none bg-transparent text-sm font-medium ${isDarkMode ? 'text-purple-200 placeholder-purple-400' : 'text-purple-800 placeholder-purple-500'}`}
+                                  className={`flex-1 outline-none bg-transparent text-sm font-medium ${isDarkMode ? 'text-indigo-200 placeholder-indigo-400' : 'text-indigo-800 placeholder-indigo-500'}`}
                                   autoFocus
                                 />
                                 <button
@@ -2078,7 +2078,7 @@ const MeetingEditorPage = () => {
                                     setAiInputBlock(null);
                                     setAiQuery('');
                                   }}
-                                  className={`p-1 rounded-full transition-colors text-purple-400 hover:text-purple-300 ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
+                                  className={`p-1 rounded-full transition-colors text-indigo-400 hover:text-indigo-300 ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
                                   title="Cancel"
                                 >
                                   <X className="w-4 h-4" />

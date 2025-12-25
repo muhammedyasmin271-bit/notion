@@ -147,7 +147,7 @@ const ReportsPage = () => {
           case 'my-report':
             return { label: 'My Report', bgColor: 'bg-white/30', textColor: 'text-white' };
           case 'shared-with-me':
-            return { label: 'Shared with Me', bgColor: 'bg-purple-900/30', textColor: 'text-purple-300' };
+            return { label: 'Shared with Me', bgColor: 'bg-indigo-900/30', textColor: 'text-indigo-300' };
           case 'shared':
             return { label: 'Shared', bgColor: 'bg-orange-900/30', textColor: 'text-orange-300' };
           default:
@@ -158,7 +158,7 @@ const ReportsPage = () => {
           case 'my-report':
             return { label: 'My Report', bgColor: 'bg-black/30', textColor: 'text-black' };
           case 'shared-with-me':
-            return { label: 'Shared with Me', bgColor: 'bg-purple-100', textColor: 'text-purple-800' };
+            return { label: 'Shared with Me', bgColor: 'bg-indigo-100', textColor: 'text-indigo-800' };
           case 'shared':
             return { label: 'Shared', bgColor: 'bg-orange-100', textColor: 'text-orange-800' };
           default:

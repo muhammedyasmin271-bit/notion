@@ -189,9 +189,9 @@ const CompanyTab = () => {
               <button
                 onClick={handlePointsToggle}
                 disabled={loading}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 ${
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 ${
                   companyData.pointsEnabled
-                    ? 'bg-purple-600'
+                    ? 'bg-indigo-600'
                     : 'bg-gray-600'
                 }`}
               >

@@ -443,7 +443,7 @@ const AdminDashboard = () => {
                           <td className="py-3 sm:py-4 px-3 sm:px-6">
                             <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold ${
                               u.role === 'admin' ? 'bg-red-100 text-red-800' :
-                              u.role === 'manager' ? 'bg-purple-100 text-purple-800' :
+                              u.role === 'manager' ? 'bg-indigo-100 text-indigo-800' :
                               isDarkMode ? 'bg-white/20 text-white' : 'bg-black/20 text-black'
                             }`}>
                               {u.role === 'admin' ? 'Admin' : u.role === 'manager' ? 'Manager' : 'User'}
@@ -581,7 +581,7 @@ const AdminDashboard = () => {
                           <div className="flex items-center gap-3 flex-wrap">
                             <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
                               u.role === 'admin' ? 'bg-red-100 text-red-800' :
-                              u.role === 'manager' ? 'bg-purple-100 text-purple-800' :
+                              u.role === 'manager' ? 'bg-indigo-100 text-indigo-800' :
                               isDarkMode ? 'bg-white/20 text-white' : 'bg-black/20 text-black'
                             }`}>
                               {u.role === 'admin' ? 'Admin' : u.role === 'manager' ? 'Manager' : 'User'}

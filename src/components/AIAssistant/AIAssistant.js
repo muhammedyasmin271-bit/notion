@@ -66,8 +66,8 @@ const AIAssistant = ({ hideOnAIPage = false }) => {
           <div className="p-4">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <div className={`p-1.5 rounded-md ${isDarkMode ? 'bg-purple-900/50' : 'bg-purple-100'}`}>
-                  <Sparkles className={`w-4 h-4 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`} />
+                <div className={`p-1.5 rounded-md ${isDarkMode ? 'bg-indigo-900/50' : 'bg-indigo-100'}`}>
+                  <Sparkles className={`w-4 h-4 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
                 </div>
                 <span className={`text-sm font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>MELA AI</span>
               </div>
@@ -97,7 +97,7 @@ const AIAssistant = ({ hideOnAIPage = false }) => {
                   }
                 }}
                 placeholder="Ask anything..."
-                className={`flex-1 px-4 py-3 text-sm rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all ${isDarkMode
+                className={`flex-1 px-4 py-3 text-sm rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all ${isDarkMode
                     ? 'bg-gray-800/80 border-gray-700 text-gray-100 placeholder-gray-500 focus:bg-gray-800'
                     : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400 focus:bg-white'
                   }`}
@@ -108,8 +108,8 @@ const AIAssistant = ({ hideOnAIPage = false }) => {
                 onClick={handleAISubmit}
                 disabled={!aiQuery.trim() || isGenerating}
                 className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center min-w-[42px] ${isDarkMode
-                    ? 'bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 disabled:from-gray-700 disabled:to-gray-800 text-white shadow-lg shadow-purple-900/20'
-                    : 'bg-gradient-to-br from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 disabled:from-gray-300 disabled:to-gray-400 text-white shadow-md shadow-purple-500/20'
+                    ? 'bg-gradient-to-br from-indigo-600 to-indigo-600 hover:from-indigo-700 hover:to-indigo-700 disabled:from-gray-700 disabled:to-gray-800 text-white shadow-lg shadow-indigo-900/20'
+                    : 'bg-gradient-to-br from-indigo-500 to-indigo-500 hover:from-indigo-600 hover:to-indigo-600 disabled:from-gray-300 disabled:to-gray-400 text-white shadow-md shadow-indigo-500/20'
                   }`}
               >
                 {isGenerating ? (
@@ -128,7 +128,7 @@ const AIAssistant = ({ hideOnAIPage = false }) => {
                 }`}>
                 {isGenerating ? (
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin"></div>
+                    <div className="w-4 h-4 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
                     <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                       AI is thinking...
                     </span>

@@ -127,7 +127,7 @@ const HomePage = () => {
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-4">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-indigo-500 to-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
                 <Activity className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
               </div>
               <div className="min-w-0">
@@ -152,7 +152,7 @@ const HomePage = () => {
             {/* MELA AI */}
             <Link
               to="/ai-assistant"
-              className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-700 p-5 sm:p-8 text-white shadow-xl"
+              className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-indigo-600 to-indigo-700 p-5 sm:p-8 text-white shadow-xl"
             >
               <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
               <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full blur-2xl"></div>
@@ -169,7 +169,7 @@ const HomePage = () => {
                   </div>
                 </div>
                 <h2 className="text-xl sm:text-3xl font-bold mb-2 sm:mb-3">MELA AI</h2>
-                <p className="text-purple-100 mb-4 sm:mb-6 leading-relaxed text-sm sm:text-base">
+                <p className="text-indigo-100 mb-4 sm:mb-6 leading-relaxed text-sm sm:text-base">
                   Intelligent productivity assistant with full workspace access. Get insights, navigate pages, and optimize your workflow with AI-powered assistance.
                 </p>
                 <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold">

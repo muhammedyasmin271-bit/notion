@@ -270,7 +270,7 @@ const AddCompanyPage = () => {
             </div>
 
             {/* Plan Selection */}
-            <div className={`p-5 rounded-2xl ${isDarkMode ? 'bg-gradient-to-br from-blue-900/20 to-purple-900/20 border-2 border-blue-700/50' : 'bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-300'}`}>
+            <div className={`p-5 rounded-2xl ${isDarkMode ? 'bg-gradient-to-br from-blue-900/20 to-indigo-900/20 border-2 border-blue-700/50' : 'bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-300'}`}>
               <h3 className={`text-base font-bold mb-4 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                 <DollarSign size={18} />
                 Subscription Plan
@@ -329,22 +329,22 @@ const AddCompanyPage = () => {
             </div>
 
             {/* Points Rating System Toggle */}
-            <div className={`p-5 rounded-2xl ${isDarkMode ? 'bg-purple-900/20 border-2 border-purple-700/50' : 'bg-purple-50 border-2 border-purple-300'}`}>
+            <div className={`p-5 rounded-2xl ${isDarkMode ? 'bg-indigo-900/20 border-2 border-indigo-700/50' : 'bg-indigo-50 border-2 border-indigo-300'}`}>
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className={`text-base font-bold mb-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                     Points Rating System
                   </h3>
-                  <p className={`text-xs ${isDarkMode ? 'text-purple-300' : 'text-purple-700'}`}>
+                  <p className={`text-xs ${isDarkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
                     Track team performance with automatic point scoring
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, pointsEnabled: !prev.pointsEnabled }))}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
                     formData.pointsEnabled
-                      ? 'bg-purple-600'
+                      ? 'bg-indigo-600'
                       : isDarkMode ? 'bg-gray-600' : 'bg-gray-200'
                   }`}
                 >
@@ -355,7 +355,7 @@ const AddCompanyPage = () => {
                   />
                 </button>
               </div>
-              <p className={`text-xs mt-3 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>
+              <p className={`text-xs mt-3 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>
                 {formData.pointsEnabled 
                   ? '✅ Points system will be enabled for this company' 
                   : '❌ Points system will be disabled - no performance tracking'

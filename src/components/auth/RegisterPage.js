@@ -180,7 +180,7 @@ const RegisterPage = () => {
           isDarkMode ? 'bg-blue-500' : 'bg-blue-400'
         }`}></div>
         <div className={`absolute -bottom-40 -left-40 w-80 h-80 rounded-full blur-3xl opacity-20 ${
-          isDarkMode ? 'bg-purple-500' : 'bg-purple-400'
+          isDarkMode ? 'bg-indigo-500' : 'bg-indigo-400'
         }`}></div>
         <div className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full blur-3xl opacity-10 ${
           isDarkMode ? 'bg-indigo-500' : 'bg-indigo-400'
@@ -513,8 +513,8 @@ const RegisterPage = () => {
               disabled={isSubmitting || loading}
               className={`w-full py-3 sm:py-4 text-base sm:text-lg font-bold rounded-xl sm:rounded-2xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none min-h-[48px] ${
                 isDarkMode 
-                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white' 
-                  : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white'
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white' 
+                  : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
               }`}
             >
               {isSubmitting || loading ? (

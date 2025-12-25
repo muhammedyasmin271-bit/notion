@@ -16,7 +16,7 @@ const CompanyCreatedPage = () => {
 
   if (!companyName) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
         <div className="text-center text-white">
           <h1 className="text-2xl font-bold mb-4">Invalid Access</h1>
           <Link to="/" className="text-cyan-400 hover:text-cyan-300">
@@ -28,7 +28,7 @@ const CompanyCreatedPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
       <div className="max-w-2xl w-full">
         {/* Success Animation */}
         <div className="text-center mb-8">
@@ -42,7 +42,7 @@ const CompanyCreatedPage = () => {
               alt="Mela Note Logo" 
               className="h-10 w-10"
             />
-            <h1 className="text-3xl font-black bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-black bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
               Mela Note
             </h1>
           </div>
@@ -59,7 +59,7 @@ const CompanyCreatedPage = () => {
         <div className="bg-white/10 backdrop-blur-sm rounded-3xl p-8 border border-white/20 mb-8">
           <div className="space-y-6">
             <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-2xl flex items-center justify-center">
                 <Building2 className="w-6 h-6 text-white" />
               </div>
               <div>
@@ -106,7 +106,7 @@ const CompanyCreatedPage = () => {
             </div>
 
             <div className="flex items-start space-x-4">
-              <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+              <div className="w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
                 2
               </div>
               <div>

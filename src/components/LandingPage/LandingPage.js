@@ -534,7 +534,7 @@ const LandingPage = () => {
                         <span className={`text-xs ${
                           isDarkMode ? 'text-gray-300' : 'text-gray-600'
                         }`}>100%</span>
-                        <div className="w-6 h-6 bg-purple-500 rounded-full"></div>
+                        <div className="w-6 h-6 bg-indigo-500 rounded-full"></div>
                       </div>
                     </div>
                   </div>
@@ -553,8 +553,8 @@ const LandingPage = () => {
                     <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
                       <span className="text-red-600 font-bold text-lg">M</span>
                     </div>
-                    <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                      <Slack className="w-6 h-6 text-purple-600" />
+                    <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
+                      <Slack className="w-6 h-6 text-indigo-600" />
                     </div>
                     <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                       <Calendar className="w-6 h-6 text-blue-600" />
@@ -670,8 +670,8 @@ const LandingPage = () => {
                 ? 'bg-gray-800 border-gray-700' 
                 : 'bg-white border-gray-200'
             }`}>
-              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <BarChart3 className="w-6 h-6 text-purple-600" />
+              <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <BarChart3 className="w-6 h-6 text-indigo-600" />
               </div>
               <h3 className={`text-xl font-semibold mb-2 ${
                 isDarkMode ? 'text-white' : 'text-gray-900'

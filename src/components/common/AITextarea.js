@@ -22,9 +22,9 @@ const AITextarea = ({ value, onChange, placeholder, className, ...props }) => {
 
   if (showAI) {
     return (
-      <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-purple-900/20 border border-purple-800/30 transition-all duration-200">
-        <div className="p-1 rounded bg-purple-900/40">
-          <Sparkles className="w-4 h-4 text-purple-400" />
+      <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-indigo-900/20 border border-indigo-800/30 transition-all duration-200">
+        <div className="p-1 rounded bg-indigo-900/40">
+          <Sparkles className="w-4 h-4 text-indigo-400" />
         </div>
         <input
           type="text"
@@ -38,16 +38,16 @@ const AITextarea = ({ value, onChange, placeholder, className, ...props }) => {
             }
           }}
           placeholder="Ask AI anything... (Press Enter to submit)"
-          className={`flex-1 outline-none bg-transparent text-sm font-medium ${isDarkMode ? 'text-purple-200 placeholder-purple-400' : 'text-purple-800 placeholder-purple-600'}`}
+          className={`flex-1 outline-none bg-transparent text-sm font-medium ${isDarkMode ? 'text-indigo-200 placeholder-indigo-400' : 'text-indigo-800 placeholder-indigo-600'}`}
           autoFocus
           disabled={isLoading}
         />
         {isLoading ? (
-          <div className="w-4 h-4 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
+          <div className="w-4 h-4 border-2 border-indigo-400/30 border-t-indigo-400 rounded-full animate-spin" />
         ) : (
           <button
             onClick={() => handleAIQuery(null)}
-            className="p-1 rounded-full hover:bg-gray-700 transition-colors text-purple-400 hover:text-purple-300"
+            className="p-1 rounded-full hover:bg-gray-700 transition-colors text-indigo-400 hover:text-indigo-300"
             title="Cancel"
           >
             <X className="w-4 h-4" />
