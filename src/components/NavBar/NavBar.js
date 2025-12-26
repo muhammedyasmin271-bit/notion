@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
+import { getBackendUrl } from '../../utils/apiConfig';
 
 const NavBar = () => {
   const { user, logout, company } = useAppContext();
@@ -289,7 +290,7 @@ const NavBar = () => {
                         company.branding.logo.startsWith('/ChatGPT') ||
                         company.branding.logo.startsWith('/uploads'))
                         ? company.branding.logo 
-                        : `${(process.env.REACT_APP_BACKEND_URL && process.env.REACT_APP_BACKEND_URL !== 'undefined') ? process.env.REACT_APP_BACKEND_URL : 'https://notion-l9ti.onrender.com'}${company.branding.logo}`
+                        : `${getBackendUrl()}${company.branding.logo}`
                     : "/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png"
                 }
                 alt={`${company?.name || 'Company'} Logo`}

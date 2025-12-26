@@ -51,6 +51,8 @@ import ProjectsPage from '../ProjectsPage/ProjectsPage';
 import { useTheme } from '../../context/ThemeContext';
 import { aiAssist } from '../../services/api';
 import '../../styles/animations.css';
+import { getBackendUrl, getApiUrl } from '../../utils/apiConfig';
+import ConfirmationModal from '../common/ConfirmationModal';
 
 
 const ProjectDetailPage = ({ isNewProject = false }) => {
@@ -214,6 +216,29 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
   const [toggleContent, setToggleContent] = useState({});
   const [tableData, setTableData] = useState({});
   const [deleting, setDeleting] = useState(false);
+
+  // Modal state
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info',
+    confirmText: 'OK',
+    onConfirm: null,
+    showCancel: false
+  });
+
+  const showModal = (config) => {
+    setModalConfig({
+      isOpen: true,
+      title: config.title || 'Notification',
+      message: config.message || '',
+      type: config.type || 'info',
+      confirmText: config.confirmText || 'OK',
+      onConfirm: config.onConfirm || null,
+      showCancel: config.showCancel || false
+    });
+  };
   const [autoSaving, setAutoSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
   const autoSaveTimeoutRef = useRef(null);
@@ -538,9 +563,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
     try {
       console.log('Fetching project with ID:', projectId);
       // First fetch the basic project data
-      const backendUrl = (process.env.REACT_APP_BACKEND_URL && process.env.REACT_APP_BACKEND_URL !== 'undefined')
-        ? process.env.REACT_APP_BACKEND_URL
-        : 'https://notion-l9ti.onrender.com';
+      const backendUrl = getBackendUrl();
       const projectResponse = await fetch(`${backendUrl}/api/projects/${projectId}`, {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
@@ -596,9 +619,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
         }
         
         // Fetch the project's tasks and other data
-        const backendUrl = (process.env.REACT_APP_BACKEND_URL && process.env.REACT_APP_BACKEND_URL !== 'undefined')
-          ? process.env.REACT_APP_BACKEND_URL
-          : 'https://notion-l9ti.onrender.com';
+        const backendUrl = getBackendUrl();
         const dataResponse = await fetch(`${backendUrl}/api/projects/${projectId}/data`, {
           headers: { 'x-auth-token': localStorage.getItem('token') }
         });
@@ -679,26 +700,44 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        alert('Please log in to delete projects');
+        showModal({
+          title: 'Authentication Required',
+          message: 'Please log in to delete projects',
+          type: 'warning'
+        });
         return;
       }
 
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/projects/${project.id}`, {
+      const response = await fetch(getApiUrl(`/api/projects/${project.id}`), {
         method: 'DELETE',
         headers: { 'x-auth-token': token }
       });
 
       if (response.ok) {
-        alert('Project deleted successfully!');
-        const backUrl = companyId ? `/projects?company=${companyId}` : '/projects';
-        navigate(backUrl);
+        showModal({
+          title: 'Success',
+          message: 'Project deleted successfully!',
+          type: 'success',
+          onConfirm: () => {
+            const backUrl = companyId ? `/projects?company=${companyId}` : '/projects';
+            navigate(backUrl);
+          }
+        });
       } else {
         const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-        alert(`Failed to delete project: ${errorData.message || response.status}`);
+        showModal({
+          title: 'Error',
+          message: `Failed to delete project: ${errorData.message || response.status}`,
+          type: 'danger'
+        });
       }
     } catch (error) {
       console.error('Error deleting project:', error);
-      alert('Failed to delete project. Please try again.');
+      showModal({
+        title: 'Error',
+        message: 'Failed to delete project. Please try again.',
+        type: 'danger'
+      });
     } finally {
       setSaving(false);
     }
@@ -706,12 +745,20 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
 
   const handleSave = async () => {
     if (!canCreateProjects()) {
-      alert('You do not have permission to save projects.');
+      showModal({
+        title: 'Permission Denied',
+        message: 'You do not have permission to save projects.',
+        type: 'danger'
+      });
       return;
     }
     
     if (!project || !title.trim()) {
-      alert('Please enter a project title');
+      showModal({
+        title: 'Validation Error',
+        message: 'Please enter a project title',
+        type: 'warning'
+      });
       return;
     }
     
@@ -756,13 +803,17 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        alert('Please log in to save projects');
+        showModal({
+          title: 'Authentication Required',
+          message: 'Please log in to save projects',
+          type: 'warning'
+        });
         return;
       }
 
       if (project.id === 'new') {
         console.log('Creating new project...');
-        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/projects`, {
+        const response = await fetch(getApiUrl('/api/projects'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -787,15 +838,23 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
           
 
           
-          alert('Project created successfully!');
-          navigate(`/projects/${newProject._id || newProject.id}`);
+          showModal({
+            title: 'Success',
+            message: 'Project created successfully!',
+            type: 'success',
+            onConfirm: () => navigate(`/projects/${newProject._id || newProject.id}`)
+          });
         } else {
           const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-          alert(`Failed to create project: ${errorData.message || response.status}`);
+          showModal({
+            title: 'Error',
+            message: `Failed to create project: ${errorData.message || response.status}`,
+            type: 'danger'
+          });
         }
       } else {
         console.log('Updating existing project...');
-        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/projects/${project.id}`, {
+        const response = await fetch(getApiUrl(`/api/projects/${project.id}`), {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -820,16 +879,28 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
           
 
           
-          alert('Project updated successfully!');
+          showModal({
+            title: 'Success',
+            message: 'Project updated successfully!',
+            type: 'success'
+          });
         } else {
           const errorText = await response.text().catch(() => 'Unknown error');
           console.error('Update failed with status:', response.status, 'Response:', errorText);
-          alert(`Failed to update project: Server error (${response.status})`);
+          showModal({
+            title: 'Error',
+            message: `Failed to update project: Server error (${response.status})`,
+            type: 'danger'
+          });
         }
       }
     } catch (error) {
       console.error('Error saving project:', error);
-      alert('An error occurred while saving the project.');
+      showModal({
+        title: 'Error',
+        message: 'An error occurred while saving the project.',
+        type: 'danger'
+      });
     } finally {
       setSaving(false);
     }
@@ -848,11 +919,15 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        alert('Please log in to update project status');
+        showModal({
+          title: 'Authentication Required',
+          message: 'Please log in to update project status',
+          type: 'warning'
+        });
         return;
       }
 
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/projects/${project.id}/status`, {
+      const response = await fetch(getApiUrl(`/api/projects/${project.id}/status`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -865,11 +940,19 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
         setProject(prev => ({ ...prev, status: newStatus }));
       } else {
         const errorData = await response.json().catch(() => ({ message: 'Failed to update status' }));
-        alert(`Error updating status: ${errorData.message || 'Unknown error'}`);
+        showModal({
+          title: 'Error',
+          message: `Error updating status: ${errorData.message || 'Unknown error'}`,
+          type: 'danger'
+        });
       }
     } catch (error) {
       console.error('Error updating project status:', error);
-      alert('Failed to update project status. Please try again.');
+      showModal({
+        title: 'Error',
+        message: 'Failed to update project status. Please try again.',
+        type: 'danger'
+      });
     }
   };
 
@@ -877,7 +960,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
     setLoadingUsers(true);
     try {
       // Fetch users from company-filtered API endpoint
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/users`, {
+      const response = await fetch(getApiUrl('/api/users'), {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
       
@@ -1086,7 +1169,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/projects/${project.id}/notes`, {
+      const response = await fetch(getApiUrl(`/api/projects/${project.id}/notes`), {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -3372,19 +3455,31 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                       try {
                         const token = localStorage.getItem('token');
                         if (!token) {
-                          alert('Please log in to update assignments');
+                          showModal({
+                            title: 'Authentication Required',
+                            message: 'Please log in to update assignments',
+                            type: 'warning'
+                          });
                           return;
                         }
                         
                         if (!project.id || project.id === 'new') {
-                          alert('Please save the project first before assigning users');
+                          showModal({
+                            title: 'Action Required',
+                            message: 'Please save the project first before assigning users',
+                            type: 'info'
+                          });
                           return;
                         }
                         
                         // Check if user has permission (manager, admin, or superadmin)
                         const canAssign = user?.role === 'manager' || user?.role === 'admin' || user?.role === 'superadmin';
                         if (!canAssign) {
-                          alert('Only managers and admins can assign users to projects');
+                          showModal({
+                            title: 'Permission Denied',
+                            message: 'Only managers and admins can assign users to projects',
+                            type: 'danger'
+                          });
                           return;
                         }
                         
@@ -3400,7 +3495,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                         const requestBody = { forPerson: forPersonValue };
                         console.log('🔵 Request body:', JSON.stringify(requestBody));
                         
-                        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/projects/${project.id}`, {
+                        const response = await fetch(getApiUrl(`/api/projects/${project.id}`), {
                           method: 'PUT',
                           headers: {
                             'Content-Type': 'application/json',
@@ -3434,14 +3529,18 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                           console.log('✅ Updated project state:', updatedProject);
                           setProject(updatedProject);
                           
-                          alert('Project assignment updated successfully!');
+                          showModal({
+                            title: 'Success',
+                            message: 'Project assignment updated successfully!',
+                            type: 'success'
+                          });
                           
                           // Force a refresh to ensure UI is in sync
                           const idToFetch = projectId || project.id;
                           if (idToFetch && idToFetch !== 'new') {
                             try {
                               console.log('🔄 Refreshing project data...');
-                              const refreshResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/projects/${idToFetch}`, {
+                              const refreshResponse = await fetch(getApiUrl(`/api/projects/${idToFetch}`), {
                                 headers: { 'x-auth-token': localStorage.getItem('token') }
                               });
                               if (refreshResponse.ok) {
@@ -3458,11 +3557,19 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
                           }
                         } else {
                           console.error('🔴 Failed to update assignment:', response.status, responseData);
-                          alert(`Failed to update assignment: ${responseData.message || responseData.error || 'Unknown error'}. Please check if you have manager permissions.`);
+                          showModal({
+                            title: 'Error',
+                            message: `Failed to update assignment: ${responseData.message || responseData.error || 'Unknown error'}. Please check if you have manager permissions.`,
+                            type: 'danger'
+                          });
                         }
                       } catch (error) {
                         console.error('Error saving assignment:', error);
-                        alert(`Failed to save assignment: ${error.message || 'Please try again.'}`);
+                        showModal({
+                          title: 'Error',
+                          message: `Failed to save assignment: ${error.message || 'Please try again.'}`,
+                          type: 'danger'
+                        });
                       }
                     }
                     
@@ -3616,6 +3723,17 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
       }
 
 
+      <ConfirmationModal
+        isOpen={modalConfig.isOpen}
+        onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={modalConfig.onConfirm}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        confirmText={modalConfig.confirmText}
+        showCancel={modalConfig.showCancel}
+        isDarkMode={isDarkMode}
+      />
     </>
   );
 };

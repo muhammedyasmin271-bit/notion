@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { LogIn, User, Lock, Eye, EyeOff, Loader, Shield, Sparkles } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
+import { getBackendUrl, getApiUrl } from '../../utils/apiConfig';
 import { useTheme } from '../../context/ThemeContext';
 
 const LoginPage = () => {
@@ -34,7 +35,7 @@ const LoginPage = () => {
   const fetchCompanyData = async (retryCount = 0) => {
     setLoadingCompany(true);
     try {
-      const url = `${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/auth/company/${companyId}`;
+      const url = getApiUrl(`/api/auth/company/${companyId}`);
       console.log('Fetching company data from:', url, 'Attempt:', retryCount + 1);
       const res = await fetch(url);
       console.log('Response status:', res.status);
@@ -165,7 +166,7 @@ const LoginPage = () => {
                   companyData?.branding?.logo 
                     ? (companyData.branding.logo.startsWith('data:') || companyData.branding.logo.startsWith('http') || companyData.branding.logo.startsWith('/ChatGPT')
                         ? companyData.branding.logo 
-                        : `${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}${companyData.branding.logo}`)
+                        : `${getBackendUrl()}${companyData.branding.logo}`)
                     : "/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png"
                 }
                 alt={`${companyData?.name || 'Mela Note'} Logo`}

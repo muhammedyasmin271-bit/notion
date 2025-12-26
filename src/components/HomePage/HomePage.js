@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
+import { getBackendUrl } from '../../utils/apiConfig';
 
 const HomePage = () => {
   const { user } = useAppContext();
@@ -41,9 +42,7 @@ const HomePage = () => {
         const token = localStorage.getItem('token');
         if (!token) return;
 
-        const backendUrl = (process.env.REACT_APP_BACKEND_URL && process.env.REACT_APP_BACKEND_URL !== 'undefined')
-          ? process.env.REACT_APP_BACKEND_URL
-          : 'https://notion-l9ti.onrender.com';
+        const backendUrl = getBackendUrl();
 
         const [projects, documents, meetings] = await Promise.all([
           fetch(`${backendUrl}/api/projects`, { headers: { 'x-auth-token': token } })
@@ -65,12 +64,10 @@ const HomePage = () => {
         });
 
         if (user?.role !== 'superadmin') {
-          const backendUrl = (process.env.REACT_APP_BACKEND_URL && process.env.REACT_APP_BACKEND_URL !== 'undefined')
-            ? process.env.REACT_APP_BACKEND_URL
-            : 'https://notion-l9ti.onrender.com';
-          const usersRes = await fetch(`${backendUrl}/api/users`, {
-            headers: { 'x-auth-token': token }
-          }).catch(() => ({ json: () => [] }));
+        const backendUrl = getBackendUrl();
+        const usersRes = await fetch(`${backendUrl}/api/users`, {
+          headers: { 'x-auth-token': token }
+        }).catch(() => ({ json: () => [] }));
           const users = await usersRes.json();
           setTeamStats({
             managers: users.filter(u => u.role === 'manager').length || 0,

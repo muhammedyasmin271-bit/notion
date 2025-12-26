@@ -5,6 +5,8 @@ import {
   BarChart3, Edit3, Trash2, MoreVertical, Zap, BookOpen, CheckCircle2
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import { getApiUrl } from '../../utils/apiConfig';
+import ConfirmationModal from '../common/ConfirmationModal';
 
 const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
   const { projectId: urlProjectId } = useParams();
@@ -30,6 +32,29 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
   const [editingTaskText, setEditingTaskText] = useState('');
   const [showActionsMenu, setShowActionsMenu] = useState({});
   const [selectedTasks, setSelectedTasks] = useState(new Set());
+
+  // Modal state
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info',
+    confirmText: 'OK',
+    onConfirm: null,
+    showCancel: false
+  });
+
+  const showModal = (config) => {
+    setModalConfig({
+      isOpen: true,
+      title: config.title || 'Notification',
+      message: config.message || '',
+      type: config.type || 'info',
+      confirmText: config.confirmText || 'OK',
+      onConfirm: config.onConfirm || null,
+      showCancel: config.showCancel || false
+    });
+  };
 
   const prevProjectIdRef = useRef(projectId);
 
@@ -317,7 +342,11 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
   const addTask = async () => {
     if (!newTaskText.trim()) return;
     if (!newTaskAssignee) {
-      alert('Please select an assignee for the task');
+      showModal({
+        title: 'Validation Error',
+        message: 'Please select an assignee for the task',
+        type: 'warning'
+      });
       return;
     }
 
@@ -377,7 +406,11 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
       setShowAddTask(false);
     } catch (error) {
       console.error('Error adding task:', error);
-      alert(`Failed to add task: ${error.message}`);
+      showModal({
+        title: 'Error',
+        message: `Failed to add task: ${error.message}`,
+        type: 'danger'
+      });
     } finally {
       setSaving(false);
     }
@@ -403,7 +436,11 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
       await fetchTasks();
     } catch (error) {
       console.error('Error deleting task:', error);
-      alert(`Failed to delete task: ${error.message}`);
+      showModal({
+        title: 'Error',
+        message: `Failed to delete task: ${error.message}`,
+        type: 'danger'
+      });
     }
   };
 
@@ -452,9 +489,13 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
       if (task && task.assignee && String(task.assignee._id || task.assignee) === String(currentUser.id)) {
         const restrictedFields = ['completed', 'status', 'priority', 'dueDate'];
         if (restrictedFields.includes(field)) {
-          alert('You cannot modify the completion status, priority, or due date of tasks assigned to you. Please contact the project owner or manager.');
-          return;
-        }
+      showModal({
+        title: 'Permission Denied',
+        message: 'You cannot modify the completion status, priority, or due date of tasks assigned to you. Please contact the project owner or manager.',
+        type: 'warning'
+      });
+      return;
+    }
       }
 
       const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/projects/${projectId}/tasks/${taskId}`, {
@@ -840,6 +881,18 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
           </div>
         )}
       </div>
+
+      <ConfirmationModal
+        isOpen={modalConfig.isOpen}
+        onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={modalConfig.onConfirm}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        confirmText={modalConfig.confirmText}
+        showCancel={modalConfig.showCancel}
+        isDarkMode={isDarkMode}
+      />
     </div>
   );
 };

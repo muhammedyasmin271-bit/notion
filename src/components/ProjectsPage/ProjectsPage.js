@@ -25,6 +25,8 @@ import {
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
+import { getBackendUrl, getApiUrl } from '../../utils/apiConfig';
+import ConfirmationModal from '../common/ConfirmationModal';
 
 const ProjectsPage = () => {
   const { user, users, setUsers, canCreateProjects } = useAppContext();
@@ -36,6 +38,29 @@ const ProjectsPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterPriority, setFilterPriority] = useState('all');
   const [loading, setLoading] = useState(true);
+
+  // Modal state
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info',
+    confirmText: 'OK',
+    onConfirm: null,
+    showCancel: false
+  });
+
+  const showModal = (config) => {
+    setModalConfig({
+      isOpen: true,
+      title: config.title || 'Notification',
+      message: config.message || '',
+      type: config.type || 'info',
+      confirmText: config.confirmText || 'OK',
+      onConfirm: config.onConfirm || null,
+      showCancel: config.showCancel || false
+    });
+  };
 
   // Priority Selector Component
   const PrioritySelector = ({ priority, onChange, projectId, onClick }) => {
@@ -197,10 +222,7 @@ const ProjectsPage = () => {
 
   const fetchUsers = async () => {
     try {
-      const backendUrl = (process.env.REACT_APP_BACKEND_URL && process.env.REACT_APP_BACKEND_URL !== 'undefined')
-        ? process.env.REACT_APP_BACKEND_URL
-        : 'https://notion-l9ti.onrender.com';
-      const response = await fetch(`${backendUrl}/api/users?limit=100`, {
+      const response = await fetch(getApiUrl('/api/users?limit=100'), {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
       if (response.ok) {
@@ -217,10 +239,7 @@ const ProjectsPage = () => {
   const fetchProjects = async () => {
     try {
       setLoading(true);
-      const backendUrl = (process.env.REACT_APP_BACKEND_URL && process.env.REACT_APP_BACKEND_URL !== 'undefined')
-        ? process.env.REACT_APP_BACKEND_URL
-        : 'https://notion-l9ti.onrender.com';
-      const response = await fetch(`${backendUrl}/api/projects`, {
+      const response = await fetch(getApiUrl('/api/projects'), {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
       if (response.ok) {
@@ -229,10 +248,7 @@ const ProjectsPage = () => {
           data.map(async (project) => {
             try {
               const projectId = project._id || project.id;
-              const backendUrl = (process.env.REACT_APP_BACKEND_URL && process.env.REACT_APP_BACKEND_URL !== 'undefined')
-                ? process.env.REACT_APP_BACKEND_URL
-                : 'https://notion-l9ti.onrender.com';
-              const detailResponse = await fetch(`${backendUrl}/api/projects/${projectId}`, {
+              const detailResponse = await fetch(getApiUrl(`/api/projects/${projectId}`), {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
               });
               if (detailResponse.ok) {
@@ -268,10 +284,7 @@ const ProjectsPage = () => {
     for (const project of projects) {
       try {
         const projectId = project._id || project.id;
-        const backendUrl = (process.env.REACT_APP_BACKEND_URL && process.env.REACT_APP_BACKEND_URL !== 'undefined')
-          ? process.env.REACT_APP_BACKEND_URL
-          : 'https://notion-l9ti.onrender.com';
-        const response = await fetch(`${backendUrl}/api/projects/${projectId}/data`, {
+        const response = await fetch(getApiUrl(`/api/projects/${projectId}/data`), {
           headers: { 'x-auth-token': token }
         });
         if (response.ok) {
@@ -453,13 +466,17 @@ const ProjectsPage = () => {
     
     // Assigned users cannot change priority
     if (isAssigned && !isOwner && !isViewer && !isAdmin) {
-      alert('Only project owners and viewers can change project priority.');
+      showModal({
+        title: 'Permission Denied',
+        message: 'Only project owners and viewers can change project priority.',
+        type: 'danger'
+      });
       return;
     }
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/projects/${projectId}`, {
+      const response = await fetch(getApiUrl(`/api/projects/${projectId}`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -476,12 +493,20 @@ const ProjectsPage = () => {
           )
         );
       } else {
-        const errorData = await response.json();
-        alert(errorData.message || 'Failed to update priority');
+        const errorData = await response.json().catch(() => ({ message: 'Failed to update priority' }));
+        showModal({
+          title: 'Error',
+          message: errorData.message || 'Failed to update priority',
+          type: 'danger'
+        });
       }
     } catch (error) {
       console.error('Error updating priority:', error);
-      alert('Error updating project priority');
+      showModal({
+        title: 'Error',
+        message: 'Error updating project priority',
+        type: 'danger'
+      });
     }
   };
 
@@ -494,7 +519,7 @@ const ProjectsPage = () => {
                            newStatus === 'Not Started' ? 'Not started' : 
                            newStatus;
       
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/projects/${projectId}/status`, {
+      const response = await fetch(getApiUrl(`/api/projects/${projectId}/status`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -512,14 +537,21 @@ const ProjectsPage = () => {
         );
       } else {
         // Handle permission errors
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({ message: 'Failed to update project status' }));
         console.error('Failed to update status:', errorData.message);
-        // You could show a toast notification here
-        alert(errorData.message || 'Failed to update project status');
+        showModal({
+          title: 'Error',
+          message: errorData.message || 'Failed to update project status',
+          type: 'danger'
+        });
       }
     } catch (error) {
       console.error('Error updating status:', error);
-      alert('Error updating project status');
+      showModal({
+        title: 'Error',
+        message: 'Error updating project status',
+        type: 'danger'
+      });
     }
   };
 
@@ -758,6 +790,18 @@ const ProjectsPage = () => {
           )}
         </div>
       )}
+
+      <ConfirmationModal
+        isOpen={modalConfig.isOpen}
+        onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={modalConfig.onConfirm}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        confirmText={modalConfig.confirmText}
+        showCancel={modalConfig.showCancel}
+        isDarkMode={isDarkMode}
+      />
     </div>
   );
 };

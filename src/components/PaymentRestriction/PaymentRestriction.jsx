@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppContext } from '../../context/AppContext';
 import { AlertCircle, CreditCard, Lock } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import { getBackendUrl, getApiUrl } from '../../utils/apiConfig';
 
 const PaymentRestriction = ({ children }) => {
   const navigate = useNavigate();
@@ -29,14 +30,7 @@ const PaymentRestriction = ({ children }) => {
     const checkPaymentStatus = async () => {
       try {
         const token = localStorage.getItem('token');
-        const envBackendUrl = process.env.REACT_APP_BACKEND_URL;
-        const fallbackUrl = 'https://notion-l9ti.onrender.com';
-        let backendUrl = fallbackUrl;
-        if (envBackendUrl && envBackendUrl !== 'undefined' && envBackendUrl.startsWith('http')) {
-          backendUrl = envBackendUrl;
-        }
-        
-        const response = await fetch(`${backendUrl}/api/company/my-company`, {
+        const response = await fetch(getApiUrl('/api/company/my-company'), {
           headers: { 'x-auth-token': token }
         });
 

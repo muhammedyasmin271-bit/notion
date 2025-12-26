@@ -1,4 +1,6 @@
-const AI_API_URL = (process.env.REACT_APP_BACKEND_URL && process.env.REACT_APP_BACKEND_URL !== 'undefined') ? process.env.REACT_APP_BACKEND_URL : 'https://notion-l9ti.onrender.com';
+import { getBackendUrl } from '../utils/apiConfig';
+
+const AI_API_URL = getBackendUrl();
 
 // Remove trailing /api if present to avoid double /api/api
 const getApiUrl = (endpoint) => {

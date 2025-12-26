@@ -1,9 +1,8 @@
 import axios from 'axios';
+import { getBackendUrl } from '../utils/apiConfig';
 
-const API_BASE_URL =
-    (process.env.REACT_APP_BACKEND_URL && process.env.REACT_APP_BACKEND_URL !== 'undefined')
-        ? `${process.env.REACT_APP_BACKEND_URL}/api`
-        : 'https://notion-l9ti.onrender.com/api';
+const backendUrl = getBackendUrl();
+const API_BASE_URL = `${backendUrl}/api`;
 
 console.log('API_BASE_URL:', API_BASE_URL);
 
