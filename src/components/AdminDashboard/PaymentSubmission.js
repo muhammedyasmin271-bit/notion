@@ -9,6 +9,7 @@ import {
 import { useTheme } from '../../context/ThemeContext';
 import { useAppContext } from '../../context/AppContext';
 import CompanyCalendar from '../CompanyCalendar/CompanyCalendar';
+import apiService from '../../services/api';
 
 const PaymentSubmission = () => {
   const { isDarkMode } = useTheme();
@@ -100,104 +101,88 @@ const PaymentSubmission = () => {
 
   const verifyPaymentStatus = async (txRef) => {
     try {
-      const token = localStorage.getItem('token');
-      const backendUrl = (process.env.REACT_APP_BACKEND_URL && process.env.REACT_APP_BACKEND_URL !== 'undefined')
-        ? process.env.REACT_APP_BACKEND_URL
-        : 'https://notion-l9ti.onrender.com';
       console.log('🔍 Verifying payment with tx_ref:', txRef);
       
       // Show verification status on page
       setVerificationStatus({ status: 'checking', message: 'Verifying payment with Chapa...' });
       
-      const response = await fetch(`${backendUrl}/api/payments/chapa/verify/${txRef}`, {
-        headers: { 'x-auth-token': token }
-      });
-      
-      const data = await response.json();
+      const data = await apiService.get(`/payments/chapa/verify/${txRef}`);
       console.log('🔍 Verification response:', data);
       
-      if (response.ok) {
-        // STRICT CHECK: Only show success if payment is explicitly approved
-        if (data.status === 'approved' && data.verified === true) {
-          const successStatus = { 
-            status: 'success', 
-            message: '✅ Payment completed and verified successfully! Payment will appear in history shortly.',
-            txRef: txRef,
-            timestamp: new Date().toISOString()
-          };
-          setVerificationStatus(successStatus);
-          // Store in localStorage so it persists across reloads
-          localStorage.setItem('paymentVerificationStatus', JSON.stringify(successStatus));
-          showMessage('success', 'Payment completed and verified successfully!');
-          
-          // Refresh payments list and company data immediately
-          await Promise.all([
-            fetchPayments(),
-            fetchPaymentSettings() // This fetches company data including paymentPeriodEnd, hasPaid, etc.
-          ]);
-          
-          // Refresh multiple times to ensure backend has updated the company dates
-          setTimeout(async () => {
-            await Promise.all([
-              fetchPayments(),
-              fetchPaymentSettings()
-            ]);
-          }, 2000);
-          
-          setTimeout(async () => {
-            await Promise.all([
-              fetchPayments(),
-              fetchPaymentSettings()
-            ]);
-          }, 4000);
-          
-          // Give a moment for state to update, then reload to ensure calendar updates
-          setTimeout(() => {
-            localStorage.removeItem('paymentVerificationStatus');
-            setVerificationStatus(null); // Clear status before reload
-            window.location.reload();
-          }, 6000); // Increased to 6 seconds to allow multiple refreshes
-        } else if (data.status === 'pending') {
-          // Payment is still pending - not completed yet
-          const pendingStatus = { 
-            status: 'pending', 
-            message: '⏳ Payment is still pending. If you completed payment, please wait a moment and refresh the page.',
-            txRef: txRef,
-            timestamp: new Date().toISOString()
-          };
-          setVerificationStatus(pendingStatus);
-          localStorage.setItem('paymentVerificationStatus', JSON.stringify(pendingStatus));
-          showMessage('error', 'Payment is still pending. Please complete the payment on Chapa or wait a moment and refresh.');
-        } else {
-          // Payment failed or rejected
-          const failedStatus = { 
-            status: 'failed', 
-            message: `❌ Payment status: ${data.status || 'unknown'}. Payment was not completed successfully.`,
-            txRef: txRef,
-            timestamp: new Date().toISOString()
-          };
-          setVerificationStatus(failedStatus);
-          localStorage.setItem('paymentVerificationStatus', JSON.stringify(failedStatus));
-          showMessage('error', `Payment status: ${data.status || 'unknown'}. Payment was not completed successfully.`);
-        }
-      } else {
-        const errorStatus = { 
-          status: 'error', 
-          message: `❌ ${data.message || 'Payment verification failed. Please contact support.'}`,
+      // STRICT CHECK: Only show success if payment is explicitly approved
+      if (data.status === 'approved' && data.verified === true) {
+        const successStatus = { 
+          status: 'success', 
+          message: '✅ Payment completed and verified successfully! Payment will appear in history shortly.',
           txRef: txRef,
           timestamp: new Date().toISOString()
         };
-        setVerificationStatus(errorStatus);
-        localStorage.setItem('paymentVerificationStatus', JSON.stringify(errorStatus));
-        showMessage('error', data.message || 'Payment verification failed. Please contact support.');
+        setVerificationStatus(successStatus);
+        // Store in localStorage so it persists across reloads
+        localStorage.setItem('paymentVerificationStatus', JSON.stringify(successStatus));
+        showMessage('success', 'Payment completed and verified successfully!');
+        
+        // Refresh payments list and company data immediately
+        await Promise.all([
+          fetchPayments(),
+          fetchPaymentSettings() // This fetches company data including paymentPeriodEnd, hasPaid, etc.
+        ]);
+        
+        // Refresh multiple times to ensure backend has updated the company dates
+        setTimeout(async () => {
+          await Promise.all([
+            fetchPayments(),
+            fetchPaymentSettings()
+          ]);
+        }, 2000);
+        
+        setTimeout(async () => {
+          await Promise.all([
+            fetchPayments(),
+            fetchPaymentSettings()
+          ]);
+        }, 4000);
+        
+        // Give a moment for state to update, then reload to ensure calendar updates
+        setTimeout(() => {
+          localStorage.removeItem('paymentVerificationStatus');
+          setVerificationStatus(null); // Clear status before reload
+          window.location.reload();
+        }, 6000); // Increased to 6 seconds to allow multiple refreshes
+      } else if (data.status === 'pending') {
+        // Payment is still pending - not completed yet
+        const pendingStatus = { 
+          status: 'pending', 
+          message: '⏳ Payment is still pending. If you completed payment, please wait a moment and refresh the page.',
+          txRef: txRef,
+          timestamp: new Date().toISOString()
+        };
+        setVerificationStatus(pendingStatus);
+        localStorage.setItem('paymentVerificationStatus', JSON.stringify(pendingStatus));
+        showMessage('error', 'Payment is still pending. Please complete the payment on Chapa or wait a moment and refresh.');
+      } else {
+        // Payment failed or rejected
+        const failedStatus = { 
+          status: 'failed', 
+          message: `❌ Payment status: ${data.status || 'unknown'}. Payment was not completed successfully.`,
+          txRef: txRef,
+          timestamp: new Date().toISOString()
+        };
+        setVerificationStatus(failedStatus);
+        localStorage.setItem('paymentVerificationStatus', JSON.stringify(failedStatus));
+        showMessage('error', `Payment status: ${data.status || 'unknown'}. Payment was not completed successfully.`);
       }
     } catch (error) {
       console.error('Error verifying payment:', error);
-      setVerificationStatus({ 
+      const errorStatus = { 
         status: 'error', 
-        message: 'Failed to verify payment status. Please refresh the page or contact support.' 
-      });
-      showMessage('error', 'Failed to verify payment status. Please refresh the page.');
+        message: `❌ ${error.message || 'Payment verification failed. Please contact support.'}`,
+        txRef: txRef,
+        timestamp: new Date().toISOString()
+      };
+      setVerificationStatus(errorStatus);
+      localStorage.setItem('paymentVerificationStatus', JSON.stringify(errorStatus));
+      showMessage('error', error.message || 'Payment verification failed. Please contact support.');
     }
   };
 
@@ -265,39 +250,30 @@ const PaymentSubmission = () => {
 
   const fetchPaymentSettings = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const backendUrl = (process.env.REACT_APP_BACKEND_URL && process.env.REACT_APP_BACKEND_URL !== 'undefined')
-        ? process.env.REACT_APP_BACKEND_URL
-        : 'https://notion-l9ti.onrender.com';
-      
       // Fetch price per user per month from settings
-      const globalResponse = await fetch(`${backendUrl}/api/settings/payment`, {
-        headers: { 'x-auth-token': token }
-      });
-      const globalData = await globalResponse.json();
+      const globalData = await apiService.get('/settings/payment');
       
       // Fetch company data to get user limit
-      const userResponse = await fetch(`${backendUrl}/api/auth/me`, {
-        headers: { 'x-auth-token': token }
-      });
-      const userData = await userResponse.json();
+      const userData = await apiService.get('/auth/me');
       
-      const companyResponse = await fetch(`${backendUrl}/api/admin/companies/${userData.companyId}`, {
-        headers: { 'x-auth-token': token }
-      });
-      const companyResponseData = await companyResponse.json();
+      const companyResponseData = await apiService.get(`/admin/companies/${userData.companyId}`);
       
       // Also fetch from my-company endpoint to ensure we have all fields
-      const myCompanyResponse = await fetch(`${backendUrl}/api/company/my-company`, {
-        headers: { 'x-auth-token': token }
-      });
-      const myCompanyData = myCompanyResponse.ok ? await myCompanyResponse.json() : {};
+      let myCompanyData = {};
+      try {
+        myCompanyData = await apiService.get('/company/my-company');
+      } catch (e) {
+        console.warn('Could not fetch my-company data:', e.message);
+      }
       
       // Fetch company payments
-      const paymentsResponse = await fetch(`${backendUrl}/api/payments/all`, {
-        headers: { 'x-auth-token': token }
-      });
-      const allPayments = paymentsResponse.ok ? await paymentsResponse.json() : [];
+      let allPayments = [];
+      try {
+        allPayments = await apiService.get('/payments/all');
+      } catch (e) {
+        console.warn('Could not fetch all payments:', e.message);
+      }
+      
       const companyPayments = allPayments.filter(p => p.companyId === userData.companyId);
       
       // Merge data from both endpoints to ensure we have all fields
@@ -346,19 +322,7 @@ const PaymentSubmission = () => {
 
   const fetchPayments = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const backendUrl = (process.env.REACT_APP_BACKEND_URL && process.env.REACT_APP_BACKEND_URL !== 'undefined')
-        ? process.env.REACT_APP_BACKEND_URL
-        : 'https://notion-l9ti.onrender.com';
-      const response = await fetch(`${backendUrl}/api/payments/my-company`, {
-        headers: { 'x-auth-token': token }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch payments');
-      }
-      
-      const data = await response.json();
+      const data = await apiService.get('/payments/my-company');
       
       // Ensure payments is always an array
       let paymentsArray = [];
@@ -446,15 +410,6 @@ const PaymentSubmission = () => {
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const envBackendUrl = process.env.REACT_APP_BACKEND_URL;
-      const fallbackUrl = 'https://notion-l9ti.onrender.com';
-      let backendUrl = fallbackUrl;
-      
-      if (envBackendUrl && envBackendUrl !== 'undefined' && typeof envBackendUrl === 'string' && envBackendUrl.startsWith('http')) {
-        backendUrl = envBackendUrl;
-      }
-      
       const paymentPayload = {
         amount: planToUse.price,
         months: monthsToUse,
@@ -464,48 +419,7 @@ const PaymentSubmission = () => {
 
       console.log('🚀 Initializing Chapa payment with payload:', paymentPayload);
       
-      const response = await fetch(`${backendUrl}/api/payments/chapa/initialize`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': token
-        },
-        body: JSON.stringify(paymentPayload)
-      });
-
-      const data = await response.json();
-      
-      if (!response.ok) {
-        let errorMessage = 'Failed to initialize payment';
-        
-        // Try to get the most helpful error message
-        if (data.message) {
-          if (typeof data.message === 'object') {
-            errorMessage = JSON.stringify(data.message);
-          } else {
-            errorMessage = data.message;
-          }
-        } else if (data.error) {
-          if (typeof data.error === 'string') {
-            errorMessage = data.error;
-          } else if (data.error.message) {
-            errorMessage = data.error.message;
-          } else {
-            errorMessage = JSON.stringify(data.error);
-          }
-        } else if (data.setupInstructions) {
-          errorMessage = `${data.message || 'Payment gateway not configured'}\n\n${data.setupInstructions}`;
-        }
-        
-        // Log full error for debugging
-        console.error('❌ Payment initialization error:', {
-          status: response.status,
-          statusText: response.statusText,
-          data: data
-        });
-        
-        throw new Error(errorMessage);
-      }
+      const data = await apiService.post('/payments/chapa/initialize', paymentPayload);
 
       if (data.success && data.checkoutUrl) {
         showMessage('success', 'Redirecting to Chapa payment page...');

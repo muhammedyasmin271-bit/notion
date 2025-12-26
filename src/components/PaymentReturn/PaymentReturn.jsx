@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, XCircle, Clock, AlertCircle, RefreshCw } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import apiService from '../../services/api';
 
 const PaymentReturn = () => {
   const { isDarkMode } = useTheme();
@@ -16,83 +17,62 @@ const PaymentReturn = () => {
 
   const verifyPayment = async (tx_ref, attempt = 1) => {
     try {
-      const token = localStorage.getItem('token');
-      
       console.log(`🔍 Payment verification attempt ${attempt} for tx_ref:`, tx_ref);
       
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/payments/chapa/verify/${tx_ref}`, {
-        headers: { 'x-auth-token': token }
-      });
-      
-      const data = await response.json();
+      const data = await apiService.get(`/payments/chapa/verify/${tx_ref}`);
       console.log(`📡 Verification attempt ${attempt} response:`, data);
       
-      if (response.ok) {
-        if (data.status === 'approved' && data.verified === true) {
-          // Payment successful!
-          setStatus('success');
-          setMessage('✅ Payment completed successfully! Your subscription has been activated.');
-          
-          // Store success status
-          localStorage.setItem('paymentSuccess', JSON.stringify({
-            status: 'success',
-            txRef: tx_ref,
-            timestamp: new Date().toISOString()
-          }));
-          
-          // Redirect to payment page after 3 seconds
-          setTimeout(() => {
-            const companyParam = searchParams.get('company');
-            navigate(companyParam ? `/${companyParam}/admin/payments` : '/admin/payments');
-          }, 3000);
-          
-          return true; // Success - stop retrying
-        } else if (data.status === 'pending') {
-          // Still pending - continue retrying
-          if (attempt < maxRetries) {
-            setMessage(`⏳ Payment is being processed... (Attempt ${attempt}/${maxRetries}) - Checking for up to 2 minutes due to connection delays`);
-            setRetryCount(attempt);
-            
-            // Wait 3 seconds before next attempt
-            setTimeout(() => {
-              verifyPayment(tx_ref, attempt + 1);
-            }, 3000);
-            
-            return false; // Continue retrying
-          } else {
-            // Max retries reached
-            setStatus('timeout');
-            setMessage('⏰ Payment verification is taking longer than expected. Please check your payment history or contact support.');
-            return false;
-          }
-        } else {
-          // Payment failed or rejected
-          setStatus('failed');
-          setMessage(`❌ Payment was not successful. Status: ${data.status || 'unknown'}`);
-          return false;
-        }
-      } else {
-        // API error
+      if (data.status === 'approved' && data.verified === true) {
+        // Payment successful!
+        setStatus('success');
+        setMessage('✅ Payment completed successfully! Your subscription has been activated.');
+        
+        // Store success status
+        localStorage.setItem('paymentSuccess', JSON.stringify({
+          status: 'success',
+          txRef: tx_ref,
+          timestamp: new Date().toISOString()
+        }));
+        
+        // Redirect to payment page after 3 seconds
+        setTimeout(() => {
+          const companyParam = searchParams.get('company');
+          navigate(companyParam ? `/${companyParam}/admin/payments` : '/admin/payments');
+        }, 3000);
+        
+        return true; // Success - stop retrying
+      } else if (data.status === 'pending') {
+        // Still pending - continue retrying
         if (attempt < maxRetries) {
-          setMessage(`🔄 Verification failed, retrying... (Attempt ${attempt}/${maxRetries})`);
+          setMessage(`⏳ Payment is being processed... (Attempt ${attempt}/${maxRetries}) - Checking for up to 2 minutes due to connection delays`);
           setRetryCount(attempt);
           
+          // Wait 3 seconds before next attempt
           setTimeout(() => {
             verifyPayment(tx_ref, attempt + 1);
           }, 3000);
           
-          return false;
+          return false; // Continue retrying
         } else {
-          setStatus('error');
-          setMessage('❌ Unable to verify payment. Please check your payment history or contact support.');
+          // Max retries reached
+          setStatus('timeout');
+          setMessage('⏰ Payment verification is taking longer than expected. Please check your payment history or contact support.');
           return false;
         }
+      } else {
+        // Payment failed or rejected
+        setStatus('failed');
+        setMessage(`❌ Payment was not successful. Status: ${data.status || 'unknown'}`);
+        return false;
       }
     } catch (error) {
       console.error(`❌ Verification attempt ${attempt} error:`, error);
       
+      // If it's a 404 or other API error, we might still want to retry if it's pending
+      // But Axios throws for any non-2xx. Let's see if we should retry.
+      
       if (attempt < maxRetries) {
-        setMessage(`🔄 Connection error, retrying... (Attempt ${attempt}/${maxRetries})`);
+        setMessage(`🔄 Connection error or processing, retrying... (Attempt ${attempt}/${maxRetries})`);
         setRetryCount(attempt);
         
         setTimeout(() => {
@@ -102,7 +82,7 @@ const PaymentReturn = () => {
         return false;
       } else {
         setStatus('error');
-        setMessage('❌ Connection error. Please check your internet connection and try again.');
+        setMessage(`❌ ${error.message || 'Connection error. Please check your internet connection and try again.'}`);
         return false;
       }
     }

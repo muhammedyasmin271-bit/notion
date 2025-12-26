@@ -6,6 +6,7 @@ import {
 import { useTheme } from '../../context/ThemeContext';
 import { useAppContext } from '../../context/AppContext';
 import RoleGuard from '../common/RoleGuard';
+import apiService from '../../services/api';
 
 const CompanySettings = () => {
   const { isDarkMode } = useTheme();
@@ -37,16 +38,7 @@ const CompanySettings = () => {
 
   const fetchCompanyData = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/company/my-company`, {
-        headers: {
-          'x-auth-token': token
-        }
-      });
-
-      if (!response.ok) throw new Error('Failed to fetch company data');
-
-      const data = await response.json();
+      const data = await apiService.get('/company/my-company');
       setCompany(data);
 
       // Initialize forms with existing data
@@ -75,16 +67,7 @@ const CompanySettings = () => {
 
   const fetchCompanyStats = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/company/stats`, {
-        headers: {
-          'x-auth-token': token
-        }
-      });
-
-      if (!response.ok) throw new Error('Failed to fetch stats');
-
-      const data = await response.json();
+      const data = await apiService.get('/company/stats');
       setStats(data);
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -124,12 +107,7 @@ const CompanySettings = () => {
   const handleSaveBranding = async () => {
     try {
       console.log('🎨 Starting branding save...');
-      console.log('Form data:', {
-        companyName: brandingForm.companyName,
-        primaryColor: brandingForm.primaryColor,
-        hasLogo: !!brandingForm.logo
-      });
-
+      
       const formData = new FormData();
       formData.append('companyName', brandingForm.companyName);
       formData.append('primaryColor', brandingForm.primaryColor);
@@ -137,33 +115,8 @@ const CompanySettings = () => {
         formData.append('logo', brandingForm.logo);
       }
 
-      const token = localStorage.getItem('token');
       console.log('Sending request to backend...');
-      
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/company/branding`, {
-        method: 'PUT',
-        headers: {
-          'x-auth-token': token
-        },
-        body: formData
-      });
-
-      console.log('Response status:', response.status);
-
-      // Check if response is JSON
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text();
-        console.error('Non-JSON response:', text.substring(0, 200));
-        throw new Error('Server returned invalid response. Please make sure the backend server is running on port 9000.');
-      }
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to update branding');
-      }
-
-      const data = await response.json();
+      const data = await apiService.put('/company/branding', formData);
       console.log('✅ Backend response:', data);
 
       showMessage('success', 'Company branding saved to database successfully!');
@@ -188,28 +141,9 @@ const CompanySettings = () => {
   const handleSaveContact = async () => {
     try {
       console.log('📧 Starting contact info save...');
-      console.log('Form data:', contactForm);
-
-      const token = localStorage.getItem('token');
       console.log('Sending request to backend...');
       
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/company/contact`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': token
-        },
-        body: JSON.stringify(contactForm)
-      });
-
-      console.log('Response status:', response.status);
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to update contact information');
-      }
-
-      const data = await response.json();
+      const data = await apiService.put('/company/contact', contactForm);
       console.log('✅ Backend response:', data);
 
       showMessage('success', 'Contact information saved to database successfully!');
