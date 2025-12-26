@@ -1,10 +1,17 @@
 export const getBackendUrl = () => {
   const envUrl = process.env.REACT_APP_BACKEND_URL;
-  // Ensure it's a non-empty string that looks like a URL
-  if (typeof envUrl === 'string' && envUrl !== 'undefined' && envUrl.trim() !== '' && envUrl.startsWith('http')) {
-    return envUrl.trim();
+  
+  // Explicitly check for the backend URL the user wants
+  const fallbackUrl = 'https://notion-l9ti.onrender.com';
+  
+  // Robust check for environment variable
+  if (typeof envUrl === 'string' && 
+      envUrl.startsWith('http') && 
+      envUrl.length > 10) { // Basic length check for valid URL
+    return envUrl.trim().replace(/\/$/, ''); // Remove trailing slash
   }
-  return 'https://notion-l9ti.onrender.com';
+  
+  return fallbackUrl;
 };
 
 export const getApiUrl = (path) => {

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Brain, Send, Sparkles, Zap, Lightbulb, Globe, Code, ArrowRight, FileText } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAppContext } from '../../context/AppContext';
+import { getBackendUrl, getApiUrl } from '../../utils/apiConfig';
 import { useNavigate } from 'react-router-dom';
 import { askAppAI } from '../../services/aiService';
 import './AIAssistant.css';
@@ -37,9 +38,7 @@ const AIAssistantPage = () => {
 
   const getAppData = async () => {
     const token = localStorage.getItem('token');
-    const backendUrl = (process.env.REACT_APP_BACKEND_URL && process.env.REACT_APP_BACKEND_URL !== 'undefined')
-      ? process.env.REACT_APP_BACKEND_URL
-      : 'https://notion-l9ti.onrender.com';
+    const backendUrl = getBackendUrl();
     const appData = {
       user: user,
       currentPath: window.location.pathname,
@@ -53,7 +52,7 @@ const AIAssistantPage = () => {
       try {
         // Fetch projects with full details and their tasks
         try {
-          const projectsResponse = await fetch(`${backendUrl}/api/projects`, {
+          const projectsResponse = await fetch(getApiUrl('/api/projects'), {
             headers: { 'x-auth-token': token }
           });
           if (projectsResponse.ok) {
@@ -64,7 +63,7 @@ const AIAssistantPage = () => {
               projects.map(async (p) => {
                 const projectId = p._id || p.id;
                 try {
-                  const detailResponse = await fetch(`${backendUrl}/api/projects/${projectId}`, {
+                  const detailResponse = await fetch(getApiUrl(`/api/projects/${projectId}`), {
                     headers: { 'x-auth-token': token }
                   });
                   if (detailResponse.ok) {
@@ -106,7 +105,7 @@ const AIAssistantPage = () => {
             for (const project of projects) {
               try {
                 const projectId = project._id || project.id;
-                const tasksResponse = await fetch(`${backendUrl}/api/projects/${projectId}/data`, {
+                const tasksResponse = await fetch(getApiUrl(`/api/projects/${projectId}/data`), {
                   headers: { 'x-auth-token': token }
                 });
                 if (tasksResponse.ok) {

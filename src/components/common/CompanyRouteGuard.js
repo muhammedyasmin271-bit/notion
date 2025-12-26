@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useParams, Navigate } from 'react-router-dom';
 import { useAppContext } from '../../context/AppContext';
+import { getBackendUrl, getApiUrl } from '../../utils/apiConfig';
 
 const CompanyRouteGuard = ({ children }) => {
   const location = useLocation();
@@ -44,15 +45,7 @@ const CompanyRouteGuard = ({ children }) => {
       // Validate company exists in database
       try {
         const token = localStorage.getItem('token');
-        const envBackendUrl = process.env.REACT_APP_BACKEND_URL;
-        const fallbackUrl = 'https://notion-l9ti.onrender.com';
-        
-        let backendUrl = fallbackUrl;
-        if (envBackendUrl && envBackendUrl !== 'undefined' && envBackendUrl.startsWith('http')) {
-          backendUrl = envBackendUrl;
-        }
-        
-        const fetchUrl = `${backendUrl}/api/auth/company/${finalCompanyId}`;
+        const fetchUrl = getApiUrl(`/api/auth/company/${finalCompanyId}`);
         console.log('🔍 CompanyRouteGuard: Validating company at:', fetchUrl);
         
         const response = await fetch(fetchUrl, {

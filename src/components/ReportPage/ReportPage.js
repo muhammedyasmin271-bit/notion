@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAppContext } from '../../context/AppContext';
+import { getApiUrl } from '../../utils/apiConfig';
 
 const ReportPage = () => {
   const { projectId } = useParams();
@@ -84,7 +85,7 @@ const ReportPage = () => {
 
   const fetchProject = async () => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/projects/${projectId}`, {
+      const response = await fetch(getApiUrl(`/api/projects/${projectId}`), {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
       if (response.ok) {
@@ -114,7 +115,7 @@ const ReportPage = () => {
     const reportContent = blocks.map(block => block.content).join('\n');
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/projects/${project.id}`, {
+      const response = await fetch(getApiUrl(`/api/projects/${project.id}`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -138,7 +139,7 @@ const ReportPage = () => {
     setSavingAnswers(true);
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/projects/${project.id}`, {
+      const response = await fetch(getApiUrl(`/api/projects/${project.id}`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

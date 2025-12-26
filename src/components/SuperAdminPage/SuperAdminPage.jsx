@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Building2, Users, Pause, Play, Trash2, Plus, X, TrendingUp, DollarSign, Activity, AlertCircle, CheckCircle, Upload, Copy, Link as LinkIcon, Eye, XCircle, Settings, Phone, User, Lock, ToggleLeft, ToggleRight, Mail, Clock, MessageCircle, Info } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
+import { getApiUrl } from '../../utils/apiConfig';
 import { useAppContext } from '../../context/AppContext';
 import CompanyCalendar from '../CompanyCalendar/CompanyCalendar';
 import CompanyPaymentStatus from '../CompanyPaymentStatus/CompanyPaymentStatus';
@@ -39,14 +40,7 @@ const SuperAdminPage = () => {
   const fetchCompanies = React.useCallback(async () => {
     setLoading(true);
     try {
-      const envBackendUrl = process.env.REACT_APP_BACKEND_URL;
-      const fallbackUrl = 'https://notion-l9ti.onrender.com';
-      let backendUrl = fallbackUrl;
-      if (envBackendUrl && envBackendUrl !== 'undefined' && envBackendUrl.startsWith('http')) {
-        backendUrl = envBackendUrl;
-      }
-      
-      const res = await fetch(`${backendUrl}/api/admin/companies`, {
+      const res = await fetch(getApiUrl('/api/admin/companies'), {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
       const data = await res.json();

@@ -3,6 +3,7 @@ import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { AlertCircle, Clock, CreditCard, ArrowRight, X } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAppContext } from '../../context/AppContext';
+import { getApiUrl } from '../../utils/apiConfig';
 
 const PaymentReminder = () => {
   const navigate = useNavigate();
@@ -40,17 +41,10 @@ const PaymentReminder = () => {
         // If user is authenticated, fetch from API
         if (isAuthenticated && user && user.companyId) {
           const token = localStorage.getItem('token');
-          const envBackendUrl = process.env.REACT_APP_BACKEND_URL;
-          const fallbackUrl = 'https://notion-l9ti.onrender.com';
-          let backendUrl = fallbackUrl;
-          if (envBackendUrl && envBackendUrl !== 'undefined' && envBackendUrl.startsWith('http')) {
-            backendUrl = envBackendUrl;
-          }
-          
-          const response = await fetch(`${backendUrl}/api/company/my-company`, {
-            headers: { 'x-auth-token': token }
-          });
-          
+        const response = await fetch(getApiUrl('/api/company/my-company'), {
+          headers: { 'x-auth-token': token }
+        });
+
           if (response.ok) {
             const companyData = await response.json();
             const now = new Date();

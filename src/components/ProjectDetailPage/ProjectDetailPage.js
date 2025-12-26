@@ -563,8 +563,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
     try {
       console.log('Fetching project with ID:', projectId);
       // First fetch the basic project data
-      const backendUrl = getBackendUrl();
-      const projectResponse = await fetch(`${backendUrl}/api/projects/${projectId}`, {
+      const projectResponse = await fetch(getApiUrl(`/api/projects/${projectId}`), {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
       
@@ -619,8 +618,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
         }
         
         // Fetch the project's tasks and other data
-        const backendUrl = getBackendUrl();
-        const dataResponse = await fetch(`${backendUrl}/api/projects/${projectId}/data`, {
+        const dataResponse = await fetch(getApiUrl(`/api/projects/${projectId}/data`), {
           headers: { 'x-auth-token': localStorage.getItem('token') }
         });
         

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { useAppContext } from '../../context/AppContext';
+import { getApiUrl } from '../../utils/apiConfig';
 import { ArrowLeft, Send, Paperclip, X, Bug, Lightbulb, Shield, Zap, MessageSquare, CheckCircle, Upload, FileText, Plus, Sparkles, GripVertical, Type, Hash, List, Quote, Code, Trash2, Copy, ArrowUp, ArrowDown, ArrowRight, CheckSquare, Table, Minus, AlertCircle, Star, Tag, MapPin, Mail, ListOrdered, Calendar, Clock, Target, BarChart3, Info, AlertTriangle, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, Palette, Link, Image, Video, FileIcon, Bookmark, Flag, Users, Settings, Eye, EyeOff, Lock, Unlock, Share2, ChevronDown } from 'lucide-react';
 
 // Share Report Component
@@ -277,7 +278,7 @@ const SubmitReportPage = () => {
             return;
           }
 
-          const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/reports/${editId}`, {
+          const response = await fetch(getApiUrl(`/api/reports/${editId}`), {
             method: 'GET',
             headers: {
               'x-auth-token': token,
@@ -1545,7 +1546,7 @@ const SubmitReportPage = () => {
                       return;
                     }
 
-                    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/reports/${editId}`, {
+                    const response = await fetch(getApiUrl(`/api/reports/${editId}`), {
                       method: 'DELETE',
                       headers: {
                         'x-auth-token': token,
@@ -2046,7 +2047,7 @@ const SubmitReportPage = () => {
                           const url = URL.createObjectURL(file);
                           window.open(url, '_blank');
                         } else if (file.path) {
-                          window.open(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}${file.path}`, '_blank');
+                          window.open(getApiUrl(file.path), '_blank');
                         } else {
                           alert('File not available');
                         }

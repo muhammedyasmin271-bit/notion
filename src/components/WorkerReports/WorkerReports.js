@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Send, FileText } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAppContext } from '../../context/AppContext';
+import { getApiUrl } from '../../utils/apiConfig';
 
 const WorkerReports = () => {
   const { projectId } = useParams();
@@ -40,7 +41,7 @@ const WorkerReports = () => {
 
   const fetchProject = async () => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/projects/${projectId}`, {
+      const response = await fetch(getApiUrl(`/api/projects/${projectId}`), {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
       

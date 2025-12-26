@@ -100,7 +100,7 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('https://notion-l9ti.onrender.com/api/users', {
+      const response = await fetch(getApiUrl('/api/users'), {
         method: 'GET',
         headers: {
           'x-auth-token': token,
@@ -124,7 +124,7 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch(`https://notion-l9ti.onrender.com/api/projects/${projectId}`, {
+      const response = await fetch(getApiUrl(`/api/projects/${projectId}`), {
         method: 'GET',
         headers: {
           'x-auth-token': token,
@@ -210,7 +210,7 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
     }
 
     try {
-      const url = `https://notion-l9ti.onrender.com/api/projects/${projectId}/data`;
+      const url = getApiUrl(`/api/projects/${projectId}/data`);
       console.log('Making request to project-specific endpoint:', url);
 
       const response = await fetch(url, {
@@ -383,7 +383,7 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
 
       console.log('Creating task with data:', taskData);
 
-      const response = await fetch(`https://notion-l9ti.onrender.com/api/projects/${projectId}/tasks`, {
+      const response = await fetch(getApiUrl(`/api/projects/${projectId}/tasks`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -423,7 +423,7 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Authentication required');
 
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/projects/${projectId}/tasks/${taskId}`, {
+      const response = await fetch(getApiUrl(`/api/projects/${projectId}/tasks/${taskId}`), {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -455,7 +455,7 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
       const newCompleted = !task.completed;
       const newStatus = newCompleted ? 'Completed' : 'In Progress';
 
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/projects/${projectId}/tasks/${taskId}`, {
+      const response = await fetch(getApiUrl(`/api/projects/${projectId}/tasks/${taskId}`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -498,7 +498,7 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
     }
       }
 
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/projects/${projectId}/tasks/${taskId}`, {
+      const response = await fetch(getApiUrl(`/api/projects/${projectId}/tasks/${taskId}`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
