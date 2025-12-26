@@ -23,22 +23,10 @@ const PointsChart = () => {
     try {
       setLoading(true);
       setError(null);
-      console.log('📊 Loading chart data...');
       const data = await getPointsStats();
-      
-      console.log('📊 Points stats data received from API:', data);
-      console.log('📊 monthlyData array length:', data?.monthlyData?.length);
-      console.log('📊 Has real data flag:', data?.hasRealData);
-      console.log('📊 Records found:', data?.recordsFound);
-      console.log('📊 Total transactions:', data?.totalTransactions);
-      console.log('📊 Current company total:', data?.currentCompanyTotal);
-      console.log('📊 Points enabled:', data?.pointsEnabled);
-      console.log('📊 Company status:', data?.companyStatus);
-      console.log('📊 Is points blocked:', data?.isPointsBlocked);
       
       // Check if points are blocked (company paused or points disabled)
       if (data?.isPointsBlocked) {
-        console.log('⏸️ Points are blocked - company is paused or points disabled');
         setError('POINTS_BLOCKED'); // Special error code
         setLoading(false);
         return;
@@ -58,28 +46,10 @@ const PointsChart = () => {
       
       // Check if we have real data or just placeholder zeros
       const hasRealData = data.hasRealData === true && data.recordsFound > 0;
-      const hasNonZeroData = data.monthlyData.some(m => m.totalPoints !== 0 || m.transactionCount > 0);
-      
-      console.log('📊 Has real data:', hasRealData);
-      console.log('📊 Has non-zero data:', hasNonZeroData);
-      
-      if (!hasRealData) {
-        console.warn('⚠️ WARNING: Graph will show placeholder data (all zeros). No PointsHistory records found.');
-      }
-      
-      // Format data for the chart - show points gained per month as a line
-      console.log('📊 Raw monthlyData from server:', data.monthlyData);
-      console.log('📊 Raw monthlyData length:', data.monthlyData.length);
-      if (data.monthlyData && data.monthlyData.length > 0) {
-        console.log('📊 Raw monthlyData from server (first 3):', data.monthlyData.slice(0, 3));
-      } else {
-        console.log('📊 monthlyData is empty array - no points history found');
-      }
       
       const formattedData = data.monthlyData.map((month) => {
         // Backend returns 'totalPoints', map it to 'points' for the chart
         const points = month.totalPoints !== undefined ? month.totalPoints : (month.points || 0);
-        console.log(`📊 Month ${month.monthName}: totalPoints=${month.totalPoints}, mapped to points=${points}`);
         
         return {
           month: month.monthName || month.month,
@@ -89,17 +59,6 @@ const PointsChart = () => {
         };
       });
       
-      console.log('📊 Formatted data for chart (first 3):', formattedData.slice(0, 3));
-      console.log('📊 All formatted data:', formattedData);
-      
-      console.log('📊 Chart data formatted:', formattedData);
-      console.log('📊 Data summary:', {
-        months: formattedData.length,
-        pointsRange: formattedData.length > 0 ? {
-          min: Math.min(...formattedData.map(d => d.points)),
-          max: Math.max(...formattedData.map(d => d.points))
-        } : { min: 0, max: 0 }
-      });
       // Store metadata about whether we have real data
       setChartData(formattedData);
       

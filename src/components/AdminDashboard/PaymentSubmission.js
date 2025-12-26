@@ -450,9 +450,19 @@ const PaymentSubmission = () => {
       const envBackendUrl = process.env.REACT_APP_BACKEND_URL;
       const fallbackUrl = 'https://notion-l9ti.onrender.com';
       let backendUrl = fallbackUrl;
-      if (envBackendUrl && envBackendUrl !== 'undefined' && envBackendUrl.startsWith('http')) {
+      
+      if (envBackendUrl && envBackendUrl !== 'undefined' && typeof envBackendUrl === 'string' && envBackendUrl.startsWith('http')) {
         backendUrl = envBackendUrl;
       }
+      
+      const paymentPayload = {
+        amount: planToUse.price,
+        months: monthsToUse,
+        year: formData.year,
+        planName: planToUse.name
+      };
+
+      console.log('🚀 Initializing Chapa payment with payload:', paymentPayload);
       
       const response = await fetch(`${backendUrl}/api/payments/chapa/initialize`, {
         method: 'POST',

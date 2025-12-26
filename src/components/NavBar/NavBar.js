@@ -108,12 +108,15 @@ const NavBar = () => {
         const apiService = (await import('../../services/api')).default;
         const documents = await apiService.get('/documents');
         
+        // const userId = user.id || user._id;
+        // const userIdString = String(userId);
+        
+        // console.log('Fetched documents:', documents.length);
+        // console.log('Current user ID:', userIdString);
+        // console.log('Sample document:', documents[0]);
+        
         const userId = user.id || user._id;
         const userIdString = String(userId);
-        
-        console.log('Fetched documents:', documents.length);
-        console.log('Current user ID:', userIdString);
-        console.log('Sample document:', documents[0]);
         
         // The API already filters documents based on visibility, so show all returned documents
         // Just exclude deleted ones and map to the format we need
