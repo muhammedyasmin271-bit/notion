@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAppContext } from '../../context/AppContext';
-import { getBackendUrl } from '../../utils/apiConfig';
+import { getBackendUrl, getApiUrl } from '../../utils/apiConfig';
 import { useTheme } from '../../context/ThemeContext';
 import { User, Lock, LogIn, Eye, EyeOff, AlertCircle } from 'lucide-react';
 

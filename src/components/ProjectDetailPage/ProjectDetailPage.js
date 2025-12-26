@@ -56,6 +56,7 @@ import ConfirmationModal from '../common/ConfirmationModal';
 
 
 const ProjectDetailPage = ({ isNewProject = false }) => {
+  const BACKEND_URL = 'https://notion-l9ti.onrender.com';
   const { projectId } = useParams();
   const navigate = useNavigate();
   const { user, canCreateProjects, users } = useAppContext();
@@ -563,7 +564,7 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
     try {
       console.log('Fetching project with ID:', projectId);
       // First fetch the basic project data
-      const projectResponse = await fetch(getApiUrl(`/api/projects/${projectId}`), {
+      const projectResponse = await fetch(`${BACKEND_URL}/api/projects/${projectId}`, {
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
       

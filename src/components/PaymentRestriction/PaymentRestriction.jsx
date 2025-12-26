@@ -83,11 +83,11 @@ const PaymentRestriction = ({ children }) => {
                 companyId: user.companyId,
                 paymentInfo: {
                   ...companyData,
-                  isDeadlinePassed,
+                  deadlinePassed,
                   inGracePeriod,
                   gracePeriodExpired,
                   is24HourCountdownActive,
-                  isWithin24Hours: is24HourCountdownActive && paymentDeadline && !isDeadlinePassed
+                  isWithin24Hours: is24HourCountdownActive && paymentDeadline && !deadlinePassed
                 },
                 from: location.pathname
               },
