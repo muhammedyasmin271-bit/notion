@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAppContext } from '../../context/AppContext';
+import { getBackendUrl, getApiUrl } from '../../utils/apiConfig';
 import { useTheme } from '../../context/ThemeContext';
 import { User, Lock, LogIn, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
@@ -75,14 +76,8 @@ const LoginPage = ({ isSuperAdmin = false }) => {
   const fetchCompanyData = async () => {
     setLoadingCompany(true);
     try {
-      const envBackendUrl = process.env.REACT_APP_BACKEND_URL;
-      const fallbackUrl = 'https://notion-l9ti.onrender.com';
-      let backendUrl = fallbackUrl;
-      if (envBackendUrl && envBackendUrl !== 'undefined' && envBackendUrl.startsWith('http')) {
-        backendUrl = envBackendUrl;
-      }
-      
-      const res = await fetch(`${backendUrl}/api/auth/company/${companyId}`);
+      const backendUrl = getBackendUrl();
+      const res = await fetch(getApiUrl(`/api/auth/company/${companyId}`));
       if (res.ok) {
         const data = await res.json();
         setCompanyData(data);

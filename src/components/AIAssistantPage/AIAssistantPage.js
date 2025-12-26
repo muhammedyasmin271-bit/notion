@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Brain, Send, Sparkles, Zap, Lightbulb, Globe, Code, ArrowRight, FileText } from 'lucide-react';
-import { useTheme } from '../../context/ThemeContext';
+import { getBackendUrl, getApiUrl } from '../../utils/apiConfig';
 import { useAppContext } from '../../context/AppContext';
 import { useNavigate } from 'react-router-dom';
 import { askAppAI } from '../../services/aiService';
@@ -37,9 +37,7 @@ const AIAssistantPage = () => {
 
   const getAppData = async () => {
     const token = localStorage.getItem('token');
-    const backendUrl = (process.env.REACT_APP_BACKEND_URL && process.env.REACT_APP_BACKEND_URL !== 'undefined')
-      ? process.env.REACT_APP_BACKEND_URL
-      : 'https://notion-l9ti.onrender.com';
+    const backendUrl = getBackendUrl();
     const appData = {
       user: user,
       currentPath: window.location.pathname,

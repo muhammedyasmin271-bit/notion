@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppContext } from '../../context/AppContext';
+import ConfirmationModal from '../common/ConfirmationModal';
 import './MeetingEditorPage.css';
 import { Save, ArrowLeft, Calendar, Clock, Users, Plus, X, CheckCircle, Circle, Sparkles, GripVertical, Type, Hash, List, Quote, Code, Trash2, Copy, ArrowUp, ArrowDown, ArrowRight, CheckSquare, Table, Minus, AlertCircle, Star, Tag, MapPin, Mail, ListOrdered, FileText, Lightbulb, Info, AlertTriangle, Target, BarChart3, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, Palette, Link, Image, Video, FileIcon, Bookmark, Flag, Eye, EyeOff } from 'lucide-react';
 import { getMeetingById, createMeeting, updateMeeting, addMeetingActionItem, getUsers, deleteMeeting } from '../../services/api';
@@ -14,6 +15,29 @@ const MeetingEditorPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const isNewMeeting = !meetingId || meetingId === 'new';
+
+  // Modal state
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info',
+    confirmText: 'OK',
+    onConfirm: null,
+    showCancel: false
+  });
+
+  const showModal = (config) => {
+    setModalConfig({
+      isOpen: true,
+      title: config.title || 'Notification',
+      message: config.message || '',
+      type: config.type || 'info',
+      confirmText: config.confirmText || 'OK',
+      onConfirm: config.onConfirm || null,
+      showCancel: config.showCancel || false
+    });
+  };
   
   // Get companyId from URL params, query params, or user context
   const currentCompanyId = companyId || searchParams.get('company') || user?.companyId || localStorage.getItem('currentCompanyId');
@@ -435,19 +459,31 @@ const MeetingEditorPage = () => {
         setSaveStatus('saved');
         
         console.log('Save completed successfully');
-        alert(`Meeting ${isNewMeeting ? 'created' : 'updated'} successfully!`);
+        showModal({
+          title: 'Success',
+          message: `Meeting ${isNewMeeting ? 'created' : 'updated'} successfully!`,
+          type: 'success'
+        });
         
         // Stay on the current page after saving
       } catch (serverError) {
         console.error('Server save failed, data saved locally:', serverError);
         setSaveStatus('offline');
         setServerStatus('offline');
-        alert(`Server unavailable. Meeting data saved locally and will sync when server is available.\n\nYou can continue working - your data is safe!`);
+        showModal({
+          title: 'Offline Mode',
+          message: 'Server unavailable. Meeting data saved locally and will sync when server is available.\n\nYou can continue working - your data is safe!',
+          type: 'info'
+        });
         // Don't navigate away, let user continue editing
       }
     } catch (error) {
       console.error('Error saving meeting:', error);
-      alert(`Failed to save meeting: ${error.message || 'Unknown error'}`);
+      showModal({
+        title: 'Error',
+        message: `Failed to save meeting: ${error.message || 'Unknown error'}`,
+        type: 'danger'
+      });
     } finally {
       setIsSaving(false);
     }
@@ -463,12 +499,22 @@ const MeetingEditorPage = () => {
     if (window.confirm('Are you sure you want to delete this meeting? This action cannot be undone.')) {
       try {
         await deleteMeeting(meetingId);
-        alert('Meeting deleted successfully!');
-        const backUrl = currentCompanyId ? `/meeting-notes?company=${currentCompanyId}` : '/meeting-notes';
-        navigate(backUrl);
+        showModal({
+          title: 'Success',
+          message: 'Meeting deleted successfully!',
+          type: 'success',
+          onConfirm: () => {
+            const backUrl = currentCompanyId ? `/meeting-notes?company=${currentCompanyId}` : '/meeting-notes';
+            navigate(backUrl);
+          }
+        });
       } catch (error) {
         console.error('Error deleting meeting:', error);
-        alert(`Failed to delete meeting: ${error.message}`);
+        showModal({
+          title: 'Error',
+          message: `Failed to delete meeting: ${error.message}`,
+          type: 'danger'
+        });
       }
     }
   };
@@ -2101,6 +2147,17 @@ const MeetingEditorPage = () => {
         </div>
 
       </div>
+      <ConfirmationModal
+        isOpen={modalConfig.isOpen}
+        onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={modalConfig.onConfirm}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        confirmText={modalConfig.confirmText}
+        showCancel={modalConfig.showCancel}
+        isDarkMode={isDarkMode}
+      />
     </div>
   );
 };

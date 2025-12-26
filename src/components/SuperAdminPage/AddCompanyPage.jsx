@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { getApiUrl } from '../../utils/apiConfig';
 import { Building2, Users, Plus, X, Upload, Copy, Link as LinkIcon, CheckCircle, AlertCircle, User, Lock, DollarSign, Phone } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
@@ -33,7 +33,7 @@ const AddCompanyPage = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('https://notion-l9ti.onrender.com/api/admin/companies', {
+      const res = await fetch(getApiUrl('/api/admin/companies'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') },
         body: JSON.stringify(formData)

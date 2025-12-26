@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { getApiUrl } from '../../utils/apiConfig';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { FileText, Users, Calendar, ArrowLeft } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
@@ -24,7 +24,7 @@ const SharedReportsPage = () => {
           return;
         }
 
-        const response = await fetch('https://notion-l9ti.onrender.com/api/reports/shared/with-me', {
+        const response = await fetch(getApiUrl('/api/reports/shared/with-me'), {
           method: 'GET',
           headers: {
             'x-auth-token': token,
