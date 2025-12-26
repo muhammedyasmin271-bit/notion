@@ -351,4 +351,3 @@ const PaymentRestriction = ({ children }) => {
 };
 
 export default PaymentRestriction;
-

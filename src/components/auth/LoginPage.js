@@ -99,17 +99,17 @@ const LoginPage = ({ isSuperAdmin = false }) => {
       errors.password = 'Password is required';
     }
     
-    return errors;
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
-  const handleChange = (e) => {
+  const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
-    
-    // Clear validation error when user starts typing
+    // Clear validation error when user types
     if (validationErrors[name]) {
       setValidationErrors(prev => ({
         ...prev,
@@ -121,255 +121,159 @@ const LoginPage = ({ isSuperAdmin = false }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    const errors = validateForm();
-    if (Object.keys(errors).length > 0) {
-      setValidationErrors(errors);
-      return;
-    }
+    if (!validateForm()) return;
     
     setIsSubmitting(true);
-    setValidationErrors({});
-    
     try {
-      const response = await login(formData.username.toLowerCase().trim(), formData.password, companyId);
-      
-      // Check if payment is needed - paymentInfo is in response.user.paymentInfo
-      const paymentInfo = response?.user?.paymentInfo || response?.paymentInfo;
-      const userCompanyId = response?.user?.companyId || companyId;
-      
-      if (paymentInfo?.needsPayment && paymentInfo?.status !== 'paused') {
-        // Redirect to payment reminder page with company ID in URL
-        navigate(`/payment-reminder?company=${userCompanyId}`, { 
-          state: { 
-            paymentInfo: paymentInfo,
-            companyId: userCompanyId 
-          } 
-        });
-        return;
+      const success = await login(formData.username, formData.password, companyId);
+      if (success) {
+        // Role is checked in the AppContext/login method, but we can do a secondary check here
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          const userData = JSON.parse(storedUser);
+          
+          if (isSuperAdminLogin) {
+            if (userData.role === 'superadmin') {
+              navigate('/xq7m9k2p8n4r6t1w/dashboard');
+            } else {
+              // Not a superadmin, but tried to login via superadmin page
+              navigate('/home');
+            }
+          } else if (redirectTo) {
+            navigate(redirectTo);
+          } else {
+            navigate('/home');
+          }
+        }
       }
-      
-      if (paymentInfo?.status === 'paused') {
-        // Company is paused, redirect to payment reminder
-        navigate(`/payment-reminder?company=${userCompanyId}`, { 
-          state: { 
-            paymentInfo: paymentInfo,
-            companyId: userCompanyId 
-          } 
-        });
-        return;
-      }
-      
-      // Handle redirect parameter (e.g., redirect=payment)
-      if (redirectTo === 'payment' && userCompanyId) {
-        navigate(`/admin/payments?company=${userCompanyId}`);
-        return;
-      }
-
-      // Redirect based on user role
-      // Only redirect super admins if they logged in through the super admin login page
-      // Regular users clicking "Sign In" should go to home, not super admin dashboard
-      if (response?.user?.role === 'superadmin' && isSuperAdminLogin) {
-        navigate('/xq7m9k2p8n4r6t1w/dashboard');
-      } else if (response?.user?.role === 'superadmin' && !isSuperAdminLogin) {
-        // Super admin logged in through regular login page - redirect to home
-        navigate('/home');
-      } else if (userCompanyId) {
-        navigate(`/home?company=${userCompanyId}`);
-      } else {
-        navigate('/home');
-      }
-    } catch (err) {
-      console.error('Login error:', err);
-      // Error is handled by AppContext
+    } catch (error) {
+      console.error('Login failed:', error);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className={`min-h-screen flex items-center justify-center p-3 sm:p-6 ${
-      isDarkMode ? 'bg-black' : 'bg-gray-50'
-    }`}>
-      <div className={`w-full max-w-md rounded-2xl sm:rounded-3xl shadow-2xl border-2 overflow-hidden ${
-        isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'
-      }`}>
-        {/* Header */}
-        <div className={`px-4 sm:px-8 py-6 sm:py-8 text-center ${
-          isDarkMode ? 'bg-gray-800' : 'bg-gray-50'
-        }`}>
-          {loadingCompany ? (
-            <div className="flex justify-center py-8">
-              <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+    <div className={`min-h-screen flex items-center justify-center p-4 transition-colors duration-300 ${isDarkMode ? 'bg-[#141414]' : 'bg-gray-50'}`}>
+      <div className={`max-w-md w-full p-8 rounded-2xl shadow-xl transition-colors duration-300 ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-100'}`}>
+        <div className="text-center mb-8">
+          <div className="flex justify-center mb-4">
+            <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-indigo-500/20' : 'bg-indigo-100'}`}>
+              <LogIn className={`w-8 h-8 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
             </div>
-          ) : (
-            <>
-              <div className="mx-auto mb-4 sm:mb-6">
-                <img 
-                  src={
-                    companyData?.branding?.logo 
-                      ? (companyData.branding.logo.startsWith('data:') || companyData.branding.logo.startsWith('http') || companyData.branding.logo.startsWith('/ChatGPT')
-                          ? companyData.branding.logo 
-                          : `${getBackendUrl()}${companyData.branding.logo}`)
-                      : "/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png"
-                  }
-                  alt={`${companyData?.name || 'Mela Note'} Logo`}
-                  className={`w-20 h-20 sm:w-32 sm:h-32 mx-auto object-contain transition-all duration-300 ${
-                    isDarkMode && !companyData?.branding?.logo ? 'filter brightness-0 invert' : ''
-                  }`}
-                />
-              </div>
-              <h1 className={`text-xl sm:text-3xl font-black mb-2 leading-tight ${
-                isDarkMode ? 'text-white' : 'text-gray-900'
-              }`}>
-                {isSuperAdminLogin ? 'SUPER ADMIN LOGIN' : (companyData?.branding?.companyName || companyData?.name || 'MELA NOTE WORK SPACE')}
-              </h1>
-              {isSuperAdminLogin ? (
-                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Platform Administration
-                </p>
-              ) : companyData && (
-                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Company Workspace
-                </p>
-              )}
-            </>
-          )}
+          </div>
+          <h1 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+            {isSuperAdminLogin ? 'Super Admin Login' : (companyData?.branding?.companyName || 'Welcome Back')}
+          </h1>
+          <p className={`mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            {isSuperAdminLogin ? 'Enter your administrative credentials' : 'Sign in to your account to continue'}
+          </p>
         </div>
 
-        {/* Form */}
-        <div className="px-4 sm:px-8 py-6 sm:py-8">
-          {error && (
-            <div className={`mb-6 p-4 rounded-xl border-2 flex items-center ${
-              isDarkMode ? 'bg-red-900/20 border-red-700 text-red-300' : 'bg-red-50 border-red-200 text-red-700'
-            }`}>
-              <AlertCircle className="w-5 h-5 mr-3 flex-shrink-0" />
-              <span className="text-sm font-medium">{error}</span>
-            </div>
-          )}
+        {companyData?.branding?.logo && !isSuperAdminLogin && (
+          <div className="flex justify-center mb-8">
+            <img 
+              src={companyData.branding.logo.startsWith('http') 
+                ? companyData.branding.logo 
+                : `${getBackendUrl()}${companyData.branding.logo}`} 
+              alt="Company Logo" 
+              className="h-16 object-contain"
+              onError={(e) => {
+                e.target.src = '/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png';
+              }}
+            />
+          </div>
+        )}
 
-          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-            {/* Username Field */}
-            <div>
-              <label className={`block text-sm font-bold mb-2 sm:mb-3 ${
-                isDarkMode ? 'text-gray-300' : 'text-gray-700'
-              }`}>
-                Username
-              </label>
-              <div className="relative">
-                <User className={`absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 ${
-                  isDarkMode ? 'text-gray-400' : 'text-gray-400'
-                }`} />
-                <input
-                  type="text"
-                  name="username"
-                  value={formData.username}
-                  onChange={handleChange}
-                  className={`w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 border-2 rounded-lg sm:rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${
-                    validationErrors.username 
-                      ? (isDarkMode ? 'border-red-600 bg-red-900/10' : 'border-red-400 bg-red-50')
-                      : (isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500')
-                  }`}
-                  placeholder="Enter your username"
-                  disabled={isSubmitting}
-                  autoComplete="username"
-                />
-              </div>
-              {validationErrors.username && (
-                <p className={`mt-2 text-sm font-medium ${
-                  isDarkMode ? 'text-red-400' : 'text-red-600'
-                }`}>
-                  {validationErrors.username}
-                </p>
-              )}
-            </div>
+        {(error || validationErrors.auth) && (
+          <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-100 flex items-center gap-3 text-red-600 animate-shake">
+            <AlertCircle className="w-5 h-5 flex-shrink-0" />
+            <p className="text-sm font-medium">{error || validationErrors.auth}</p>
+          </div>
+        )}
 
-            {/* Password Field */}
-            <div>
-              <label className={`block text-sm font-bold mb-2 sm:mb-3 ${
-                isDarkMode ? 'text-gray-300' : 'text-gray-700'
-              }`}>
-                Password
-              </label>
-              <div className="relative">
-                <Lock className={`absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 ${
-                  isDarkMode ? 'text-gray-400' : 'text-gray-400'
-                }`} />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className={`w-full pl-10 sm:pl-12 pr-10 sm:pr-12 py-3 sm:py-4 border-2 rounded-lg sm:rounded-xl text-base font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${
-                    validationErrors.password 
-                      ? (isDarkMode ? 'border-red-600 bg-red-900/10' : 'border-red-400 bg-red-50')
-                      : (isDarkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500')
-                  }`}
-                  placeholder="Enter your password"
-                  disabled={isSubmitting}
-                  autoComplete="current-password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className={`absolute right-3 sm:right-4 top-1/2 transform -translate-y-1/2 p-1 ${
-                    isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-400 hover:text-gray-600'
-                  }`}
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-              {validationErrors.password && (
-                <p className={`mt-2 text-sm font-medium ${
-                  isDarkMode ? 'text-red-400' : 'text-red-600'
-                }`}>
-                  {validationErrors.password}
-                </p>
-              )}
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label className={`block text-sm font-medium mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+              Username
+            </label>
+            <div className="relative">
+              <User className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+              <input
+                type="text"
+                name="username"
+                value={formData.username}
+                onChange={handleInputChange}
+                className={`w-full pl-10 pr-4 py-2.5 rounded-xl border transition-all duration-200 outline-none ${
+                  isDarkMode 
+                    ? 'bg-gray-900/50 border-gray-700 text-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10' 
+                    : 'bg-white border-gray-200 text-gray-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10'
+                } ${validationErrors.username ? 'border-red-500 focus:border-red-500 focus:ring-red-500/10' : ''}`}
+                placeholder="Enter your username"
+              />
             </div>
+            {validationErrors.username && (
+              <p className="mt-1.5 text-xs text-red-500 font-medium ml-1">{validationErrors.username}</p>
+            )}
+          </div>
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isSubmitting || loading}
-              className={`w-full py-3 sm:py-4 text-base sm:text-lg font-bold rounded-xl sm:rounded-2xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none min-h-[48px] ${
-                isDarkMode 
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white' 
-                  : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-              }`}
+          <div>
+            <label className={`block text-sm font-medium mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+              Password
+            </label>
+            <div className="relative">
+              <Lock className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                value={formData.password}
+                onChange={handleInputChange}
+                className={`w-full pl-10 pr-12 py-2.5 rounded-xl border transition-all duration-200 outline-none ${
+                  isDarkMode 
+                    ? 'bg-gray-900/50 border-gray-700 text-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10' 
+                    : 'bg-white border-gray-200 text-gray-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10'
+                } ${validationErrors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-500/10' : ''}`}
+                placeholder="Enter your password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className={`absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg transition-colors hover:bg-gray-100 ${isDarkMode ? 'text-gray-500 hover:bg-gray-700' : 'text-gray-400'}`}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            {validationErrors.password && (
+              <p className="mt-1.5 text-xs text-red-500 font-medium ml-1">{validationErrors.password}</p>
+            )}
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading || isSubmitting}
+            className={`w-full py-3 rounded-xl font-bold text-white transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20 active:scale-[0.98] ${
+              loading || isSubmitting 
+                ? 'bg-indigo-400 cursor-not-allowed opacity-70' 
+                : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700'
+            }`}
+          >
+            {(loading || isSubmitting) ? (
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : 'Sign In'}
+          </button>
+        </form>
+
+        {!isSuperAdminLogin && (
+          <p className={`mt-8 text-center text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            Don't have an account?{' '}
+            <Link 
+              to={companyId ? `/register?company=${companyId}` : "/register"} 
+              className="font-bold text-indigo-600 hover:text-indigo-500 underline decoration-indigo-500/30 underline-offset-4"
             >
-              {isSubmitting || loading ? (
-                <div className="flex items-center justify-center">
-                  <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin mr-3"></div>
-                  Signing In...
-                </div>
-              ) : (
-                <div className="flex items-center justify-center">
-                  <LogIn className="w-6 h-6 mr-3" />
-                  Sign In
-                </div>
-              )}
-            </button>
-          </form>
-
-          {/* Register Link - Hide for Super Admin */}
-          {!isSuperAdminLogin && (
-            <div className="mt-6 sm:mt-8 text-center">
-              <p className={`text-sm ${
-                isDarkMode ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                Don't have an account?{' '}
-                <Link
-                  to={companyId ? `/register?company=${companyId}` : '/register'}
-                  className={`font-bold hover:underline transition-colors duration-200 ${
-                    isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'
-                  }`}
-                >
-                  Sign Up
-                </Link>
-              </p>
-            </div>
-          )}
-        </div>
+              Sign up
+            </Link>
+          </p>
+        )}
       </div>
     </div>
   );
