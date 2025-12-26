@@ -7,36 +7,12 @@ import {
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
-import ConfirmationModal from '../common/ConfirmationModal';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 const UserManagementPage = () => {
   const { user } = useAppContext();
   const { isDarkMode } = useTheme();
   const navigate = useNavigate();
-
-  // Modal state
-  const [modalConfig, setModalConfig] = useState({
-    isOpen: false,
-    title: '',
-    message: '',
-    type: 'info',
-    confirmText: 'OK',
-    onConfirm: null,
-    showCancel: false
-  });
-
-  const showModal = (config) => {
-    setModalConfig({
-      isOpen: true,
-      title: config.title || 'Notification',
-      message: config.message || '',
-      type: config.type || 'info',
-      confirmText: config.confirmText || 'OK',
-      onConfirm: config.onConfirm || null,
-      showCancel: config.showCancel || false
-    });
-  };
   const [searchParams] = useSearchParams();
   
   // Get companyId from query params or user context
@@ -272,19 +248,11 @@ const UserManagementPage = () => {
       setShowCreateForm(false);
       await loadUsers();
 
-      showModal({
-        title: 'User Created',
-        message: `Member created successfully!\n\nLogin Credentials:\nUsername: ${memberData.username}\nPassword: ${password}`,
-        type: 'success'
-      });
+      alert(`Member created successfully!\\n\\nLogin Credentials:\\nUsername: ${memberData.username}\\nPassword: ${password}`);
 
     } catch (error) {
       console.error('Error creating member:', error);
-      showModal({
-        title: 'Error',
-        message: error.response?.data?.message || 'Failed to create member. Please try again.',
-        type: 'danger'
-      });
+      alert(error.response?.data?.message || 'Failed to create member. Please try again.');
     }
   };
 
@@ -360,18 +328,10 @@ const UserManagementPage = () => {
         const apiService = (await import('../../services/api')).default;
         await apiService.deleteUser(userId);
         await loadUsers();
-        showModal({
-          title: 'Success',
-          message: 'User deleted successfully!',
-          type: 'success'
-        });
+        alert('User deleted successfully!');
       } catch (error) {
         console.error('Error deleting user:', error);
-        showModal({
-          title: 'Error',
-          message: 'Failed to delete user. Please try again.',
-          type: 'danger'
-        });
+        alert('Failed to delete user. Please try again.');
       }
     }
   };
@@ -386,18 +346,10 @@ const UserManagementPage = () => {
       const apiService = (await import('../../services/api')).default;
       await apiService.toggleUserStatus(userId);
       await loadUsers();
-      showModal({
-        title: 'Success',
-        message: 'User status updated successfully!',
-        type: 'success'
-      });
+      alert('User status updated successfully!');
     } catch (error) {
       console.error('Error toggling user status:', error);
-      showModal({
-        title: 'Error',
-        message: 'Failed to update user status. Please try again.',
-        type: 'danger'
-      });
+      alert('Failed to update user status. Please try again.');
     }
   };
 
@@ -406,18 +358,10 @@ const UserManagementPage = () => {
       const apiService = (await import('../../services/api')).default;
       await apiService.approveUser(userId);
       await loadUsers();
-      showModal({
-        title: 'Success',
-        message: 'User approved successfully.',
-        type: 'success'
-      });
+      alert('User approved successfully.');
     } catch (error) {
       console.error('Error approving user:', error);
-      showModal({
-        title: 'Error',
-        message: error.message || 'Failed to approve user.',
-        type: 'danger'
-      });
+      alert(error.message || 'Failed to approve user.');
     }
   };
 
@@ -427,18 +371,10 @@ const UserManagementPage = () => {
       const apiService = (await import('../../services/api')).default;
       await apiService.declineUser(userId);
       await loadUsers();
-      showModal({
-        title: 'Success',
-        message: 'User declined successfully.',
-        type: 'success'
-      });
+      alert('User declined successfully.');
     } catch (error) {
       console.error('Error declining user:', error);
-      showModal({
-        title: 'Error',
-        message: error.message || 'Failed to decline user.',
-        type: 'danger'
-      });
+      alert(error.message || 'Failed to decline user.');
     }
   };
 
@@ -454,18 +390,10 @@ const UserManagementPage = () => {
         await apiService.put(`/auth/users/${userId}/make-manager`, {});
       }
       await loadUsers();
-      showModal({
-        title: 'Success',
-        message: 'User is now a manager.',
-        type: 'success'
-      });
+      alert('User is now a manager.');
     } catch (error) {
       console.error('Error making user manager:', error);
-      showModal({
-        title: 'Error',
-        message: error.message || 'Failed to make user manager.',
-        type: 'danger'
-      });
+      alert(error.message || 'Failed to make user manager.');
     }
   };
 
@@ -481,18 +409,10 @@ const UserManagementPage = () => {
         await apiService.put(`/auth/users/${userId}/make-user`, {});
       }
       await loadUsers();
-      showModal({
-        title: 'Success',
-        message: 'Manager is now a regular user.',
-        type: 'success'
-      });
+      alert('Manager is now a regular user.');
     } catch (error) {
       console.error('Error making manager user:', error);
-      showModal({
-        title: 'Error',
-        message: error.message || 'Failed to make manager user.',
-        type: 'danger'
-      });
+      alert(error.message || 'Failed to make manager user.');
     }
   };
 
@@ -526,18 +446,10 @@ const UserManagementPage = () => {
       setEditingUser(null);
       await loadUsers();
 
-      showModal({
-        title: 'Success',
-        message: 'Member updated successfully!',
-        type: 'success'
-      });
+      alert('Member updated successfully!');
     } catch (error) {
       console.error('Error updating member:', error);
-      showModal({
-        title: 'Error',
-        message: 'Failed to update member. Please try again.',
-        type: 'danger'
-      });
+      alert('Failed to update member. Please try again.');
     }
   };
 
@@ -1204,17 +1116,6 @@ const UserManagementPage = () => {
           </div>
         </div>
       )}
-      <ConfirmationModal
-        isOpen={modalConfig.isOpen}
-        onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
-        onConfirm={modalConfig.onConfirm}
-        title={modalConfig.title}
-        message={modalConfig.message}
-        type={modalConfig.type}
-        confirmText={modalConfig.confirmText}
-        showCancel={modalConfig.showCancel}
-        isDarkMode={isDarkMode}
-      />
     </div>
   );
 };

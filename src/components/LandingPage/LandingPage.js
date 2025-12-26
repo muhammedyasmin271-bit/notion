@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { getApiUrl } from '../../utils/apiConfig';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { 
   ArrowRight, 
@@ -54,7 +53,7 @@ const LandingPage = () => {
     const fetchPricePerUser = async () => {
       try {
         // Try to fetch without auth first (for public landing page)
-        const response = await fetch(getApiUrl('/api/settings/payment'));
+        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/settings/payment`);
         if (response.ok) {
           const data = await response.json();
           if (data.pricePerUserPerMonth) {
@@ -83,7 +82,7 @@ const LandingPage = () => {
     setContactSubmitStatus({ type: 'loading', message: 'Sending message...' });
     
     try {
-      const response = await fetch(getApiUrl('/api/contact/submit'), {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/contact/submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

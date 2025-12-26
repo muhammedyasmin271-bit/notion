@@ -12,7 +12,6 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAppContext } from '../../context/AppContext';
-import ConfirmationModal from '../common/ConfirmationModal';
 import RoleGuard from '../common/RoleGuard';
 import { useNavigate } from 'react-router-dom';
 import PointsChart from './PointsChart';
@@ -21,29 +20,6 @@ const AdminDashboard = () => {
   const { isDarkMode } = useTheme();
   const { user } = useAppContext();
   const navigate = useNavigate();
-
-  // Modal state
-  const [modalConfig, setModalConfig] = useState({
-    isOpen: false,
-    title: '',
-    message: '',
-    type: 'info',
-    confirmText: 'OK',
-    onConfirm: null,
-    showCancel: false
-  });
-
-  const showModal = (config) => {
-    setModalConfig({
-      isOpen: true,
-      title: config.title || 'Notification',
-      message: config.message || '',
-      type: config.type || 'info',
-      confirmText: config.confirmText || 'OK',
-      onConfirm: config.onConfirm || null,
-      showCancel: config.showCancel || false
-    });
-  };
   const [users, setUsers] = useState([]);
   const [stats, setStats] = useState({
     totalUsers: 0,
@@ -117,18 +93,10 @@ const AdminDashboard = () => {
       setNewUser({ name: '', username: '', email: '', password: '', role: 'user' });
       loadUsers();
       loadStats();
-      showModal({
-        title: 'Success',
-        message: 'User created successfully!',
-        type: 'success'
-      });
+      alert('User created successfully!');
     } catch (error) {
       console.error('Error creating user:', error);
-      showModal({
-        title: 'Error',
-        message: 'Failed to create user: ' + (error.message || 'Unknown error'),
-        type: 'danger'
-      });
+      alert('Failed to create user: ' + (error.message || 'Unknown error'));
     }
   };
 
@@ -140,11 +108,7 @@ const AdminDashboard = () => {
       loadStats();
     } catch (error) {
       console.error('Error toggling user status:', error);
-      showModal({
-        title: 'Error',
-        message: 'Failed to update user status',
-        type: 'danger'
-      });
+      alert('Failed to update user status');
     }
   };
 
@@ -156,18 +120,10 @@ const AdminDashboard = () => {
       await deleteUser(userId);
       loadUsers();
       loadStats();
-      showModal({
-        title: 'Success',
-        message: 'User deleted successfully!',
-        type: 'success'
-      });
+      alert('User deleted successfully!');
     } catch (error) {
       console.error('Error deleting user:', error);
-      showModal({
-        title: 'Error',
-        message: 'Failed to delete user: ' + (error.message || 'Unknown error'),
-        type: 'danger'
-      });
+      alert('Failed to delete user: ' + (error.message || 'Unknown error'));
     }
   };
 
@@ -176,18 +132,10 @@ const AdminDashboard = () => {
       const { put } = await import('../../services/api');
       await put(`/auth/admin/users/${userId}/make-manager`, {});
       loadUsers();
-      showModal({
-        title: 'Success',
-        message: 'User is now a manager!',
-        type: 'success'
-      });
+      alert('User is now a manager!');
     } catch (error) {
       console.error('Error making user manager:', error);
-      showModal({
-        title: 'Error',
-        message: 'Failed to make user manager',
-        type: 'danger'
-      });
+      alert('Failed to make user manager');
     }
   };
 
@@ -196,18 +144,10 @@ const AdminDashboard = () => {
       const { put } = await import('../../services/api');
       await put(`/auth/admin/users/${userId}/make-user`, {});
       loadUsers();
-      showModal({
-        title: 'Success',
-        message: 'Manager is now a regular user!',
-        type: 'success'
-      });
+      alert('Manager is now a regular user!');
     } catch (error) {
       console.error('Error making manager user:', error);
-      showModal({
-        title: 'Error',
-        message: 'Failed to make manager user',
-        type: 'danger'
-      });
+      alert('Failed to make manager user');
     }
   };
 
@@ -236,18 +176,10 @@ const AdminDashboard = () => {
       setSelectedUsers([]);
       loadUsers();
       loadStats();
-      showModal({
-        title: 'Success',
-        message: 'Users deleted successfully!',
-        type: 'success'
-      });
+      alert('Users deleted successfully!');
     } catch (error) {
       console.error('Error deleting users:', error);
-      showModal({
-        title: 'Error',
-        message: 'Failed to delete users: ' + (error.message || 'Unknown error'),
-        type: 'danger'
-      });
+      alert('Failed to delete users: ' + (error.message || 'Unknown error'));
     }
   };
 
@@ -257,18 +189,10 @@ const AdminDashboard = () => {
       await Promise.all(selectedUsers.map(id => put(`/auth/users/${id}/status`, {})));
       setSelectedUsers([]);
       loadUsers();
-      showModal({
-        title: 'Success',
-        message: 'Users activated successfully!',
-        type: 'success'
-      });
+      alert('Users activated successfully!');
     } catch (error) {
       console.error('Error activating users:', error);
-      showModal({
-        title: 'Error',
-        message: 'Failed to activate users: ' + (error.message || 'Unknown error'),
-        type: 'danger'
-      });
+      alert('Failed to activate users: ' + (error.message || 'Unknown error'));
     }
   };
 
@@ -545,11 +469,7 @@ const AdminDashboard = () => {
                             <div className="flex items-center gap-1.5 sm:gap-2">
                               <button
                                 onClick={() => {
-                                  showModal({
-                                    title: 'User Details',
-                                    message: `Name: ${u.name}\nEmail: ${u.email || 'N/A'}\nRole: ${u.role}\nStatus: ${u.isActive ? 'Active' : 'Inactive'}`,
-                                    type: 'info'
-                                  });
+                                  alert(`User Details:\nName: ${u.name}\nEmail: ${u.email || 'N/A'}\nRole: ${u.role}\nStatus: ${u.isActive ? 'Active' : 'Inactive'}`);
                                 }}
                                 className={`px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition-colors ${
                                   isDarkMode 
@@ -684,11 +604,7 @@ const AdminDashboard = () => {
                           <div className="flex items-center gap-2 pt-2">
                             <button
                               onClick={() => {
-                                showModal({
-                                  title: 'User Details',
-                                  message: `Name: ${u.name}\nEmail: ${u.email || 'N/A'}\nRole: ${u.role}\nStatus: ${u.isActive ? 'Active' : 'Inactive'}`,
-                                  type: 'info'
-                                });
+                                alert(`User Details:\nName: ${u.name}\nEmail: ${u.email || 'N/A'}\nRole: ${u.role}\nStatus: ${u.isActive ? 'Active' : 'Inactive'}`);
                               }}
                               className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
                                 isDarkMode 
@@ -848,18 +764,6 @@ const AdminDashboard = () => {
           </div>
         )}
       </div>
-
-      <ConfirmationModal
-        isOpen={modalConfig.isOpen}
-        onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
-        onConfirm={modalConfig.onConfirm}
-        title={modalConfig.title}
-        message={modalConfig.message}
-        type={modalConfig.type}
-        confirmText={modalConfig.confirmText}
-        showCancel={modalConfig.showCancel}
-        isDarkMode={isDarkMode}
-      />
     </RoleGuard>
   );
 };

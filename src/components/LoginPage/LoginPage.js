@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { LogIn, User, Lock, Eye, EyeOff, Loader, Shield, Sparkles } from 'lucide-react';
+import { useAppContext } from '../../context/AppContext';
 import { getBackendUrl, getApiUrl } from '../../utils/apiConfig';
 import { useTheme } from '../../context/ThemeContext';
 

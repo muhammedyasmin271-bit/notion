@@ -2,8 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { useAppContext } from '../../context/AppContext';
-import { getBackendUrl, getApiUrl } from '../../utils/apiConfig';
-import ConfirmationModal from '../common/ConfirmationModal';
 import { ArrowLeft, Send, Paperclip, X, Bug, Lightbulb, Shield, Zap, MessageSquare, CheckCircle, Upload, FileText, Plus, Sparkles, GripVertical, Type, Hash, List, Quote, Code, Trash2, Copy, ArrowUp, ArrowDown, ArrowRight, CheckSquare, Table, Minus, AlertCircle, Star, Tag, MapPin, Mail, ListOrdered, Calendar, Clock, Target, BarChart3, Info, AlertTriangle, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, Palette, Link, Image, Video, FileIcon, Bookmark, Flag, Users, Settings, Eye, EyeOff, Lock, Unlock, Share2, ChevronDown } from 'lucide-react';
 
 // Share Report Component
@@ -23,7 +21,7 @@ const ShareReportSection = ({ reportData, selectedUsers, setSelectedUsers }) => 
         }
 
         // Use /api/users which is already filtered by companyId
-        const response = await fetch(getApiUrl('/api/users'), {
+        const response = await fetch('https://notion-l9ti.onrender.com/api/users', {
           method: 'GET',
           headers: {
             'x-auth-token': token,
@@ -60,19 +58,11 @@ const ShareReportSection = ({ reportData, selectedUsers, setSelectedUsers }) => 
     setIsSharing(true);
     try {
       const selectedNames = getSelectedUserNames();
-      showModal({
-        title: 'Success',
-        message: `✓ Ready to share with: ${selectedNames.join(', ')}\n\nThe report will be shared when you save it.`,
-        type: 'success'
-      });
+      alert(`✓ Ready to share with: ${selectedNames.join(', ')}\n\nThe report will be shared when you save it.`);
       setShowDropdown(false);
     } catch (error) {
       console.error('Share preparation error:', error);
-      showModal({
-        title: 'Error',
-        message: 'Failed to prepare sharing. Please try again.',
-        type: 'danger'
-      });
+      alert('Failed to prepare sharing. Please try again.');
     } finally {
       setIsSharing(false);
     }
@@ -196,30 +186,6 @@ const SubmitReportPage = () => {
   const companyId = params.companyId || searchParams.get('company') || user?.companyId || localStorage.getItem('currentCompanyId');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-
-  // Modal state
-  const [modalConfig, setModalConfig] = useState({
-    isOpen: false,
-    title: '',
-    message: '',
-    type: 'info',
-    confirmText: 'OK',
-    onConfirm: null,
-    showCancel: false
-  });
-
-  const showModal = (config) => {
-    setModalConfig({
-      isOpen: true,
-      title: config.title || 'Notification',
-      message: config.message || '',
-      type: config.type || 'info',
-      confirmText: config.confirmText || 'OK',
-      onConfirm: config.onConfirm || null,
-      showCancel: config.showCancel || false
-    });
-  };
   const [report, setReport] = useState({
     type: 'bug',
     priority: 'medium',
@@ -311,7 +277,7 @@ const SubmitReportPage = () => {
             return;
           }
 
-          const response = await fetch(getApiUrl(`/api/reports/${editId}`), {
+          const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/reports/${editId}`, {
             method: 'GET',
             headers: {
               'x-auth-token': token,
@@ -1382,7 +1348,7 @@ const SubmitReportPage = () => {
         const currentBlockIndex = blocks.findIndex(b => b.id === aiInputBlock);
         
         // Call the AI API with correct parameters
-        const response = await fetch(getApiUrl('/api/ai/chat'), {
+        const response = await fetch('https://notion-l9ti.onrender.com/api/ai/chat', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1434,11 +1400,7 @@ const SubmitReportPage = () => {
     e.preventDefault();
 
     if (!report.title || !report.title.trim()) {
-      showModal({
-        title: 'Validation Error',
-        message: 'Please enter a report title.',
-        type: 'warning'
-      });
+      alert('Please enter a report title.');
       return;
     }
 
@@ -1447,11 +1409,7 @@ const SubmitReportPage = () => {
       const invalidUsers = selectedUsers.filter(id => !id || typeof id !== 'string' || id.length !== 24);
       if (invalidUsers.length > 0) {
         console.error('❌ Invalid user IDs detected:', invalidUsers);
-        showModal({
-          title: 'Error',
-          message: 'Some selected users have invalid IDs. Please refresh and try again.',
-          type: 'danger'
-        });
+        alert('Some selected users have invalid IDs. Please refresh and try again.');
         return;
       }
       console.log('✅ Selected users validation passed:', selectedUsers);
@@ -1461,11 +1419,7 @@ const SubmitReportPage = () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        showModal({
-          title: 'Authentication Required',
-          message: 'Authentication required. Please log in again.',
-          type: 'warning'
-        });
+        alert('Authentication required. Please log in again.');
         navigate('/login');
         return;
       }
@@ -1477,7 +1431,7 @@ const SubmitReportPage = () => {
           const formData = new FormData();
           formData.append('file', file);
           
-          const uploadResponse = await fetch(getApiUrl('/api/upload'), {
+          const uploadResponse = await fetch('https://notion-l9ti.onrender.com/api/upload', {
             method: 'POST',
             headers: { 'x-auth-token': token },
             body: formData
@@ -1532,7 +1486,7 @@ const SubmitReportPage = () => {
         reportId: reportData.reportId
       });
       
-      const response = await fetch(getApiUrl('/api/reports'), {
+      const response = await fetch('https://notion-l9ti.onrender.com/api/reports', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1550,28 +1504,16 @@ const SubmitReportPage = () => {
       });
       
       if (response.ok && data.success) {
-        showModal({
-          title: 'Success',
-          message: data.message,
-          type: 'success'
-        });
+        alert(`✅ ${data.message}`);
         const backUrl = companyId ? `/reports?company=${companyId}` : '/reports';
         navigate(backUrl);
       } else {
         console.error('❌ Report submission failed:', data);
-        showModal({
-          title: 'Error',
-          message: data.message || 'Failed to save report. Please try again.',
-          type: 'danger'
-        });
+        alert(`❌ ${data.message || 'Failed to save report. Please try again.'}`);
       }
     } catch (error) {
       console.error('Submit error:', error);
-      showModal({
-        title: 'Error',
-        message: `❌ Failed to ${isEditMode ? 'update' : 'submit'} report. Please try again.`,
-        type: 'danger'
-      });
+      alert(`❌ Failed to ${isEditMode ? 'update' : 'submit'} report. Please try again.`);
     } finally {
       setIsSubmitting(false);
     }
@@ -1598,16 +1540,12 @@ const SubmitReportPage = () => {
                     const token = localStorage.getItem('token');
                     
                     if (!token) {
-                      showModal({
-          title: 'Authentication Required',
-          message: 'Authentication required. Please log in again.',
-          type: 'warning'
-        });
+                      alert('Authentication required. Please log in again.');
                       navigate('/login');
                       return;
                     }
 
-                    const response = await fetch(getApiUrl(`/api/reports/${editId}`), {
+                    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/reports/${editId}`, {
                       method: 'DELETE',
                       headers: {
                         'x-auth-token': token,
@@ -1616,30 +1554,16 @@ const SubmitReportPage = () => {
                     });
 
                     if (response.ok) {
-                      showModal({
-                        title: 'Success',
-                        message: 'Report deleted successfully',
-                        type: 'success',
-                        onConfirm: () => {
-                          const backUrl = companyId ? `/reports?company=${companyId}` : '/reports';
-                          navigate(backUrl);
-                        }
-                      });
+                      alert('Report deleted successfully');
+                      const backUrl = companyId ? `/reports?company=${companyId}` : '/reports';
+                      navigate(backUrl);
                     } else {
                       const errorData = await response.json();
-                      showModal({
-                        title: 'Error',
-                        message: `Failed to delete report: ${errorData.message || 'Unknown error'}`,
-                        type: 'danger'
-                      });
+                      alert(`Failed to delete report: ${errorData.message || 'Unknown error'}`);
                     }
                   } catch (error) {
                     console.error('Error deleting report:', error);
-                    showModal({
-                      title: 'Error',
-                      message: 'Failed to delete report. Please try again.',
-                      type: 'danger'
-                    });
+                    alert('Failed to delete report. Please try again.');
                   }
                 }
               }}
@@ -2122,13 +2046,9 @@ const SubmitReportPage = () => {
                           const url = URL.createObjectURL(file);
                           window.open(url, '_blank');
                         } else if (file.path) {
-                          window.open(`${getBackendUrl()}${file.path}`, '_blank');
+                          window.open(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}${file.path}`, '_blank');
                         } else {
-                          showModal({
-                            title: 'Error',
-                            message: 'File not available',
-                            type: 'danger'
-                          });
+                          alert('File not available');
                         }
                       }}
                       className={`flex items-center gap-3 flex-1 text-left transition-colors ${isDarkMode ? 'hover:text-white' : 'hover:text-black'}`}
@@ -2171,18 +2091,6 @@ const SubmitReportPage = () => {
 
         </form>
       </div>
-
-      <ConfirmationModal
-        isOpen={modalConfig.isOpen}
-        onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
-        onConfirm={modalConfig.onConfirm}
-        title={modalConfig.title}
-        message={modalConfig.message}
-        type={modalConfig.type}
-        confirmText={modalConfig.confirmText}
-        showCancel={modalConfig.showCancel}
-        isDarkMode={isDarkMode}
-      />
     </div>
   );
 };

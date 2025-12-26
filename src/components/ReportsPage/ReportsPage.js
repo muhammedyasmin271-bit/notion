@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { getApiUrl } from '../../utils/apiConfig';
 import { useTheme } from '../../context/ThemeContext';
 import { useAppContext } from '../../context/AppContext';
-import ConfirmationModal from '../common/ConfirmationModal';
 import { FileText, BarChart3, Plus, Calendar, Users, Trash2, ExternalLink, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -14,29 +12,6 @@ const ReportsPage = () => {
   const [sharedReports, setSharedReports] = useState([]);
   const [adminSharedReports, setAdminSharedReports] = useState([]);
 
-  // Modal state
-  const [modalConfig, setModalConfig] = useState({
-    isOpen: false,
-    title: '',
-    message: '',
-    type: 'info',
-    confirmText: 'OK',
-    onConfirm: null,
-    showCancel: false
-  });
-
-  const showModal = (config) => {
-    setModalConfig({
-      isOpen: true,
-      title: config.title || 'Notification',
-      message: config.message || '',
-      type: config.type || 'info',
-      confirmText: config.confirmText || 'OK',
-      onConfirm: config.onConfirm || null,
-      showCancel: config.showCancel || false
-    });
-  };
-
   useEffect(() => {
     const fetchReports = async () => {
       try {
@@ -46,7 +21,7 @@ const ReportsPage = () => {
         const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
 
         // Fetch my reports
-        const myReportsResponse = await fetch(getApiUrl('/api/reports'), {
+        const myReportsResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/reports`, {
           headers: { 'x-auth-token': token, 'Content-Type': 'application/json' }
         });
         if (myReportsResponse.ok) {
@@ -55,7 +30,7 @@ const ReportsPage = () => {
         }
 
         // Fetch shared reports
-        const sharedReportsResponse = await fetch(getApiUrl('/api/reports/shared/with-me'), {
+        const sharedReportsResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/reports/shared/with-me`, {
           headers: { 'x-auth-token': token, 'Content-Type': 'application/json' }
         });
         if (sharedReportsResponse.ok) {
@@ -93,7 +68,7 @@ const ReportsPage = () => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch(getApiUrl(`/api/reports/${reportId}`), {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://notion-l9ti.onrender.com'}/api/reports/${reportId}`, {
         method: 'DELETE',
         headers: { 'x-auth-token': token, 'Content-Type': 'application/json' }
       });
@@ -101,26 +76,14 @@ const ReportsPage = () => {
       if (response.ok) {
         // Remove the report from the local state
         setReports(prevReports => prevReports.filter(report => report._id !== reportId));
-        showModal({
-          title: 'Success',
-          message: 'Report deleted successfully',
-          type: 'success'
-        });
+        alert('Report deleted successfully');
       } else {
         const errorData = await response.json();
-        showModal({
-          title: 'Error',
-          message: `Failed to delete report: ${errorData.message || 'Unknown error'}`,
-          type: 'danger'
-        });
+        alert(`Failed to delete report: ${errorData.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error deleting report:', error);
-      showModal({
-        title: 'Error',
-        message: 'Failed to delete report. Please try again.',
-        type: 'danger'
-      });
+      alert('Failed to delete report. Please try again.');
     }
   };
 
@@ -433,18 +396,6 @@ const ReportsPage = () => {
           </div>
         )}
       </div>
-
-      <ConfirmationModal
-        isOpen={modalConfig.isOpen}
-        onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
-        onConfirm={modalConfig.onConfirm}
-        title={modalConfig.title}
-        message={modalConfig.message}
-        type={modalConfig.type}
-        confirmText={modalConfig.confirmText}
-        showCancel={modalConfig.showCancel}
-        isDarkMode={isDarkMode}
-      />
     </div>
   );
 };
