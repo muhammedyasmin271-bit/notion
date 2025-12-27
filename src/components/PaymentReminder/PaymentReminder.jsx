@@ -101,7 +101,8 @@ const PaymentReminder = () => {
     if (paymentInfo && (paymentInfo.hasPaid || !paymentInfo.is24HourCountdownActive)) {
       // Payment made or countdown not active - no need to show reminder
       if (isAuthenticated) {
-        navigate(companyId ? `/home?company=${companyId}` : '/home');
+        const targetCompanyId = companyId || user?.companyId || 'melanote';
+        navigate(`/${targetCompanyId}/projects`);
       }
       return;
     }
@@ -112,9 +113,9 @@ const PaymentReminder = () => {
         // Wait a bit for payment info to load
         return;
       }
-      // No payment info and not authenticated, redirect to home
+      // No payment info and not authenticated, redirect to login
       if (!isAuthenticated) {
-        navigate(companyId ? `/home?company=${companyId}` : '/home');
+        navigate(companyId ? `/login?company=${companyId}` : '/login');
       }
       return;
     }
@@ -183,12 +184,9 @@ const PaymentReminder = () => {
       return;
     }
     
-    // Navigate to home with company ID in URL and reminded flag
-    if (companyId) {
-      navigate(`/home?company=${companyId}&reminded=true`);
-    } else {
-      navigate('/home?reminded=true');
-    }
+    // Navigate to projects with company ID in URL and reminded flag
+    const targetCompanyId = companyId || user?.companyId || 'melanote';
+    navigate(`/${targetCompanyId}/projects?reminded=true`);
   };
 
   const handleGoToPayment = () => {

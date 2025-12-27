@@ -116,7 +116,7 @@ const AppContent = () => {
         />
         <Route
           path="/register"
-          element={isAuthenticated ? <Navigate to="/home" replace /> : <RegisterPage />}
+          element={isAuthenticated ? <Navigate to="/melanote/projects" replace /> : <RegisterPage />}
         />
         <Route
           path="/welcome"
@@ -644,10 +644,10 @@ const AppContent = () => {
           </SuperAdminRoute>
         } />
 
-        {/* Catch all route - redirect to home */}
+        {/* Catch all route - redirect to projects */}
         <Route path="*" element={
           <ProtectedRoute>
-            <Navigate to="/home" replace />
+            <Navigate to="/melanote/projects" replace />
           </ProtectedRoute>
         } />
       </Routes>

@@ -20,7 +20,8 @@ const AdminRoute = ({ children }) => {
   }
   
   if (user?.role !== 'admin') {
-    return <Navigate to="/home" replace />;
+    const targetCompanyId = user?.companyId || 'melanote';
+    return <Navigate to={`/${targetCompanyId}/projects`} replace />;
   }
   
   return children;

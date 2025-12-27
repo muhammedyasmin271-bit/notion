@@ -166,24 +166,25 @@ const LoginPage = ({ isSuperAdmin = false }) => {
             </div>
               </div>
           <h1 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-            {isSuperAdminLogin ? 'Super Admin Login' : (companyData?.branding?.companyName || 'Welcome Back')}
+            {isSuperAdminLogin ? 'Super Admin Login' : (companyData?.branding?.companyName || companyData?.name || 'Company Login')}
               </h1>
           <p className={`mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
             {isSuperAdminLogin ? 'Enter your administrative credentials' : 'Sign in to your account to continue'}
           </p>
         </div>
 
-        {companyData?.branding?.logo && !isSuperAdminLogin && (
+        {companyId && !isSuperAdminLogin && (
           <div className="flex justify-center mb-8">
-            <img 
-              src={companyData.branding.logo.startsWith('http') 
-                ? companyData.branding.logo 
-                : `${getBackendUrl()}${companyData.branding.logo}`} 
-              alt="Company Logo" 
+            <img
+              src={
+                companyData?.branding?.logo
+                  ? (companyData.branding.logo.startsWith('http')
+                      ? companyData.branding.logo
+                      : `${getBackendUrl()}${companyData.branding.logo}`)
+                  : '/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png'
+              }
+              alt={`${companyData?.name || 'Company'} Logo`}
               className="h-16 object-contain"
-              onError={(e) => {
-                e.target.src = '/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png';
-              }}
             />
           </div>
         )}
