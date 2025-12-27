@@ -293,7 +293,7 @@ const LandingPage = () => {
                   isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-700 hover:text-gray-900'
                 }`}
               >
-                Sign in
+                Sign In
               </Link>
               <button
                 onClick={toggleTheme}
@@ -367,7 +367,7 @@ const LandingPage = () => {
               <Link to="/login" className={`block px-4 py-3 font-medium transition-colors ${
                 isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-700 hover:text-gray-900'
               }`}>
-                Sign in
+                Sign In
               </Link>
               <a href="#pricing" className={`block px-4 py-3 font-semibold rounded-lg transition-colors ${
                 isDarkMode 
@@ -1269,6 +1269,7 @@ const LandingPage = () => {
                 <li><a href="#contact" className="hover:text-white transition-colors">Contact</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Support</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Careers</a></li>
+                <li><Link to="/xq7m9k2p8n4r6t1w/login" className="hover:text-white transition-colors">Super Admin</Link></li>
               </ul>
             </div>
           </div>

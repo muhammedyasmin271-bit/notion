@@ -60,6 +60,13 @@ import SharedReportsPage from './components/SharedReportsPage/SharedReportsPage'
 
 import './App.css';
 
+// Company-aware redirect component
+const CompanyAwareRedirect = ({ to }) => {
+  const { user } = useAppContext();
+  const companyId = user?.companyId || 'melanote';
+  return <Navigate to={`/${companyId}${to}`} replace />;
+};
+
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAppContext();
@@ -105,6 +112,7 @@ const AppContent = () => {
           element={<LandingPage />}
         />
         
+
         {/* Auth Routes */}
         <Route
           path="/login"
@@ -116,7 +124,7 @@ const AppContent = () => {
         />
         <Route
           path="/register"
-          element={isAuthenticated ? <Navigate to="/melanote/projects" replace /> : <RegisterPage />}
+          element={isAuthenticated ? <Navigate to="/xq7m9k2p8n4r6t1w/login" replace /> : <RegisterPage />}
         />
         <Route
           path="/welcome"
@@ -149,6 +157,14 @@ const AppContent = () => {
         <Route path="/home" element={
           <ProtectedRoute>
             <SuperAdminRedirect>
+              <Navigate to={`/${localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).companyId || 'melanote' : 'melanote'}/projects`} replace />
+            </SuperAdminRedirect>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/:companyId/home" element={
+          <ProtectedRoute>
+            <SuperAdminRedirect>
               <CompanyRouteGuard>
                 <PaymentRestriction>
                   <Layout>
@@ -160,7 +176,7 @@ const AppContent = () => {
           </ProtectedRoute>
         } />
 
-        <Route path="/projects" element={
+        <Route path="/:companyId/projects" element={
           <ProtectedRoute>
             <CompanyRouteGuard>
               <PaymentRestriction>
@@ -169,6 +185,12 @@ const AppContent = () => {
                 </Layout>
               </PaymentRestriction>
             </CompanyRouteGuard>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/projects" element={
+          <ProtectedRoute>
+            <CompanyAwareRedirect to="/projects" />
           </ProtectedRoute>
         } />
 
@@ -644,11 +666,9 @@ const AppContent = () => {
           </SuperAdminRoute>
         } />
 
-        {/* Catch all route - redirect to projects */}
+        {/* Catch all route - redirect to login */}
         <Route path="*" element={
-          <ProtectedRoute>
-            <Navigate to="/melanote/projects" replace />
-          </ProtectedRoute>
+          <Navigate to="/login" replace />
         } />
       </Routes>
     </Router>

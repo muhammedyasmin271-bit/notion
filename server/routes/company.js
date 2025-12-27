@@ -1,5 +1,48 @@
 const express = require('express');
 const router = express.Router();
+
+// @route   GET /api/company/search
+// @desc    Search companies by name (Public)
+// @access  Public
+router.get('/search', async (req, res) => {
+  try {
+    const { q } = req.query;
+    
+    if (!q || q.trim().length < 2) {
+      return res.status(400).json({ message: 'Search query must be at least 2 characters long' });
+    }
+    
+    const searchTerm = q.trim();
+    
+    // Search companies by name or companyId (case insensitive)
+    const companies = await Company.find({
+      $and: [
+        { status: 'active' }, // Only active companies
+        {
+          $or: [
+            { name: { $regex: searchTerm, $options: 'i' } },
+            { companyId: { $regex: searchTerm, $options: 'i' } },
+            { 'branding.companyName': { $regex: searchTerm, $options: 'i' } }
+          ]
+        }
+      ]
+    })
+    .select('companyId name branding')
+    .limit(10) // Limit results to prevent overload
+    .sort({ name: 1 });
+    
+    res.json({
+      companies: companies.map(company => ({
+        companyId: company.companyId,
+        name: company.name,
+        branding: company.branding || {}
+      }))
+    });
+  } catch (error) {
+    console.error('Error searching companies:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 const auth = require('../middleware/auth');
 const { requireAdmin } = require('../middleware/roleAuth');
 const Company = require('../models/Company');

@@ -58,12 +58,12 @@ const LoginPage = ({ isSuperAdmin = false }) => {
             }
             // If super admin, don't redirect - let them see the login page
           } catch (e) {
-            // If can't parse, redirect to default projects
-            navigate('/melanote/projects');
+            // If can't parse, redirect to super admin login for safety
+            navigate('/xq7m9k2p8n4r6t1w/login');
             return;
           }
         } else {
-          navigate('/melanote/projects');
+          navigate('/xq7m9k2p8n4r6t1w/login');
           return;
         }
       }
@@ -144,6 +144,7 @@ const LoginPage = ({ isSuperAdmin = false }) => {
           } else if (redirectTo) {
             navigate(redirectTo);
           } else {
+            // For regular login, always use company-specific URL
             const targetCompanyId = companyId || userData.companyId || 'melanote';
             navigate(`/${targetCompanyId}/projects`);
           }
@@ -166,12 +167,22 @@ const LoginPage = ({ isSuperAdmin = false }) => {
             </div>
               </div>
           <h1 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-            {isSuperAdminLogin ? 'Super Admin Login' : (companyData?.branding?.companyName || companyData?.name || 'Company Login')}
+            {isSuperAdminLogin ? 'Super Admin Login' : (companyData?.branding?.companyName || companyData?.name || 'Sign In')}
               </h1>
           <p className={`mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
             {isSuperAdminLogin ? 'Enter your administrative credentials' : 'Sign in to your account to continue'}
           </p>
         </div>
+
+        {!companyId && !isSuperAdminLogin && (
+          <div className="flex justify-center mb-8">
+            <img
+              src="/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png"
+              alt="Mela Note Logo"
+              className="h-16 object-contain"
+            />
+          </div>
+        )}
 
         {companyId && !isSuperAdminLogin && (
           <div className="flex justify-center mb-8">
