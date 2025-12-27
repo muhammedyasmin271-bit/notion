@@ -44,6 +44,12 @@ const PaymentRestriction = ({ children }) => {
             return;
           }
           
+          // Skip payment checks for free trial plans
+          if (companyData.selectedPlan === 'free_trial') {
+            setLoading(false);
+            return;
+          }
+          
           // Check payment status and grace period
           const now = new Date();
           const paymentDeadline = companyData.paymentDeadline ? new Date(companyData.paymentDeadline) : null;
