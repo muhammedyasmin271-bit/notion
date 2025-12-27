@@ -45,24 +45,25 @@ const LoginPage = ({ isSuperAdmin = false }) => {
           }
         }
       } else {
-        // For regular login page, redirect non-superadmin users to home
+        // For regular login page, redirect non-superadmin users to projects
         // But don't redirect super admins - let them see the login page
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
           try {
             const userData = JSON.parse(storedUser);
             if (userData.role !== 'superadmin') {
-              navigate('/home');
+              const targetCompanyId = userData.companyId || 'melanote';
+              navigate(`/${targetCompanyId}/projects`);
               return;
             }
             // If super admin, don't redirect - let them see the login page
           } catch (e) {
-            // If can't parse, redirect to home
-            navigate('/home');
+            // If can't parse, redirect to default projects
+            navigate('/melanote/projects');
             return;
           }
         } else {
-          navigate('/home');
+          navigate('/melanote/projects');
           return;
         }
       }
@@ -137,12 +138,14 @@ const LoginPage = ({ isSuperAdmin = false }) => {
               navigate('/xq7m9k2p8n4r6t1w/dashboard');
             } else {
               // Not a superadmin, but tried to login via superadmin page
-              navigate('/home');
+              const targetCompanyId = companyId || userData.companyId || 'melanote';
+              navigate(`/${targetCompanyId}/projects`);
             }
           } else if (redirectTo) {
             navigate(redirectTo);
           } else {
-            navigate('/home');
+            const targetCompanyId = companyId || userData.companyId || 'melanote';
+            navigate(`/${targetCompanyId}/projects`);
           }
         }
       }
@@ -161,10 +164,10 @@ const LoginPage = ({ isSuperAdmin = false }) => {
             <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-indigo-500/20' : 'bg-indigo-100'}`}>
               <LogIn className={`w-8 h-8 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
             </div>
-          </div>
+              </div>
           <h1 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
             {isSuperAdminLogin ? 'Super Admin Login' : (companyData?.branding?.companyName || 'Welcome Back')}
-          </h1>
+              </h1>
           <p className={`mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
             {isSuperAdminLogin ? 'Enter your administrative credentials' : 'Sign in to your account to continue'}
           </p>
@@ -189,91 +192,91 @@ const LoginPage = ({ isSuperAdmin = false }) => {
           <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-100 flex items-center gap-3 text-red-600 animate-shake">
             <AlertCircle className="w-5 h-5 flex-shrink-0" />
             <p className="text-sm font-medium">{error || validationErrors.auth}</p>
-          </div>
-        )}
+            </div>
+          )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
+            <div>
             <label className={`block text-sm font-medium mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              Username
-            </label>
-            <div className="relative">
+                Username
+              </label>
+              <div className="relative">
               <User className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} />
-              <input
-                type="text"
-                name="username"
-                value={formData.username}
+                <input
+                  type="text"
+                  name="username"
+                  value={formData.username}
                 onChange={handleInputChange}
                 className={`w-full pl-10 pr-4 py-2.5 rounded-xl border transition-all duration-200 outline-none ${
                   isDarkMode 
                     ? 'bg-gray-900/50 border-gray-700 text-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10' 
                     : 'bg-white border-gray-200 text-gray-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10'
                 } ${validationErrors.username ? 'border-red-500 focus:border-red-500 focus:ring-red-500/10' : ''}`}
-                placeholder="Enter your username"
-              />
-            </div>
-            {validationErrors.username && (
+                  placeholder="Enter your username"
+                />
+              </div>
+              {validationErrors.username && (
               <p className="mt-1.5 text-xs text-red-500 font-medium ml-1">{validationErrors.username}</p>
-            )}
-          </div>
+              )}
+            </div>
 
-          <div>
+            <div>
             <label className={`block text-sm font-medium mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              Password
-            </label>
-            <div className="relative">
+                Password
+              </label>
+              <div className="relative">
               <Lock className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} />
-              <input
+                <input
                 type={showPassword ? "text" : "password"}
-                name="password"
-                value={formData.password}
+                  name="password"
+                  value={formData.password}
                 onChange={handleInputChange}
                 className={`w-full pl-10 pr-12 py-2.5 rounded-xl border transition-all duration-200 outline-none ${
                   isDarkMode 
                     ? 'bg-gray-900/50 border-gray-700 text-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10' 
                     : 'bg-white border-gray-200 text-gray-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10'
                 } ${validationErrors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-500/10' : ''}`}
-                placeholder="Enter your password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
+                  placeholder="Enter your password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
                 className={`absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg transition-colors hover:bg-gray-100 ${isDarkMode ? 'text-gray-500 hover:bg-gray-700' : 'text-gray-400'}`}
-              >
+                >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-            {validationErrors.password && (
+                </button>
+              </div>
+              {validationErrors.password && (
               <p className="mt-1.5 text-xs text-red-500 font-medium ml-1">{validationErrors.password}</p>
-            )}
-          </div>
+              )}
+            </div>
 
-          <button
-            type="submit"
+            <button
+              type="submit"
             disabled={loading || isSubmitting}
             className={`w-full py-3 rounded-xl font-bold text-white transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20 active:scale-[0.98] ${
               loading || isSubmitting 
                 ? 'bg-indigo-400 cursor-not-allowed opacity-70' 
                 : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700'
-            }`}
-          >
+              }`}
+            >
             {(loading || isSubmitting) ? (
               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             ) : 'Sign In'}
-          </button>
-        </form>
+            </button>
+          </form>
 
-        {!isSuperAdminLogin && (
+          {!isSuperAdminLogin && (
           <p className={`mt-8 text-center text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            Don't have an account?{' '}
-            <Link 
+                Don't have an account?{' '}
+                <Link
               to={companyId ? `/register?company=${companyId}` : "/register"} 
               className="font-bold text-indigo-600 hover:text-indigo-500 underline decoration-indigo-500/30 underline-offset-4"
-            >
+                >
               Sign up
-            </Link>
-          </p>
-        )}
+                </Link>
+              </p>
+          )}
       </div>
     </div>
   );

@@ -494,8 +494,8 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
         message: 'You cannot modify the completion status, priority, or due date of tasks assigned to you. Please contact the project owner or manager.',
         type: 'warning'
       });
-      return;
-    }
+          return;
+        }
       }
 
       const response = await fetch(getApiUrl(`/api/projects/${projectId}/tasks/${taskId}`), {

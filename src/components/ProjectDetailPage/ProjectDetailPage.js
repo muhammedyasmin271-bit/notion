@@ -718,8 +718,8 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
           message: 'Project deleted successfully!',
           type: 'success',
           onConfirm: () => {
-            const backUrl = companyId ? `/projects?company=${companyId}` : '/projects';
-            navigate(backUrl);
+        const backUrl = companyId ? `/projects?company=${companyId}` : '/projects';
+        navigate(backUrl);
           }
         });
       } else {

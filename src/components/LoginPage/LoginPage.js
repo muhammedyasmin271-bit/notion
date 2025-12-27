@@ -113,19 +113,26 @@ const LoginPage = () => {
         email: 'admin@darulkubra.com',
         role: 'admin',
         name: 'Abubeker Admin',
-        status: 'approved'
+        status: 'approved',
+        companyId: companyId || 'melanote'
       };
       setUser(adminUser);
       localStorage.setItem('user', JSON.stringify(adminUser));
       localStorage.setItem('token', 'admin-token-' + Date.now());
-      navigate('/home');
+
+      // Navigate to projects page with company context
+      const targetCompanyId = companyId || 'melanote';
+      navigate(`/${targetCompanyId}/projects`);
       return;
     }
 
     try {
       // Pass companyId to login if available
-      await login(formData.username, formData.password, companyId);
-      navigate('/home');
+      const response = await login(formData.username, formData.password, companyId);
+
+      // Navigate to projects page with company context
+      const targetCompanyId = companyId || response?.user?.companyId || 'melanote';
+      navigate(`/${targetCompanyId}/projects`);
     } catch (err) {
       setLocalError(err.message || 'Login failed');
     }
@@ -163,20 +170,20 @@ const LoginPage = () => {
             <>
               <img
                 src={
-                  companyData?.branding?.logo 
+                  companyData?.branding?.logo
                     ? (companyData.branding.logo.startsWith('data:') || companyData.branding.logo.startsWith('http') || companyData.branding.logo.startsWith('/ChatGPT')
-                        ? companyData.branding.logo 
+                        ? companyData.branding.logo
                         : `${getBackendUrl()}${companyData.branding.logo}`)
                     : "/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png"
                 }
-                alt={`${companyData?.name || 'Mela Note'} Logo`}
+                alt={`${companyData?.name || 'MELA NOTE'} Logo`}
                 className={`mx-auto h-72 w-72 object-contain mb-8 transition-all duration-300 hover:scale-110 ${
                   isDarkMode && !companyData?.branding?.logo ? 'filter brightness-0 invert' : ''
                 }`}
               />
               <h1 className={`text-3xl font-black tracking-tight mb-2 ${
                 isDarkMode ? 'text-white' : 'text-black'
-              }`}>{companyData?.name || 'MELA NOTE WORK SPACE'}</h1>
+              }`}>{companyData?.name || 'MELA NOTE'}</h1>
               {companyData && (
                 <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-2`}>
                   Company Login

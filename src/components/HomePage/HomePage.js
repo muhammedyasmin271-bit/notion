@@ -65,9 +65,9 @@ const HomePage = () => {
 
         if (user?.role !== 'superadmin') {
         const backendUrl = getBackendUrl();
-        const usersRes = await fetch(`${backendUrl}/api/users`, {
-          headers: { 'x-auth-token': token }
-        }).catch(() => ({ json: () => [] }));
+          const usersRes = await fetch(`${backendUrl}/api/users`, {
+            headers: { 'x-auth-token': token }
+          }).catch(() => ({ json: () => [] }));
           const users = await usersRes.json();
           setTeamStats({
             managers: users.filter(u => u.role === 'manager').length || 0,
