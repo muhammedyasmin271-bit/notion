@@ -144,9 +144,14 @@ const LoginPage = ({ isSuperAdmin = false }) => {
           } else if (redirectTo) {
             navigate(redirectTo);
           } else {
-            // For regular login, always use company-specific URL
-            const targetCompanyId = companyId || userData.companyId || 'melanote';
-            navigate(`/${targetCompanyId}/projects`);
+            // For regular login, check if user is superadmin first
+            if (userData.role === 'superadmin') {
+              navigate('/xq7m9k2p8n4r6t1w/dashboard');
+            } else {
+              // For regular users, use company-specific URL
+              const targetCompanyId = companyId || userData.companyId || 'melanote';
+              navigate(`/${targetCompanyId}/projects`);
+            }
           }
         }
       }
