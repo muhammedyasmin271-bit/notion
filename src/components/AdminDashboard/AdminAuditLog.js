@@ -7,6 +7,7 @@ import {
 import { useTheme } from '../../context/ThemeContext';
 import { useAppContext } from '../../context/AppContext';
 import RoleGuard from '../common/RoleGuard';
+import ConfirmationModal from '../common/ConfirmationModal';
 
 const AdminAuditLog = () => {
     const { isDarkMode } = useTheme();
@@ -17,6 +18,30 @@ const AdminAuditLog = () => {
     const [filterType, setFilterType] = useState('all');
     const [filterUser, setFilterUser] = useState('all');
     const [dateRange, setDateRange] = useState('last30days');
+
+    // Confirmation modal state
+    const [confirmationModal, setConfirmationModal] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'info',
+        confirmText: 'OK',
+        onConfirm: null,
+        showCancel: false
+    });
+
+    // Helper function to show confirmation dialog
+    const showConfirmation = (title, message, type = 'info', confirmText = 'OK', onConfirm = null, showCancel = false) => {
+        setConfirmationModal({
+            isOpen: true,
+            title,
+            message,
+            type,
+            confirmText,
+            onConfirm,
+            showCancel
+        });
+    };
 
     // Mock audit log data
     const mockLogs = [
@@ -144,7 +169,7 @@ const AdminAuditLog = () => {
     };
 
     const exportLogs = (format) => {
-        alert(`Exporting audit logs in ${format} format...`);
+        showConfirmation('Export Started', `Exporting audit logs in ${format} format...`, 'info');
     };
 
     return (

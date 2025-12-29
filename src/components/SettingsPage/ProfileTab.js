@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Phone, Check, X } from 'lucide-react';
 import axios from 'axios';
+import ConfirmationModal from '../common/ConfirmationModal';
+import { useTheme } from '../../context/ThemeContext';
 
 const ProfileTab = () => {
+  const { isDarkMode } = useTheme();
   const [profile, setProfile] = useState({
     name: '',
     email: '',
@@ -16,6 +19,30 @@ const ProfileTab = () => {
     isValid: null,
     message: ''
   });
+
+  // Confirmation modal state
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info',
+    confirmText: 'OK',
+    onConfirm: null,
+    showCancel: false
+  });
+
+  // Helper function to show confirmation dialog
+  const showConfirmation = (title, message, type = 'info', confirmText = 'OK', onConfirm = null, showCancel = false) => {
+    setConfirmationModal({
+      isOpen: true,
+      title,
+      message,
+      type,
+      confirmText,
+      onConfirm,
+      showCancel
+    });
+  };
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -79,7 +106,7 @@ const ProfileTab = () => {
   const handleSave = async () => {
     // Check phone validation before saving
     if (profile.phoneNumber && phoneValidation.isValid === false) {
-      alert('Please enter a valid phone number in international format (+1234567890)');
+      showConfirmation('Invalid Phone Number', 'Please enter a valid phone number in international format (+1234567890)', 'warning');
       return;
     }
 
@@ -104,16 +131,16 @@ const ProfileTab = () => {
       
       if (response.ok) {
         const data = await response.json();
-        alert('Contact information saved successfully!');
+        showConfirmation('Success', 'Contact information saved successfully!', 'success');
         const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
         localStorage.setItem('user', JSON.stringify({ ...currentUser, ...data.user }));
       } else {
         const errorData = await response.json();
-        alert(`Error: ${errorData.message || 'Failed to save contact information'}`);
+        showConfirmation('Save Failed', `Error: ${errorData.message || 'Failed to save contact information'}`, 'danger');
       }
     } catch (error) {
       console.error('Error saving contact info:', error);
-      alert('Failed to save contact information. Please try again.');
+      showConfirmation('Save Failed', 'Failed to save contact information. Please try again.', 'danger');
     } finally {
       setSaving(false);
     }
@@ -219,6 +246,19 @@ const ProfileTab = () => {
         <Save className="w-4 h-4" />
         {saving ? 'Saving...' : 'Save Contact Information'}
       </button>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={() => setConfirmationModal({ ...confirmationModal, isOpen: false })}
+        onConfirm={confirmationModal.onConfirm}
+        title={confirmationModal.title}
+        message={confirmationModal.message}
+        type={confirmationModal.type}
+        confirmText={confirmationModal.confirmText}
+        showCancel={confirmationModal.showCancel}
+        isDarkMode={isDarkMode}
+      />
     </div>
   );
 };

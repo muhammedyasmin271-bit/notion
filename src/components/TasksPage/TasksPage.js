@@ -517,7 +517,11 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
       await fetchTasks();
     } catch (error) {
       console.error(`Error updating task ${field}:`, error);
-      alert(`Failed to update ${field}: ${error.message}`);
+      showModal({
+        title: 'Update Failed',
+        message: `Failed to update ${field}: ${error.message}`,
+        type: 'danger'
+      });
     }
   };
 

@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Save } from 'lucide-react';
+import ConfirmationModal from '../common/ConfirmationModal';
+import { useTheme } from '../../context/ThemeContext';
 
 const ProfileTab = () => {
+  const { isDarkMode } = useTheme();
   const [profile, setProfile] = useState({
     name: '',
     email: '',
@@ -11,6 +14,30 @@ const ProfileTab = () => {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // Confirmation modal state
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info',
+    confirmText: 'OK',
+    onConfirm: null,
+    showCancel: false
+  });
+
+  // Helper function to show confirmation dialog
+  const showConfirmation = (title, message, type = 'info', confirmText = 'OK', onConfirm = null, showCancel = false) => {
+    setConfirmationModal({
+      isOpen: true,
+      title,
+      message,
+      type,
+      confirmText,
+      onConfirm,
+      showCancel
+    });
+  };
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -53,17 +80,17 @@ const ProfileTab = () => {
       
       if (response.ok) {
         const data = await response.json();
-        alert('Profile updated successfully!');
+        showConfirmation('Success', 'Profile updated successfully!', 'success');
         // Update localStorage user data
         const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
         localStorage.setItem('user', JSON.stringify({ ...currentUser, ...data.user }));
       } else {
         const errorData = await response.json();
-        alert(`Error: ${errorData.message || 'Failed to update profile'}`);
+        showConfirmation('Update Failed', `Error: ${errorData.message || 'Failed to update profile'}`, 'danger');
       }
     } catch (error) {
       console.error('Error saving profile:', error);
-      alert('Failed to save profile. Please try again.');
+      showConfirmation('Save Failed', 'Failed to save profile. Please try again.', 'danger');
     } finally {
       setSaving(false);
     }
@@ -144,6 +171,19 @@ const ProfileTab = () => {
           {saving ? 'Saving...' : 'Save Changes'}
         </button>
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={() => setConfirmationModal({ ...confirmationModal, isOpen: false })}
+        onConfirm={confirmationModal.onConfirm}
+        title={confirmationModal.title}
+        message={confirmationModal.message}
+        type={confirmationModal.type}
+        confirmText={confirmationModal.confirmText}
+        showCancel={confirmationModal.showCancel}
+        isDarkMode={isDarkMode}
+      />
     </div>
   );
 };

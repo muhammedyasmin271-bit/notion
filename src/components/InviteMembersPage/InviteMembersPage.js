@@ -3,6 +3,7 @@ import { Users, Plus, Search, Filter, Trash as TrashIcon, Edit2, Mail, UserPlus,
 import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
 import PageHeader from '../common/PageHeader';
+import ConfirmationModal from '../common/ConfirmationModal';
 
 const InviteMembersPage = () => {
   const { user, users, setUsers } = useAppContext();
@@ -20,6 +21,30 @@ const InviteMembersPage = () => {
     role: 'user',
     message: ''
   });
+
+  // Confirmation modal state
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info',
+    confirmText: 'OK',
+    onConfirm: null,
+    showCancel: false
+  });
+
+  // Helper function to show confirmation dialog
+  const showConfirmation = (title, message, type = 'info', confirmText = 'OK', onConfirm = null, showCancel = false) => {
+    setConfirmationModal({
+      isOpen: true,
+      title,
+      message,
+      type,
+      confirmText,
+      onConfirm,
+      showCancel
+    });
+  };
 
   // Initialize with sample invitations if none exist
   useEffect(() => {
@@ -121,7 +146,7 @@ const InviteMembersPage = () => {
     setShowInviteForm(false);
     
     // In a real app, you would send an email invitation here
-    alert(`Invitation sent to ${inviteForm.email}!`);
+    showConfirmation('Invitation Sent', `Invitation sent to ${inviteForm.email}!`, 'success');
   };
 
   const startEditing = (invitation) => {
@@ -156,7 +181,7 @@ const InviteMembersPage = () => {
 
   const resendInvitation = (invitation) => {
     // In a real app, this would resend the email invitation
-    alert(`Invitation resent to ${invitation.email}!`);
+    showConfirmation('Invitation Resent', `Invitation resent to ${invitation.email}!`, 'success');
   };
 
   const formatDate = (dateString) => {
@@ -551,6 +576,19 @@ const InviteMembersPage = () => {
           </div>
         </div>
       )}
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={() => setConfirmationModal({ ...confirmationModal, isOpen: false })}
+        onConfirm={confirmationModal.onConfirm}
+        title={confirmationModal.title}
+        message={confirmationModal.message}
+        type={confirmationModal.type}
+        confirmText={confirmationModal.confirmText}
+        showCancel={confirmationModal.showCancel}
+        isDarkMode={isDarkMode}
+      />
     </div>
   );
 };

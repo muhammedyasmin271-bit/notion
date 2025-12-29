@@ -15,6 +15,7 @@ import { useAppContext } from '../../context/AppContext';
 import RoleGuard from '../common/RoleGuard';
 import { useNavigate } from 'react-router-dom';
 import PointsChart from './PointsChart';
+import ConfirmationModal from '../common/ConfirmationModal';
 
 const AdminDashboard = () => {
   const { isDarkMode } = useTheme();
@@ -47,6 +48,30 @@ const AdminDashboard = () => {
     password: '',
     role: 'user'
   });
+
+  // Confirmation modal state
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info',
+    confirmText: 'OK',
+    onConfirm: null,
+    showCancel: false
+  });
+
+  // Helper function to show confirmation dialog
+  const showConfirmation = (title, message, type = 'info', confirmText = 'OK', onConfirm = null, showCancel = false) => {
+    setConfirmationModal({
+      isOpen: true,
+      title,
+      message,
+      type,
+      confirmText,
+      onConfirm,
+      showCancel
+    });
+  };
 
   useEffect(() => {
     loadUsers();
@@ -469,7 +494,11 @@ const AdminDashboard = () => {
                             <div className="flex items-center gap-1.5 sm:gap-2">
                               <button
                                 onClick={() => {
-                                  alert(`User Details:\nName: ${u.name}\nEmail: ${u.email || 'N/A'}\nRole: ${u.role}\nStatus: ${u.isActive ? 'Active' : 'Inactive'}`);
+                                  showConfirmation(
+                                    'User Details',
+                                    `Name: ${u.name}\nEmail: ${u.email || 'N/A'}\nRole: ${u.role}\nStatus: ${u.isActive ? 'Active' : 'Inactive'}`,
+                                    'info'
+                                  );
                                 }}
                                 className={`px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition-colors ${
                                   isDarkMode 
@@ -604,7 +633,11 @@ const AdminDashboard = () => {
                           <div className="flex items-center gap-2 pt-2">
                             <button
                               onClick={() => {
-                                alert(`User Details:\nName: ${u.name}\nEmail: ${u.email || 'N/A'}\nRole: ${u.role}\nStatus: ${u.isActive ? 'Active' : 'Inactive'}`);
+                                showConfirmation(
+                                  'User Details',
+                                  `Name: ${u.name}\nEmail: ${u.email || 'N/A'}\nRole: ${u.role}\nStatus: ${u.isActive ? 'Active' : 'Inactive'}`,
+                                  'info'
+                                );
                               }}
                               className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
                                 isDarkMode 
@@ -763,6 +796,19 @@ const AdminDashboard = () => {
             </div>
           </div>
         )}
+
+        {/* Confirmation Modal */}
+        <ConfirmationModal
+          isOpen={confirmationModal.isOpen}
+          onClose={() => setConfirmationModal({ ...confirmationModal, isOpen: false })}
+          onConfirm={confirmationModal.onConfirm}
+          title={confirmationModal.title}
+          message={confirmationModal.message}
+          type={confirmationModal.type}
+          confirmText={confirmationModal.confirmText}
+          showCancel={confirmationModal.showCancel}
+          isDarkMode={isDarkMode}
+        />
       </div>
     </RoleGuard>
   );

@@ -3,10 +3,11 @@ import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { useAppContext } from '../../context/AppContext';
 import { getApiUrl } from '../../utils/apiConfig';
+import ConfirmationModal from '../common/ConfirmationModal';
 import { ArrowLeft, Send, Paperclip, X, Bug, Lightbulb, Shield, Zap, MessageSquare, CheckCircle, Upload, FileText, Plus, Sparkles, GripVertical, Type, Hash, List, Quote, Code, Trash2, Copy, ArrowUp, ArrowDown, ArrowRight, CheckSquare, Table, Minus, AlertCircle, Star, Tag, MapPin, Mail, ListOrdered, Calendar, Clock, Target, BarChart3, Info, AlertTriangle, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, Palette, Link, Image, Video, FileIcon, Bookmark, Flag, Users, Settings, Eye, EyeOff, Lock, Unlock, Share2, ChevronDown } from 'lucide-react';
 
 // Share Report Component
-const ShareReportSection = ({ reportData, selectedUsers, setSelectedUsers }) => {
+const ShareReportSection = ({ reportData, selectedUsers, setSelectedUsers, showConfirmation }) => {
   const { isDarkMode } = useTheme();
   const [showDropdown, setShowDropdown] = useState(false);
   const [users, setUsers] = useState([]);
@@ -55,15 +56,23 @@ const ShareReportSection = ({ reportData, selectedUsers, setSelectedUsers }) => 
 
   const handleShare = async () => {
     if (selectedUsers.length === 0) return;
-    
+
     setIsSharing(true);
     try {
       const selectedNames = getSelectedUserNames();
-      alert(`✓ Ready to share with: ${selectedNames.join(', ')}\n\nThe report will be shared when you save it.`);
+      showConfirmation(
+        'Share Report',
+        `✓ Ready to share with: ${selectedNames.join(', ')}\n\nThe report will be shared when you save it.`,
+        'success'
+      );
       setShowDropdown(false);
     } catch (error) {
       console.error('Share preparation error:', error);
-      alert('Failed to prepare sharing. Please try again.');
+      showConfirmation(
+        'Share Failed',
+        'Failed to prepare sharing. Please try again.',
+        'danger'
+      );
     } finally {
       setIsSharing(false);
     }
@@ -211,9 +220,34 @@ const SubmitReportPage = () => {
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [activeLineId, setActiveLineId] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
+
+  // Confirmation modal state
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info',
+    confirmText: 'OK',
+    onConfirm: null,
+    showCancel: false
+  });
+
   const inputRefs = useRef({});
   const blockMenuRefs = useRef({});
   const lineMenuRefs = useRef({});
+
+  // Helper function to show confirmation dialog
+  const showConfirmation = (title, message, type = 'info', confirmText = 'OK', onConfirm = null, showCancel = false) => {
+    setConfirmationModal({
+      isOpen: true,
+      title,
+      message,
+      type,
+      confirmText,
+      onConfirm,
+      showCancel
+    });
+  };
 
   // Check if device is mobile
   useEffect(() => {
@@ -1401,7 +1435,7 @@ const SubmitReportPage = () => {
     e.preventDefault();
 
     if (!report.title || !report.title.trim()) {
-      alert('Please enter a report title.');
+      showConfirmation('Validation Error', 'Please enter a report title.', 'warning');
       return;
     }
 
@@ -1410,7 +1444,7 @@ const SubmitReportPage = () => {
       const invalidUsers = selectedUsers.filter(id => !id || typeof id !== 'string' || id.length !== 24);
       if (invalidUsers.length > 0) {
         console.error('❌ Invalid user IDs detected:', invalidUsers);
-        alert('Some selected users have invalid IDs. Please refresh and try again.');
+        showConfirmation('Validation Error', 'Some selected users have invalid IDs. Please refresh and try again.', 'warning');
         return;
       }
       console.log('✅ Selected users validation passed:', selectedUsers);
@@ -1420,8 +1454,7 @@ const SubmitReportPage = () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        alert('Authentication required. Please log in again.');
-        navigate('/login');
+        showConfirmation('Authentication Required', 'Authentication required. Please log in again.', 'warning', 'OK', () => navigate('/login'));
         return;
       }
 
@@ -1505,16 +1538,17 @@ const SubmitReportPage = () => {
       });
       
       if (response.ok && data.success) {
-        alert(`✅ ${data.message}`);
-        const backUrl = companyId ? `/reports?company=${companyId}` : '/reports';
-        navigate(backUrl);
+        showConfirmation('Success', data.message, 'success', 'OK', () => {
+          const backUrl = companyId ? `/reports?company=${companyId}` : '/reports';
+          navigate(backUrl);
+        });
       } else {
         console.error('❌ Report submission failed:', data);
-        alert(`❌ ${data.message || 'Failed to save report. Please try again.'}`);
+        showConfirmation('Error', data.message || 'Failed to save report. Please try again.', 'danger');
       }
     } catch (error) {
       console.error('Submit error:', error);
-      alert(`❌ Failed to ${isEditMode ? 'update' : 'submit'} report. Please try again.`);
+      showConfirmation('Error', `Failed to ${isEditMode ? 'update' : 'submit'} report. Please try again.`, 'danger');
     } finally {
       setIsSubmitting(false);
     }
@@ -1541,8 +1575,7 @@ const SubmitReportPage = () => {
                     const token = localStorage.getItem('token');
                     
                     if (!token) {
-                      alert('Authentication required. Please log in again.');
-                      navigate('/login');
+                      showConfirmation('Authentication Required', 'Authentication required. Please log in again.', 'warning', 'OK', () => navigate('/login'));
                       return;
                     }
 
@@ -1555,16 +1588,17 @@ const SubmitReportPage = () => {
                     });
 
                     if (response.ok) {
-                      alert('Report deleted successfully');
-                      const backUrl = companyId ? `/reports?company=${companyId}` : '/reports';
-                      navigate(backUrl);
+                      showConfirmation('Success', 'Report deleted successfully', 'success', 'OK', () => {
+                        const backUrl = companyId ? `/reports?company=${companyId}` : '/reports';
+                        navigate(backUrl);
+                      });
                     } else {
                       const errorData = await response.json();
-                      alert(`Failed to delete report: ${errorData.message || 'Unknown error'}`);
+                      showConfirmation('Error', `Failed to delete report: ${errorData.message || 'Unknown error'}`, 'danger');
                     }
                   } catch (error) {
                     console.error('Error deleting report:', error);
-                    alert('Failed to delete report. Please try again.');
+                    showConfirmation('Error', 'Failed to delete report. Please try again.', 'danger');
                   }
                 }
               }}
@@ -2049,7 +2083,7 @@ const SubmitReportPage = () => {
                         } else if (file.path) {
                           window.open(getApiUrl(file.path), '_blank');
                         } else {
-                          alert('File not available');
+                          showConfirmation('File Error', 'File not available', 'warning');
                         }
                       }}
                       className={`flex items-center gap-3 flex-1 text-left transition-colors ${isDarkMode ? 'hover:text-white' : 'hover:text-black'}`}
@@ -2087,11 +2121,24 @@ const SubmitReportPage = () => {
             <h3 className={`text-lg sm:text-xl font-bold mb-4 sm:mb-6 ${
               isDarkMode ? 'text-gray-200' : 'text-gray-800'
             }`}>Share Report</h3>
-            <ShareReportSection reportData={report} selectedUsers={selectedUsers} setSelectedUsers={setSelectedUsers} />
+            <ShareReportSection reportData={report} selectedUsers={selectedUsers} setSelectedUsers={setSelectedUsers} showConfirmation={showConfirmation} />
           </div>
 
         </form>
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={() => setConfirmationModal({ ...confirmationModal, isOpen: false })}
+        onConfirm={confirmationModal.onConfirm}
+        title={confirmationModal.title}
+        message={confirmationModal.message}
+        type={confirmationModal.type}
+        confirmText={confirmationModal.confirmText}
+        showCancel={confirmationModal.showCancel}
+        isDarkMode={isDarkMode}
+      />
     </div>
   );
 };

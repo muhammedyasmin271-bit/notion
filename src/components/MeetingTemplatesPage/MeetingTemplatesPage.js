@@ -3,6 +3,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { Plus, Search, Filter, Edit, Trash2, Copy, Users, Globe, Lock, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getMeetingTemplates, createMeetingTemplate, deleteMeetingTemplate } from '../../services/api';
+import ConfirmationModal from '../common/ConfirmationModal';
 
 const MeetingTemplatesPage = () => {
     const { isDarkMode } = useTheme();
@@ -20,6 +21,30 @@ const MeetingTemplatesPage = () => {
         defaultDuration: '30',
         isPublic: false
     });
+
+    // Confirmation modal state
+    const [confirmationModal, setConfirmationModal] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'info',
+        confirmText: 'OK',
+        onConfirm: null,
+        showCancel: false
+    });
+
+    // Helper function to show confirmation dialog
+    const showConfirmation = (title, message, type = 'info', confirmText = 'OK', onConfirm = null, showCancel = false) => {
+        setConfirmationModal({
+            isOpen: true,
+            title,
+            message,
+            type,
+            confirmText,
+            onConfirm,
+            showCancel
+        });
+    };
 
     // Load templates from API
     useEffect(() => {
@@ -115,7 +140,7 @@ const MeetingTemplatesPage = () => {
             loadTemplates(); // Refresh the list
         } catch (error) {
             console.error('Error creating template:', error);
-            alert('Failed to create template. Please try again.');
+            showConfirmation('Creation Failed', 'Failed to create template. Please try again.', 'danger');
         }
     };
 
@@ -126,7 +151,7 @@ const MeetingTemplatesPage = () => {
                 loadTemplates(); // Refresh the list
             } catch (error) {
                 console.error('Error deleting template:', error);
-                alert('Failed to delete template. Please try again.');
+                showConfirmation('Delete Failed', 'Failed to delete template. Please try again.', 'danger');
             }
         }
     };
@@ -437,6 +462,19 @@ const MeetingTemplatesPage = () => {
                     </div>
                 </div>
             )}
+
+            {/* Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={confirmationModal.isOpen}
+                onClose={() => setConfirmationModal({ ...confirmationModal, isOpen: false })}
+                onConfirm={confirmationModal.onConfirm}
+                title={confirmationModal.title}
+                message={confirmationModal.message}
+                type={confirmationModal.type}
+                confirmText={confirmationModal.confirmText}
+                showCancel={confirmationModal.showCancel}
+                isDarkMode={isDarkMode}
+            />
         </div>
     );
 };

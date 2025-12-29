@@ -43,7 +43,7 @@ const AssignmentDebug = () => {
     try {
       const testUser = users.find(u => u.username !== user?.username);
       if (!testUser) {
-        alert('No other users found to test assignment');
+        console.log('No other users found to test assignment');
         return;
       }
 
@@ -64,12 +64,12 @@ const AssignmentDebug = () => {
 
       if (response.ok) {
         const newProject = await response.json();
-        alert(`Test project created and assigned to ${testUser.name}. Check their notifications!`);
+        console.log(`Test project created and assigned to ${testUser.name}. Check their notifications!`);
         fetchProjects();
         fetchNotifications();
       } else {
         const error = await response.text();
-        alert(`Failed to create test project: ${error}`);
+        console.error(`Failed to create test project: ${error}`);
       }
     } catch (error) {
       console.error('Error testing assignment:', error);

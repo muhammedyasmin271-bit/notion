@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAppContext } from '../../context/AppContext';
 import { getApiUrl } from '../../utils/apiConfig';
+import ConfirmationModal from '../common/ConfirmationModal';
 import { FileText, BarChart3, Plus, Calendar, Users, Trash2, ExternalLink, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -12,6 +13,30 @@ const ReportsPage = () => {
   const [reports, setReports] = useState([]);
   const [sharedReports, setSharedReports] = useState([]);
   const [adminSharedReports, setAdminSharedReports] = useState([]);
+
+  // Confirmation modal state
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info',
+    confirmText: 'OK',
+    onConfirm: null,
+    showCancel: false
+  });
+
+  // Helper function to show confirmation dialog
+  const showConfirmation = (title, message, type = 'info', confirmText = 'OK', onConfirm = null, showCancel = false) => {
+    setConfirmationModal({
+      isOpen: true,
+      title,
+      message,
+      type,
+      confirmText,
+      onConfirm,
+      showCancel
+    });
+  };
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -60,32 +85,37 @@ const ReportsPage = () => {
 
   const handleDeleteReport = async (reportId, event) => {
     event.stopPropagation(); // Prevent navigation when clicking delete
-    
-    if (!window.confirm('Are you sure you want to delete this report? This action cannot be undone.')) {
-      return;
-    }
 
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
+    showConfirmation(
+      'Delete Report',
+      'Are you sure you want to delete this report? This action cannot be undone.',
+      'danger',
+      'Delete',
+      async () => {
+        try {
+          const token = localStorage.getItem('token');
+          if (!token) return;
 
-      const response = await fetch(getApiUrl(`/api/reports/${reportId}`), {
-        method: 'DELETE',
-        headers: { 'x-auth-token': token, 'Content-Type': 'application/json' }
-      });
+          const response = await fetch(getApiUrl(`/api/reports/${reportId}`), {
+            method: 'DELETE',
+            headers: { 'x-auth-token': token, 'Content-Type': 'application/json' }
+          });
 
-      if (response.ok) {
-        // Remove the report from the local state
-        setReports(prevReports => prevReports.filter(report => report._id !== reportId));
-      if (!window.confirm('Report deleted successfully. Click OK to continue.')) return;
-      } else {
-        const errorData = await response.json();
-        alert(`Failed to delete report: ${errorData.message || 'Unknown error'}`);
-      }
-    } catch (error) {
-      console.error('Error deleting report:', error);
-      if (!window.confirm('Failed to delete report. Please try again. Click OK to continue.')) return;
-    }
+          if (response.ok) {
+            // Remove the report from the local state
+            setReports(prevReports => prevReports.filter(report => report._id !== reportId));
+            showConfirmation('Success', 'Report deleted successfully.', 'success');
+          } else {
+            const errorData = await response.json();
+            showConfirmation('Error', `Failed to delete report: ${errorData.message || 'Unknown error'}`, 'danger');
+          }
+        } catch (error) {
+          console.error('Error deleting report:', error);
+          showConfirmation('Error', 'Failed to delete report. Please try again.', 'danger');
+        }
+      },
+      true
+    );
   };
 
   const renderReportCard = (report, reportType = 'my-report') => {
@@ -397,6 +427,19 @@ const ReportsPage = () => {
           </div>
         )}
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={() => setConfirmationModal({ ...confirmationModal, isOpen: false })}
+        onConfirm={confirmationModal.onConfirm}
+        title={confirmationModal.title}
+        message={confirmationModal.message}
+        type={confirmationModal.type}
+        confirmText={confirmationModal.confirmText}
+        showCancel={confirmationModal.showCancel}
+        isDarkMode={isDarkMode}
+      />
     </div>
   );
 };

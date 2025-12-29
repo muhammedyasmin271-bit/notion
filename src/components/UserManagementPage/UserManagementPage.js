@@ -8,6 +8,7 @@ import {
 import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import ConfirmationModal from '../common/ConfirmationModal';
 
 const UserManagementPage = () => {
   const { user } = useAppContext();
@@ -31,6 +32,30 @@ const UserManagementPage = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
+
+  // Confirmation modal state
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info',
+    confirmText: 'OK',
+    onConfirm: null,
+    showCancel: false
+  });
+
+  // Helper function to show confirmation dialog
+  const showConfirmation = (title, message, type = 'info', confirmText = 'OK', onConfirm = null, showCancel = false) => {
+    setConfirmationModal({
+      isOpen: true,
+      title,
+      message,
+      type,
+      confirmText,
+      onConfirm,
+      showCancel
+    });
+  };
 
   // Role Filter Selector Component
   const RoleFilterSelector = ({ value, onChange }) => {
@@ -248,11 +273,19 @@ const UserManagementPage = () => {
       setShowCreateForm(false);
       await loadUsers();
 
-      alert(`Member created successfully!\\n\\nLogin Credentials:\\nUsername: ${memberData.username}\\nPassword: ${password}`);
+      showConfirmation(
+        'Member Created',
+        `Member created successfully!\n\nLogin Credentials:\nUsername: ${memberData.username}\nPassword: ${password}`,
+        'success'
+      );
 
     } catch (error) {
       console.error('Error creating member:', error);
-      alert(error.response?.data?.message || 'Failed to create member. Please try again.');
+      showConfirmation(
+        'Creation Failed',
+        error.response?.data?.message || 'Failed to create member. Please try again.',
+        'danger'
+      );
     }
   };
 
@@ -331,7 +364,11 @@ const UserManagementPage = () => {
       if (!window.confirm('User deleted successfully! Click OK to continue.')) return;
       } catch (error) {
         console.error('Error deleting user:', error);
-        alert('Failed to delete user. Please try again.');
+        showConfirmation(
+          'Delete Failed',
+          'Failed to delete user. Please try again.',
+          'danger'
+        );
       }
     }
   };
@@ -349,7 +386,11 @@ const UserManagementPage = () => {
       if (!window.confirm('User status updated successfully! Click OK to continue.')) return;
     } catch (error) {
       console.error('Error toggling user status:', error);
-      alert('Failed to update user status. Please try again.');
+      showConfirmation(
+        'Update Failed',
+        'Failed to update user status. Please try again.',
+        'danger'
+      );
     }
   };
 
@@ -361,7 +402,11 @@ const UserManagementPage = () => {
       if (!window.confirm('User approved successfully. Click OK to continue.')) return;
     } catch (error) {
       console.error('Error approving user:', error);
-      alert(error.message || 'Failed to approve user.');
+      showConfirmation(
+        'Approval Failed',
+        error.message || 'Failed to approve user.',
+        'danger'
+      );
     }
   };
 
@@ -374,7 +419,11 @@ const UserManagementPage = () => {
       if (!window.confirm('User declined successfully. Click OK to continue.')) return;
     } catch (error) {
       console.error('Error declining user:', error);
-      alert(error.message || 'Failed to decline user.');
+      showConfirmation(
+        'Decline Failed',
+        error.message || 'Failed to decline user.',
+        'danger'
+      );
     }
   };
 
@@ -393,7 +442,11 @@ const UserManagementPage = () => {
       if (!window.confirm('User is now a manager. Click OK to continue.')) return;
     } catch (error) {
       console.error('Error making user manager:', error);
-      alert(error.message || 'Failed to make user manager.');
+      showConfirmation(
+        'Role Update Failed',
+        error.message || 'Failed to make user manager.',
+        'danger'
+      );
     }
   };
 
@@ -412,7 +465,11 @@ const UserManagementPage = () => {
       if (!window.confirm('Manager is now a regular user. Click OK to continue.')) return;
     } catch (error) {
       console.error('Error making manager user:', error);
-      alert(error.message || 'Failed to make manager user.');
+      showConfirmation(
+        'Role Update Failed',
+        error.message || 'Failed to make manager user.',
+        'danger'
+      );
     }
   };
 
@@ -1116,6 +1173,19 @@ const UserManagementPage = () => {
           </div>
         </div>
       )}
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={() => setConfirmationModal({ ...confirmationModal, isOpen: false })}
+        onConfirm={confirmationModal.onConfirm}
+        title={confirmationModal.title}
+        message={confirmationModal.message}
+        type={confirmationModal.type}
+        confirmText={confirmationModal.confirmText}
+        showCancel={confirmationModal.showCancel}
+        isDarkMode={isDarkMode}
+      />
     </div>
   );
 };

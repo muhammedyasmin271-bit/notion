@@ -8,6 +8,7 @@ import {
 import { useTheme } from '../../context/ThemeContext';
 import { useAppContext } from '../../context/AppContext';
 import RoleGuard from '../common/RoleGuard';
+import ConfirmationModal from '../common/ConfirmationModal';
 
 const AdminReports = () => {
     const { isDarkMode } = useTheme();
@@ -15,6 +16,30 @@ const AdminReports = () => {
     const [activeTab, setActiveTab] = useState('overview');
     const [dateRange, setDateRange] = useState('last30days');
     const [reports, setReports] = useState([]);
+
+    // Confirmation modal state
+    const [confirmationModal, setConfirmationModal] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'info',
+        confirmText: 'OK',
+        onConfirm: null,
+        showCancel: false
+    });
+
+    // Helper function to show confirmation dialog
+    const showConfirmation = (title, message, type = 'info', confirmText = 'OK', onConfirm = null, showCancel = false) => {
+        setConfirmationModal({
+            isOpen: true,
+            title,
+            message,
+            type,
+            confirmText,
+            onConfirm,
+            showCancel
+        });
+    };
 
     const tabs = [
         { id: 'overview', label: 'Overview', icon: BarChart3 },
@@ -49,7 +74,7 @@ const AdminReports = () => {
     ];
 
     const exportReport = (format) => {
-        alert(`Exporting report in ${format} format...`);
+        showConfirmation('Export Started', `Exporting report in ${format} format...`, 'info');
     };
 
     const renderOverview = () => (
@@ -379,6 +404,19 @@ const AdminReports = () => {
 
                     {renderContent()}
                 </div>
+
+                {/* Confirmation Modal */}
+                <ConfirmationModal
+                    isOpen={confirmationModal.isOpen}
+                    onClose={() => setConfirmationModal({ ...confirmationModal, isOpen: false })}
+                    onConfirm={confirmationModal.onConfirm}
+                    title={confirmationModal.title}
+                    message={confirmationModal.message}
+                    type={confirmationModal.type}
+                    confirmText={confirmationModal.confirmText}
+                    showCancel={confirmationModal.showCancel}
+                    isDarkMode={isDarkMode}
+                />
             </div>
         </RoleGuard>
     );

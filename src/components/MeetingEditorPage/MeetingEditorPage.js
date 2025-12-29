@@ -3,6 +3,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppContext } from '../../context/AppContext';
 import './MeetingEditorPage.css';
+import ConfirmationModal from '../common/ConfirmationModal';
 import { Save, ArrowLeft, Calendar, Clock, Users, Plus, X, CheckCircle, Circle, Sparkles, GripVertical, Type, Hash, List, Quote, Code, Trash2, Copy, ArrowUp, ArrowDown, ArrowRight, CheckSquare, Table, Minus, AlertCircle, Star, Tag, MapPin, Mail, ListOrdered, FileText, Lightbulb, Info, AlertTriangle, Target, BarChart3, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, Palette, Link, Image, Video, FileIcon, Bookmark, Flag, Eye, EyeOff } from 'lucide-react';
 import { getMeetingById, createMeeting, updateMeeting, addMeetingActionItem, getUsers, deleteMeeting } from '../../services/api';
 
@@ -56,6 +57,29 @@ const MeetingEditorPage = () => {
   const [saveStatus, setSaveStatus] = useState('saved'); // 'saving', 'saved', 'offline'
   const [serverStatus, setServerStatus] = useState('unknown'); // 'online', 'offline', 'unknown'
 
+  // Confirmation modal state
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info',
+    confirmText: 'OK',
+    onConfirm: null,
+    showCancel: false
+  });
+
+  // Helper function to show confirmation dialog
+  const showConfirmation = (title, message, type = 'info', confirmText = 'OK', onConfirm = null, showCancel = false) => {
+    setConfirmationModal({
+      isOpen: true,
+      title,
+      message,
+      type,
+      confirmText,
+      onConfirm,
+      showCancel
+    });
+  };
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -435,19 +459,31 @@ const MeetingEditorPage = () => {
         setSaveStatus('saved');
         
         console.log('Save completed successfully');
-        alert(`Meeting ${isNewMeeting ? 'created' : 'updated'} successfully!`);
+        showConfirmation(
+          'Success',
+          `Meeting ${isNewMeeting ? 'created' : 'updated'} successfully!`,
+          'success'
+        );
         
         // Stay on the current page after saving
       } catch (serverError) {
         console.error('Server save failed, data saved locally:', serverError);
         setSaveStatus('offline');
         setServerStatus('offline');
-        alert(`Server unavailable. Meeting data saved locally and will sync when server is available.\n\nYou can continue working - your data is safe!`);
+        showConfirmation(
+          'Offline Mode',
+          `Server unavailable. Meeting data saved locally and will sync when server is available.\n\nYou can continue working - your data is safe!`,
+          'warning'
+        );
         // Don't navigate away, let user continue editing
       }
     } catch (error) {
       console.error('Error saving meeting:', error);
-      alert(`Failed to save meeting: ${error.message || 'Unknown error'}`);
+      showConfirmation(
+        'Save Failed',
+        `Failed to save meeting: ${error.message || 'Unknown error'}`,
+        'danger'
+      );
     } finally {
       setIsSaving(false);
     }
@@ -2100,6 +2136,18 @@ const MeetingEditorPage = () => {
           </div>
         </div>
 
+        {/* Confirmation Modal */}
+        <ConfirmationModal
+          isOpen={confirmationModal.isOpen}
+          onClose={() => setConfirmationModal({ ...confirmationModal, isOpen: false })}
+          onConfirm={confirmationModal.onConfirm}
+          title={confirmationModal.title}
+          message={confirmationModal.message}
+          type={confirmationModal.type}
+          confirmText={confirmationModal.confirmText}
+          showCancel={confirmationModal.showCancel}
+          isDarkMode={isDarkMode}
+        />
       </div>
     </div>
   );

@@ -167,7 +167,7 @@ const LoginPage = ({ isSuperAdmin = false }) => {
       <div className={`max-w-md w-full p-8 rounded-2xl shadow-xl transition-colors duration-300 ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-100'}`}>
         <div className="text-center mb-8">
           <h1 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-            {isSuperAdminLogin ? 'Super Admin Login' : (companyData?.branding?.companyName || companyData?.name || 'Sign In')}
+            {isSuperAdminLogin ? 'Super Admin Login' : (companyData?.branding?.companyName || companyData?.name || 'Company Login')}
           </h1>
           <p className={`mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
             {isSuperAdminLogin ? 'Enter your administrative credentials' : 'Sign in to your account to continue'}
@@ -179,14 +179,18 @@ const LoginPage = ({ isSuperAdmin = false }) => {
             companyData?.branding?.logo ? (
               <img
                 src={
-                  companyData.branding.logo.startsWith('http')
+                  companyData.branding.logo.startsWith('data:') ||
+                  companyData.branding.logo.startsWith('http') ||
+                  companyData.branding.logo.startsWith('/ChatGPT') ||
+                  companyData.branding.logo.startsWith('/uploads')
                     ? companyData.branding.logo
                     : `${getBackendUrl()}${companyData.branding.logo}`
                 }
-                alt={`${companyData?.name || 'Company'} Logo`}
+                alt={`${companyData?.branding?.companyName || companyData?.name || 'Company'} Logo`}
                 className="h-16 object-contain"
                 onError={(e) => {
-                  e.target.src = '/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png';
+                  // Fallback to default logo if image fails to load
+                  e.target.src = "/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png";
                 }}
               />
             ) : loadingCompany ? (

@@ -171,9 +171,9 @@ const LoginPage = () => {
               <img
                 src={
                   companyData?.branding?.logo
-                    ? (companyData.branding.logo.startsWith('data:') || companyData.branding.logo.startsWith('http') || companyData.branding.logo.startsWith('/ChatGPT')
+                    ? (companyData.branding.logo.startsWith('data:') || companyData.branding.logo.startsWith('http') || companyData.branding.logo.startsWith('/ChatGPT') || companyData.branding.logo.startsWith('/uploads'))
                         ? companyData.branding.logo
-                        : `${getBackendUrl()}${companyData.branding.logo}`)
+                        : `${getBackendUrl()}${companyData.branding.logo}`
                     : "/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png"
                 }
                 alt={`${companyData?.name || 'MELA NOTE'} Logo`}

@@ -4,6 +4,7 @@ import { ArrowLeft, Send, FileText } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAppContext } from '../../context/AppContext';
 import { getApiUrl } from '../../utils/apiConfig';
+import ConfirmationModal from '../common/ConfirmationModal';
 
 const WorkerReports = () => {
   const { projectId } = useParams();
@@ -26,6 +27,30 @@ const WorkerReports = () => {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // Confirmation modal state
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info',
+    confirmText: 'OK',
+    onConfirm: null,
+    showCancel: false
+  });
+
+  // Helper function to show confirmation dialog
+  const showConfirmation = (title, message, type = 'info', confirmText = 'OK', onConfirm = null, showCancel = false) => {
+    setConfirmationModal({
+      isOpen: true,
+      title,
+      message,
+      type,
+      confirmText,
+      onConfirm,
+      showCancel
+    });
+  };
 
   const questions = [
     "How would you rate the overall progress of this project? (1-10)",
@@ -58,7 +83,7 @@ const WorkerReports = () => {
 
   const handleSubmit = async () => {
     if (!report.trim()) {
-      alert('Please write a report before submitting.');
+      showConfirmation('Validation Error', 'Please write a report before submitting.', 'warning');
       return;
     }
 
@@ -75,12 +100,13 @@ const WorkerReports = () => {
     try {
       console.log('Submitting report:', reportData);
       await new Promise(resolve => setTimeout(resolve, 1000));
-      alert('Report submitted successfully!');
-      const projectUrl = companyId ? `/projects/${projectId}?company=${companyId}` : `/projects/${projectId}`;
-      navigate(projectUrl);
+      showConfirmation('Success', 'Report submitted successfully!', 'success', 'OK', () => {
+        const projectUrl = companyId ? `/projects/${projectId}?company=${companyId}` : `/projects/${projectId}`;
+        navigate(projectUrl);
+      });
     } catch (error) {
       console.error('Error submitting report:', error);
-      alert('Failed to submit report. Please try again.');
+      showConfirmation('Submission Failed', 'Failed to submit report. Please try again.', 'danger');
     } finally {
       setSaving(false);
     }
@@ -193,6 +219,19 @@ const WorkerReports = () => {
           </button>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={() => setConfirmationModal({ ...confirmationModal, isOpen: false })}
+        onConfirm={confirmationModal.onConfirm}
+        title={confirmationModal.title}
+        message={confirmationModal.message}
+        type={confirmationModal.type}
+        confirmText={confirmationModal.confirmText}
+        showCancel={confirmationModal.showCancel}
+        isDarkMode={isDarkMode}
+      />
     </div>
   );
 };
