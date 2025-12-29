@@ -166,51 +166,30 @@ const LoginPage = ({ isSuperAdmin = false }) => {
     <div className={`min-h-screen flex items-center justify-center p-4 transition-colors duration-300 ${isDarkMode ? 'bg-[#141414]' : 'bg-gray-50'}`}>
       <div className={`max-w-md w-full p-8 rounded-2xl shadow-xl transition-colors duration-300 ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-100'}`}>
         <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-indigo-500/20' : 'bg-indigo-100'}`}>
-              <img 
-                src="/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png" 
-                alt="Mela Note Logo" 
-                className={`w-8 h-8 object-contain ${isDarkMode ? 'brightness-0 invert' : ''}`}
-              />
-            </div>
-              </div>
           <h1 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
             {isSuperAdminLogin ? 'Super Admin Login' : (companyData?.branding?.companyName || companyData?.name || 'Sign In')}
-              </h1>
+          </h1>
           <p className={`mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
             {isSuperAdminLogin ? 'Enter your administrative credentials' : 'Sign in to your account to continue'}
           </p>
         </div>
 
-        {!companyId && !isSuperAdminLogin && (
-          <div className="flex justify-center mb-8">
-            <img
-              src="/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png"
-              alt="Mela Note Logo"
-              className="h-16 object-contain"
-            />
-          </div>
-        )}
-
-        {companyId && !isSuperAdminLogin && (
-          <div className="flex justify-center mb-8">
-            <img
-              src={
-                companyData?.branding?.logo
-                  ? (companyData.branding.logo.startsWith('http')
-                      ? companyData.branding.logo
-                      : `${getBackendUrl()}${companyData.branding.logo}`)
-                  : '/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png'
-              }
-              alt={`${companyData?.name || 'Company'} Logo`}
-              className="h-16 object-contain"
-              onError={(e) => {
-                e.target.src = '/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png';
-              }}
-            />
-          </div>
-        )}
+        <div className="flex justify-center mb-8">
+          <img
+            src={
+              companyId && !isSuperAdminLogin && companyData?.branding?.logo
+                ? (companyData.branding.logo.startsWith('http')
+                    ? companyData.branding.logo
+                    : `${getBackendUrl()}${companyData.branding.logo}`)
+                : '/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png'
+            }
+            alt={companyId && !isSuperAdminLogin ? `${companyData?.name || 'Company'} Logo` : 'Mela Note Logo'}
+            className="h-16 object-contain"
+            onError={(e) => {
+              e.target.src = '/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png';
+            }}
+          />
+        </div>
 
         {(error || validationErrors.auth) && (
           <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-100 flex items-center gap-3 text-red-600 animate-shake">
