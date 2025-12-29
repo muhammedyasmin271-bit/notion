@@ -463,12 +463,12 @@ const MeetingEditorPage = () => {
     if (window.confirm('Are you sure you want to delete this meeting? This action cannot be undone.')) {
       try {
         await deleteMeeting(meetingId);
-        alert('Meeting deleted successfully!');
+        if (!window.confirm('Meeting deleted successfully! Click OK to continue.')) return;
         const backUrl = currentCompanyId ? `/meeting-notes?company=${currentCompanyId}` : '/meeting-notes';
         navigate(backUrl);
       } catch (error) {
         console.error('Error deleting meeting:', error);
-        alert(`Failed to delete meeting: ${error.message}`);
+        if (!window.confirm(`Failed to delete meeting: ${error.message}. Click OK to continue.`)) return;
       }
     }
   };

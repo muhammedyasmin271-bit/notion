@@ -328,7 +328,7 @@ const UserManagementPage = () => {
         const apiService = (await import('../../services/api')).default;
         await apiService.deleteUser(userId);
         await loadUsers();
-        alert('User deleted successfully!');
+      if (!window.confirm('User deleted successfully! Click OK to continue.')) return;
       } catch (error) {
         console.error('Error deleting user:', error);
         alert('Failed to delete user. Please try again.');
@@ -346,7 +346,7 @@ const UserManagementPage = () => {
       const apiService = (await import('../../services/api')).default;
       await apiService.toggleUserStatus(userId);
       await loadUsers();
-      alert('User status updated successfully!');
+      if (!window.confirm('User status updated successfully! Click OK to continue.')) return;
     } catch (error) {
       console.error('Error toggling user status:', error);
       alert('Failed to update user status. Please try again.');
@@ -358,7 +358,7 @@ const UserManagementPage = () => {
       const apiService = (await import('../../services/api')).default;
       await apiService.approveUser(userId);
       await loadUsers();
-      alert('User approved successfully.');
+      if (!window.confirm('User approved successfully. Click OK to continue.')) return;
     } catch (error) {
       console.error('Error approving user:', error);
       alert(error.message || 'Failed to approve user.');
@@ -371,7 +371,7 @@ const UserManagementPage = () => {
       const apiService = (await import('../../services/api')).default;
       await apiService.declineUser(userId);
       await loadUsers();
-      alert('User declined successfully.');
+      if (!window.confirm('User declined successfully. Click OK to continue.')) return;
     } catch (error) {
       console.error('Error declining user:', error);
       alert(error.message || 'Failed to decline user.');
@@ -390,7 +390,7 @@ const UserManagementPage = () => {
         await apiService.put(`/auth/users/${userId}/make-manager`, {});
       }
       await loadUsers();
-      alert('User is now a manager.');
+      if (!window.confirm('User is now a manager. Click OK to continue.')) return;
     } catch (error) {
       console.error('Error making user manager:', error);
       alert(error.message || 'Failed to make user manager.');
@@ -409,7 +409,7 @@ const UserManagementPage = () => {
         await apiService.put(`/auth/users/${userId}/make-user`, {});
       }
       await loadUsers();
-      alert('Manager is now a regular user.');
+      if (!window.confirm('Manager is now a regular user. Click OK to continue.')) return;
     } catch (error) {
       console.error('Error making manager user:', error);
       alert(error.message || 'Failed to make manager user.');
@@ -446,10 +446,10 @@ const UserManagementPage = () => {
       setEditingUser(null);
       await loadUsers();
 
-      alert('Member updated successfully!');
+      if (!window.confirm('Member updated successfully! Click OK to continue.')) return;
     } catch (error) {
       console.error('Error updating member:', error);
-      alert('Failed to update member. Please try again.');
+      if (!window.confirm('Failed to update member. Please try again. Click OK to continue.')) return;
     }
   };
 

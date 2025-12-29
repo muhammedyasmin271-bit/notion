@@ -77,14 +77,14 @@ const ReportsPage = () => {
       if (response.ok) {
         // Remove the report from the local state
         setReports(prevReports => prevReports.filter(report => report._id !== reportId));
-        alert('Report deleted successfully');
+      if (!window.confirm('Report deleted successfully. Click OK to continue.')) return;
       } else {
         const errorData = await response.json();
         alert(`Failed to delete report: ${errorData.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error deleting report:', error);
-      alert('Failed to delete report. Please try again.');
+      if (!window.confirm('Failed to delete report. Please try again. Click OK to continue.')) return;
     }
   };
 

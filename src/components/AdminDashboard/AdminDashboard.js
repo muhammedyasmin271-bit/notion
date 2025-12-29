@@ -93,10 +93,10 @@ const AdminDashboard = () => {
       setNewUser({ name: '', username: '', email: '', password: '', role: 'user' });
       loadUsers();
       loadStats();
-      alert('User created successfully!');
+      if (!window.confirm('User created successfully! Click OK to continue.')) return;
     } catch (error) {
       console.error('Error creating user:', error);
-      alert('Failed to create user: ' + (error.message || 'Unknown error'));
+      if (!window.confirm('Failed to create user: ' + (error.message || 'Unknown error') + '. Click OK to continue.')) return;
     }
   };
 
@@ -108,7 +108,7 @@ const AdminDashboard = () => {
       loadStats();
     } catch (error) {
       console.error('Error toggling user status:', error);
-      alert('Failed to update user status');
+      if (!window.confirm('Failed to update user status. Click OK to continue.')) return;
     }
   };
 
@@ -120,10 +120,10 @@ const AdminDashboard = () => {
       await deleteUser(userId);
       loadUsers();
       loadStats();
-      alert('User deleted successfully!');
+      if (!window.confirm('User deleted successfully! Click OK to continue.')) return;
     } catch (error) {
       console.error('Error deleting user:', error);
-      alert('Failed to delete user: ' + (error.message || 'Unknown error'));
+      if (!window.confirm('Failed to delete user: ' + (error.message || 'Unknown error') + '. Click OK to continue.')) return;
     }
   };
 
@@ -132,10 +132,10 @@ const AdminDashboard = () => {
       const { put } = await import('../../services/api');
       await put(`/auth/admin/users/${userId}/make-manager`, {});
       loadUsers();
-      alert('User is now a manager!');
+      if (!window.confirm('User is now a manager! Click OK to continue.')) return;
     } catch (error) {
       console.error('Error making user manager:', error);
-      alert('Failed to make user manager');
+      if (!window.confirm('Failed to make user manager. Click OK to continue.')) return;
     }
   };
 
@@ -144,10 +144,10 @@ const AdminDashboard = () => {
       const { put } = await import('../../services/api');
       await put(`/auth/admin/users/${userId}/make-user`, {});
       loadUsers();
-      alert('Manager is now a regular user!');
+      if (!window.confirm('Manager is now a regular user! Click OK to continue.')) return;
     } catch (error) {
       console.error('Error making manager user:', error);
-      alert('Failed to make manager user');
+      if (!window.confirm('Failed to make manager user. Click OK to continue.')) return;
     }
   };
 
@@ -176,10 +176,10 @@ const AdminDashboard = () => {
       setSelectedUsers([]);
       loadUsers();
       loadStats();
-      alert('Users deleted successfully!');
+      if (!window.confirm('Users deleted successfully! Click OK to continue.')) return;
     } catch (error) {
       console.error('Error deleting users:', error);
-      alert('Failed to delete users: ' + (error.message || 'Unknown error'));
+      if (!window.confirm('Failed to delete users: ' + (error.message || 'Unknown error') + '. Click OK to continue.')) return;
     }
   };
 
@@ -189,10 +189,10 @@ const AdminDashboard = () => {
       await Promise.all(selectedUsers.map(id => put(`/auth/users/${id}/status`, {})));
       setSelectedUsers([]);
       loadUsers();
-      alert('Users activated successfully!');
+      if (!window.confirm('Users activated successfully! Click OK to continue.')) return;
     } catch (error) {
       console.error('Error activating users:', error);
-      alert('Failed to activate users: ' + (error.message || 'Unknown error'));
+      if (!window.confirm('Failed to activate users: ' + (error.message || 'Unknown error') + '. Click OK to continue.')) return;
     }
   };
 
