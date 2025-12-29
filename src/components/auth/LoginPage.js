@@ -175,20 +175,36 @@ const LoginPage = ({ isSuperAdmin = false }) => {
         </div>
 
         <div className="flex justify-center mb-8">
-          <img
-            src={
-              companyId && !isSuperAdminLogin && companyData?.branding?.logo
-                ? (companyData.branding.logo.startsWith('http')
+          {companyId && !isSuperAdminLogin ? (
+            companyData?.branding?.logo ? (
+              <img
+                src={
+                  companyData.branding.logo.startsWith('http')
                     ? companyData.branding.logo
-                    : `${getBackendUrl()}${companyData.branding.logo}`)
-                : '/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png'
-            }
-            alt={companyId && !isSuperAdminLogin ? `${companyData?.name || 'Company'} Logo` : 'Mela Note Logo'}
-            className="h-16 object-contain"
-            onError={(e) => {
-              e.target.src = '/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png';
-            }}
-          />
+                    : `${getBackendUrl()}${companyData.branding.logo}`
+                }
+                alt={`${companyData?.name || 'Company'} Logo`}
+                className="h-16 object-contain"
+                onError={(e) => {
+                  e.target.src = '/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png';
+                }}
+              />
+            ) : loadingCompany ? (
+              <div className="h-16 w-16 bg-gray-200 animate-pulse rounded"></div>
+            ) : (
+              <img
+                src="/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png"
+                alt="Mela Note Logo"
+                className="h-16 object-contain"
+              />
+            )
+          ) : (
+            <img
+              src="/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png"
+              alt="Mela Note Logo"
+              className="h-16 object-contain"
+            />
+          )}
         </div>
 
         {(error || validationErrors.auth) && (
