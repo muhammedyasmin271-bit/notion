@@ -168,7 +168,11 @@ const LoginPage = ({ isSuperAdmin = false }) => {
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
             <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-indigo-500/20' : 'bg-indigo-100'}`}>
-              <LogIn className={`w-8 h-8 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
+              <img 
+                src="/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png" 
+                alt="Mela Note Logo" 
+                className={`w-8 h-8 object-contain ${isDarkMode ? 'brightness-0 invert' : ''}`}
+              />
             </div>
               </div>
           <h1 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
@@ -201,6 +205,9 @@ const LoginPage = ({ isSuperAdmin = false }) => {
               }
               alt={`${companyData?.name || 'Company'} Logo`}
               className="h-16 object-contain"
+              onError={(e) => {
+                e.target.src = '/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png';
+              }}
             />
           </div>
         )}

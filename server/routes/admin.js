@@ -516,9 +516,15 @@ router.get('/companies/:companyId/payment-status', auth, isSuperAdmin, async (re
       hoursRemaining: null,
       minutesRemaining: null,
       deadline: null,
-      isFree: paymentMode === 'free',
+      isFree: paymentMode === 'free' || company.selectedPlan === 'free_trial',
       expired: false
     };
+
+    // Skip countdown for free trial companies
+    if (company.selectedPlan === 'free_trial') {
+      status.isFree = true;
+      return res.json(status);
+    }
 
     if (paymentMode === 'paid' && !company.hasPaid) {
       // Check if company has a valid payment deadline

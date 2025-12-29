@@ -234,7 +234,7 @@ const NavBar = () => {
         {
           title: 'TOOLS',
           items: [
-            { name: 'MELA AI', icon: Brain, path: '/home' },
+            { name: 'MELA AI', icon: Brain, path: '/ai-assistant' },
           ]
         },
         {
