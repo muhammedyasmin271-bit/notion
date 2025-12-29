@@ -73,7 +73,7 @@ const AssignmentDebug = () => {
       }
     } catch (error) {
       console.error('Error testing assignment:', error);
-      alert('Error testing assignment. Check console for details.');
+      console.log('Error testing assignment. Check console for details.');
     }
   };
 

@@ -118,7 +118,7 @@ const MeetingEditorPage = () => {
 
   const handleSave = async () => {
     if (!meeting.title.trim()) {
-      alert('Please enter a meeting title');
+      console.log('Please enter a meeting title');
       return;
     }
     
@@ -176,12 +176,12 @@ const MeetingEditorPage = () => {
         localStorage.setItem(`meeting-${meetingId}`, JSON.stringify(savedMeeting));
       }
 
-      alert(`Meeting ${isNewMeeting ? 'created' : 'updated'} successfully!`);
+      console.log(`Meeting ${isNewMeeting ? 'created' : 'updated'} successfully!`);
       navigate('/meeting-notes');
       
     } catch (error) {
       console.error('Error saving meeting:', error);
-      alert('Failed to save meeting. Please try again.');
+      // alert('Failed to save meeting. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -373,7 +373,7 @@ const MeetingEditorPage = () => {
                           navigate('/meeting-notes');
                         } catch (error) {
                           console.error('Error deleting meeting:', error);
-                          alert('Failed to delete meeting. Please try again.');
+                          // alert('Failed to delete meeting. Please try again.');
                         }
                       }
                     }}

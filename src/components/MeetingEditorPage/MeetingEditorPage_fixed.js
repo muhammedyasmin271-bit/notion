@@ -76,7 +76,7 @@ const MeetingEditorPage = () => {
       navigate('/meeting-notes');
     } catch (error) {
       console.error('Error saving meeting:', error);
-      alert('Failed to save meeting. Please try again.');
+      // alert('Failed to save meeting. Please try again.');
     } finally {
       setIsSaving(false);
     }
