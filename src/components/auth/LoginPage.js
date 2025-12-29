@@ -170,7 +170,7 @@ const LoginPage = ({ isSuperAdmin = false }) => {
             {isSuperAdminLogin ? 'Super Admin Login' : (companyData?.branding?.companyName || companyData?.name || 'Company Login')}
           </h1>
           <p className={`mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            {isSuperAdminLogin ? 'Enter your administrative credentials' : 'Sign in to your account to continue'}
+            {isSuperAdminLogin ? 'Enter your administrative credentials' : 'darul kubra Sign in to your account to continue'}
           </p>
         </div>
 

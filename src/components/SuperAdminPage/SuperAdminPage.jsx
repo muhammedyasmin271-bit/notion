@@ -6,6 +6,7 @@ import { getApiUrl } from '../../utils/apiConfig';
 import { useAppContext } from '../../context/AppContext';
 import CompanyCalendar from '../CompanyCalendar/CompanyCalendar';
 import CompanyPaymentStatus from '../CompanyPaymentStatus/CompanyPaymentStatus';
+import ConfirmationModal from '../common/ConfirmationModal';
 
 const SuperAdminPage = () => {
   const { isDarkMode } = useTheme();
@@ -30,6 +31,30 @@ const SuperAdminPage = () => {
   const [verifyAction, setVerifyAction] = useState('approved');
   const [rejectionReason, setRejectionReason] = useState('');
   const [openMenuId, setOpenMenuId] = useState(null);
+
+  // Confirmation modal state
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info',
+    confirmText: 'OK',
+    onConfirm: null,
+    showCancel: false
+  });
+
+  // Helper function to show confirmation dialog
+  const showConfirmation = (title, message, type = 'info', confirmText = 'OK', onConfirm = null, showCancel = false) => {
+    setConfirmationModal({
+      isOpen: true,
+      title,
+      message,
+      type,
+      confirmText,
+      onConfirm,
+      showCancel
+    });
+  };
 
   const [editingLimits, setEditingLimits] = useState(false);
   const [limitsForm, setLimitsForm] = useState({ maxUsers: 50, maxStorage: 5368709120 });
@@ -492,8 +517,13 @@ const SuperAdminPage = () => {
   };
 
   const deleteCompany = async (companyId) => {
-    if (!window.confirm('Are you sure you want to delete this company and ALL its data? This action cannot be undone!')) return;
-    try {
+    showConfirmation(
+      'Delete Company',
+      'Are you sure you want to delete this company and ALL its data? This action cannot be undone!',
+      'danger',
+      'Delete Company',
+      async () => {
+        try {
       const envBackendUrl = process.env.REACT_APP_BACKEND_URL;
       const fallbackUrl = 'https://notion-l9ti.onrender.com';
       let backendUrl = fallbackUrl;
@@ -504,12 +534,15 @@ const SuperAdminPage = () => {
         method: 'DELETE',
         headers: { 'x-auth-token': localStorage.getItem('token') }
       });
-      setSuccess('Company deleted successfully!');
-      fetchCompanies();
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (error) {
-      setError('Failed to delete company');
-    }
+          setSuccess('Company deleted successfully!');
+          fetchCompanies();
+          setTimeout(() => setSuccess(''), 3000);
+        } catch (error) {
+          setError('Failed to delete company');
+        }
+      },
+      true
+    );
   };
 
   return (
@@ -1971,6 +2004,19 @@ const SuperAdminPage = () => {
             </div>
           </div>
         )}
+
+        {/* Confirmation Modal */}
+        <ConfirmationModal
+          isOpen={confirmationModal.isOpen}
+          onClose={() => setConfirmationModal({ ...confirmationModal, isOpen: false })}
+          onConfirm={confirmationModal.onConfirm}
+          title={confirmationModal.title}
+          message={confirmationModal.message}
+          type={confirmationModal.type}
+          confirmText={confirmationModal.confirmText}
+          showCancel={confirmationModal.showCancel}
+          isDarkMode={isDarkMode}
+        />
       </div>
     </div>
   );
