@@ -492,7 +492,7 @@ const SuperAdminPage = () => {
   };
 
   const deleteCompany = async (companyId) => {
-    if (!window.confirm('⚠️ Delete this company and ALL its data? This cannot be undone!')) return;
+    if (!window.confirm('Are you sure you want to delete this company and ALL its data? This action cannot be undone!')) return;
     try {
       const envBackendUrl = process.env.REACT_APP_BACKEND_URL;
       const fallbackUrl = 'https://notion-l9ti.onrender.com';
