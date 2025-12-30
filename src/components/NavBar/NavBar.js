@@ -270,7 +270,7 @@ const NavBar = () => {
       {/* Sidebar Navigation */}
       <nav
         ref={navRef}
-        className={`${isDarkMode ? 'bg-[#141414]' : 'bg-white'} transition-all duration-300 ease-in-out border-r ${isDarkMode ? 'border-gray-800' : 'border-gray-200'} w-64 min-h-screen fixed z-50 lg:translate-x-0 ${
+        className={`${isDarkMode ? 'bg-[#141414]' : 'bg-white'} transition-all duration-300 ease-in-out border-r ${isDarkMode ? 'border-gray-800' : 'border-gray-200'} w-64 min-w-64 max-w-80 min-h-screen fixed z-50 lg:translate-x-0 ${
           isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         } flex flex-col overflow-hidden`}
         style={isDarkMode ? { backgroundColor: '#141414' } : {}}
@@ -322,7 +322,7 @@ const NavBar = () => {
         </div>
 
         {/* Main Navigation Section */}
-        <div className="flex-1 overflow-y-auto px-2 sm:px-3 py-3 sm:py-4">
+        <div className="flex-1 overflow-y-auto overflow-x-auto px-2 sm:px-3 py-3 sm:py-4 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-transparent">
           {navigationCategories.map((category, categoryIndex) => (
             <div key={categoryIndex} className="mb-6">
               {/* Category Title */}
@@ -333,12 +333,12 @@ const NavBar = () => {
               </div>
               
               {/* Category Items */}
-              <div className="space-y-1">
+              <div className="space-y-1 min-w-max">
                 {category.items.map((item) => {
                   const Icon = item.icon;
                   const active = isActive(item.path);
                   const navPath = buildNavPath(item.path);
-                  
+
                   return (
                     <Link
                       key={item.path}
@@ -346,13 +346,13 @@ const NavBar = () => {
                       onClick={(e) => {
                         handleNavClick(e, item.path);
                       }}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors whitespace-nowrap ${
                         active
-                          ? isDarkMode 
-                            ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' 
+                          ? isDarkMode
+                            ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
                             : 'bg-blue-50 text-blue-600 border border-blue-200'
-                          : isDarkMode 
-                            ? 'text-gray-400 hover:bg-gray-800 hover:text-gray-300' 
+                          : isDarkMode
+                            ? 'text-gray-400 hover:bg-gray-800 hover:text-gray-300'
                             : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
                       }`}
                     >
