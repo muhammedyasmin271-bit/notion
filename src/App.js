@@ -92,7 +92,9 @@ const Layout = ({ children, hideNav = false }) => {
     >
       {!hideNav && <NavBar />}
       <div className="app-content">
-        {children}
+        <div className="w-full max-w-full mx-auto">
+          {children}
+        </div>
       </div>
       <AIAssistant hideOnAIPage />
       <NavigationPanel />

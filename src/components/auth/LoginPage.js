@@ -169,46 +169,47 @@ const LoginPage = ({ isSuperAdmin = false }) => {
           <h1 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
             {isSuperAdminLogin ? 'Super Admin Login' : (companyData?.branding?.companyName || companyData?.name || 'Company Login')}
           </h1>
-          <p className={`mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            {isSuperAdminLogin ? 'Enter your administrative credentials' : 'darul kubra Sign in to your account to continue'}
-          </p>
-        </div>
 
-        <div className="flex justify-center mb-8">
-          {companyId && !isSuperAdminLogin ? (
-            companyData?.branding?.logo ? (
-              <img
-                src={
-                  companyData.branding.logo.startsWith('data:') ||
-                  companyData.branding.logo.startsWith('http') ||
-                  companyData.branding.logo.startsWith('/ChatGPT') ||
-                  companyData.branding.logo.startsWith('/uploads')
-                    ? companyData.branding.logo
-                    : `${getBackendUrl()}${companyData.branding.logo}`
-                }
-                alt={`${companyData?.branding?.companyName || companyData?.name || 'Company'} Logo`}
-                className="h-16 object-contain"
-                onError={(e) => {
-                  // Fallback to default logo if image fails to load
-                  e.target.src = "/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png";
-                }}
-              />
-            ) : loadingCompany ? (
-              <div className="h-16 w-16 bg-gray-200 animate-pulse rounded"></div>
+          <div className="flex justify-center my-4">
+            {companyId && !isSuperAdminLogin ? (
+              companyData?.branding?.logo ? (
+                <img
+                  src={
+                    companyData.branding.logo.startsWith('data:') ||
+                    companyData.branding.logo.startsWith('http') ||
+                    companyData.branding.logo.startsWith('/ChatGPT') ||
+                    companyData.branding.logo.startsWith('/uploads')
+                      ? companyData.branding.logo
+                      : `${getBackendUrl()}${companyData.branding.logo}`
+                  }
+                  alt={`${companyData?.branding?.companyName || companyData?.name || 'Company'} Logo`}
+                  className="h-16 object-contain"
+                  onError={(e) => {
+                    // Fallback to default logo if image fails to load
+                    e.target.src = "/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png";
+                  }}
+                />
+              ) : loadingCompany ? (
+                <div className="h-16 w-16 bg-gray-200 animate-pulse rounded"></div>
+              ) : (
+                <img
+                  src="/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png"
+                  alt="Mela Note Logo"
+                  className="h-16 object-contain"
+                />
+              )
             ) : (
               <img
                 src="/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png"
                 alt="Mela Note Logo"
                 className="h-16 object-contain"
               />
-            )
-          ) : (
-            <img
-              src="/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png"
-              alt="Mela Note Logo"
-              className="h-16 object-contain"
-            />
-          )}
+            )}
+          </div>
+
+          <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            {isSuperAdminLogin ? 'Enter your administrative credentials' : 'darul kubra Sign in to your account to continue'}
+          </p>
         </div>
 
         {(error || validationErrors.auth) && (

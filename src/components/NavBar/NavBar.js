@@ -280,27 +280,27 @@ const NavBar = () => {
           style={isDarkMode ? { backgroundColor: '#141414' } : {}}
         >
           {/* Logo, Company Name, and Theme Toggle */}
-          <div className="flex items-center justify-between gap-3 px-4 py-4">
-            <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2 sm:gap-3 px-3 sm:px-4 py-3 sm:py-4">
+            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
               <img
                 src={
-                  company?.branding?.logo 
-                    ? (company.branding.logo.startsWith('data:') || 
-                        company.branding.logo.startsWith('http') || 
+                  company?.branding?.logo
+                    ? (company.branding.logo.startsWith('data:') ||
+                        company.branding.logo.startsWith('http') ||
                         company.branding.logo.startsWith('/ChatGPT') ||
                         company.branding.logo.startsWith('/uploads'))
-                        ? company.branding.logo 
+                        ? company.branding.logo
                         : `${getBackendUrl()}${company.branding.logo}`
                     : "/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png"
                 }
                 alt={`${company?.name || 'Company'} Logo`}
-                className={`h-8 w-8 object-contain flex-shrink-0 ${isDarkMode ? 'filter invert' : ''}`}
+                className={`h-6 w-6 sm:h-8 sm:w-8 object-contain flex-shrink-0 ${isDarkMode ? 'filter invert' : ''}`}
                 onError={(e) => {
                   // Fallback to default logo if image fails to load
                   e.target.src = "/ChatGPT_Image_Sep_24__2025__11_09_34_AM-removebg-preview.png";
                 }}
               />
-              <h2 className={`text-base font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} truncate`}>
+              <h2 className={`text-sm sm:text-base font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} truncate`}>
                 {company?.branding?.companyName || company?.name || 'Untitled UI'}
               </h2>
             </div>
@@ -322,7 +322,7 @@ const NavBar = () => {
         </div>
 
         {/* Main Navigation Section */}
-        <div className="flex-1 overflow-y-auto px-3 py-4">
+        <div className="flex-1 overflow-y-auto px-2 sm:px-3 py-3 sm:py-4">
           {navigationCategories.map((category, categoryIndex) => (
             <div key={categoryIndex} className="mb-6">
               {/* Category Title */}
@@ -368,7 +368,7 @@ const NavBar = () => {
         </div>
 
         {/* Bottom Section - Logout and User Profile */}
-        <div className={`flex-shrink-0 border-t ${isDarkMode ? 'border-gray-800' : 'border-gray-200'} p-3 space-y-1`}>
+        <div className={`flex-shrink-0 border-t ${isDarkMode ? 'border-gray-800' : 'border-gray-200'} p-2 sm:p-3 space-y-1`}>
           {/* Logout Button */}
           <button
             onClick={handleLogout}

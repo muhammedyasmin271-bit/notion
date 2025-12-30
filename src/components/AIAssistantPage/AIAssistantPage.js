@@ -646,14 +646,14 @@ const AIAssistantPage = () => {
 
       {/* Bottom Input Bar - Fixed */}
       <div className={`fixed bottom-0 left-0 right-0 border-t backdrop-blur-xl p-3 sm:p-4 transition-colors z-[60] lg:left-64 ${
-        isDarkMode 
-          ? 'bg-[#141414] border-gray-700/50' 
+        isDarkMode
+          ? 'bg-[#141414] border-gray-700/50'
           : 'bg-white border-gray-200/50'
       }`}>
         <div className="max-w-4xl mx-auto">
           <div className={`relative flex items-center rounded-xl sm:rounded-2xl px-4 sm:px-5 py-3.5 sm:py-4 border-2 transition-all duration-300 shadow-lg ${
-            isDarkMode 
-              ? 'bg-gray-800 border-gray-700 focus-within:border-indigo-500 focus-within:shadow-indigo-500/20' 
+            isDarkMode
+              ? 'bg-gray-800 border-gray-700 focus-within:border-indigo-500 focus-within:shadow-indigo-500/20'
               : 'bg-white border-gray-300 focus-within:border-indigo-400 focus-within:shadow-indigo-400/20'
           }`}>
             {/* Input Field */}

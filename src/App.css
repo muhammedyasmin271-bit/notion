@@ -9,6 +9,7 @@
 .app-content {
   transition: margin-left 300ms ease-in-out;
   min-height: 100vh;
+  padding: 1rem;
 }
 
 body.sidebar-expanded .app-content {
@@ -19,10 +20,30 @@ body.sidebar-collapsed .app-content {
   margin-left: 4rem; /* matches NavBar w-16 (64px) */
 }
 
+/* Responsive padding and margins */
+@media (min-width: 640px) {
+  .app-content {
+    padding: 1.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .app-content {
+    padding: 2rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .app-content {
+    padding: 2rem 2rem 2rem 0;
+  }
+}
+
 /* On mobile, sidebar overlays; content should not be offset */
-@media (max-width: 1024px) {
+@media (max-width: 1023px) {
   .app-content {
     margin-left: 0 !important;
+    padding: 1rem;
   }
 }
 
