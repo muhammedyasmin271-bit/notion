@@ -2068,7 +2068,7 @@ const NotepadPage = () => {
 					table.rowHeights = Array(table.rows).fill(32);
 				}
 				return (
-					<div className="flex items-start group relative mb-8 mr-8">
+					<div className="flex items-start group relative">
 						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
 							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
 								<Plus className="w-4 h-4" />
