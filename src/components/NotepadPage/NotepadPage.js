@@ -3014,6 +3014,19 @@ const NotepadPage = () => {
 											</div>
 										)}
 									</div>
+
+									{/* View Mode Toggle Button */}
+									<div className="relative flex-1 sm:flex-none">
+										<button
+											onClick={() => setViewMode(viewMode === 'list' ? 'grid' : 'list')}
+											className={`flex items-center justify-center w-full sm:w-auto px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl font-semibold transition-all duration-200 hover:scale-105 ${isDarkMode ? 'bg-[#141414] hover:bg-gray-800 text-white border border-white' : 'bg-white hover:bg-gray-100 text-black border border-black'} shadow-lg text-xs sm:text-sm`}
+                style={isDarkMode ? { backgroundColor: '#141414' } : {}}
+										>
+											{viewMode === 'list' ? <Grid className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> : <List className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />}
+											{viewMode === 'list' ? 'Grid' : 'List'}
+										</button>
+									</div>
+
 									</div>
 
 								</div>
