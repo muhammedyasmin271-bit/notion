@@ -441,7 +441,6 @@ const UserManagementPage = () => {
       true
     );
   };
-  };
 
   const handleMakeManager = async (userId) => {
     showConfirmation(

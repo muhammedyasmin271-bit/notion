@@ -437,6 +437,8 @@ const NotepadPage = () => {
 				message: 'Failed to delete note'
 			});
 		}
+			}
+		});
 	};
 
 	// Select note
