@@ -314,6 +314,32 @@ const NotepadPage = () => {
 	const saveNote = async () => {
 		if (!currentNote) return;
 
+		// Validate that note has a proper title
+		const noteTitle = title.trim();
+		if (!noteTitle || noteTitle === 'Untitled' || noteTitle === '') {
+			showModal({
+				title: 'Title Required',
+				message: 'Please enter a title for your note before saving.',
+				type: 'warning'
+			});
+			return;
+		}
+
+		// Validate that note has meaningful content
+		const hasContent = blocks.some(block => {
+			const content = block.content || '';
+			return content.trim().length > 0;
+		});
+
+		if (!hasContent) {
+			showModal({
+				title: 'Content Required',
+				message: 'Please add some content to your note before saving.',
+				type: 'warning'
+			});
+			return;
+		}
+
 		try {
 			// Generate unique save code
 			const saveCode = `NOTE_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -2193,16 +2219,12 @@ const NotepadPage = () => {
 									/>
 								</div>
 							)}
-							<input 
-								{...commonProps} 
-								placeholder="Or paste image URL" 
+							<input
+								{...commonProps}
+								placeholder="Or paste image URL"
 								className="text-center bg-transparent text-xs"
 								onChange={(e) => {
 									updateBlock(block.id, e.target.value);
-									// Auto-save when URL is entered
-									if (e.target.value.trim()) {
-										setTimeout(() => saveNote(), 500);
-									}
 								}}
 							/>
 						</div>
@@ -2286,16 +2308,12 @@ const NotepadPage = () => {
 									/>
 								</div>
 							)}
-							<input 
-								{...commonProps} 
-								placeholder="Or paste video URL (YouTube, Vimeo, etc.)" 
+							<input
+								{...commonProps}
+								placeholder="Or paste video URL (YouTube, Vimeo, etc.)"
 								className="text-xs"
 								onChange={(e) => {
 									updateBlock(block.id, e.target.value);
-									// Auto-save when URL is entered
-									if (e.target.value.trim()) {
-										setTimeout(() => saveNote(), 500);
-									}
 								}}
 							/>
 						</div>
@@ -2346,16 +2364,12 @@ const NotepadPage = () => {
 									<span className="text-sm text-gray-600">Bookmark</span>
 								</div>
 							)}
-							<input 
-								{...commonProps} 
-								placeholder="Paste any link to create a bookmark" 
+							<input
+								{...commonProps}
+								placeholder="Paste any link to create a bookmark"
 								className="mt-2"
 								onChange={(e) => {
 									updateBlock(block.id, e.target.value);
-									// Auto-save when URL is entered
-									if (e.target.value.trim()) {
-										setTimeout(() => saveNote(), 500);
-									}
 								}}
 							/>
 						</div>
@@ -2596,7 +2610,6 @@ const NotepadPage = () => {
 												if (!title.trim()) {
 													setTitle('Untitled');
 												}
-												saveNote();
 											}}
 											className={`text-2xl sm:text-3xl md:text-5xl font-bold bg-transparent border-none outline-none w-full leading-tight ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
 											placeholder=""
