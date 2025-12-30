@@ -166,11 +166,7 @@ const LoginPage = ({ isSuperAdmin = false }) => {
     <div className={`min-h-screen flex items-center justify-center p-4 transition-colors duration-300 ${isDarkMode ? 'bg-[#141414]' : 'bg-gray-50'}`}>
       <div className={`max-w-md w-full p-8 rounded-2xl shadow-xl transition-colors duration-300 ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-100'}`}>
         <div className="text-center mb-8">
-          <h1 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-            {isSuperAdminLogin ? 'Super Admin Login' : (companyData?.branding?.companyName || companyData?.name || 'Company Login')}
-          </h1>
-
-          <div className="flex justify-center my-4">
+          <div className="flex justify-center mb-4">
             {companyId && !isSuperAdminLogin ? (
               companyData?.branding?.logo ? (
                 <img
@@ -207,7 +203,11 @@ const LoginPage = ({ isSuperAdmin = false }) => {
             )}
           </div>
 
-          <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+          <h1 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+            {isSuperAdminLogin ? 'Super Admin Login' : (companyData?.branding?.companyName || companyData?.name || 'Company Login')}
+          </h1>
+
+          <p className={`mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
             {isSuperAdminLogin ? 'Enter your administrative credentials' : 'darul kubra Sign in to your account to continue'}
           </p>
         </div>
