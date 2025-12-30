@@ -15,6 +15,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import ConfirmationModal from '../common/ConfirmationModal';
 
 const MessagesPage = () => {
   const { isDarkMode } = useTheme();
@@ -27,6 +28,28 @@ const MessagesPage = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  // Modal state
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info',
+    confirmText: 'OK',
+    onConfirm: null,
+    showCancel: false
+  });
+
+  const showModal = (config) => {
+    setModalConfig({
+      isOpen: true,
+      title: config.title || 'Notification',
+      message: config.message || '',
+      type: config.type || 'info',
+      confirmText: config.confirmText || 'OK',
+      onConfirm: config.onConfirm || null,
+      showCancel: config.showCancel || false
+    });
+  };
 
   useEffect(() => {
     fetchMessages();
@@ -99,9 +122,13 @@ const MessagesPage = () => {
   };
 
   const handleDelete = async (messageId) => {
-    if (!window.confirm('Are you sure you want to delete this message?')) {
-      return;
-    }
+    showModal({
+      title: 'Delete Message',
+      message: 'Are you sure you want to delete this message?',
+      type: 'danger',
+      confirmText: 'Delete',
+      showCancel: true,
+      onConfirm: async () => {
 
     try {
       const token = localStorage.getItem('token');
@@ -129,6 +156,8 @@ const MessagesPage = () => {
       console.error('Error deleting message:', error);
       setError(error.message || 'Failed to delete message');
     }
+      }
+    });
   };
 
   const handleViewMessage = async (message) => {
@@ -463,6 +492,18 @@ const MessagesPage = () => {
             </div>
           </div>
         )}
+
+        <ConfirmationModal
+          isOpen={modalConfig.isOpen}
+          onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
+          onConfirm={modalConfig.onConfirm}
+          title={modalConfig.title}
+          message={modalConfig.message}
+          type={modalConfig.type}
+          confirmText={modalConfig.confirmText}
+          showCancel={modalConfig.showCancel}
+          isDarkMode={isDarkMode}
+        />
       </div>
     </div>
   );

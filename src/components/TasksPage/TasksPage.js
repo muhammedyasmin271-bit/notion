@@ -417,7 +417,13 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
   };
 
   const deleteTask = async (taskId) => {
-    if (!window.confirm('Are you sure you want to delete this task?')) return;
+    showModal({
+      title: 'Delete Task',
+      message: 'Are you sure you want to delete this task?',
+      type: 'danger',
+      confirmText: 'Delete',
+      showCancel: true,
+      onConfirm: async () => {
 
     try {
       const token = localStorage.getItem('token');
@@ -442,6 +448,8 @@ const TasksPage = ({ projectId: propProjectId, embedded = false }) => {
         type: 'danger'
       });
     }
+      }
+    });
   };
 
   const toggleTaskCompletion = async (taskId) => {

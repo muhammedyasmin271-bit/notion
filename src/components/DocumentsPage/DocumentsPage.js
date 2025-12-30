@@ -38,6 +38,7 @@ import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
 import { get, post, put, deleteRequest, upload as uploadFile } from '../../services/api';
 import { addNotification } from '../../utils/notifications';
+import ConfirmationModal from '../common/ConfirmationModal';
 
 const DocumentsPage = () => {
     const { user } = useAppContext();
@@ -58,8 +59,30 @@ const DocumentsPage = () => {
     const [recentFiles, setRecentFiles] = useState([]);
     const [showPreview, setShowPreview] = useState(false);
     const [previewDoc, setPreviewDoc] = useState(null);
+    // Modal state
+    const [modalConfig, setModalConfig] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'info',
+        confirmText: 'OK',
+        onConfirm: null,
+        showCancel: false
+    });
     const fileInputRef = useRef(null);
     const dropZoneRef = useRef(null);
+
+    const showModal = (config) => {
+        setModalConfig({
+            isOpen: true,
+            title: config.title || 'Notification',
+            message: config.message || '',
+            type: config.type || 'info',
+            confirmText: config.confirmText || 'OK',
+            onConfirm: config.onConfirm || null,
+            showCancel: config.showCancel || false
+        });
+    };
 
     const canManage = user && (user.role === 'admin' || user.role === 'manager');
     const canUpload = canManage; // Only managers can upload documents
@@ -375,10 +398,13 @@ const DocumentsPage = () => {
         }
         const docTitle = docToDelete?.title || 'this document';
 
-        const confirmed = window.confirm(
-            `Are you sure you want to permanently delete "${docTitle}"? This action cannot be undone and the document will be removed from the database.`
-        );
-        if (!confirmed) return;
+        showModal({
+            title: 'Delete Document',
+            message: `Are you sure you want to permanently delete "${docTitle}"? This action cannot be undone and the document will be removed from the database.`,
+            type: 'danger',
+            confirmText: 'Delete',
+            showCancel: true,
+            onConfirm: async () => {
 
         try {
             setDeletingDocs(prev => [...prev, docId]);
@@ -408,15 +434,20 @@ const DocumentsPage = () => {
                 message: `Failed to permanently delete "${docTitle}"`
             });
         }
+            }
+        });
     };
 
     const handleBulkDelete = async () => {
         if (!canManage || selectedDocs.length === 0) return;
 
-        const confirmed = window.confirm(
-            `Are you sure you want to permanently delete ${selectedDocs.length} documents? This action cannot be undone and the documents will be removed from the database.`
-        );
-        if (!confirmed) return;
+        showModal({
+            title: 'Delete Documents',
+            message: `Are you sure you want to permanently delete ${selectedDocs.length} documents? This action cannot be undone and the documents will be removed from the database.`,
+            type: 'danger',
+            confirmText: 'Delete All',
+            showCancel: true,
+            onConfirm: async () => {
 
         try {
             setDeletingDocs(prev => [...prev, ...selectedDocs]);
@@ -470,6 +501,8 @@ const DocumentsPage = () => {
                 message: 'Failed to permanently delete documents'
             });
         }
+            }
+        });
     };
 
     const formatFileSize = (bytes) => {
@@ -1259,6 +1292,18 @@ const DocumentsPage = () => {
                     accept="*/*"
                 />
             </div>
+
+            <ConfirmationModal
+                isOpen={modalConfig.isOpen}
+                onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
+                onConfirm={modalConfig.onConfirm}
+                title={modalConfig.title}
+                message={modalConfig.message}
+                type={modalConfig.type}
+                confirmText={modalConfig.confirmText}
+                showCancel={modalConfig.showCancel}
+                isDarkMode={isDarkMode}
+            />
         </div>
     );
 };

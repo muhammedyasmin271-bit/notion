@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
+import ConfirmationModal from '../common/ConfirmationModal';
 
 const TrashPage = () => {
   const { user } = useAppContext();
@@ -14,6 +15,28 @@ const TrashPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [selectedItems, setSelectedItems] = useState([]);
+  // Modal state
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info',
+    confirmText: 'OK',
+    onConfirm: null,
+    showCancel: false
+  });
+
+  const showModal = (config) => {
+    setModalConfig({
+      isOpen: true,
+      title: config.title || 'Notification',
+      message: config.message || '',
+      type: config.type || 'info',
+      confirmText: config.confirmText || 'OK',
+      onConfirm: config.onConfirm || null,
+      showCancel: config.showCancel || false
+    });
+  };
 
   useEffect(() => {
     loadDeletedItems();
@@ -44,7 +67,13 @@ const TrashPage = () => {
   });
 
   const handleRestore = (item) => {
-    if (!window.confirm(`Restore "${item.title || item.name}"?`)) return;
+    showModal({
+      title: 'Restore Item',
+      message: `Restore "${item.title || item.name}"?`,
+      type: 'info',
+      confirmText: 'Restore',
+      showCancel: true,
+      onConfirm: () => {
 
     const updatedDeletedItems = deletedItems.filter(deletedItem => 
       !(deletedItem.id === item.id && deletedItem.type === item.type)
@@ -90,10 +119,18 @@ const TrashPage = () => {
         ));
         break;
     }
+      }
+    });
   };
 
   const handlePermanentDelete = (item) => {
-    if (!window.confirm(`Permanently delete "${item.title || item.name}"? This cannot be undone.`)) return;
+    showModal({
+      title: 'Permanently Delete',
+      message: `Permanently delete "${item.title || item.name}"? This cannot be undone.`,
+      type: 'danger',
+      confirmText: 'Delete Forever',
+      showCancel: true,
+      onConfirm: () => {
 
     const updatedDeletedItems = deletedItems.filter(deletedItem => 
       !(deletedItem.id === item.id && deletedItem.type === item.type)
@@ -127,28 +164,46 @@ const TrashPage = () => {
         ));
         break;
     }
+      }
+    });
   };
 
   const handleBulkRestore = () => {
     if (selectedItems.length === 0) return;
-    if (!window.confirm(`Restore ${selectedItems.length} selected items?`)) return;
 
-    selectedItems.forEach(itemId => {
-      const item = deletedItems.find(i => i.id === itemId);
-      if (item) handleRestore(item);
+    showModal({
+      title: 'Restore Items',
+      message: `Restore ${selectedItems.length} selected items?`,
+      type: 'info',
+      confirmText: 'Restore All',
+      showCancel: true,
+      onConfirm: () => {
+        selectedItems.forEach(itemId => {
+          const item = deletedItems.find(i => i.id === itemId);
+          if (item) handleRestore(item);
+        });
+        setSelectedItems([]);
+      }
     });
-    setSelectedItems([]);
   };
 
   const handleBulkDelete = () => {
     if (selectedItems.length === 0) return;
-    if (!window.confirm(`Permanently delete ${selectedItems.length} selected items? This cannot be undone.`)) return;
 
-    selectedItems.forEach(itemId => {
-      const item = deletedItems.find(i => i.id === itemId);
-      if (item) handlePermanentDelete(item);
+    showModal({
+      title: 'Permanently Delete Items',
+      message: `Permanently delete ${selectedItems.length} selected items? This cannot be undone.`,
+      type: 'danger',
+      confirmText: 'Delete All Forever',
+      showCancel: true,
+      onConfirm: () => {
+        selectedItems.forEach(itemId => {
+          const item = deletedItems.find(i => i.id === itemId);
+          if (item) handlePermanentDelete(item);
+        });
+        setSelectedItems([]);
+      }
     });
-    setSelectedItems([]);
   };
 
   const toggleItemSelection = (itemId) => {
@@ -464,6 +519,18 @@ const TrashPage = () => {
             })}
           </div>
         )}
+
+        <ConfirmationModal
+          isOpen={modalConfig.isOpen}
+          onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
+          onConfirm={modalConfig.onConfirm}
+          title={modalConfig.title}
+          message={modalConfig.message}
+          type={modalConfig.type}
+          confirmText={modalConfig.confirmText}
+          showCancel={modalConfig.showCancel}
+          isDarkMode={isDarkMode}
+        />
       </div>
     </div>
   );

@@ -356,21 +356,28 @@ const UserManagementPage = () => {
   };
 
   const handleDeleteUser = async (userId) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      try {
-        const apiService = (await import('../../services/api')).default;
-        await apiService.deleteUser(userId);
-        await loadUsers();
-      if (!window.confirm('User deleted successfully! Click OK to continue.')) return;
-      } catch (error) {
-        console.error('Error deleting user:', error);
-        showConfirmation(
-          'Delete Failed',
-          'Failed to delete user. Please try again.',
-          'danger'
-        );
-      }
-    }
+    showConfirmation(
+      'Delete User',
+      'Are you sure you want to delete this user?',
+      'danger',
+      'Delete',
+      async () => {
+        try {
+          const apiService = (await import('../../services/api')).default;
+          await apiService.deleteUser(userId);
+          await loadUsers();
+          showConfirmation('Success', 'User deleted successfully!', 'success');
+        } catch (error) {
+          console.error('Error deleting user:', error);
+          showConfirmation(
+            'Delete Failed',
+            'Failed to delete user. Please try again.',
+            'danger'
+          );
+        }
+      },
+      true
+    );
   };
 
   const handleEditUser = (userToEdit) => {
@@ -383,7 +390,7 @@ const UserManagementPage = () => {
       const apiService = (await import('../../services/api')).default;
       await apiService.toggleUserStatus(userId);
       await loadUsers();
-      if (!window.confirm('User status updated successfully! Click OK to continue.')) return;
+      showConfirmation('Success', 'User status updated successfully!', 'success');
     } catch (error) {
       console.error('Error toggling user status:', error);
       showConfirmation(
@@ -399,7 +406,7 @@ const UserManagementPage = () => {
       const apiService = (await import('../../services/api')).default;
       await apiService.approveUser(userId);
       await loadUsers();
-      if (!window.confirm('User approved successfully. Click OK to continue.')) return;
+      showConfirmation('Success', 'User approved successfully.', 'success');
     } catch (error) {
       console.error('Error approving user:', error);
       showConfirmation(
@@ -411,66 +418,91 @@ const UserManagementPage = () => {
   };
 
   const handleDecline = async (userId) => {
-    if (!window.confirm('Are you sure you want to decline this user?')) return;
-    try {
-      const apiService = (await import('../../services/api')).default;
-      await apiService.declineUser(userId);
-      await loadUsers();
-      if (!window.confirm('User declined successfully. Click OK to continue.')) return;
-    } catch (error) {
-      console.error('Error declining user:', error);
-      showConfirmation(
-        'Decline Failed',
-        error.message || 'Failed to decline user.',
-        'danger'
-      );
-    }
+    showConfirmation(
+      'Decline User',
+      'Are you sure you want to decline this user?',
+      'warning',
+      'Decline',
+      async () => {
+        try {
+          const apiService = (await import('../../services/api')).default;
+          await apiService.declineUser(userId);
+          await loadUsers();
+          showConfirmation('Success', 'User declined successfully.', 'success');
+        } catch (error) {
+          console.error('Error declining user:', error);
+          showConfirmation(
+            'Decline Failed',
+            error.message || 'Failed to decline user.',
+            'danger'
+          );
+        }
+      },
+      true
+    );
+  };
   };
 
   const handleMakeManager = async (userId) => {
-    if (!window.confirm('Are you sure you want to make this user a manager?')) return;
-    try {
-      const apiService = (await import('../../services/api')).default;
-      // Use the admin endpoint if user is admin, otherwise use the manager endpoint
-      if (isAdmin) {
-        await apiService.put(`/auth/admin/users/${userId}/make-manager`, {});
-      } else {
-        // Fallback to manager endpoint
-        await apiService.put(`/auth/users/${userId}/make-manager`, {});
-      }
-      await loadUsers();
-      if (!window.confirm('User is now a manager. Click OK to continue.')) return;
-    } catch (error) {
-      console.error('Error making user manager:', error);
-      showConfirmation(
-        'Role Update Failed',
-        error.message || 'Failed to make user manager.',
-        'danger'
-      );
-    }
+    showConfirmation(
+      'Make Manager',
+      'Are you sure you want to make this user a manager?',
+      'info',
+      'Make Manager',
+      async () => {
+        try {
+          const apiService = (await import('../../services/api')).default;
+          // Use the admin endpoint if user is admin, otherwise use the manager endpoint
+          if (isAdmin) {
+            await apiService.put(`/auth/admin/users/${userId}/make-manager`, {});
+          } else {
+            // Fallback to manager endpoint
+            await apiService.put(`/auth/users/${userId}/make-manager`, {});
+          }
+          await loadUsers();
+          showConfirmation('Success', 'User is now a manager.', 'success');
+        } catch (error) {
+          console.error('Error making user manager:', error);
+          showConfirmation(
+            'Role Update Failed',
+            error.message || 'Failed to make user manager.',
+            'danger'
+          );
+        }
+      },
+      true
+    );
   };
 
   const handleMakeUser = async (userId) => {
-    if (!window.confirm('Are you sure you want to make this manager a regular user?')) return;
-    try {
-      const apiService = (await import('../../services/api')).default;
-      // Use the admin endpoint if user is admin, otherwise use the manager endpoint
-      if (isAdmin) {
-        await apiService.put(`/auth/admin/users/${userId}/make-user`, {});
-      } else {
-        // Fallback to manager endpoint
-        await apiService.put(`/auth/users/${userId}/make-user`, {});
-      }
-      await loadUsers();
-      if (!window.confirm('Manager is now a regular user. Click OK to continue.')) return;
-    } catch (error) {
-      console.error('Error making manager user:', error);
-      showConfirmation(
-        'Role Update Failed',
-        error.message || 'Failed to make manager user.',
-        'danger'
-      );
-    }
+    showConfirmation(
+      'Make Regular User',
+      'Are you sure you want to make this manager a regular user?',
+      'warning',
+      'Make User',
+      async () => {
+        try {
+          const apiService = (await import('../../services/api')).default;
+          // Use the admin endpoint if user is admin, otherwise use the manager endpoint
+          if (isAdmin) {
+            await apiService.put(`/auth/admin/users/${userId}/make-user`, {});
+          } else {
+            // Fallback to manager endpoint
+            await apiService.put(`/auth/users/${userId}/make-user`, {});
+          }
+          await loadUsers();
+          showConfirmation('Success', 'Manager is now a regular user.', 'success');
+        } catch (error) {
+          console.error('Error making manager user:', error);
+          showConfirmation(
+            'Role Update Failed',
+            error.message || 'Failed to make manager user.',
+            'danger'
+          );
+        }
+      },
+      true
+    );
   };
 
   const getRoleDisplay = (user) => {
@@ -503,10 +535,10 @@ const UserManagementPage = () => {
       setEditingUser(null);
       await loadUsers();
 
-      if (!window.confirm('Member updated successfully! Click OK to continue.')) return;
+      showConfirmation('Success', 'Member updated successfully!', 'success');
     } catch (error) {
       console.error('Error updating member:', error);
-      if (!window.confirm('Failed to update member. Please try again. Click OK to continue.')) return;
+      showConfirmation('Error', 'Failed to update member. Please try again.', 'danger');
     }
   };
 

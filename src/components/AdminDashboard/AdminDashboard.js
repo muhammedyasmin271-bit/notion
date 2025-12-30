@@ -118,10 +118,10 @@ const AdminDashboard = () => {
       setNewUser({ name: '', username: '', email: '', password: '', role: 'user' });
       loadUsers();
       loadStats();
-      if (!window.confirm('User created successfully! Click OK to continue.')) return;
+      showConfirmation('Success', 'User created successfully!', 'success');
     } catch (error) {
       console.error('Error creating user:', error);
-      if (!window.confirm('Failed to create user: ' + (error.message || 'Unknown error') + '. Click OK to continue.')) return;
+      showConfirmation('Error', 'Failed to create user: ' + (error.message || 'Unknown error'), 'danger');
     }
   };
 
@@ -133,23 +133,30 @@ const AdminDashboard = () => {
       loadStats();
     } catch (error) {
       console.error('Error toggling user status:', error);
-      if (!window.confirm('Failed to update user status. Click OK to continue.')) return;
+      showConfirmation('Error', 'Failed to update user status.', 'danger');
     }
   };
 
   const handleDeleteUser = async (userId) => {
-    if (!window.confirm('Are you sure you want to delete this user?')) return;
-
-    try {
-      const { deleteUser } = await import('../../services/api');
-      await deleteUser(userId);
-      loadUsers();
-      loadStats();
-      if (!window.confirm('User deleted successfully! Click OK to continue.')) return;
-    } catch (error) {
-      console.error('Error deleting user:', error);
-      if (!window.confirm('Failed to delete user: ' + (error.message || 'Unknown error') + '. Click OK to continue.')) return;
-    }
+    showConfirmation(
+      'Delete User',
+      'Are you sure you want to delete this user?',
+      'danger',
+      'Delete',
+      async () => {
+        try {
+          const { deleteUser } = await import('../../services/api');
+          await deleteUser(userId);
+          loadUsers();
+          loadStats();
+          showConfirmation('Success', 'User deleted successfully!', 'success');
+        } catch (error) {
+          console.error('Error deleting user:', error);
+          showConfirmation('Error', 'Failed to delete user: ' + (error.message || 'Unknown error'), 'danger');
+        }
+      },
+      true
+    );
   };
 
   const handleMakeManager = async (userId) => {
@@ -157,10 +164,10 @@ const AdminDashboard = () => {
       const { put } = await import('../../services/api');
       await put(`/auth/admin/users/${userId}/make-manager`, {});
       loadUsers();
-      if (!window.confirm('User is now a manager! Click OK to continue.')) return;
+      showConfirmation('Success', 'User is now a manager!', 'success');
     } catch (error) {
       console.error('Error making user manager:', error);
-      if (!window.confirm('Failed to make user manager. Click OK to continue.')) return;
+      showConfirmation('Error', 'Failed to make user manager.', 'danger');
     }
   };
 
@@ -169,10 +176,10 @@ const AdminDashboard = () => {
       const { put } = await import('../../services/api');
       await put(`/auth/admin/users/${userId}/make-user`, {});
       loadUsers();
-      if (!window.confirm('Manager is now a regular user! Click OK to continue.')) return;
+      showConfirmation('Success', 'Manager is now a regular user!', 'success');
     } catch (error) {
       console.error('Error making manager user:', error);
-      if (!window.confirm('Failed to make manager user. Click OK to continue.')) return;
+      showConfirmation('Error', 'Failed to make manager user.', 'danger');
     }
   };
 
@@ -193,19 +200,26 @@ const AdminDashboard = () => {
   };
 
   const handleBulkDelete = async () => {
-    if (!window.confirm(`Are you sure you want to delete ${selectedUsers.length} users?`)) return;
-
-    try {
-      const { deleteUser } = await import('../../services/api');
-      await Promise.all(selectedUsers.map(id => deleteUser(id)));
-      setSelectedUsers([]);
-      loadUsers();
-      loadStats();
-      if (!window.confirm('Users deleted successfully! Click OK to continue.')) return;
-    } catch (error) {
-      console.error('Error deleting users:', error);
-      if (!window.confirm('Failed to delete users: ' + (error.message || 'Unknown error') + '. Click OK to continue.')) return;
-    }
+    showConfirmation(
+      'Delete Users',
+      `Are you sure you want to delete ${selectedUsers.length} users?`,
+      'danger',
+      'Delete All',
+      async () => {
+        try {
+          const { deleteUser } = await import('../../services/api');
+          await Promise.all(selectedUsers.map(id => deleteUser(id)));
+          setSelectedUsers([]);
+          loadUsers();
+          loadStats();
+          showConfirmation('Success', 'Users deleted successfully!', 'success');
+        } catch (error) {
+          console.error('Error deleting users:', error);
+          showConfirmation('Error', 'Failed to delete users: ' + (error.message || 'Unknown error'), 'danger');
+        }
+      },
+      true
+    );
   };
 
   const handleBulkActivate = async () => {
@@ -214,10 +228,10 @@ const AdminDashboard = () => {
       await Promise.all(selectedUsers.map(id => put(`/auth/users/${id}/status`, {})));
       setSelectedUsers([]);
       loadUsers();
-      if (!window.confirm('Users activated successfully! Click OK to continue.')) return;
+      showConfirmation('Success', 'Users activated successfully!', 'success');
     } catch (error) {
       console.error('Error activating users:', error);
-      if (!window.confirm('Failed to activate users: ' + (error.message || 'Unknown error') + '. Click OK to continue.')) return;
+      showConfirmation('Error', 'Failed to activate users: ' + (error.message || 'Unknown error'), 'danger');
     }
   };
 

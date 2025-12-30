@@ -496,17 +496,36 @@ const MeetingEditorPage = () => {
       return;
     }
 
-    if (window.confirm('Are you sure you want to delete this meeting? This action cannot be undone.')) {
-      try {
-        await deleteMeeting(meetingId);
-        if (!window.confirm('Meeting deleted successfully! Click OK to continue.')) return;
-        const backUrl = currentCompanyId ? `/meeting-notes?company=${currentCompanyId}` : '/meeting-notes';
-        navigate(backUrl);
-      } catch (error) {
-        console.error('Error deleting meeting:', error);
-        if (!window.confirm(`Failed to delete meeting: ${error.message}. Click OK to continue.`)) return;
-      }
-    }
+    showConfirmation(
+      'Delete Meeting',
+      'Are you sure you want to delete this meeting? This action cannot be undone.',
+      'danger',
+      'Delete',
+      async () => {
+        try {
+          await deleteMeeting(meetingId);
+          showConfirmation(
+            'Success',
+            'Meeting deleted successfully!',
+            'success',
+            'OK',
+            () => {
+              const backUrl = currentCompanyId ? `/meeting-notes?company=${currentCompanyId}` : '/meeting-notes';
+              navigate(backUrl);
+            }
+          );
+        } catch (error) {
+          console.error('Error deleting meeting:', error);
+          showConfirmation(
+            'Error',
+            `Failed to delete meeting: ${error.message}`,
+            'danger',
+            'OK'
+          );
+        }
+      },
+      true
+    );
   };
 
   const updateBlockStyle = (blockId, styleUpdates) => {

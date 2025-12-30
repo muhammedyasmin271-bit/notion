@@ -145,15 +145,22 @@ const MeetingTemplatesPage = () => {
     };
 
     const handleDeleteTemplate = async (templateId) => {
-        if (window.confirm('Are you sure you want to delete this template?')) {
-            try {
-                await deleteMeetingTemplate(templateId);
-                loadTemplates(); // Refresh the list
-            } catch (error) {
-                console.error('Error deleting template:', error);
-                showConfirmation('Delete Failed', 'Failed to delete template. Please try again.', 'danger');
-            }
-        }
+        showConfirmation(
+            'Delete Template',
+            'Are you sure you want to delete this template?',
+            'danger',
+            'Delete',
+            async () => {
+                try {
+                    await deleteMeetingTemplate(templateId);
+                    loadTemplates(); // Refresh the list
+                } catch (error) {
+                    console.error('Error deleting template:', error);
+                    showConfirmation('Delete Failed', 'Failed to delete template. Please try again.', 'danger');
+                }
+            },
+            true
+        );
     };
 
     const handleUseTemplate = (template) => {

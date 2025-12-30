@@ -1568,39 +1568,46 @@ const SubmitReportPage = () => {
           {isEditMode && (
             <button
               type="button"
-              onClick={async () => {
-                if (window.confirm('Are you sure you want to delete this report? This action cannot be undone.')) {
-                  try {
-                    const editId = searchParams.get('edit');
-                    const token = localStorage.getItem('token');
-                    
-                    if (!token) {
-                      showConfirmation('Authentication Required', 'Authentication required. Please log in again.', 'warning', 'OK', () => navigate('/login'));
-                      return;
-                    }
+              onClick={() => {
+                showConfirmation(
+                  'Delete Report',
+                  'Are you sure you want to delete this report? This action cannot be undone.',
+                  'danger',
+                  'Delete',
+                  async () => {
+                    try {
+                      const editId = searchParams.get('edit');
+                      const token = localStorage.getItem('token');
 
-                    const response = await fetch(getApiUrl(`/api/reports/${editId}`), {
-                      method: 'DELETE',
-                      headers: {
-                        'x-auth-token': token,
-                        'Content-Type': 'application/json'
+                      if (!token) {
+                        showConfirmation('Authentication Required', 'Authentication required. Please log in again.', 'warning', 'OK', () => navigate('/login'));
+                        return;
                       }
-                    });
 
-                    if (response.ok) {
-                      showConfirmation('Success', 'Report deleted successfully', 'success', 'OK', () => {
-                        const backUrl = companyId ? `/reports?company=${companyId}` : '/reports';
-                        navigate(backUrl);
+                      const response = await fetch(getApiUrl(`/api/reports/${editId}`), {
+                        method: 'DELETE',
+                        headers: {
+                          'x-auth-token': token,
+                          'Content-Type': 'application/json'
+                        }
                       });
-                    } else {
-                      const errorData = await response.json();
-                      showConfirmation('Error', `Failed to delete report: ${errorData.message || 'Unknown error'}`, 'danger');
+
+                      if (response.ok) {
+                        showConfirmation('Success', 'Report deleted successfully', 'success', 'OK', () => {
+                          const backUrl = companyId ? `/reports?company=${companyId}` : '/reports';
+                          navigate(backUrl);
+                        });
+                      } else {
+                        const errorData = await response.json();
+                        showConfirmation('Error', `Failed to delete report: ${errorData.message || 'Unknown error'}`, 'danger');
+                      }
+                    } catch (error) {
+                      console.error('Error deleting report:', error);
+                      showConfirmation('Error', 'Failed to delete report. Please try again.', 'danger');
                     }
-                  } catch (error) {
-                    console.error('Error deleting report:', error);
-                    showConfirmation('Error', 'Failed to delete report. Please try again.', 'danger');
-                  }
-                }
+                  },
+                  true
+                );
               }}
               className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-all text-sm sm:text-base"
             >

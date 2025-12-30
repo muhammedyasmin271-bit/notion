@@ -173,10 +173,17 @@ const InviteMembersPage = () => {
   };
 
   const deleteInvitation = (invitationId) => {
-    if (window.confirm('Are you sure you want to delete this invitation?')) {
-      const updatedInvitations = invitations.filter(invitation => invitation.id !== invitationId);
-      setInvitations(updatedInvitations);
-    }
+    showConfirmation(
+      'Delete Invitation',
+      'Are you sure you want to delete this invitation?',
+      'danger',
+      'Delete',
+      () => {
+        const updatedInvitations = invitations.filter(invitation => invitation.id !== invitationId);
+        setInvitations(updatedInvitations);
+      },
+      true
+    );
   };
 
   const resendInvitation = (invitation) => {
