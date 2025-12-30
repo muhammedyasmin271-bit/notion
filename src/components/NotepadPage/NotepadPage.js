@@ -1387,7 +1387,7 @@ const NotepadPage = () => {
 			case 'h1':
 				return (
 					<div className="flex items-start group relative">
-						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 opacity-100`}>
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center w-6 h-6"
 								onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1453,7 +1453,7 @@ const NotepadPage = () => {
 			case 'h2':
 				return (
 					<div className="flex items-start group relative">
-						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 opacity-100`}>
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
 								onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1519,7 +1519,7 @@ const NotepadPage = () => {
 			case 'h3':
 				return (
 					<div className="flex items-start group relative">
-						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 opacity-100`}>
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
 								onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1585,7 +1585,7 @@ const NotepadPage = () => {
 			case 'bulleted':
 				return (
 					<div className="flex items-start group relative">
-						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 opacity-100`}>
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
 								onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1662,7 +1662,7 @@ const NotepadPage = () => {
 				};
 				return (
 					<div className="flex items-start group relative">
-						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 opacity-100`}>
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
 								onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1727,7 +1727,7 @@ const NotepadPage = () => {
 			case 'todo':
 				return (
 					<div className="flex items-start group relative">
-						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 opacity-100`}>
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
 								onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1792,7 +1792,7 @@ const NotepadPage = () => {
 			case 'quote':
 				return (
 					<div className="flex items-start group relative">
-						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 opacity-100`}>
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
 								onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1858,7 +1858,7 @@ const NotepadPage = () => {
 			case 'divider':
 				return (
 					<div className="flex items-center my-4 relative group">
-						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 opacity-100`}>
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
 								onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1922,7 +1922,7 @@ const NotepadPage = () => {
 					<div className={`flex items-start group relative rounded-lg p-4 my-2 ${isDarkMode ? 'bg-[#141414]/30' : 'bg-gray-50'}`}
             style={isDarkMode ? { backgroundColor: 'rgba(20, 20, 20, 0.3)' } : {}}
           >
-						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 opacity-100`}>
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
 								onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -1987,7 +1987,7 @@ const NotepadPage = () => {
 			case 'code':
 				return (
 					<div className="flex items-start group relative">
-						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 opacity-100`}>
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
 								onClick={(e) => handlePlusButtonClick(e, block.id)}
@@ -2069,7 +2069,7 @@ const NotepadPage = () => {
 				}
 				return (
 					<div className="flex items-start group relative">
-						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 opacity-100`}>
 							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
 								<Plus className="w-4 h-4" />
 							</button>
@@ -2181,7 +2181,7 @@ const NotepadPage = () => {
 			case 'image':
 				return (
 					<div className="flex items-start group relative">
-						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 opacity-100`}>
 							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
 								<Plus className="w-4 h-4" />
 							</button>
@@ -2252,7 +2252,7 @@ const NotepadPage = () => {
 			case 'video':
 				return (
 					<div className="flex items-start group relative">
-						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 opacity-100`}>
 							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
 								<Plus className="w-4 h-4" />
 							</button>
@@ -2341,7 +2341,7 @@ const NotepadPage = () => {
 			case 'link':
 				return (
 					<div className="flex items-start group relative">
-						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 opacity-100`}>
 							<button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center w-6 h-6" onClick={(e) => handlePlusButtonClick(e, block.id)}>
 								<Plus className="w-4 h-4" />
 							</button>
@@ -2397,7 +2397,7 @@ const NotepadPage = () => {
 			default: // text
 				return (
 					<div className={`flex items-start group relative ${aiInputBlock === block.id ? (isDarkMode ? 'bg-white/10 rounded-lg p-2' : 'bg-black/10 rounded-lg p-2') : ''} transition-all duration-200`}>
-						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 ${activeBlockId === block.id ? 'opacity-100' : 'opacity-0 sm:group-hover:opacity-100'}`}>
+						<div className={`flex items-center transition-opacity mr-0.5 sm:mr-1 gap-0 sm:gap-1 opacity-100`}>
 							<button
 								className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
 								onClick={(e) => handlePlusButtonClick(e, block.id)}
