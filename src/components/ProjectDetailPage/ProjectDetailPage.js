@@ -687,59 +687,64 @@ const ProjectDetailPage = ({ isNewProject = false }) => {
 
 
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!project || project.id === 'new') return;
-    
-    if (!window.confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
-      return;
-    }
-    
-    setSaving(true);
-    
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        showModal({
-          title: 'Authentication Required',
-          message: 'Please log in to delete projects',
-          type: 'warning'
-        });
-        return;
-      }
 
-      const response = await fetch(getApiUrl(`/api/projects/${project.id}`), {
-        method: 'DELETE',
-        headers: { 'x-auth-token': token }
-      });
+    showModal({
+      title: 'Delete Project',
+      message: 'Are you sure you want to delete this project? This action cannot be undone.',
+      type: 'danger',
+      confirmText: 'Delete',
+      showCancel: true,
+      onConfirm: async () => {
+        setSaving(true);
 
-      if (response.ok) {
-        showModal({
-          title: 'Success',
-          message: 'Project deleted successfully!',
-          type: 'success',
-          onConfirm: () => {
-        const backUrl = companyId ? `/projects?company=${companyId}` : '/projects';
-        navigate(backUrl);
+        try {
+          const token = localStorage.getItem('token');
+          if (!token) {
+            showModal({
+              title: 'Authentication Required',
+              message: 'Please log in to delete projects',
+              type: 'warning'
+            });
+            return;
           }
-        });
-      } else {
-        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-        showModal({
-          title: 'Error',
-          message: `Failed to delete project: ${errorData.message || response.status}`,
-          type: 'danger'
-        });
+
+          const response = await fetch(getApiUrl(`/api/projects/${project.id}`), {
+            method: 'DELETE',
+            headers: { 'x-auth-token': token }
+          });
+
+          if (response.ok) {
+            showModal({
+              title: 'Success',
+              message: 'Project deleted successfully!',
+              type: 'success',
+              onConfirm: () => {
+                const backUrl = companyId ? `/projects?company=${companyId}` : '/projects';
+                navigate(backUrl);
+              }
+            });
+          } else {
+            const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+            showModal({
+              title: 'Error',
+              message: `Failed to delete project: ${errorData.message || response.status}`,
+              type: 'danger'
+            });
+          }
+        } catch (error) {
+          console.error('Error deleting project:', error);
+          showModal({
+            title: 'Error',
+            message: 'Failed to delete project. Please try again.',
+            type: 'danger'
+          });
+        } finally {
+          setSaving(false);
+        }
       }
-    } catch (error) {
-      console.error('Error deleting project:', error);
-      showModal({
-        title: 'Error',
-        message: 'Failed to delete project. Please try again.',
-        type: 'danger'
-      });
-    } finally {
-      setSaving(false);
-    }
+    });
   };
 
   const handleSave = async () => {
