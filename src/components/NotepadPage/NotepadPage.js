@@ -74,6 +74,7 @@ import { useAppContext } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
 import { get, post, put, deleteRequest } from '../../services/api';
 import { addNotification } from '../../utils/notifications';
+import ConfirmationModal from '../common/ConfirmationModal';
 import RoleGuard from '../common/RoleGuard';
 
 const NotepadPage = () => {
@@ -104,6 +105,16 @@ const NotepadPage = () => {
 	const [selectedTag, setSelectedTag] = useState('all');
 	const [showTagModal, setShowTagModal] = useState(false);
 	const [newTag, setNewTag] = useState('');
+	// Modal state
+	const [modalConfig, setModalConfig] = useState({
+		isOpen: false,
+		title: '',
+		message: '',
+		type: 'info',
+		confirmText: 'OK',
+		onConfirm: null,
+		showCancel: false
+	});
 	const [availableUsers, setAvailableUsers] = useState([]);
 	const [lastSaved, setLastSaved] = useState(null);
 	const [tableData, setTableData] = useState({});
@@ -117,6 +128,18 @@ const NotepadPage = () => {
 	const formattingMenuRef = useRef(null);
 	const blockMenuRef = useRef(null);
 	const blockRefs = useRef({});
+
+	const showModal = (config) => {
+		setModalConfig({
+			isOpen: true,
+			title: config.title || 'Notification',
+			message: config.message || '',
+			type: config.type || 'info',
+			confirmText: config.confirmText || 'OK',
+			onConfirm: config.onConfirm || null,
+			showCancel: config.showCancel || false
+		});
+	};
 
 
 	// Load notes
@@ -385,13 +408,18 @@ const NotepadPage = () => {
 	};
 
 	// Delete note
-	const deleteNote = async (noteId) => {
-		if (!window.confirm('Are you sure you want to delete this note?')) return;
-
-		try {
-			await deleteRequest(`/notepad/${noteId}`);
-			setNotes(prev => prev.filter(note => note._id !== noteId));
-			if (currentNote?._id === noteId) {
+	const deleteNote = (noteId) => {
+		showModal({
+			title: 'Delete Note',
+			message: 'Are you sure you want to delete this note? This action cannot be undone.',
+			type: 'danger',
+			confirmText: 'Delete',
+			showCancel: true,
+			onConfirm: async () => {
+				try {
+					await deleteRequest(`/notepad/${noteId}`);
+					setNotes(prev => prev.filter(note => note._id !== noteId));
+					if (currentNote?._id === noteId) {
 				setCurrentNote(null);
 				setTitle('');
 				setBlocks([{ id: 'block-1', type: 'text', content: '' }]);
@@ -3430,6 +3458,18 @@ const NotepadPage = () => {
 					</div>
 				</div>
 			)}
+
+			<ConfirmationModal
+				isOpen={modalConfig.isOpen}
+				onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
+				onConfirm={modalConfig.onConfirm}
+				title={modalConfig.title}
+				message={modalConfig.message}
+				type={modalConfig.type}
+				confirmText={modalConfig.confirmText}
+				showCancel={modalConfig.showCancel}
+				isDarkMode={isDarkMode}
+			/>
 		</div >
 	);
 };
