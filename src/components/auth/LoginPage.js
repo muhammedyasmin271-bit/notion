@@ -203,7 +203,7 @@ const LoginPage = ({ isSuperAdmin = false }) => {
             )}
           </div>
 
-          <h1 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+          <h1 className={`text-xl font-bold mt-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
             {isSuperAdminLogin ? 'Super Admin Login' : (companyData?.branding?.companyName || companyData?.name || 'Company Login')}
           </h1>
 
